@@ -6,6 +6,7 @@
 #include "artbox/native_syscall.h"
 #include "artbox/native_vm.h"
 #include "artbox/native_system.h"
+#include "artbox/devices.h"
 #include <dlfcn.h>
 #include <inttypes.h>
 #include <pthread.h>
@@ -25,6 +26,7 @@ typedef struct module {
 } module;
 static module images[2];
 static artbox_vm *vm;
+static artbox_devices *devices;
 static artbox_kernel_thread thread;
 static unsigned calls, absent_netd, constructors;
 static unsigned unsupported[512];
@@ -133,6 +135,7 @@ static void load(module *m, const char *framework, const char *file) {
 static int64_t dispatch(void *context, uint64_t n, uint64_t a0, uint64_t a1, uint64_t a2,
                         uint64_t a3, uint64_t a4, uint64_t a5) {
     int64_t value = artbox_kernel_call(context, n, a0, a1, a2, a3, a4, a5);
+    if (value == -38) value = artbox_devices_call(devices, context, n, a0, a1, a2, a3);
     if (n == 66 && a0 == 2 && a2 <= 16) {
         // Observe Bionic's fatal diagnostics without pretending writev is
         // implemented: the syscall still returns its original ENOSYS below.
@@ -209,7 +212,8 @@ int main(int argc, char **argv) {
     artbox_vm_ops ops = artbox_native_vm();
     artbox_system_ops system = artbox_native_system();
     vm = artbox_vm_create(&ops, UINT64_C(32) << 30, 4096);
-    if (!vm || artbox_kernel_thread_init(&thread, vm, &system, 10000, 10000)) fail("kernel context");
+    devices = artbox_devices_create(256);
+    if (!vm || !devices || artbox_kernel_thread_init(&thread, vm, &system, 10000, 10000)) fail("kernel context");
     uint64_t start = now();
     load(&images[0], argv[1], argv[2]); load(&images[1], argv[3], argv[4]);
     if (images[0].dynamic.needed_count || images[1].dynamic.needed_count != 1 ||
@@ -228,12 +232,13 @@ int main(int argc, char **argv) {
     if (pthread_attr_init(&attr) || pthread_attr_setstack(&attr, (void *)(uintptr_t)((uint64_t)stack + page), stack_size) ||
         pthread_create(&worker, &attr, run, NULL) || pthread_attr_destroy(&attr) || pthread_join(worker, NULL)) fail("host execution thread");
     uint64_t finished = now(), reserved = artbox_vm_reserved_bytes(vm);
-    if (result != 134 || absent_netd != 1 || !constructors) {
+    if (result != 146 || absent_netd != 1 || !constructors) {
         fprintf(stderr, "client result: %" PRId64 ", absent netd: %u, constructors: %u\n", result, absent_netd, constructors);
         fail("allocator acceptance");
     }
+    artbox_devices_destroy(devices);
     if (artbox_vm_destroy(vm)) fail("release reservations");
-    printf("{\"cases\":134,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
+    printf("{\"cases\":146,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
            ",\"startup_client_ns\":%" PRIu64 ",\"reserved_bytes\":%" PRIu64 ",\"unsupported_syscalls\":{",
            constructors, absent_netd, calls, loaded-start, finished-loaded, reserved);
     unsigned printed = 0;

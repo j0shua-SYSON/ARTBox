@@ -1,10 +1,12 @@
 // Original NDK client, MIT. Links dynamically to the selected real Bionic.
 #include <errno.h>
+#include <fcntl.h>
 #include <malloc.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #define CHECK(condition) do { if (!(condition)) return -__LINE__; ++cases; } while (0)
@@ -43,5 +45,25 @@ int artbox_startup_check(void) {
     char* text = strdup("Bionic allocator ready");
     CHECK(text != NULL && strcmp(text, "Bionic allocator ready") == 0);
     free(text);
+    unsigned char data[32];
+    memset(data, 0x5a, sizeof(data));
+    int fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
+    CHECK(fd >= 3);
+    CHECK(read(fd, data + 1, 16) == 16);
+    CHECK(data[0] == 0x5a && data[17] == 0x5a);
+    struct stat st;
+    CHECK(fstat(fd, &st) == 0 && S_ISCHR(st.st_mode));
+    CHECK(lseek(fd, 123, SEEK_SET) == 0);
+    CHECK(close(fd) == 0);
+    CHECK(close(fd) == -1 && errno == EBADF);
+    fd = open("/dev/zero", O_RDONLY);
+    CHECK(fd >= 3 && read(fd, data, sizeof(data)) == sizeof(data));
+    unsigned total = 0;
+    for (unsigned i = 0; i < sizeof(data); ++i) total |= data[i];
+    CHECK(total == 0);
+    CHECK(close(fd) == 0);
+    fd = open("/dev/null", O_RDWR);
+    CHECK(fd >= 3 && write(fd, data, sizeof(data)) == sizeof(data) && read(fd, data, sizeof(data)) == 0);
+    CHECK(close(fd) == 0);
     return cases;
 }

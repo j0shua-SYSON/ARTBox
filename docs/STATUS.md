@@ -66,7 +66,11 @@ The 221-source property/CRT selection and arithmetic objects pass CI at `726d758
 All 123 exact-bit arithmetic/comparison cases pass in the signed macOS wrapper
 and with the identical NDK object on native Linux ARM64. Downloaded object,
 notice, iOS framework and IPA hashes/layouts match their reports.
-Complete Bionic startup and dynamic execution remain unimplemented. The host
+Real Bionic TLS startup now executes in the signed Mac wrapper at `203b8b6`.
+Its libc constructor reaches Scudo initialization but initially aborts after
+exhausting AT_RANDOM, because the virtual random device was missing. The retry
+adds tested virtual devices and coarse clocks; allocator-client completion is
+still pending. See [startup integration](bionic-startup.md). The host
 dispatch test covers 12 threads, nested bindings and the five M1 syscalls;
 it does not add syscall semantics or initialize guest TLS.
 The allocator build retains AOSP Scudo and GWP-ASan. GWP-ASan's platform TLS hook
