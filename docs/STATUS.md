@@ -3,7 +3,8 @@
 M0 provides a portable startup contract and an iOS 15+ UIKit log console.
 Host tests verify exactly `ARTBox ready` and exit code 0. The iOS workflow builds
 the real arm64 device target, validates its transport signature and emits an IPA.
-The revised Python automation is being validated across Windows, macOS and Linux.
+Python automation passes Windows, macOS, Linux and iOS CI. The downloaded
+iOS 15 IPA matches its manifest; see [M0 acceptance](acceptance/m0.md).
 
 M0's physical-device check was waived by the project owner. Device execution
 remains unverified; the waiver is not a passing device result. The milestone PR
@@ -17,9 +18,8 @@ recorded before loader implementation.
 
 ## Next verification
 
-1. Validate the cross-platform Python build entry point and retrieve the iOS 15 IPA.
-2. Run the same static NDK ARM64 ELF through both signed packaging prototypes.
-3. Compare native Apple execution with unchanged execution on ARM64 Linux,
+1. Run the same static NDK ARM64 ELF through both signed packaging prototypes.
+2. Compare native Apple execution with unchanged execution on ARM64 Linux,
    record five-syscall results and measure packaging and runtime costs.
 
 ## Three largest M1 risks
