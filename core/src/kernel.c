@@ -25,6 +25,9 @@ int64_t artbox_kernel_call(void *context, uint64_t number, uint64_t a0, uint64_t
             return thread->tid;
         case 113: {
             unsigned id = (uint32_t)a0;
+            // A precise clock is a valid, potentially slower implementation of
+            // Linux's coarse clock. Scudo uses MONOTONIC_COARSE during startup.
+            if (id == 5 || id == 6) id -= 5;
             if (id > 1) return -22;
             artbox_timespec value;
             int result = thread->system.clock(id, &value);

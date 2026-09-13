@@ -73,13 +73,21 @@ int main() {
     CHECK(call(a, 226, address + memory.page_size, memory.page_size, 3) == 0);
     CHECK(call(a, 113, 99, address) == -22);
     CHECK(call(a, 113, 0, 0) == -14);
-    for (unsigned id : {0u, 1u}) {
+    for (unsigned id : {0u, 1u, 5u, 6u}) {
         artbox_timespec early{}, guest{}, late{};
-        CHECK(system.clock(id, &early) == 0);
+        unsigned native_id = id >= 5 ? id - 5 : id;
+        CHECK(system.clock(native_id, &early) == 0);
         CHECK(call(a, 113, id, address + 1) == 0); // Linux permits an unaligned output structure.
         CHECK(artbox_vm_read(vm, address + 1, &guest, sizeof(guest)) == 0);
-        CHECK(system.clock(id, &late) == 0);
+        CHECK(system.clock(native_id, &late) == 0);
         CHECK(guest.nanoseconds >= 0 && guest.nanoseconds < 1000000000 && before(early, guest) && before(guest, late));
+#if defined(__linux__)
+        struct timespec coarse;
+        CHECK(clock_gettime(static_cast<clockid_t>(id), &coarse) == 0);
+        CHECK(coarse.tv_nsec >= 0 && coarse.tv_nsec < 1000000000);
+        // A coarse kernel snapshot can trail the precise clock by a tick.
+        CHECK(coarse.tv_sec >= guest.seconds - 1 && coarse.tv_sec <= guest.seconds + 1);
+#endif
     }
     a.system.random = bad_random;
     CHECK(call(a, 278, address, 16) == -5);
