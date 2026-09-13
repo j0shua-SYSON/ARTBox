@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
     artbox_memory_ops memory = artbox_native_memory();
     artbox_guest* guest;
     const void *generic, *probe, *message;
-    uint64_t started, loaded, relocated, finished;
+    uint64_t started, loaded, relocated, executing, finished;
     if (argc != 3) return 2;
     input = fopen(argv[2], "rb");
     if (!input || fseek(input, 0, SEEK_END) || (length = ftell(input)) < 0 || length > 64 * 1024 * 1024 || fseek(input, 0, SEEK_SET)) return 2;
@@ -121,6 +121,7 @@ int main(int argc, char** argv) {
     if (!guest) return 1;
     const artbox_syscall_binding binding = {dispatch, guest};
     const artbox_syscall_binding* previous = artbox_native_syscall_swap(&binding);
+    executing = now();
     for (unsigned i = 0; i < 100; ++i) {
         uint64_t mapped;
         if (artbox_call7(probe, 0, 0, 0, 0, 0, 0, 0) != UINT64_C(0x123456789abcdef0)) return 1;
@@ -145,7 +146,8 @@ int main(int argc, char** argv) {
     free(original);
     printf("{\"iterations\":100,\"writes\":200,\"exit_status\":0,\"constructor_runs\":1,"
            "\"rela\":%zu,\"plt\":%zu,\"relr\":%zu,\"dlopen_and_validate_ns\":%" PRIu64 ","
-           "\"relocate_and_construct_ns\":%" PRIu64 ",\"iterations_ns\":%" PRIu64 "}\n",
-           stats.rela_count, stats.plt_count, stats.relr_count, loaded - started, relocated - loaded, finished - relocated);
+           "\"relocate_and_construct_ns\":%" PRIu64 ",\"guest_setup_ns\":%" PRIu64 ",\"iterations_ns\":%" PRIu64 "}\n",
+           stats.rela_count, stats.plt_count, stats.relr_count, loaded - started, relocated - loaded,
+           executing - relocated, finished - executing);
     return 0;
 }

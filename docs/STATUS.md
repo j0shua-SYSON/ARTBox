@@ -35,7 +35,10 @@ leaves destination data unchanged. Symbol versions, the dependency namespace,
 runtime TLS, IFUNC and constructors remain unimplemented;
 see [dynamic loader details](dynamic-loader.md). A new controlled dynamic wrapper
 packs a Bionic syscall slice with separate signed RX/RW sections; Apple layout
-verification and execution are pending CI. The M1 packer remains unchanged.
+verification and 100 native macOS iterations pass. It also builds/signs for
+iOS 15 as a separate framework; see [dynamic-wrapper evidence](dynamic-wrapper.md).
+This slice contains actual Bionic syscall code and its errno setter, with test
+errno storage. It is not complete libc startup. The M1 packer remains unchanged.
 
 The Bionic Android 15 source archive and notice are pinned and staged through
 portable Python tooling. Source extraction tests cover hash/size mismatch,
