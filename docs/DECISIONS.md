@@ -359,7 +359,7 @@ checks the public Bionic error conversion on Linux and through the signed wrappe
 
 ## 0019 - Supply virtual entropy devices for real libc startup
 
-Status: implemented; portable tests pass, signed startup retry pending.
+Status: implemented; portable tests and signed Bionic startup pass at `5671845`.
 
 The first actual shared-libc startup reached final Bionic TLS and its priority-1
 constructor. It aborted with `ran out of AT_RANDOM bytes, have 0, requested 1`.

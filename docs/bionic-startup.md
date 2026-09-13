@@ -40,5 +40,30 @@ libc's priority-1 constructor. It then aborted after exhausting AT_RANDOM:
 GWP-ASan requested another byte while `/dev/urandom` was absent. The virtual-device
 implementation makes the normal AOSP entropy path available without modifying
 Bionic's fallback or pretending that an absent file exists. Native completion
-with that fix is pending CI. Diagnostics and source,
+passes with that fix at `5671845`. Diagnostics and source,
 object, framework and notice hashes are retained in the `bionic-startup` artifact.
+
+## Verified execution
+
+Implementation `5671845` passes [host and Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34759298382)
+and the [iOS regression build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34759298361).
+All 13 portable contracts pass, including native Linux comparisons for supported
+device operations. The signed Mac pair completes 146 checks, three constructors,
+one absent optional netd lookup and 127 syscalls. Unknown calls remain recorded
+as ENOSYS; signals, futex wake, scheduler queries, property-file stat, prctl and
+logging sockets are not made successful by the fixture.
+
+One measured run takes 3.387 ms to read/load/relocate the images, then 3.707 ms
+for native pthread setup, Bionic initialization and the client, including tracing.
+This is a correctness run, not isolated allocator throughput. The VM tracks
+8,864,874,496 reserved bytes, mostly Scudo's 8.25 GiB primary address reservation.
+That is virtual address space, not committed or resident memory. Reducing this
+reservation and measuring resident memory remain necessary iOS work.
+
+Downloaded ELF, signed macOS/iOS container bytes, load biases and every notice
+match their reports. libc ELF SHA-256:
+`c6a5135b0a781713ee6167e17bf212e303755a358a961acafd22c0456660b29a`;
+client ELF SHA-256:
+`21644a7083513fecacd2e4e58153103c842844f700b185fee1e781fa73a5122b`.
+Physical iPhone execution is unverified. This is substantial M2 startup progress;
+the mandatory guest threads, regular files and file-backed mappings remain open.
