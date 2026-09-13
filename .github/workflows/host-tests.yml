@@ -67,6 +67,8 @@ jobs:
             artifacts/m2-bionic-profile-check.json
             build/m2/bionic/*/bionic-m2-partial.o
             build/m2/bionic/*/BIONIC-NOTICE.txt
+            build/m2/bionic/*/LIBCUTILS-NOTICE.txt
+            build/m2/bionic/*/bionic_inline_raise.h
             build/m1/hello.elf
             build/m1/elf-build.json
             build/m1/macos/ARTBox*-load-commands.txt
@@ -93,9 +95,13 @@ jobs:
           python3 -B scripts/test_native.py --platform linux
           --elf build/oracle/build/m1/hello.elf
           --manifest build/oracle/artifacts/m1-native.json
+      - name: Compare Bionic inline signals with the original native Linux path
+        run: python3 -B scripts/test_bionic_raise.py --evidence-root build/oracle
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: linux-arm64-oracle
-          path: artifacts/m1-linux.json
+          path: |
+            artifacts/m1-linux.json
+            artifacts/m2-inline-raise-linux.json
           if-no-files-found: error
           retention-days: 7

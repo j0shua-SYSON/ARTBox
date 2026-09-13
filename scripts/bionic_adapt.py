@@ -54,12 +54,28 @@ def inventory(disassembly):
             **{name: len(re.findall(pattern, instructions, re.IGNORECASE)) for name, pattern in patterns.items()}}
 
 
-def check_native(counts, undefined):
+def stack_references(relocations):
+    counts = {"failure_branches": 0, "guard_address_relocations": 0}
+    for section in relocations:
+        for item in section["Relocs"]:
+            relocation = item["Relocation"]
+            kind, symbol = relocation["Type"]["Name"], relocation["Symbol"]["Name"]
+            if symbol == "__stack_chk_fail" and kind in ("R_AARCH64_CALL26", "R_AARCH64_JUMP26"):
+                counts["failure_branches"] += 1
+            if symbol == "__stack_chk_guard" and kind in ("R_AARCH64_ADR_GOT_PAGE", "R_AARCH64_LD64_GOT_LO12_NC",
+                                                         "R_AARCH64_ADR_PREL_PG_HI21", "R_AARCH64_ADD_ABS_LO12_NC"):
+                counts["guard_address_relocations"] += 1
+    return counts
+
+
+def check_native(counts, undefined, protection):
     unsafe = {name: count for name, count in counts.items() if name != "instruction_count" and count}
     symbols = {entry["symbol"] for entry in undefined}
     if unsafe or not counts["instruction_count"]:
         raise RuntimeError(f"Bionic native profile retains unsupported instruction accesses: {unsafe}")
     if any(symbol.startswith("__aarch64_") for symbol in symbols):
         raise RuntimeError("Bionic native profile still imports outlined atomic/runtime helpers")
-    if not {"artbox_bionic_get_tls", "artbox_bionic_set_tls", "__stack_chk_fail"} <= symbols:
-        raise RuntimeError("Bionic native profile lost its guest TLS bridge or stack protection")
+    if not {"artbox_bionic_get_tls", "artbox_bionic_set_tls", "artbox_bionic_syscall"} <= symbols:
+        raise RuntimeError("Bionic native profile lost its guest TLS or raw-syscall bridge")
+    if not protection["failure_branches"] or not protection["guard_address_relocations"]:
+        raise RuntimeError("Bionic native profile lost stack guard references or failure branches")

@@ -45,6 +45,20 @@
           "after": "// ARTBox: this profile did not allocate an Android shadow call stack.\n#if !defined(ARTBOX_NATIVE_HOST) && (defined(__aarch64__) || defined(__riscv))\n"
         }
       ]
+    },
+    {
+      "path": "libc/private/bionic_inline_raise.h",
+      "sha256": "51f8ce41ef65ee8459617d059538b3a915ec624e53f75ff4f03b642bb2d366ef",
+      "replacements": [
+        {
+          "before": "#include <unistd.h>\n",
+          "after": "#include <unistd.h>\n\n// ARTBox: fixed-width raw Linux result; the endpoint must preserve guest errno.\n#if defined(ARTBOX_NATIVE_HOST)\n#include <stdint.h>\nextern \"C\" int64_t artbox_bionic_syscall(uint64_t, uint64_t, uint64_t, uint64_t,\n                                       uint64_t, uint64_t, uint64_t);\n#endif\n"
+        },
+        {
+          "before": "#if defined(__arm__)\n",
+          "after": "// ARTBox: no inline kernel entry or variadic cross-platform call.\n#if defined(ARTBOX_NATIVE_HOST)\n  (void)artbox_bionic_syscall(__NR_rt_tgsigqueueinfo, pid, tid, sig,\n                             reinterpret_cast<uintptr_t>(&info), 0, 0);\n#elif defined(__arm__)\n"
+        }
+      ]
     }
   ]
 }

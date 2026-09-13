@@ -29,3 +29,11 @@ The native page size comes from the host (supported contract: power of two,
 use 16 KiB Mach-O alignment. Memory allocated for the guest never requests
 execute permission. File-backed mappings, virtual filesystem, futexes, threads,
 signals, epoll, eventfd, pipes and sockets remain future work.
+
+The M2 source profile routes Bionic's inline queued-signal operation through a
+proposed `artbox_bionic_syscall(number, a0, a1, a2, a3, a4, a5)` boundary. All
+arguments are `uint64_t`; its `int64_t` result is raw Linux success/negative errno,
+and it must leave guest errno unchanged. The endpoint is an unresolved import,
+not an implemented signal syscall. The native Linux comparison tests the actual
+original/adapted signal header using a Linux test backend; it does not exercise
+a Darwin translation or count toward M2's runtime suite.
