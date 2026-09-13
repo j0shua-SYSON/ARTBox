@@ -66,6 +66,10 @@ def main():
         if measurements["output"] != "hello from Android ARM64\n" or measurements["exit_status"] != 0:
             raise RuntimeError("Unexpected native execution result")
         measurements["median_invocation_ns"] = statistics.median(measurements["invocation_ns"])
+        demo = subprocess.check_output([str(runner), data["binary"], str(result["pack"]["payload_bytes"]), "--demo"], timeout=30)
+        if demo != b"app entry: hello and five syscalls PASS\n":
+            raise RuntimeError("Shared iOS app entry failed its native host test")
+        measurements["app_entry_verified_on_host"] = True
         data["native"] = measurements
         # Preserve a portable manifest; absolute build paths are local details.
         data["binary"] = Path(data["binary"]).name

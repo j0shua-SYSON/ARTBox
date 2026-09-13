@@ -66,12 +66,28 @@ def ios(args, build, artifacts):
     if sys.platform != "darwin":
         raise RuntimeError("The iOS device build requires Xcode on macOS")
     target = args.deployment_target
+    bundles = None
+    guest_info = None
+    if args.with_guest:
+        from guest_bundle import prepare
+        fixture_build = build / "guest/fixture"
+        run(sys.executable, "-B", ROOT / "scripts/test_pack.py", "--build-dir", fixture_build)
+        bundles = build / "guest/ios"
+        guest_info = prepare(fixture_build / "hello.elf", bundles, "ios")
     run("cmake", "-S", ROOT, "-B", build, "-G", "Xcode",
         "-DCMAKE_SYSTEM_NAME=iOS", "-DCMAKE_OSX_SYSROOT=iphoneos",
         "-DCMAKE_OSX_ARCHITECTURES=arm64", f"-DCMAKE_OSX_DEPLOYMENT_TARGET={target}",
         f"-DARTBOX_BUNDLE_ID={args.bundle_id}",
+        f"-DARTBOX_GUEST_BUNDLES={bundles or ''}",
         "-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY",
         "-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO", *args.cmake_arg)
+    app = build / f"{args.config}-iphoneos/ARTBox.app"
+    # Recreate the generated bundle so changing optional guest content cannot
+    # leave stale frameworks or resources in the next signed artifact.
+    if app.exists():
+        if app.is_symlink() or not app.resolve().is_relative_to(build.resolve()):
+            raise RuntimeError("Unexpected generated app location")
+        shutil.rmtree(app)
     run("xcodebuild", "-project", build / "ARTBox.xcodeproj", "-scheme", "ARTBox",
         "-configuration", args.config, "-sdk", "iphoneos", "-destination", "generic/platform=iOS",
         "-derivedDataPath", build / "derived-data", f"OBJROOT={build / 'intermediates'}",
@@ -80,7 +96,6 @@ def ios(args, build, artifacts):
         "CODE_SIGNING_ALLOWED=NO", "CODE_SIGNING_REQUIRED=NO", "CODE_SIGN_IDENTITY=", "build")
     # CMake embeds library output paths in the generated link commands.
     # CONFIGURATION_BUILD_DIR must not be overridden at build time.
-    app = build / f"{args.config}-iphoneos/ARTBox.app"
     binary = app / "ARTBox"
     declared = plistlib.loads((ROOT / "app/ARTBox.entitlements").read_bytes())
     info = plistlib.loads((app / "Info.plist").read_bytes())
@@ -90,6 +105,18 @@ def ios(args, build, artifacts):
     run("codesign", "--force", "--sign", "-", "--timestamp=none",
         "--entitlements", ROOT / "app/ARTBox.entitlements", app)
     run("codesign", "--verify", "--strict", "--verbose=2", app)
+    if guest_info:
+        for kind, details in guest_info["frameworks"].items():
+            name = f"ARTBox{kind.capitalize()}"
+            embedded = app / "Frameworks" / f"{name}.framework"
+            run("codesign", "--verify", "--strict", "--verbose=2", embedded)
+            if hashlib.sha256((embedded / name).read_bytes()).hexdigest() != details["signed_sha256"]:
+                raise RuntimeError("Embedded framework differs from its signed build input")
+            commands = run("xcrun", "vtool", "-show-build", embedded / name, capture=True).decode()
+            if not re.search(r"platform\s+IOS\s", commands) or not re.search(r"minos\s+15\.0\s", commands):
+                raise RuntimeError("Guest framework is not built for the iOS 15 device platform")
+            details["binary"] = name
+        save_json(artifacts / "guest-bundles.json", guest_info)
     reports = {
         "embedded-entitlements.plist": ("codesign", "--display", "--entitlements", ":-", app),
         "macho-build.txt": ("xcrun", "vtool", "-show-build", binary),
@@ -119,6 +146,8 @@ def ios(args, build, artifacts):
             raise RuntimeError("Writable and executable Mach-O segment")
     if not re.search(r"\b_artbox_start$", output["macho-symbols.txt"].decode(), re.MULTILINE):
         raise RuntimeError("Portable startup entry was not linked into the app")
+    if guest_info and not re.search(r"\b_artbox_run_native_hello$", output["macho-symbols.txt"].decode(), re.MULTILINE):
+        raise RuntimeError("Native guest console entry was not linked into the app")
     ipa = artifacts / "ARTBox.ipa"
     with tempfile.TemporaryDirectory(prefix="ipa-", dir=os.environ["ARTBOX_TEMP_DIR"]) as scratch:
         staged_ipa = Path(scratch) / ipa.name
@@ -136,6 +165,7 @@ def ios(args, build, artifacts):
         "signature": "ad-hoc transport; requires provisioning", "entitlements": {},
         "device_launch_verified": False, "ipa_sha256": hashlib.sha256(ipa.read_bytes()).hexdigest(),
         "ipa_bytes": ipa.stat().st_size, "executable_bytes": binary.stat().st_size,
+        "native_hello_included": bool(guest_info),
     }
     save_json(artifacts / "build-info.json", provenance)
     print(json.dumps(provenance, indent=2))
@@ -153,6 +183,7 @@ def main():
     parser.add_argument("--jobs", type=int, default=2)
     parser.add_argument("--deployment-target", default="15.0")
     parser.add_argument("--bundle-id", default="com.j0shua.ARTBox")
+    parser.add_argument("--with-guest", action="store_true", help="Include the signed M1 hello fixtures in the iOS app")
     parser.add_argument("--cmake-arg", action="append", default=[], help="Repeat as --cmake-arg=-DNAME=VALUE")
     args = parser.parse_args()
     for key in ("cache", "temp", "artifacts"):
