@@ -50,6 +50,35 @@ through the translated syscall binding on macOS. All 35 cases pass at `2415969`.
 These results are reported
 separately from full allocator startup. See [ADR 0016](DECISIONS.md#0016---own-anonymous-reservations-and-track-page-state).
 
+`artbox_vm_read`/`write` now hold the mapping mutex across validation and copying,
+so syscall buffers cannot be unmapped or protected concurrently by the VM.
+Immutable signed code/constants can be registered for reads, with all protection,
+replacement, discard and write operations rejected. Copying does not synchronize
+guest data races, and the owner retains borrowed mappings until VM destruction.
+Local tests race copies with 256 protection/unmap/remap cycles.
+
+## Startup services
+
+`artbox_kernel_call` adds per-thread system state above the M2 mapper. It uses
+runtime-assigned positive process/thread IDs and native CSPRNG/clock callbacks;
+the syscall translation and Linux byte layout remain in portable C.
+
+| Number | Implemented subset | Limits / differences |
+| --- | --- | --- |
+| `getpid` (172), `gettid` (178) | IDs in the guest process namespace, common PID and distinct thread descriptors | The owner assigns unique IDs; this does not create native guest threads. |
+| `set_tid_address` (96) | Store the exit-clear pointer without dereferencing it, return guest TID; NULL clears registration | Clear/wake on thread exit is not integrated. Registration alone is not full syscall lifecycle support. |
+| `clock_gettime` (113) | Realtime and monotonic clocks; explicit little-endian 64-bit seconds/nanoseconds, including unaligned output | CPU, boot-time, coarse and dynamic clocks are unsupported. The current subset returns EINVAL for those IDs. |
+| `getrandom` (278) | Initialized host CSPRNG; valid Linux flags, zero length, EFAULT and partial progress on a later inaccessible range | No pre-initialization entropy state or guest signal interruption. Insecure requests receive secure bytes. Large transfers use 256-byte staging chunks and the Linux page-rounded signed-32-bit transfer cap. |
+
+Windows uses BCryptGenRandom, the precise system clock and performance counter;
+Darwin uses arc4random_buf and clock_gettime; Linux uses getrandom and clock_gettime.
+No deterministic or user-space pseudo-random fallback is used. Linux flag rules
+follow the [kernel implementation](https://github.com/torvalds/linux/blob/v6.6/drivers/char/random.c).
+The local host contract checks buffer canaries, layouts, error propagation and
+partial progress across an inaccessible page. Its Linux branch compares real
+syscalls. An identical 36-case NDK caller is now linked into the signed wrapper
+and both Linux Bionic paths; native CI execution of that addition is pending.
+
 The Linux error values are explicit: EPERM 1, EIO 5, EBADF 9, ENOMEM 12,
 EACCES 13, EFAULT 14, EINVAL 22, ENOSYS 38, ENOTSUP 95. Guest flags and host
 `errno` are translated at the platform boundary. An unsupported syscall returns
