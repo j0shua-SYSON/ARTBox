@@ -1,17 +1,31 @@
 # Linux syscall compatibility
 
-No Linux syscall is implemented at M0. Host logging is not a guest syscall.
+The five M1 contracts are implemented in portable C and pass Windows, macOS
+and Linux CI. Both signed packaging candidates execute on native ARM64 macOS;
+the identical original ELF runs on native ARM64 Linux. Physical iPhone execution
+remains unverified, with physical-device gates waived for all milestones.
 
-| Planned M1 syscall (AArch64 number) | Intended initial subset | Linux oracle / Darwin / device |
+| Syscall (AArch64 number) | Implemented subset | Deliberate differences / missing behavior |
 | --- | --- | --- |
-| write (64) | Guest stdout/stderr with partial-write/error semantics | Not implemented / not tested |
-| exit (93) | End a guest invocation with status; keep the app alive | Not implemented / not tested |
-| mmap (222) | Anonymous private non-executable memory; explicit flag rejection | Not implemented / not tested |
-| mprotect (226) | Non-executable permissions on owned guest mappings | Not implemented / not tested |
-| munmap (215) | Validate alignment, bounds, mapping ownership and holes | Not implemented / not tested |
+| `write` (64) | stdout/stderr callback, byte count, readable-range validation, negative Linux errno | No file descriptors beyond 1/2, blocking I/O or signal interruption yet. |
+| `exit` (93) | Low eight status bits; unwind to host invocation without ending the app | No guest threads/processes or thread-group lifecycle yet. |
+| `mmap` (222) | Anonymous/private, chosen address, non-executable memory, page rounding | Requires flags `0x22`, fd -1, offset/address zero; 16 mappings and 64 MiB per context. |
+| `mprotect` (226) | Whole owned mappings: none, read, read/write | Zero length, partial/unowned ranges, write-only and executable protection are unsupported. Linux permits cases outside this subset. |
+| `munmap` (215) | Whole owned mappings and alignment validation | Partial ranges and holes are unsupported; Linux can unmap ranges containing holes. |
 
-Before implementation, add tests that run against a real Linux host and
-exercise the corresponding translator on macOS. Capture unsupported cases,
-negative Linux errno values, 4 KiB/16 KiB page assumptions and pointer safety.
-Never pass guest flags, errno values or structs straight to Darwin. No test
-skip counts toward implemented coverage. Later calls follow observed demand.
+`tests/test_syscalls.c` checks return values, readable ranges, protection changes,
+mapping cleanup, unsupported flags and exit unwinding. On Linux it also invokes
+real host syscalls for mmap/write error cases, protection and unmap alignment,
+memory access, and low-eight-bit exit status. Those checks are distinct from
+the no-exec/ownership policy.
+
+The Linux error values are explicit: EPERM 1, EIO 5, EBADF 9, ENOMEM 12,
+EACCES 13, EFAULT 14, EINVAL 22, ENOSYS 38, ENOTSUP 95. Guest flags and host
+`errno` are translated at the platform boundary. An unsupported syscall returns
+ENOSYS; it is never forwarded to Darwin using the Linux syscall number.
+
+The native page size comes from the host (supported contract: power of two,
+4 KiB through 64 KiB). The fixture requests 16 KiB and both packaging routes
+use 16 KiB Mach-O alignment. Memory allocated for the guest never requests
+execute permission. File-backed mappings, virtual filesystem, futexes, threads,
+signals, epoll, eventfd, pipes and sockets remain future work.

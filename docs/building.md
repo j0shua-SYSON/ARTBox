@@ -21,7 +21,7 @@ ARTBox's scripts do not perform global installation or require a package manager
 python scripts/build.py host
 python scripts/build.py host --generator Ninja --jobs 8
 python scripts/build.py host --build-dir "build/custom host" --artifacts-dir artifacts/custom
-python3 scripts/build.py ios --bundle-id org.example.ARTBox
+python3 scripts/build.py ios --with-guest --bundle-id org.example.ARTBox
 python3 scripts/build.py ios --deployment-target 15.0
 ```
 
@@ -40,6 +40,24 @@ ctest --test-dir build/host -C Release --output-on-failure
 Out-of-source paths can be anywhere appropriate for the host, including a
 separate disk or shared build volume. Set `CC` or `CMAKE_GENERATOR`, or pass a
 CMake toolchain file, using ordinary CMake conventions.
+
+## Native M1 experiment
+
+```sh
+python scripts/test_pack.py
+python3 scripts/test_native.py
+```
+
+The first command builds a libc-free Android ARM64 ELF and checks both packaging
+inputs on Windows, macOS or Linux. It downloads the pinned, relocatable NDK r28c
+into the configured cache if needed. Set `ARTBOX_NDK_ROOT` or pass `--ndk-root`
+to use an existing r28c installation. `--build-dir` selects the fixture directory.
+The ELF manifest records the NDK/compiler versions, input paths and hashes.
+
+The second command requires an ARM64 Mac with Xcode. It links/signs both
+frameworks, executes each 100 times on the native CPU and tests the same entry
+used by the iOS app. CI separately runs the original ELF on native ARM64 Linux.
+Neither the packer nor the portable host tests emulate an ARM64 CPU.
 
 ## Paths and environment
 
@@ -70,10 +88,13 @@ empty-entitlement ad-hoc transport signature. It verifies the bundle identifier,
 deployment target, arm64 device load commands, segment permissions, signature,
 entitlements, and portable startup symbol before packaging the IPA. The manifest
 records source revision, working-tree state, Xcode/SDK versions and SHA-256.
+Add `--with-guest` to build and embed both M1 frameworks. The build verifies their
+signatures, exact hashes and iOS load commands, and writes `guest-bundles.json`
+with the shared ELF hash, toolchain provenance and packaging measurements.
 
 Generated Xcode files remain in the selected iOS build directory. Do not override
 `CONFIGURATION_BUILD_DIR` on a subsequent `xcodebuild` command: CMake's generated
 link commands already refer to configuration-specific library paths.
 
-Provision and install using [the device procedure](device-check.md). A transport
+Optional provisioning and installation use [the device procedure](device-check.md). A transport
 IPA is not an Apple-provisioned distribution and does not demonstrate a device run.
