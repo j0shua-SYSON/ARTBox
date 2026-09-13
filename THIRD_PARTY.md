@@ -64,11 +64,19 @@ to make extraction work without filesystem symlink privileges. Runtime source
 changes and additional allocator/loader dependencies must be recorded as they
 are introduced. A full AOSP platform checkout is not needed for this source audit.
 
-The M2 build now compiles the 33 unchanged libc translation units listed in
-`third_party/bionic/m2-objects.json` into a partial relocatable object. The
-temporary CI object artifact includes `BIONIC-NOTICE.txt`, copied from the
-hash-verified aggregate libc notice. It is not linked into the iOS app or
+The M2 build compiles the 34 libc translation units listed in
+`third_party/bionic/m2-objects.json` into partial relocatable objects. The
+upstream profile is unchanged source. The native profile applies the exact,
+hash-checked edits in `third_party/bionic/native-boundary.json` to
+`libc/platform/bionic/tls.h`, `libc/arch-arm64/bionic/__set_tls.c`,
+`libc/bionic/pthread_create.cpp` and `libc/bionic/pthread_exit.cpp` in a separate
+build overlay. The edits route TLS access through ARTBox endpoints and omit
+Android shadow-call-stack setup/cleanup. These BSD-licensed files retain their
+original notices; the patch contexts and derived copies remain subject to those
+notices. They are not relicensed as MIT.
+
+Temporary CI object artifacts include `BIONIC-NOTICE.txt`, copied from the
+hash-verified aggregate libc notice. They are not linked into the iOS app or
 represented as a complete libc. `docs/bionic-build.md` records compiler settings
-and the native boundaries still requiring adaptation; no source license has
-changed. Soong's compiler configuration at the same tag was consulted for
-build settings, with no Soong source imported into ARTBox.
+and remaining native boundaries. Soong's compiler configuration at the same
+tag was consulted for build settings, with no Soong source imported into ARTBox.

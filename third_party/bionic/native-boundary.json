@@ -1,0 +1,50 @@
+{
+  "description": "Build-only Bionic overlay. Original notices are retained; cached upstream source is unchanged.",
+  "source_commit": "361ba86734fb2821a6adcfdf775db8abd04e0de0",
+  "files": [
+    {
+      "path": "libc/arch-arm64/bionic/__set_tls.c",
+      "sha256": "9d8a0d2b6d111e20c08ecdc873b6e2800b6270895101bcb8d8e5d234841dd9e1",
+      "replacements": [
+        {
+          "before": "#include <sys/cdefs.h>\n",
+          "after": "#include <sys/cdefs.h>\n\n// ARTBox: keep the hidden Bionic definition and call the native host bridge.\n#if defined(ARTBOX_NATIVE_HOST)\nextern int artbox_bionic_set_tls(void* tls);\n#endif\n"
+        },
+        {
+          "before": "  asm(\"msr tpidr_el0, %0\" : : \"r\" (tls));\n",
+          "after": "#if defined(ARTBOX_NATIVE_HOST)\n  (void)artbox_bionic_set_tls(tls);\n#else\n  asm(\"msr tpidr_el0, %0\" : : \"r\" (tls));\n#endif\n"
+        }
+      ]
+    },
+    {
+      "path": "libc/platform/bionic/tls.h",
+      "sha256": "5784cc489a2d3d9f45326e8cce3d4d6cc0224706f13ca4c45ab018e39d38f313",
+      "replacements": [
+        {
+          "before": "#if defined(__aarch64__)\n",
+          "after": "// ARTBox: guest TLS is stored per native host thread; preserve Darwin's TP.\n#if defined(ARTBOX_NATIVE_HOST) && defined(__aarch64__)\n# ifdef __cplusplus\nextern \"C\" void** artbox_bionic_get_tls(void);\n# else\nvoid** artbox_bionic_get_tls(void);\n# endif\n# define __get_tls() artbox_bionic_get_tls()\n#elif defined(__aarch64__)\n"
+        }
+      ]
+    },
+    {
+      "path": "libc/bionic/pthread_create.cpp",
+      "sha256": "7d9492720a63c2e72bda6e490595e4ec35033156c318c4c66cb45a4b22ceee69",
+      "replacements": [
+        {
+          "before": "#if defined(__aarch64__) || defined(__riscv)\n",
+          "after": "// ARTBox: x18 belongs to the Apple ABI; guest code is built without Android SCS.\n#if !defined(ARTBOX_NATIVE_HOST) && (defined(__aarch64__) || defined(__riscv))\n"
+        }
+      ]
+    },
+    {
+      "path": "libc/bionic/pthread_exit.cpp",
+      "sha256": "6c1d0a2ee14eb1a11dd831f6188431e2e08c77caa84ef65dd3a028fab6a6f5a6",
+      "replacements": [
+        {
+          "before": "#if defined(__aarch64__) || defined(__riscv)\n",
+          "after": "// ARTBox: this profile did not allocate an Android shadow call stack.\n#if !defined(ARTBOX_NATIVE_HOST) && (defined(__aarch64__) || defined(__riscv))\n"
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,13 @@
 {
   "description": "Partial Bionic objects needed for M2 bring-up; not a complete or runnable libc",
   "source_commit": "361ba86734fb2821a6adcfdf775db8abd04e0de0",
+  "source_flags": {
+    "libc/arch-arm64/bionic/__set_tls.c": ["-fno-stack-protector", "-ffreestanding"],
+    "libc/bionic/__libc_init_main_thread.cpp": ["-fno-stack-protector", "-ffreestanding"],
+    "libc/bionic/libc_init_dynamic.cpp": ["-fno-stack-protector"]
+  },
   "sources": [
+    "libc/arch-arm64/bionic/__set_tls.c",
     "libc/bionic/__errno.cpp",
     "libc/bionic/__libc_init_main_thread.cpp",
     "libc/bionic/__set_errno.cpp",
