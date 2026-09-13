@@ -182,6 +182,7 @@ static void *run(void *context) {
     char name[] = "artbox-bionic-startup";
     char process_sampling[] = "GWP_ASAN_PROCESS_SAMPLING=1";
     char allocation_sampling[] = "GWP_ASAN_SAMPLE_RATE=1";
+    char guarded_capacity[] = "GWP_ASAN_MAX_ALLOCS=32";
     artbox_system_ops system = artbox_native_system();
     if (system.random(random, sizeof(random))) fail("AT_RANDOM");
     // argc, argv, envp, and the Linux ARM64 auxiliary vector. These live on
@@ -194,6 +195,7 @@ static void *run(void *context) {
     if (force_sampling) {
         args[cursor++] = (uintptr_t)process_sampling;
         args[cursor++] = (uintptr_t)allocation_sampling;
+        args[cursor++] = (uintptr_t)guarded_capacity;
     }
     args[cursor++] = 0;
     memcpy(args + cursor, auxv, sizeof(auxv));
