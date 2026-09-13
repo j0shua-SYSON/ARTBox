@@ -1,20 +1,30 @@
 # ARTBox status
 
-M0 implements a portable startup contract and an iOS 15+ UIKit log console.
-Host tests verify exactly `ARTBox ready` and exit code 0. Python tooling builds
-and tests on Windows, macOS and Linux. The iOS workflow builds the real arm64
-device target, verifies its transport signature and emits an IPA with provenance.
+M0 provides a portable startup contract and an iOS 15+ UIKit log console.
+Host tests verify exactly `ARTBox ready` and exit code 0. The iOS workflow builds
+the real arm64 device target, validates its transport signature and emits an IPA.
+The revised Python automation is being validated across Windows, macOS and Linux.
 
-The revised cross-platform tooling is awaiting CI on the rewritten history.
-See [M0 PR #1](https://github.com/j0shua-SYSON/ARTBox/pull/1).
-The project owner waived M0's manual device gate. Physical-device launch and
-lifecycle behavior remain unverified; no device pass is claimed.
+M0's physical-device check was waived by the project owner. Device execution
+remains unverified; the waiver is not a passing device result. The milestone PR
+and its CI results are tracked in [PR #1](https://github.com/j0shua-SYSON/ARTBox/pull/1).
 
-The [loader comparison](loader-design.md) was written before loader code.
-M1 will compare two signed packaging prototypes using the same static NDK ARM64
-ELF and five translated syscalls. No Android ELF, Bionic, ART, Binder or APK runs.
-No native-Android performance has been measured.
+M1 is in progress. Static ELF validation and five syscall contracts have portable
+tests. The paired signed-container prototypes and native Android execution are
+not yet implemented or measured. Dynamic Bionic, ART, Binder, graphics and APK
+execution remain future milestones. The [loader design](loader-design.md) was
+recorded before loader implementation.
 
-The three largest M1 risks are ELF addressing inside signed Mach-O containers,
-Android/Apple reserved-register and TLS differences, and the larger syscall
-surface needed by Bionic after the initial libc-free NDK fixture.
+## Next verification
+
+1. Validate the cross-platform Python build entry point and retrieve the iOS 15 IPA.
+2. Run the same static NDK ARM64 ELF through both signed packaging prototypes.
+3. Compare native Apple execution with unchanged execution on ARM64 Linux,
+   record five-syscall results and measure packaging and runtime costs.
+
+## Three largest M1 risks
+
+1. Preserving ELF addressing inside signed, dyld-compatible Mach-O containers.
+2. Android/Apple ABI differences, particularly reserved registers and TLS.
+3. A normal Bionic-linked executable requires more than the initial five calls;
+   the libc-free NDK fixture does not establish Bionic compatibility.
