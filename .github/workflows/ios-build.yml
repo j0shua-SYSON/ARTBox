@@ -1,0 +1,38 @@
+name: ios-build
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  device-build:
+    name: arm64 iOS 15 app and transport IPA
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    defaults:
+      run:
+        shell: bash --noprofile --norc -e -o pipefail {0}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build, sign and inspect the real device target
+        run: python3 -B scripts/build.py ios
+      - name: Upload temporary IPA and provenance
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ARTBox-ipa
+          path: |
+            artifacts/ARTBox.ipa
+            artifacts/build-info.json
+            artifacts/embedded-entitlements.plist
+            artifacts/macho-*.txt
+          if-no-files-found: error
+          retention-days: 7
