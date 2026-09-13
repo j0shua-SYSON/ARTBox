@@ -27,6 +27,43 @@ static void fixture(unsigned char *data, size_t size) {
     put64(data + 96, size); put64(data + 104, size); put64(data + 112, 0x4000);
 }
 
+static int sections(void) {
+    static const char names[] = "\0.text\0.shstrtab";
+    unsigned char data[512];
+    artbox_elf image;
+    artbox_elf_section section = {0};
+    fixture(data, sizeof(data));
+    put64(data + 40, 256); put16(data + 58, 64);
+    put16(data + 60, 3); put16(data + 62, 2);
+    put32(data + 320, 1); put32(data + 324, 1); put64(data + 328, 6);
+    put64(data + 336, 0x4100); put64(data + 344, 256); put64(data + 352, 4);
+    put32(data + 384, 7); put32(data + 388, 3);
+    put64(data + 408, 448); put64(data + 416, sizeof(names));
+    memcpy(data + 448, names, sizeof(names));
+    CHECK(artbox_elf_validate(data, sizeof(data), &image) == ARTBOX_ELF_OK);
+    CHECK(artbox_elf_find_section(&image, ".text", &section) == ARTBOX_ELF_OK);
+    CHECK(section.address == 0x4100 && section.offset == 256 && section.size == 4 && section.flags == 6);
+    CHECK(artbox_elf_find_section(&image, ".missing", &section) == ARTBOX_ELF_NOT_FOUND);
+    CHECK(section.offset == 256 && section.size == 4);
+    CHECK(artbox_elf_find_section(NULL, ".text", &section) == ARTBOX_ELF_INVALID);
+    CHECK(artbox_elf_find_section(&image, NULL, &section) == ARTBOX_ELF_INVALID);
+    put32(data + 384, 1);
+    CHECK(artbox_elf_find_section(&image, ".text", &section) == ARTBOX_ELF_INVALID);
+    put32(data + 384, 7); put32(data + 324, 8);
+    CHECK(artbox_elf_find_section(&image, ".text", &section) == ARTBOX_ELF_INVALID);
+    put32(data + 324, 1); put64(data + 344, UINT64_MAX);
+    CHECK(artbox_elf_find_section(&image, ".text", &section) == ARTBOX_ELF_INVALID);
+    put64(data + 344, 256); put64(data + 336, UINT64_MAX);
+    CHECK(artbox_elf_find_section(&image, ".text", &section) == ARTBOX_ELF_INVALID);
+    put64(data + 336, 0x4100); put64(data + 416, 3);
+    CHECK(artbox_elf_find_section(&image, ".text", &section) == ARTBOX_ELF_INVALID);
+    put64(data + 416, sizeof(names)); put64(data + 40, 511);
+    CHECK(artbox_elf_find_section(&image, ".text", &section) == ARTBOX_ELF_INVALID);
+    put16(data + 60, 0);
+    CHECK(artbox_elf_find_section(&image, ".text", &section) == ARTBOX_ELF_UNSUPPORTED);
+    return 0;
+}
+
 int main(void) {
     unsigned char data[512];
     artbox_elf image;
@@ -79,6 +116,7 @@ int main(void) {
     fixture(data, sizeof(data)); put16(data + 56, 2);
     memcpy(data + 120, data + 64, 56);
     CHECK(artbox_elf_validate(data, sizeof(data), &image) == ARTBOX_ELF_INVALID);
-    printf("ELF bounds/format/permissions: %u checks PASS\n", checks);
+    CHECK(sections() == 0);
+    printf("ELF bounds/format/permissions/sections: %u checks PASS\n", checks);
     return 0;
 }
