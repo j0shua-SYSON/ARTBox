@@ -1,0 +1,45 @@
+name: host-tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: host-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  host:
+    name: host (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            python: python3
+          - os: ubuntu-24.04
+            python: python3
+          - os: windows-latest
+            python: python
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build and test the portable core
+        run: |
+          ${{ matrix.python }} -B tests/test_environment.py
+          ${{ matrix.python }} -B scripts/build.py host
+      - name: Upload host evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: host-evidence-${{ matrix.os }}
+          path: |
+            artifacts/host-metrics.json
+            build/host/Testing/Temporary/LastTest.log
+          if-no-files-found: error
+          retention-days: 7
