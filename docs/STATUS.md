@@ -41,12 +41,15 @@ portable Python tooling. Source extraction tests cover hash/size mismatch,
 path escape, aliases and case collisions. The [Bionic build](bionic-build.md)
 compiles and combines 48 source units in upstream and native profiles. The
 native overlay redirects Bionic TLS to precompiled host endpoints and removes
-Android's x18 shadow-stack ownership; its inline signal path now requires a
-fixed-width raw-syscall endpoint that remains unimplemented; its object passes the checked instruction
-gate with the same 282 global definitions. Host TLS isolation passes across
+Android's x18 shadow-stack ownership. Its inline signal path requires a
+fixed-width raw-syscall endpoint that remains unimplemented. The object passes
+the checked instruction gate with the same 282 global definitions. Host TLS isolation passes across
 12 threads, but guest TLS construction and binding are not integrated yet.
 The native partial object has 101 unresolved dependencies. No Bionic runtime
 executes yet.
+The original and adapted signal headers pass 1,024 thread-directed deliveries
+each on native Linux ARM64, including payload and errno checks. This uses the
+system libc and a Linux test endpoint; it is not Bionic or Darwin signal execution.
 The [M2 contract](m2-contract.md) fixes the acceptance areas before compatibility
 work; signed dynamic packaging, symbol versions and Bionic build dependencies
 are next. Current metadata and relocation fixtures execute no Android code.
