@@ -46,3 +46,20 @@ The pinned release is [android/ndk r28c](https://github.com/android/ndk/releases
 Apple's [Mach-O format header](https://github.com/apple-oss-distributions/cctools/blob/main/include/mach-o/loader.h)
 was consulted for container constants and layouts. Its APSL-2.0 header is not
 vendored or copied into ARTBox; the Python encoder is original implementation.
+
+## M2 source pin (runtime integration in progress)
+
+Bionic is pinned to [android-15.0.0_r1](https://github.com/aosp-mirror/platform_bionic/tree/361ba86734fb2821a6adcfdf775db8abd04e0de0)
+at commit `361ba86734fb2821a6adcfdf775db8abd04e0de0`, from AOSP's GitHub mirror.
+`third_party/sources.json` records the retrieved archive and libc notice hashes.
+The source includes BSD and other permissive notices; libdl has an Apache-2.0
+notice. Preserve component notices and individual source headers. Bionic is not
+relicensed as MIT. No Bionic runtime is shipped by the current M1 app.
+
+The source fetch step omits editor configuration, header-versioner tooling and
+unused netfilter kernel headers listed in the lock file. Netfilter's
+case-colliding filenames cannot coexist on a case-insensitive source volume;
+these kernel interfaces are outside M2. Internal header aliases are materialized as copies
+to make extraction work without filesystem symlink privileges. Runtime source
+changes and additional allocator/loader dependencies must be recorded as they
+are introduced. A full AOSP platform checkout is not needed for this source audit.

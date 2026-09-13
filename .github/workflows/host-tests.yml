@@ -33,6 +33,7 @@ jobs:
       - name: Build and test the portable core
         run: |
           ${{ matrix.python }} -B tests/test_environment.py
+          ${{ matrix.python }} -B tests/test_sources.py
           ${{ matrix.python }} -B scripts/build.py host
       - name: Build the pinned NDK ELF and test both packaging inputs
         if: matrix.os == 'macos-15'
