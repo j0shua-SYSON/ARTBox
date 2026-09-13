@@ -124,7 +124,10 @@ three notices match their reports. The M1 regression IPA at
 `193d99ba63f8d15b78ecff2bb22e1e3ed061bc410469c4573b7e216246ee05a7`.
 Its tested merge `3c8e84fed179a8e5a6ec615174bb81749f5890e6` includes the implementation.
 
-Still required: complete Bionic linkage/startup, guest TLS and thread ownership,
+The later [two-image startup fixture](bionic-startup.md) initializes real Bionic
+TLS and constructors and runs its allocator. This earlier slice remains a
+separate, narrower regression test. Still required for M2: general load groups,
+guest-created threads and their TLS ownership,
 symbol versions/dependencies, general constructor ordering, RELRO protection,
 broader Linux semantics and integration in the iOS app. No physical iPhone
 execution is claimed.

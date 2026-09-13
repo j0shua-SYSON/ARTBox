@@ -34,7 +34,8 @@ have portable tests and LLVM comparisons on real NDK files. Data relocation
 now handles AArch64 RELA/RELR, GOT/PLT and ordinary symbol references, with
 136 writes per real NDK fixture matching LLVM byte for byte. A failed operation
 leaves destination data unchanged. Symbol versions, the dependency namespace,
-runtime TLS, IFUNC and constructors remain unimplemented;
+general TLS templates and IFUNC remain unimplemented. A controlled two-image
+load group now relocates and runs real Bionic TLS startup and constructors;
 see [dynamic loader details](dynamic-loader.md). A new controlled dynamic wrapper
 packs a Bionic syscall slice with separate signed RX/RW sections; Apple layout
 verification and 100 native macOS iterations pass. It also builds/signs for
@@ -56,7 +57,8 @@ the checked instruction gate. Two pinned NDK compiler-rt objects supply Android
 binary128 arithmetic without crossing Apple's long-double ABI. Both profiles
 share 1,387 global definitions;
 five expected weak template/TLS differences are checked explicitly. Host TLS isolation passes across
-12 threads, but guest TLS construction and binding are not integrated yet.
+12 threads. The controlled startup fixture also constructs and binds real
+Bionic TLS; guest-created native threads remain next.
 All 216 table-generated syscall entries, their 13 aliases and the generic entry
 now call the raw endpoint in the native profile. Native Linux ARM64 passes
 8,280 capture cases and five smoke cases per profile using the actual NDK-built
@@ -66,11 +68,13 @@ The 221-source property/CRT selection and arithmetic objects pass CI at `726d758
 All 123 exact-bit arithmetic/comparison cases pass in the signed macOS wrapper
 and with the identical NDK object on native Linux ARM64. Downloaded object,
 notice, iOS framework and IPA hashes/layouts match their reports.
-Real Bionic TLS startup now executes in the signed Mac wrapper at `203b8b6`.
-Its libc constructor reaches Scudo initialization but initially aborts after
-exhausting AT_RANDOM, because the virtual random device was missing. The retry
-adds tested virtual devices and coarse clocks; allocator-client completion is
-still pending. See [startup integration](bionic-startup.md). The host
+Real Bionic TLS, three constructors and a separately linked NDK allocator/device
+client pass in the signed Mac wrapper at `5671845`: all 146 checks, with actual
+Scudo allocation and guest errno. Virtual devices resolve the initial AT_RANDOM
+exhaustion without changing Bionic's entropy fallback. All 13 portable CTest
+contracts and the existing native Linux comparisons pass; both iOS wrappers
+and the regression IPA are downloaded and verified. These new wrappers remain
+separate artifacts from the M1 console IPA. See [startup integration](bionic-startup.md). The host
 dispatch test covers 12 threads, nested bindings and the five M1 syscalls;
 it does not add syscall semantics or initialize guest TLS.
 The allocator build retains AOSP Scudo and GWP-ASan. GWP-ASan's platform TLS hook
@@ -84,8 +88,8 @@ mapping lifecycles and three actual protection faults. The identical NDK memory
 caller passes 35 cases in the signed macOS Bionic slice and through both Bionic
 profiles on native Linux ARM64. Its macOS run takes 196 microseconds with 16 KiB
 pages, including syscall bridges and byte checks. This is a correctness-fixture
-timing, not allocator throughput. Actual allocator execution and TLS startup remain
-open. See [memory semantics](syscalls.md#m2-memory-manager) and ADR 0016.
+timing, not allocator throughput. The later startup fixture executes this mapper
+through real Scudo. See [memory semantics](syscalls.md#m2-memory-manager) and ADR 0016.
 The startup dispatcher adds guest PID/TID, exit-clear pointer registration,
 realtime/monotonic clocks and secure random bytes. VM copies now hold the mapping
 lock across access, including tests racing copies against partial unmaps.
@@ -94,7 +98,7 @@ All 12 CTest contracts pass on Windows, macOS and Linux at `b17aaf2`. The identi
 Linux Bionic profiles. The Mac fixture takes 26 microseconds; Linux takes 36.430
 and 30.942 microseconds (single correctness runs, not throughput measurements).
 Downloaded fixture hashes, signed iOS wrapper and IPA are verified. Exit-TID
-clear/wake, guest thread creation and full libc startup remain unimplemented.
+clear/wake, guest thread creation and general process startup remain unimplemented.
 The current partial build includes real stdio/gdtoa and the baseline AOSP ARM64
 string dispatcher. Its 35,908-case guarded-page oracle passes on native Linux
 and in the signed macOS wrapper; downloaded objects and the iOS wrapper are verified.

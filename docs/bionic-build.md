@@ -284,6 +284,14 @@ With these helpers the local native object has 75,947 decoded instructions,
 (14 strong). The 221 compiled source units are separate from the two prebuilt
 NDK arithmetic members. This is still not complete Bionic startup.
 
+The subsequent [startup integration](bionic-startup.md) links this selection
+into a shared libc and executes its actual TLS initialization, constructors and
+allocator in a signed macOS wrapper. Its controlled load group supplies the
+real shared-global object and native interfaces; unimplemented thread/namespace
+imports fail the test if invoked. General loader coverage and M2 acceptance are
+still incomplete. The property initializer executes but cannot load its backing
+files until the virtual filesystem is implemented.
+
 Implementation `726d75825b858b9e648bcf23ee1f2d43717f4ced` passes
 [host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34755905118)
 and the [iOS regression](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34755905119).
