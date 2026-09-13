@@ -63,3 +63,12 @@ these kernel interfaces are outside M2. Internal header aliases are materialized
 to make extraction work without filesystem symlink privileges. Runtime source
 changes and additional allocator/loader dependencies must be recorded as they
 are introduced. A full AOSP platform checkout is not needed for this source audit.
+
+The M2 build now compiles the 33 unchanged libc translation units listed in
+`third_party/bionic/m2-objects.json` into a partial relocatable object. The
+temporary CI object artifact includes `BIONIC-NOTICE.txt`, copied from the
+hash-verified aggregate libc notice. It is not linked into the iOS app or
+represented as a complete libc. `docs/bionic-build.md` records compiler settings
+and the native boundaries still requiring adaptation; no source license has
+changed. Soong's compiler configuration at the same tag was consulted for
+build settings, with no Soong source imported into ARTBox.

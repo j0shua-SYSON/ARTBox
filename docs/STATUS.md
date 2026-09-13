@@ -38,7 +38,10 @@ targets the M1 static fixture.
 
 The Bionic Android 15 source archive and notice are pinned and staged through
 portable Python tooling. Source extraction tests cover hash/size mismatch,
-path escape, aliases and case collisions. No Bionic runtime executes yet.
+path escape, aliases and case collisions. The [Bionic build](bionic-build.md)
+compiles and combines 33 unchanged source units. Its disassembly identifies
+TLS and x18 accesses that still require adaptation; 111 dependencies remain
+undefined. No Bionic runtime executes yet.
 The [M2 contract](m2-contract.md) fixes the acceptance areas before compatibility
 work; signed dynamic packaging, symbol versions and Bionic build dependencies
 are next. Current metadata and relocation fixtures execute no Android code.

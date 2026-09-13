@@ -47,6 +47,11 @@ jobs:
       - name: Relocate NDK data and compare every writable byte with LLVM
         if: matrix.os == 'macos-15'
         run: python3 -B scripts/test_relocation.py
+      - name: Compile pinned Bionic objects and inventory remaining native boundaries
+        if: matrix.os == 'macos-15'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_bionic.py
       - name: Upload host evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -56,6 +61,9 @@ jobs:
             artifacts/m1-native.json
             artifacts/m2-metadata.json
             artifacts/m2-relocations.json
+            artifacts/m2-bionic-objects.json
+            build/m2/bionic/bionic-m2-partial.o
+            build/m2/bionic/BIONIC-NOTICE.txt
             build/m1/hello.elf
             build/m1/elf-build.json
             build/m1/macos/ARTBox*-load-commands.txt
