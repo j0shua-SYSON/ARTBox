@@ -36,6 +36,7 @@ jobs:
           ${{ matrix.python }} -B tests/test_sources.py
           ${{ matrix.python }} -B tests/test_bionic_adapt.py
           ${{ matrix.python }} -B tests/test_bionic_syscalls.py
+          ${{ matrix.python }} -B tests/test_dynamic_pack.py
           ${{ matrix.python }} -B scripts/build.py host
       - name: Build the pinned NDK ELF and test both packaging inputs
         if: matrix.os == 'macos-15'
@@ -54,6 +55,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 -B scripts/test_bionic.py
+      - name: Execute a Bionic syscall slice through a signed dynamic wrapper
+        if: matrix.os == 'macos-15'
+        run: python3 -B scripts/test_dynamic_wrapper.py
       - name: Upload host evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -66,6 +70,11 @@ jobs:
             artifacts/m2-bionic-upstream.json
             artifacts/m2-bionic-native.json
             artifacts/m2-bionic-profile-check.json
+            artifacts/m2-dynamic-wrapper.json
+            build/m2/dynamic-wrapper/libartbox_bionic_slice.so
+            build/m2/dynamic-wrapper/pack/layout.json
+            build/m2/dynamic-wrapper/*/load-commands.txt
+            build/m2/dynamic-wrapper/ios/ARTBoxBionicSlice.framework/
             build/m2/bionic/*/bionic-m2-partial.o
             build/m2/bionic/*/BIONIC-NOTICE.txt
             build/m2/bionic/*/LIBCUTILS-NOTICE.txt

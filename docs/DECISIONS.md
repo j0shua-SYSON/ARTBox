@@ -84,7 +84,7 @@ Omit the listed editor/versioner files and unused, case-colliding netfilter
 headers. Additional allocator and loader dependencies require their own pins
 and license reviews. The NDK supplies a compiler, not a substitute runtime libc.
 
-## ADR 0009 - Preserve ELF load bias in the signed wrapper (proposed, M2)
+## ADR 0009 - Preserve ELF load bias in the signed wrapper (M2 prototype)
 
 Start with source-built Bionic and suite ELFs using a controlled link layout.
 Group immutable content in signed Mach-O text and writable content in aligned
@@ -99,6 +99,13 @@ controlled source-built image. The runtime loader will validate dynamic tables,
 resolve dependencies and symbols in a guest namespace, relocate owned writable
 data, establish TLS, protect RELRO and invoke precompiled constructors. Each
 operation needs tests before it is used by Bionic.
+
+The first [dynamic prototype](dynamic-wrapper.md) uses the real Bionic syscall
+slice, a controlled two-load link script and a constructor/data probe. Apple
+linking must preserve both section byte hashes and their original ELF distance.
+The wrapper materializes BSS as zero bytes and adds 16 KiB page padding; those
+costs avoid runtime executable allocation or instruction fixups. Native Apple
+execution and signing verification are required before accepting the prototype.
 
 ## 0010 — Prepare data relocations before modifying a loaded image
 

@@ -33,8 +33,9 @@ now handles AArch64 RELA/RELR, GOT/PLT and ordinary symbol references, with
 136 writes per real NDK fixture matching LLVM byte for byte. A failed operation
 leaves destination data unchanged. Symbol versions, the dependency namespace,
 runtime TLS, IFUNC and constructors remain unimplemented;
-see [dynamic loader details](dynamic-loader.md). The executable packer still
-targets the M1 static fixture.
+see [dynamic loader details](dynamic-loader.md). A new controlled dynamic wrapper
+packs a Bionic syscall slice with separate signed RX/RW sections; Apple layout
+verification and execution are pending CI. The M1 packer remains unchanged.
 
 The Bionic Android 15 source archive and notice are pinned and staged through
 portable Python tooling. Source extraction tests cover hash/size mismatch,

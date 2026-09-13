@@ -123,3 +123,9 @@ it is original MIT integration code. It changes no allocator source file and
 does not relicense Scudo or GWP-ASan. The new Linux fixture includes the pinned
 GWP-ASan state definition and inline getter in its NDK-built objects, so those
 objects retain the corresponding notice. No allocator is shipped in the M1 IPA.
+
+The controlled dynamic-wrapper fixture links the same prefixed Bionic syscall
+object into `libartbox_bionic_slice.so`; its probe and wrapper code are original
+MIT code. Apple-built `ARTBoxBionicSlice.framework` artifacts include the complete
+hash-verified `BIONIC-NOTICE.txt` before signing. This prototype contains Bionic
+syscall entries and its errno setter, not a complete libc or the allocators.
