@@ -121,7 +121,7 @@ def main():
             print(process.stderr.decode("utf-8", errors="replace"), file=sys.stderr)
         process.check_returncode()
         result["native"] = json.loads(process.stdout)
-        if result["native"]["cases"] != 134:
+        if result["native"]["cases"] != 146:
             raise RuntimeError("NDK allocator client did not complete")
     (artifacts / "m2-bionic-startup.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print("Bionic startup fixture built" + (" and executed through signed macOS wrappers" if sys.platform == "darwin" else "; Apple execution required"))

@@ -357,6 +357,31 @@ Tests include invalid flags, unaligned clock outputs, read-only buffers, partial
 random progress, provider failure and concurrent copy/unmap. The same NDK caller
 checks the public Bionic error conversion on Linux and through the signed wrapper.
 
+## 0019 - Supply virtual entropy devices for real libc startup
+
+Status: implemented; portable tests pass, signed startup retry pending.
+
+The first actual shared-libc startup reached final Bionic TLS and its priority-1
+constructor. It aborted with `ran out of AT_RANDOM bytes, have 0, requested 1`.
+The stack guard and setjmp cookie consumed the initial 16 bytes; GWP-ASan then
+needed another random byte. Bionic chooses its early-boot fallback when access
+to `/dev/urandom` fails, even when getrandom itself is implemented.
+
+Provide virtual null, zero and urandom devices with an owned descriptor table.
+This is already required by the Linux ABI layer. Keep the AOSP entropy code
+unchanged. Alternatives were a source overlay that always uses host randomness,
+or postponing optional allocator initialization; neither is needed for this
+failure. A fake successful access check without a functioning device would not
+satisfy the interface. Device reads use the existing OS CSPRNG and VM-locked
+copies. Virtual urandom is explicitly read-only; entropy injection is unsupported.
+No host paths or descriptor numbers are forwarded from the guest.
+
+Scudo also requests CLOCK_MONOTONIC_COARSE. Translate both Linux coarse clocks
+to the corresponding precise native clock. This can cost an extra clock lookup
+versus Linux's cached coarse value; it avoids uninitialized timestamp data and
+adds no runtime-generated code. Portable tests reproduce the missing-clock
+failure before the fix and compare clock contracts with native Linux.
+
 ## No-JIT cost ledger
 
 | Constraint | Consequence / evidence |

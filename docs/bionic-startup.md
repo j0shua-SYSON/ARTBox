@@ -21,7 +21,7 @@ pages so Bionic's WriteProtected globals can enforce their own read-only state.
 
 The NDK client checks real pthread identity and errno, then malloc, usable size,
 realloc preservation, calloc zeroing, alignment, overflow and strdup/free over
-sizes from one byte to one MiB: 134 checks. This fixture does not yet create guest
+sizes from one byte to one MiB, plus device I/O: 146 checks. This fixture does not yet create guest
 threads, implement a filesystem, load arbitrary modules, support guest ELF TLS
 templates, run guest exit destructors or satisfy the complete M2 acceptance suite.
 
@@ -35,5 +35,10 @@ own libc. These explicit fixture bindings are not a production loader namespace.
 Run `python -B scripts/test_bionic_startup.py` after building the host and both
 Bionic profiles. Windows validates the ELF inputs and instruction boundary;
 macOS builds/signs both iOS 15 and macOS frameworks and executes the signed Mac
-pair. Native execution is pending the first CI run. Diagnostics and source,
+pair. The first signed execution at `203b8b6` completed real TLS setup and entered
+libc's priority-1 constructor. It then aborted after exhausting AT_RANDOM:
+GWP-ASan requested another byte while `/dev/urandom` was absent. The virtual-device
+implementation makes the normal AOSP entropy path available without modifying
+Bionic's fallback or pretending that an absent file exists. Native completion
+with that fix is pending CI. Diagnostics and source,
 object, framework and notice hashes are retained in the `bionic-startup` artifact.

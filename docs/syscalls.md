@@ -80,6 +80,22 @@ syscalls. An identical 36-case NDK caller is now linked into the signed wrapper
 and both Linux Bionic paths; all 36 cases pass at `b17aaf2`, alongside all 12
 portable CTest contracts on Windows, macOS and Linux.
 
+The dispatcher also supports Linux REALTIME_COARSE (5) and MONOTONIC_COARSE (6)
+using the corresponding precise native clock. The result has the same epoch and
+ordering, with finer resolution and potentially more overhead than a Linux
+cached coarse-clock read. Scudo requests this during actual startup.
+
+The initial virtual descriptor table implements `/dev/null`, `/dev/zero` and
+read-only `/dev/urandom`: faccessat, openat, read, write, lseek, fstat and close.
+It provides independent guest descriptor numbers, reuse and exhaustion, serialized
+concurrent operations, zero/null semantics and OS-random reads with partial
+progress at an inaccessible page. Linux ARM64 stat bytes are encoded explicitly.
+Absolute paths ignore dirfd; relative paths currently require AT_FDCWD with a
+virtual cwd of `/`. Parent traversal is rejected. Unknown `/dev` names return
+ENOENT; paths outside this initial device set remain ENOSYS. Regular files,
+directory descriptors, dup/fcntl, devices beyond these three and entropy writes
+remain unsupported. Native Linux checks compare the supported device behavior.
+
 The Linux error values are explicit: EPERM 1, EIO 5, EBADF 9, ENOMEM 12,
 EACCES 13, EFAULT 14, EINVAL 22, ENOSYS 38, ENOTSUP 95. Guest flags and host
 `errno` are translated at the platform boundary. An unsupported syscall returns
