@@ -230,3 +230,15 @@ from the exact production objects with test-only symbol prefixes, plus an
 original NDK-compiled scalar oracle. It rejects unresolved test imports and
 forbidden instructions. Linux and the signed macOS wrapper must each complete
 all 35,908 guarded-page cases. Compile success alone is not a runtime result.
+
+Implementation `3f69405083b12e386bd7ea9d5b9fb9eb9b9ac65c` passes
+[host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34753272777)
+and the [iOS regression](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34753272781).
+Both Linux profiles complete all 35,908 cases with 4 KiB pages. The signed
+macOS wrapper completes the same cases with 16 KiB pages, plus the existing
+100 syscall iterations. Source objects, notices, the expanded iOS framework
+and M1 IPA were downloaded and hash/layout verified. The native partial build
+has 71,228 decoded instructions, 1,263 global definitions, 198 stack-failure
+branches and 661 guard-address relocations. It has 33 unresolved imports,
+including 30 strong imports; the existing five weak profile differences remain
+exact. This is substantial source closure, not complete Bionic initialization.

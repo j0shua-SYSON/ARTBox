@@ -68,6 +68,25 @@ also passed; its IPA at `artifacts/m2-9e4f049/ios/ARTBox.ipa` has SHA-256
 The tested merge `8fffebf0382c642b06955be7df1ac6ed99a1cdff` includes the
 implementation commit. That IPA still runs the M1 app, not this dynamic fixture.
 
+The expanded string fixture at `3f69405083b12e386bd7ea9d5b9fb9eb9b9ac65c`
+passes [native CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34753272777).
+It preserves 65,536 RX bytes followed by 1,632 RW bytes, binds 32 PLT entries
+and applies two RELR writes. All 35,908 string cases pass with 16 KiB guarded
+pages on macOS and 4 KiB pages on Linux. The macOS checks take 429.852 ms,
+including the scalar oracle and repeated buffer initialization; this is not
+a libc throughput benchmark. Separately, loading/validation takes 2.546 ms,
+relocation/constructor 40 microseconds, guest setup 14 microseconds and the
+100 syscall loops 387 microseconds in that run. Hardware, page sizes and test
+overhead prevent treating the Linux/Mac elapsed times as a platform speed ratio.
+
+The iOS fixture binary is 117,568 bytes, SHA-256
+`04070bc6414181ca7f22f8b9f0418b3498324f2b3e638bb4c694e919912238fc`.
+Downloaded bytes, load layout and both notices match the report. The M1 IPA
+at `artifacts/m2-3f69405/ios/ARTBox.ipa` has SHA-256
+`50acee974d1e99d1e68c6aa172faba9d20726e4961ab96fd7a417c5a84ae25b5`;
+tested merge `b351157fbf407eb8da0b8fd03fe588f9ed400287` includes the implementation.
+The dynamic fixture remains separate from that IPA.
+
 Still required: complete Bionic linkage/startup, guest TLS and thread ownership,
 symbol versions/dependencies, general constructor ordering, RELRO protection,
 broader Linux semantics and integration in the iOS app. No physical iPhone
