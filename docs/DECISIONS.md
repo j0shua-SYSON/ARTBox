@@ -121,6 +121,38 @@ the supplied load bias matches executable and writable segment addresses.
 Portable failure tests and byte comparisons against LLVM-expanded relocations
 on actual NDK outputs cover this API. They do not establish Bionic execution.
 
+## 0011 — Keep guest TLS in host TLS and preserve Apple's reserved registers
+
+Status: accepted for the current Bionic source profile; dynamic execution pending.
+
+The first object inventory showed that compiler register reservations alone do
+not remove Bionic's inline x18 writes or TPIDR_EL0 access. Apple's [ARM64 ABI
+documentation](https://developer.apple.com/documentation/xcode/writing-arm64-code-for-apple-platforms)
+reserves x18. Replacing Darwin's thread pointer is incompatible with host code
+on the same native thread.
+
+We considered a dedicated guest register, a host thread-key lookup, and the
+host compiler's ordinary TLS. Use ordinary host TLS to hold a borrowed Bionic
+slot pointer, with swap/restore for nested entries. Pointer-only precompiled
+C endpoints provide Bionic's getter and setter; the hidden `__set_tls` wrapper
+remains defined inside Bionic. The runtime must establish the guest TLS layout
+and own its lifetime before calling Bionic. No generated trampoline is needed.
+
+The source overlay omits Android shadow-call-stack setup and cleanup; packaged
+guest code must not use that x18-based instrumentation. Compiler stack checks
+remain enabled and use Bionic's global guard, preserving upstream exceptions
+for bootstrap/initialization code. Baseline Armv8-A atomics are emitted inline
+instead of importing Android's outlined, CPU-feature-dependent helpers. These
+choices trade an extra TLS call/lookup, potentially slower atomics and loss of
+Android SCS for an ABI that can coexist with the host. Timing and hardening
+assessment remain required; the build does not claim equivalent protection.
+
+Edits apply only to hash-verified source copies under the build directory.
+The upstream control and adapted profile preserve 171 global definitions across
+34 units. The native object has no checked TPIDR, x18/x27/x28, SVC or unknown
+instructions. Host tests verify per-thread and nested binding isolation. These
+checks do not prove full Bionic ABI compatibility or native guest execution.
+
 ## No-JIT cost ledger
 
 | Constraint | Consequence / evidence |
@@ -131,3 +163,5 @@ on actual NDK outputs cover this API. They do not establish Bionic execution.
 | Fix ABI/TLS/syscalls before install | Native input compatibility is constrained and must be tested. |
 | AOT depends on ART/boot image/compiler versions | Pin the complete AOT provenance. |
 | No runtime-generated native trampolines | Use precompiled ABI bridges or supported DEX interpreter paths. |
+| Guest TLS must coexist with host TLS | The Bionic source profile uses a precompiled call and host TLS lookup; runtime cost remains unmeasured. |
+| Android register and CPU-runtime assumptions cannot carry over unchanged | The current source profile omits Android SCS, uses a global stack guard and emits baseline atomics; performance and hardening tradeoffs remain to be measured. |
