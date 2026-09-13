@@ -32,8 +32,33 @@ fixture harness, not a complete dynamic-library namespace or thread runtime.
 The same wrapper is also built and signature-verified for arm64 iOS 15. Each
 framework includes Bionic's complete reviewed notice. The framework is a separate
 CI artifact; it is not yet embedded in the app's M1 IPA. Apple linking and native
-execution results are pending CI for this implementation. Windows checks the
+execution pass for this implementation. Windows checks the
 controlled ELF, malformed layouts and synthetic final Mach-O failures.
+
+At implementation `9e4f0490581a388dcdd2661cd9cb1bd4764b0066`, the
+[host run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34752207898)
+passed native macOS execution: 100 iterations, 200 writes, one constructor,
+two PLT bindings and two RELR writes. Both linked/signed wrappers preserve
+49,152 RX bytes followed by 1,392 RW bytes, including 1,032 zero-filled BSS bytes.
+Their checked Mach-O addresses are 16,384 and 65,536 before the ASLR slide.
+The mapped immutable ELF bytes also match before and after execution.
+
+In this single run, loading plus byte validation took 1.405 ms, relocation plus
+the probe constructor took 12 microseconds, and guest setup plus all 100
+iterations took 0.496 ms. The original `iterations_ns` field includes guest
+setup; subsequent reports time setup separately. These are fixture measurements,
+not complete Bionic startup or per-syscall benchmarks. The signed Mach-O binaries
+are 101,040 bytes on macOS and 101,056 bytes for iOS; the framework also carries
+the 268,209-byte Bionic notice and bundle/signature metadata.
+
+The downloaded iOS framework binary has SHA-256
+`1a8941fc28447b1bd99990e5a1faf1014064417ff2a1325460a5230d91131189`.
+Its layout, bytes and notice were rechecked against the downloaded ELF and
+report. The [M1 iOS regression run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34752207900)
+also passed; its IPA at `artifacts/m2-9e4f049/ios/ARTBox.ipa` has SHA-256
+`53082e5c0416beda4c838375a486872c96cbb5bd90041ea487cdde5e40b8288d`.
+The tested merge `8fffebf0382c642b06955be7df1ac6ed99a1cdff` includes the
+implementation commit. That IPA still runs the M1 app, not this dynamic fixture.
 
 Still required: complete Bionic linkage/startup, guest TLS and thread ownership,
 symbol versions/dependencies, general constructor ordering, RELRO protection,
