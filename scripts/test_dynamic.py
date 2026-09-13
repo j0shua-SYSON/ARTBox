@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import struct
 import subprocess
 
@@ -40,6 +41,7 @@ def main():
              "-Wl,--pack-dyn-relocs=relr"]
     results = []
     rejected = 0
+    dynamic_rejected = 0
     for name, source in (("dependency", "dependency.c"), ("metadata", "library.c")):
         binary = build / f"libartbox_{name}.so"
         command = flags + [str(ROOT / "fixtures/dynamic" / source), f"-Wl,-soname,{binary.name}", "-o", str(binary)]
@@ -49,7 +51,7 @@ def main():
         original = binary.read_bytes()
         reference = json.loads(subprocess.check_output([
             str(tools / f"llvm-readobj{suffix}"), "--elf-output-style=JSON", "--file-headers",
-            "--program-headers", str(binary)]))[0]
+            "--program-headers", "--dyn-symbols", str(binary)]))[0]
         programs = [p["ProgramHeader"] for p in reference["ProgramHeaders"]]
         header = reference["ElfHeader"]
         if not header["Type"].endswith("(0x3)") or header["Machine"]["Value"] != 183:
@@ -61,6 +63,22 @@ def main():
                     "loads": [{"offset": p["Offset"], "vaddr": p["VirtualAddress"], "filesz": p["FileSize"],
                                "memsz": p["MemSize"], "align": p["Alignment"], "flags": p["Flags"]["Value"]}
                               for p in programs if p["Type"]["Value"] == 1]}
+        # LLVM 19 emits its text printer for --dynamic-table even when JSON is
+        # requested. Use readelf's tagged text for that table and JSON for symbols.
+        dynamic_text = subprocess.check_output([str(tools / f"llvm-readelf{suffix}"), "-d", "--wide", str(binary)], text=True)
+        def table_size(tag):
+            match = re.search(r"\(" + tag + r"\)\s+(\d+)", dynamic_text)
+            return int(match[1]) if match else 0
+        soname = re.search(r"\(SONAME\)[^\n]*\[([^\]]*)\]", dynamic_text)
+        symbols = [entry["Symbol"] for entry in reference["DynamicSymbols"]]
+        expected_dynamic = {
+            "needed": re.findall(r"\(NEEDED\)[^\n]*\[([^\]]*)\]", dynamic_text),
+            "soname": soname[1] if soname else None,
+            "rela_bytes": table_size("RELASZ"), "plt_rela_bytes": table_size("PLTRELSZ"),
+            "relr_bytes": table_size("RELRSZ"), "init_array_bytes": table_size("INIT_ARRAYSZ"),
+            "symbols": [{"name": s["Name"]["Name"], "value": s["Value"], "size": s["Size"],
+                         "binding": s["Binding"]["Value"], "type": s["Type"]["Value"],
+                         "visibility": s["Other"]["Value"] & 3, "section": s["Section"]["Value"]} for s in symbols]}
         for stripped in (False, True):
             candidate = binary
             if stripped:
@@ -72,6 +90,9 @@ def main():
             observed = json.loads(subprocess.check_output([str(inspector), str(candidate)]))
             if observed != expected:
                 raise RuntimeError(f"Portable ELF view differs from LLVM for {name}, stripped={stripped}")
+            observed_dynamic = json.loads(subprocess.check_output([str(inspector), str(candidate), "--dynamic"]))
+            if observed_dynamic != expected_dynamic:
+                raise RuntimeError(f"Dynamic tables or symbols differ from LLVM for {name}, stripped={stripped}")
         phoff = header["ProgramHeaderOffset"]
         load = next(i for i, p in enumerate(programs) if p["Type"]["Value"] == 1)
         dynamic = next(i for i, p in enumerate(programs) if p["Type"]["Value"] == 2)
@@ -89,15 +110,40 @@ def main():
             if check.returncode != 1 or check.stdout:
                 raise RuntimeError(f"Malformed ELF was not rejected cleanly: {name}/{label}")
             rejected += 1
+        entries = {}
+        start = programs[dynamic]["Offset"]
+        for offset in range(start, start + programs[dynamic]["FileSize"], 16):
+            key, value = struct.unpack_from("<QQ", original, offset)
+            if key == 0:
+                break
+            entries[key] = (offset, value)
+        changes = [("bad-string-size", entries[10][0] + 8, 0),
+                   ("bad-symbol-size", entries[11][0] + 8, 16),
+                   ("duplicate-string-table", entries[30][0], 5),
+                   ("text-relocations", entries[30][0] + 8, 4),
+                   ("unimplemented-symbol-versions", entries[30][0], 0x6ffffff0),
+                   ("unimplemented-packed-relocations", entries[30][0], 0x60000011)]
+        for label, offset, value in changes:
+            contents = bytearray(original)
+            struct.pack_into("<Q", contents, offset, value)
+            candidate = build / f"{name}-{label}.elf"
+            candidate.write_bytes(contents)
+            check = subprocess.run([str(inspector), str(candidate), "--dynamic"], capture_output=True)
+            if check.returncode != 1 or check.stdout:
+                raise RuntimeError(f"Bad or unsupported dynamic metadata was not rejected: {name}/{label}")
+            dynamic_rejected += 1
         if binary.read_bytes() != original:
             raise RuntimeError("Metadata inspection modified the original ELF")
-        results.append({"file": binary.name, "sha256": hashlib.sha256(original).hexdigest(), "view": expected})
+        results.append({"file": binary.name, "sha256": hashlib.sha256(original).hexdigest(),
+                        "view": expected, "dynamic": expected_dynamic})
     report = {"scope": "ELF data validation only; no guest execution", "ndk_revision": REVISION,
               "compiler": subprocess.check_output([str(clang), "--version"], text=True).splitlines()[0],
-              "valid_views": len(results) * 2, "rejected_mutations": rejected, "inputs": results}
+              "valid_views": len(results) * 2, "dynamic_views": len(results) * 2,
+              "rejected_mutations": rejected, "rejected_dynamic_mutations": dynamic_rejected, "inputs": results}
     (Path(os.environ["ARTBOX_ARTIFACTS_DIR"]) / "m2-metadata.json").write_text(
         json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    print(f"Dynamic ELF: {len(results) * 2} LLVM-matched views, {rejected} malformed inputs rejected; no guest execution")
+    print(f"Dynamic ELF: {len(results) * 2} LLVM-matched program and symbol views, "
+          f"{rejected + dynamic_rejected} malformed/unsupported inputs rejected; no guest execution")
 
 
 if __name__ == "__main__":
