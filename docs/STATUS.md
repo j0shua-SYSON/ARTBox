@@ -11,14 +11,16 @@ remains unverified; the waiver is not a passing device result. The milestone PR
 and its CI results are tracked in [PR #1](https://github.com/j0shua-SYSON/ARTBox/pull/1).
 
 M1 is in progress. Static ELF validation and five syscall contracts have portable
-tests. The paired signed-container prototypes and native Android execution are
-not yet implemented or measured. Dynamic Bionic, ART, Binder, graphics and APK
+tests. The Python packer emits both Mach-O conversion and linker-wrapper inputs
+from the same static NDK ELF. Local format checks and LLVM assembly/disassembly
+pass; Apple signing and native execution of these prototypes remain unverified.
+Dynamic Bionic, ART, Binder, graphics and APK
 execution remain future milestones. The [loader design](loader-design.md) was
 recorded before loader implementation.
 
 ## Next verification
 
-1. Run the same static NDK ARM64 ELF through both signed packaging prototypes.
+1. Sign and execute the same static NDK ARM64 ELF through both packaging prototypes.
 2. Compare native Apple execution with unchanged execution on ARM64 Linux,
    record five-syscall results and measure packaging and runtime costs.
 

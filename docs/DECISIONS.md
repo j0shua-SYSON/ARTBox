@@ -47,6 +47,26 @@ milestone. Dependencies retain their actual licenses, including Bionic's BSD
 notices. No GPL reference implementation is copied into the MIT core. No GMS,
 vendor blobs, guest kernel, CPU interpreter or JIT is part of ARTBox.
 
+## ADR 0007 - Python for build-time packaging (accepted, M1)
+
+The packer is a Python standard-library host tool. It validates a controlled
+static ELF, replaces syscall sites before signing, and emits both a direct
+Mach-O dylib and an assembly wrapper containing identical transformed bytes.
+The runtime parser, syscall dispatcher and memory interface remain portable C.
+The host packer's stricter input validation is independent of the runtime parser;
+neither is a general dynamic linker yet.
+
+Keep code and read-only constants at their original relative addresses in one
+Mach-O text segment. The wrapper uses a regular section in `__TEXT` because it
+contains both instructions and constants. LLVM rejected `some_instructions` as
+an assembly section attribute; segment protection, not that annotation, controls
+execution. Local LLVM inspection validates the container/export layout and
+generated veneers. Only native dyld execution can establish that either route
+works, so the packaging recommendation remains provisional.
+
+The instruction allowlist enforces this fixture's ABI contract. It does not
+establish isolation from malicious native code inside the host process.
+
 ## No-JIT cost ledger
 
 | Constraint | Consequence / evidence |
