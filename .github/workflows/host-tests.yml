@@ -83,6 +83,8 @@ jobs:
             build/m2/bionic/*/GWP_ASAN-NOTICE.txt
             build/m2/bionic/*/ARM-ROUTINES-NOTICE.txt
             build/m2/bionic/*/PROPERTY-INFO-NOTICE.txt
+            build/m2/bionic/*/COMPILER-RT-NOTICE.txt
+            build/m2/bionic/*/binary128-test.o
             build/m2/bionic/*/strings-test.o
             build/m2/bionic/*/allocator-tls-test.o
             build/m2/bionic/*/bionic_inline_raise.h
@@ -124,6 +126,8 @@ jobs:
         run: python3 -B scripts/test_bionic_strings.py --evidence-root build/oracle
       - name: Compare signed-wrapper memory operations with the original Bionic Linux path
         run: python3 -B scripts/test_bionic_vm.py --evidence-root build/oracle
+      - name: Check Android binary128 arithmetic without crossing the host floating ABI
+        run: python3 -B scripts/test_bionic_binary128.py --evidence-root build/oracle
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: linux-arm64-oracle
@@ -134,5 +138,6 @@ jobs:
             artifacts/m2-allocator-tls-linux.json
             artifacts/m2-strings-linux.json
             artifacts/m2-vm-linux.json
+            artifacts/m2-binary128-linux.json
           if-no-files-found: error
           retention-days: 7

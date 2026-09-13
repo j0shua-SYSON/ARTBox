@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
     artbox_memory_ops memory = artbox_native_memory();
     artbox_guest* guest;
     const void *generic, *probe, *message;
-    uint64_t started, loaded, relocated, strings_finished, vm_finished, executing, finished;
+    uint64_t started, loaded, relocated, strings_finished, quad_finished, vm_finished, executing, finished;
     if (argc != 3) return 2;
     input = fopen(argv[2], "rb");
     if (!input || fseek(input, 0, SEEK_END) || (length = ftell(input)) < 0 || length > 64 * 1024 * 1024 || fseek(input, 0, SEEK_SET)) return 2;
@@ -136,6 +136,16 @@ int main(int argc, char** argv) {
     relocated = now();
     if (check_strings(lookup(&dynamic, rx, "artbox_string_check", 2), memory.page_size)) return 1;
     strings_finished = now();
+    {
+        const void* quad = lookup(&dynamic, rx, "artbox_quad_check", 2);
+        if (!quad) return 1;
+        int64_t result = (int64_t)artbox_call7(quad, 0, 0, 0, 0, 0, 0, 0);
+        if (result != 123) {
+            fprintf(stderr, "binary128 check: %" PRId64 " (negative case index on failure)\n", result);
+            return 1;
+        }
+    }
+    quad_finished = now();
     {
         artbox_vm_ops vm_ops = artbox_native_vm();
         artbox_vm* vm = artbox_vm_create(&vm_ops, UINT64_C(16) << 30, 256);
@@ -183,9 +193,10 @@ int main(int argc, char** argv) {
            "\"rela\":%zu,\"plt\":%zu,\"relr\":%zu,\"dlopen_and_validate_ns\":%" PRIu64 ","
            "\"relocate_and_construct_ns\":%" PRIu64 ",\"string_cases\":35908,\"string_page_size\":%zu,\"strings_ns\":%" PRIu64 ","
            "\"vm_cases\":35,\"vm_ns\":%" PRIu64 ","
+           "\"binary128_cases\":123,\"binary128_ns\":%" PRIu64 ","
            "\"guest_setup_ns\":%" PRIu64 ",\"iterations_ns\":%" PRIu64 "}\n",
            stats.rela_count, stats.plt_count, stats.relr_count, loaded - started, relocated - loaded,
-           memory.page_size, strings_finished - relocated, vm_finished - strings_finished,
+           memory.page_size, strings_finished - relocated, vm_finished - quad_finished, quad_finished - strings_finished,
            executing - vm_finished, finished - executing);
     return 0;
 }
