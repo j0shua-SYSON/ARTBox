@@ -34,6 +34,9 @@ jobs:
         run: |
           ${{ matrix.python }} -B tests/test_environment.py
           ${{ matrix.python }} -B scripts/build.py host
+      - name: Build the pinned NDK ELF and test both packaging inputs
+        if: matrix.os == 'macos-15'
+        run: python3 -B scripts/test_pack.py
       - name: Upload host evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
