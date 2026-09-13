@@ -27,14 +27,17 @@ M2 must load real Bionic dynamically and run an NDK suite with threads, files
 and mmap. The portable reader now validates ET_EXEC/ET_DYN program headers,
 TLS templates, RELRO ranges and file-backed virtual views. Four views of real
 NDK shared objects, including stripped section tables, match LLVM; ten malformed
-variants are rejected. Dynamic symbol/relocation processing and runtime TLS
-remain unimplemented. The executable packer still targets the M1 static fixture.
+variants are rejected. Dynamic-table parsing and GNU/SysV symbol lookup now
+have portable tests and LLVM comparisons on real NDK files. Symbol versions,
+relocation application, runtime TLS and constructors remain unimplemented;
+see [dynamic loader details](dynamic-loader.md). The executable packer still
+targets the M1 static fixture.
 
 The Bionic Android 15 source archive and notice are pinned and staged through
 portable Python tooling. Source extraction tests cover hash/size mismatch,
 path escape, aliases and case collisions. No Bionic runtime executes yet.
 The [M2 contract](m2-contract.md) fixes the acceptance areas before compatibility
-work; dynamic symbols and relocation tests are next.
+work; relocation processing and Bionic build dependencies are next.
 
 ## Three largest M2 risks
 
