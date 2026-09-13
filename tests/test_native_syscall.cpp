@@ -44,7 +44,7 @@ static void exit_entry(const void*, artbox_guest*, artbox_dispatch_fn, void*) {
 }
 
 int main() {
-    constexpr unsigned workers = 12, iterations = 1000;
+    static constexpr unsigned workers = 12, iterations = 1000;
     if (artbox_native_syscall_swap(nullptr) != nullptr || artbox_bionic_syscall(64, 0, 0, 0, 0, 0, 0) != -38) return 1;
     const artbox_syscall_binding invalid{nullptr, nullptr};
     artbox_native_syscall_swap(&invalid);
