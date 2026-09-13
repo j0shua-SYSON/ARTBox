@@ -5,6 +5,7 @@
 #include "private/bionic_tls.h"
 #include "private/KernelArgumentBlock.h"
 #include "gwp_asan/platform_specific/guarded_pool_allocator_tls.h"
+#include "gwp_asan/common.h"
 
 static libc_shared_globals shared;
 static bionic_tcb bootstrap_tcb;
@@ -12,8 +13,14 @@ alignas(gwp_asan::ThreadLocalPackedVariables)
 static unsigned char gwp_storage[sizeof(gwp_asan::ThreadLocalPackedVariables)];
 extern "C" uint64_t artbox_bootstrap_stage;
 uint64_t artbox_bootstrap_stage;
+static uint64_t guarded_samples;
 
 extern "C" libc_shared_globals* __loader_shared_globals() { return &shared; }
+extern "C" uint64_t artbox_bootstrap_gwp_enabled() { return shared.gwp_asan_state != nullptr; }
+extern "C" uint64_t artbox_bootstrap_guarded_samples() { return guarded_samples; }
+extern "C" void artbox_bootstrap_note_allocation(const void* p) {
+  if (shared.gwp_asan_state && shared.gwp_asan_state->pointerIsMine(p)) ++guarded_samples;
+}
 
 // No stack protector: Bionic reseeds its guard while this frame is active.
 // No guest ELF TLS templates exist in this deliberately bounded fixture.

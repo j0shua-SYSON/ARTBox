@@ -31,6 +31,8 @@ static artbox_kernel_thread thread;
 static unsigned calls, absent_netd, constructors;
 static unsigned unsupported[512];
 static int64_t result;
+static unsigned force_sampling;
+static uint64_t gwp_enabled, guarded_samples;
 static const char *loader_error;
 
 static _Noreturn void fail(const char *message) {
@@ -178,13 +180,23 @@ static void *run(void *context) {
     (void)context;
     unsigned char random[16];
     char name[] = "artbox-bionic-startup";
+    char process_sampling[] = "GWP_ASAN_PROCESS_SAMPLING=1";
+    char allocation_sampling[] = "GWP_ASAN_SAMPLE_RATE=1";
     artbox_system_ops system = artbox_native_system();
     if (system.random(random, sizeof(random))) fail("AT_RANDOM");
     // argc, argv, envp, and the Linux ARM64 auxiliary vector. These live on
     // the mapped guest stack; no Darwin auxiliary-vector or pointer tagging.
-    uint64_t args[] = {1, (uintptr_t)name, 0, 0,
+    uint64_t auxv[] = {
         6, artbox_vm_page_size(vm), 11, 10000, 12, 10000, 13, 10000, 14, 10000,
         16, 0, 17, 100, 23, 0, 25, (uintptr_t)random, 26, 0, 31, (uintptr_t)name, 0, 0};
+    uint64_t args[48] = {1, (uintptr_t)name, 0};
+    size_t cursor = 3;
+    if (force_sampling) {
+        args[cursor++] = (uintptr_t)process_sampling;
+        args[cursor++] = (uintptr_t)allocation_sampling;
+    }
+    args[cursor++] = 0;
+    memcpy(args + cursor, auxv, sizeof(auxv));
     const artbox_syscall_binding binding = {dispatch, &thread};
     const artbox_syscall_binding *previous = artbox_native_syscall_swap(&binding);
     void **old_tls = artbox_native_tls_swap(NULL);
@@ -195,13 +207,17 @@ static void *run(void *context) {
     construct(&images[0]);
     construct(&images[1]);
     fprintf(stderr, "NDK allocator client entry\n");
-    result = (int64_t)artbox_call7(entry(&images[1], "artbox_startup_check"), 0, 0, 0, 0, 0, 0, 0);
+    result = (int32_t)artbox_call7(entry(&images[1], "artbox_startup_check"), 0, 0, 0, 0, 0, 0, 0);
+    gwp_enabled = artbox_call7(entry(&images[0], "artbox_bootstrap_gwp_enabled"), 0, 0, 0, 0, 0, 0, 0);
+    guarded_samples = artbox_call7(entry(&images[0], "artbox_bootstrap_guarded_samples"), 0, 0, 0, 0, 0, 0, 0);
+    if (force_sampling && (!gwp_enabled || !guarded_samples)) fail("GWP-ASan sampling did not run");
     artbox_native_tls_swap(old_tls);
     artbox_native_syscall_swap(previous);
     return NULL;
 }
 int main(int argc, char **argv) {
-    if (argc != 5) return 2;
+    if (argc != 5 && (argc != 6 || strcmp(argv[5], "--sampled"))) return 2;
+    force_sampling = argc == 6;
     for (unsigned i = 0; i < 4; ++i) {
         const int signals[] = {SIGSEGV, SIGBUS, SIGILL, SIGABRT};
         struct sigaction action;
@@ -239,8 +255,9 @@ int main(int argc, char **argv) {
     artbox_devices_destroy(devices);
     if (artbox_vm_destroy(vm)) fail("release reservations");
     printf("{\"cases\":146,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
-           ",\"startup_client_ns\":%" PRIu64 ",\"reserved_bytes\":%" PRIu64 ",\"unsupported_syscalls\":{",
-           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved);
+           ",\"startup_client_ns\":%" PRIu64 ",\"reserved_bytes\":%" PRIu64 ",\"gwp_enabled\":%" PRIu64
+           ",\"guarded_samples\":%" PRIu64 ",\"unsupported_syscalls\":{",
+           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples);
     unsigned printed = 0;
     for (unsigned i = 0; i < 512; ++i) if (unsupported[i]) printf("%s\"%u\":%u", printed++ ? "," : "", i, unsupported[i]);
     puts("}}");

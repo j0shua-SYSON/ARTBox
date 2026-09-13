@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #define CHECK(condition) do { if (!(condition)) return -__LINE__; ++cases; } while (0)
+extern void artbox_bootstrap_note_allocation(const void* p);
 
 int artbox_startup_check(void) {
     int cases = 0;
@@ -21,6 +22,7 @@ int artbox_startup_check(void) {
     for (size_t size = 1; size <= 1024 * 1024; size *= 2) {
         unsigned char* p = malloc(size);
         CHECK(p != NULL && (uintptr_t)p % 16 == 0);
+        artbox_bootstrap_note_allocation(p);
         CHECK(malloc_usable_size(p) >= size);
         memset(p, 0xa5, size);
         unsigned char* grown = realloc(p, size * 2);
@@ -30,6 +32,7 @@ int artbox_startup_check(void) {
         free(grown);
         p = calloc(size, 1);
         CHECK(p != NULL);
+        artbox_bootstrap_note_allocation(p);
         for (size_t i = 0; i < size; ++i) if (p[i] != 0) return -__LINE__;
         CHECK(1);
         free(p);
