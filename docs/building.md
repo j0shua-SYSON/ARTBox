@@ -45,6 +45,7 @@ CMake toolchain file, using ordinary CMake conventions.
 
 ```sh
 python scripts/test_pack.py
+python scripts/test_dynamic.py
 python3 scripts/test_native.py
 ```
 
@@ -54,7 +55,11 @@ into the configured cache if needed. Set `ARTBOX_NDK_ROOT` or pass `--ndk-root`
 to use an existing r28c installation. `--build-dir` selects the fixture directory.
 The ELF manifest records the NDK/compiler versions, input paths and hashes.
 
-The second command requires an ARM64 Mac with Xcode. It links/signs both
+`test_dynamic.py` builds NDK shared objects and compares the portable ELF view
+with LLVM, including sectionless and malformed variants. It validates data
+without executing guest instructions and requires a built portable host.
+
+`test_native.py` requires an ARM64 Mac with Xcode. It links/signs both
 frameworks, executes each 100 times on the native CPU and tests the same entry
 used by the iOS app. CI separately runs the original ELF on native ARM64 Linux.
 Neither the packer nor the portable host tests emulate an ARM64 CPU.
