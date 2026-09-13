@@ -16,11 +16,8 @@ Physical-device checks are waived for all milestones by the project owner.
 Physical iPhone execution and lifecycle behavior remain unverified. Automated
 acceptance, CI and artifact checks remain required.
 
-The current iOS front end is ARTBox's own [launcher](launcher.md), with an
-original icon, searchable library, persistent APK imports and separate runtime
-views. Hello launches the included M1 demo. Imported APKs are explicitly
-unavailable for execution. The new simulator UI checks are pending CI; the
-device build continues to target arm64 iOS 15 with no extra entitlements.
+Launcher development is deferred while the runtime milestones take priority.
+The iOS target retains the verified M1 console and both signed demo frameworks.
 
 The Apple-linker wrapper is selected for M2 based on the measured M1 experiment;
 the direct converter remains a comparison prototype. The [loader design](loader-design.md)
