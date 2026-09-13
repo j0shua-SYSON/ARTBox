@@ -20,6 +20,7 @@ from ndk import REVISION, obtain as obtain_ndk
 from sources import obtain as obtain_source
 from bionic_adapt import adapt_sources, check_native, inventory, stack_references
 from bionic_syscalls import generate as generate_syscalls
+from bionic_builtins import prepare as prepare_builtins
 
 
 def digest(path):
@@ -207,7 +208,9 @@ def main():
     # A relocatable link verifies these objects agree on their shared symbols.
     # Remaining undefined symbols are required dependencies, never zero stubs.
     combined = build / "bionic-m2-partial.o"
-    subprocess.run([str(tools / f"ld.lld{suffix}"), "-r", *[str(e[2]) for e in entries], "-o", str(combined)], check=True)
+    builtins, binary128 = prepare_builtins(tools, build)
+    subprocess.run([str(tools / f"ld.lld{suffix}"), "-r", *[str(e[2]) for e in entries],
+                    *map(str, builtins), "-o", str(combined)], check=True)
     structure = json.loads(subprocess.check_output([str(tools / f"llvm-readobj{suffix}"), "--elf-output-style=JSON",
                                                    "--file-headers", "--symbols", "--relocations", str(combined)]))[0]
     header = structure["ElfHeader"]
@@ -273,7 +276,7 @@ def main():
               "stack_protection": protection, "dependencies": {"libcutils-headers": cutils_pin,
                   **{name: source_pins[name] for name in components}},
               "component_selection_sha256": digest(component_path), "component_notices": component_notices,
-              "allocator_tls": allocator_tls, "strings": strings,
+              "allocator_tls": allocator_tls, "strings": strings, "binary128": binary128,
               "inline_raise_sha256": digest(inline_raise), "syscall_stubs": syscall_info}
     artifacts = Path(os.environ["ARTBOX_ARTIFACTS_DIR"])
     artifacts.mkdir(parents=True, exist_ok=True)

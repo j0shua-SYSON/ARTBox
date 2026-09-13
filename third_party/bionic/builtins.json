@@ -1,0 +1,11 @@
+{
+  "description": "Two compiler-rt ARM64 members from the pinned NDK; no host long-double bridge",
+  "ndk_revision": "28.2.13676358",
+  "archive": "lib/clang/19/lib/linux/libclang_rt.builtins-aarch64-android.a",
+  "members": {
+    "comparetf2.c.o": "f835fc27cc22c6f8f0b1ba734ebcccecc7d0895664ace95a1d65bc958eb9dc44",
+    "multf3.c.o": "80d09bdf6bff3a3bcba38efe7eca36f8a2720cc25a5a8d2004c5e846db5e8e5d"
+  },
+  "notice": "NOTICE",
+  "notice_sha256": "f96f763beb66a7ba7a667647fc64c0226ace875e590c831fdd9579ec1c1d91e1"
+}

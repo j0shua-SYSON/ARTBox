@@ -309,6 +309,26 @@ An identical NDK caller tests the real Bionic error tails in the signed Mac slic
 and both original/adapted Bionic Linux paths. This proves a memory boundary;
 executing the actual allocator and constructing guest TLS remain separate work.
 
+## 0017 - Keep binary128 arithmetic inside the Android ABI
+
+Status: selected; NDK compilation and instruction checks pass, native tests pending.
+
+Android ARM64 long double uses binary128. Apple's ARM64 long-double ABI differs,
+so binding Bionic's compiler arithmetic helpers to host symbols would silently
+change the operation and calling convention. Link exactly the two reviewed
+compiler-rt members supplied by the pinned NDK for comparison and multiplication.
+Their member hashes and complete supplied LLVM notice are checked in both source
+profiles. This adds ordinary AOT runtime arithmetic, with no generated code and
+no host floating-point bridge. Their 387 instructions pass the native boundary
+check; software binary128 cost has not been benchmarked in Bionic workloads.
+
+The test caller constructs independent integer encodings and checks exact product
+bits, ordering, infinities, subnormals, rounding ties, signed zero and NaNs. It
+stays in the Android ABI for helper calls and exposes only an integer result.
+The same NDK object runs through the signed Mac wrapper and native Linux runner.
+Keep test-only symbol prefixes separate from production definitions. These checks
+do not cover all floating-point environment modes or general variadic ABI bridges.
+
 ## No-JIT cost ledger
 
 | Constraint | Consequence / evidence |
