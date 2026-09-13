@@ -16,6 +16,10 @@
 #endif
 #define CHECK(x) do { if (!(x)) { std::fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #x); return 1; } } while (0)
 
+template<size_t N> static void path_text(unsigned char* destination, const char (&text)[N]) {
+    static_assert(N <= 128, "Path fixture fits its mapped page");
+    std::memcpy(destination, text, N);
+}
 static int failed_random(void*, size_t) { return -5; }
 int main() {
     artbox_vm_ops memory = artbox_native_vm();
@@ -31,7 +35,7 @@ int main() {
     auto call = [&](uint64_t n, uint64_t a0 = 0, uint64_t a1 = 0, uint64_t a2 = 0, uint64_t a3 = 0) {
         return artbox_devices_call(devices, &thread, n, a0, a1, a2, a3);
     };
-    std::strcpy(reinterpret_cast<char*>(bytes), "/dev/urandom");
+    path_text(bytes, "/dev/urandom");
     CHECK(call(48, static_cast<uint32_t>(-100), path, 4) == 0);
     CHECK(call(48, static_cast<uint32_t>(-100), path, 1) == -13);
     CHECK(call(48, static_cast<uint32_t>(-100), path, 8) == -22);
@@ -61,11 +65,11 @@ int main() {
     thread.system = system;
     CHECK(call(57, static_cast<uint64_t>(random)) == 0 && call(57, static_cast<uint64_t>(random)) == -9);
     CHECK(call(63, static_cast<uint64_t>(random), buffer, 16) == -9);
-    std::strcpy(reinterpret_cast<char*>(bytes), "/dev/null");
+    path_text(bytes, "/dev/null");
     int64_t null_fd = call(56, 12345, path, 2); // Absolute paths ignore dirfd.
     CHECK(null_fd == 3 && call(63, 3, 0, 16) == 0 && call(64, 3, 0, 16) == 16);
     CHECK(call(57, 3) == 0);
-    std::strcpy(reinterpret_cast<char*>(bytes), "/dev/zero");
+    path_text(bytes, "/dev/zero");
     CHECK(call(56, 12345, path, 0) == 3);
     CHECK(call(63, 3, buffer, 512) == 512);
     for (size_t i = 0; i < 512; ++i) CHECK(bytes[memory.page_size + i] == 0);
@@ -83,14 +87,14 @@ int main() {
     });
     for (auto &worker : workers) worker.join();
     CHECK(failures == 0);
-    std::strcpy(reinterpret_cast<char*>(bytes), "dev/./urandom");
+    path_text(bytes, "dev/./urandom");
     CHECK(call(48, static_cast<uint32_t>(-100), path, 4) == 0);
     CHECK(call(48, 3, path, 4) == -9);
-    std::strcpy(reinterpret_cast<char*>(bytes), "/dev/../urandom");
+    path_text(bytes, "/dev/../urandom");
     CHECK(call(48, 0, path, 4) == -1);
-    std::strcpy(reinterpret_cast<char*>(bytes), "/dev/missing");
+    path_text(bytes, "/dev/missing");
     CHECK(call(56, 0, path, 0) == -2);
-    std::strcpy(reinterpret_cast<char*>(bytes), "/dev/zero/");
+    path_text(bytes, "/dev/zero/");
     CHECK(call(56, 0, path, 0) == -20);
 #if defined(__linux__)
     for (const char *name : {"/dev/null", "/dev/zero", "/dev/urandom"}) {
