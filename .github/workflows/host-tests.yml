@@ -37,12 +37,18 @@ jobs:
       - name: Build the pinned NDK ELF and test both packaging inputs
         if: matrix.os == 'macos-15'
         run: python3 -B scripts/test_pack.py
+      - name: Execute both signed inputs on the native ARM64 CPU
+        if: matrix.os == 'macos-15'
+        run: python3 -B scripts/test_native.py
       - name: Upload host evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: host-evidence-${{ matrix.os }}
           path: |
             artifacts/host-metrics.json
+            artifacts/m1-native.json
+            build/m1/hello.elf
+            build/m1/macos/ARTBox*-load-commands.txt
             build/host/Testing/Temporary/LastTest.log
           if-no-files-found: error
           retention-days: 7
