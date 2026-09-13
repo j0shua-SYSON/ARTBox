@@ -155,3 +155,14 @@ and public API retain the archive's AOSP BSD notices; FreeBSD wide-string and
 OpenBSD duplication helpers retain their original permissive notices in the
 Bionic archive and complete libc notice. No property service or proprietary
 property data is imported. This source build is not yet property runtime support.
+
+Two target-side compiler-rt members (`comparetf2.c.o` and `multf3.c.o`) come from
+NDK r28c's `libclang_rt.builtins-aarch64-android.a`. They supply Android binary128
+comparison and multiplication used by Bionic's long-double conversion. Their
+exact member hashes and NDK revision are pinned in `third_party/bionic/builtins.json`;
+no other archive member is linked. The supplied LLVM toolchain `NOTICE` includes
+the Apache-2.0 license with LLVM exceptions and legacy permissive notices. Its
+complete, hash-verified text is preserved as `COMPILER-RT-NOTICE.txt` with objects
+and the signed arithmetic fixture. The original test caller is MIT. Test symbol
+prefixes do not change compiler-rt licensing. The host's floating-point ABI and
+arithmetic library are not substituted for these Android runtime functions.

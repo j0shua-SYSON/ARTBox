@@ -265,4 +265,21 @@ five allowed weak differences. The native build has 75,560 decoded instructions,
 syscall/thread-pointer/reserved-register instruction counts remain zero. Its
 21 unresolved dependencies include 18 strong imports: four binary128 compiler
 helpers, loader APIs, native TLS/syscall endpoints and thread/process boundaries.
-CI verification of this expanded source selection is pending.
+This source selection passes [host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34755550388)
+and the [iOS regression](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34755550375)
+at `aaeece1`; actual property startup remains pending.
+
+Two reviewed target compiler-rt members from the pinned NDK now supply binary128
+comparison and multiplication, removing those four strong imports. This keeps
+Android's 128-bit long double entirely in its own compiled ABI. Both profiles
+link identical hash-checked members and retain the complete LLVM toolchain notice.
+The original NDK test caller passes only an integer result across the Apple
+boundary: 123 exact-bit products, ordered comparisons, signed-zero and NaN cases.
+CI must execute the identical caller/helpers on native Linux and in the signed
+macOS wrapper; iOS linking/signing preserves the same bytes. Local compilation
+and instruction checks pass; native arithmetic execution is pending.
+
+With these helpers the local native object has 75,947 decoded instructions,
+1,387 global definitions shared with the control and 17 unresolved dependencies
+(14 strong). The 221 compiled source units are separate from the two prebuilt
+NDK arithmetic members. This is still not complete Bionic startup.

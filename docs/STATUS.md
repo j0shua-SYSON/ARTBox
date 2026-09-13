@@ -52,15 +52,18 @@ native overlay redirects Bionic TLS to precompiled host endpoints and removes
 Android's x18 shadow-stack ownership. Its inline signal path requires a
 fixed-width raw-syscall endpoint. The host now provides that endpoint with
 thread-local dispatch bindings and preserved host errno. The object passes
-the checked instruction gate. Both profiles share 1,378 global definitions;
+the checked instruction gate. Two pinned NDK compiler-rt objects supply Android
+binary128 arithmetic without crossing Apple's long-double ABI. Both profiles
+share 1,387 global definitions;
 five expected weak template/TLS differences are checked explicitly. Host TLS isolation passes across
 12 threads, but guest TLS construction and binding are not integrated yet.
 All 216 table-generated syscall entries, their 13 aliases and the generic entry
 now call the raw endpoint in the native profile. Native Linux ARM64 passes
 8,280 capture cases and five smoke cases per profile using the actual NDK-built
 entries and Bionic errno helper. An exported entry does not imply that its
-syscall is implemented. The native partial object has 21 unresolved dependencies (18 strong).
-These expanded source-build results pass locally; their CI verification is pending.
+syscall is implemented. The native partial object has 17 unresolved dependencies (14 strong).
+The 221-source property/CRT selection passes CI at `aaeece1`; the new arithmetic
+objects and 123-case native oracle pass local compilation and await native CI.
 Complete Bionic startup and dynamic execution remain unimplemented. The host
 dispatch test covers 12 threads, nested bindings and the five M1 syscalls;
 it does not add syscall semantics or initialize guest TLS.

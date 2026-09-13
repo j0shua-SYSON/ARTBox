@@ -39,6 +39,8 @@ def main():
     if not all(control[name] > 0 for name in ("tpidr_el0_read", "tpidr_el0_write", "x18_mentions", "svc")):
         raise RuntimeError("The upstream Bionic control no longer exercises the adapted instruction classes")
     check_native(native["native_boundary_inventory"], native["undefined_symbols"], native["stack_protection"])
+    if upstream["binary128"] != native["binary128"]:
+        raise RuntimeError("Both profiles must use the same reviewed compiler runtime and arithmetic caller")
     policy = json.loads((ROOT / "third_party/bionic/components.json").read_text(encoding="utf-8"))["profile_symbol_differences"]
     upstream_names, native_names = set(upstream["defined_symbols"]), set(native["defined_symbols"])
     if upstream_names - native_names != set(policy["upstream_only"]) or \
