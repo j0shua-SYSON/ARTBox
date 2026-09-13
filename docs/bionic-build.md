@@ -6,7 +6,8 @@ pthread translation units, three libc initialization units, errno accessors,
 futex/clone wrappers, open/stat wrappers and the AArch64 TLS setter. It also
 builds C++ initialization/destruction support, ELF TLS helpers, auxv/vDSO access,
 tracing, fd ownership/tracking, semaphores and signal wrappers. It produces
-73 Bionic objects and 23 Scudo/GWP-ASan objects (including generated syscall assembly)
+167 Bionic objects (including generated syscall assembly), 23 Scudo/GWP-ASan
+objects and 14 AOSP Arm memory/string objects
 and combines them with a relocatable link. The default
 `native` profile applies the source adaptations below; `--profile upstream`
 builds a control with the original source. Neither produces `libc.so` or packages
@@ -60,7 +61,7 @@ their separate host TLS values. It does not yet execute Bionic's code.
 
 ## Current evidence and next boundaries
 
-`python scripts/test_bionic.py` compiles both profiles from the same 96 selected/generated
+At implementation `9d22426`, `python scripts/test_bionic.py` compiled both profiles from the same 96 selected/generated
 sources. They share 894 global definitions; the exact differences are four weak
 Scudo template outlines and GWP-ASan's replaced eight-byte TLS variable. The
 check rejects any other difference, any strong-definition difference or an
@@ -166,7 +167,7 @@ startup still need integration. The extra call and host TLS lookup are untimed.
 
 ## Allocator dependency build
 
-`third_party/bionic/allocators.json` selects the real Scudo and GWP-ASan source
+`third_party/bionic/components.json` selects the real Scudo and GWP-ASan source
 groups from their matching AOSP tag. It records compiler flags and notice hashes.
 Scudo retains Android's custom size classes, shared TSD registry and Bionic
 wrappers, `-O3`, CRC support and its upstream stack-protector exception. Both
@@ -190,7 +191,7 @@ hook with the same NDK inputs. It checks the constructor's sentinel, all bit
 fields, errno preservation and independent state over 8,192 exchanges. Both
 profiles pass in native Linux CI. This is a TLS adaptation test, not allocator startup.
 
-The instruction-gated native partial object contains 38,505 decoded instructions
+The instruction-gated native partial object at `9d22426` contains 38,505 decoded instructions
 with zero checked kernel entries, thread-pointer or reserved-register accesses.
 Its 897 global definitions differ from the control's 896 only by the exact weak
 outlines/TLS object listed in the allocator manifest. The extra calls change
@@ -210,3 +211,22 @@ The M1 IPA at `artifacts/m2-9d22426/ios/ARTBox.ipa` has SHA-256
 `e979fbc7636ddc7c80a009923980679a553873860c6c8f1afbbf7d60cfe5a323`.
 It retains the verified arm64 iOS 15 app/framework manifests; it contains no
 Bionic allocator runtime and has not been executed on a physical device.
+
+## Stdio and baseline strings
+
+The selection now has 204 units. It adds the actual Bionic stdio, OpenBSD
+stdio/gdtoa dependencies, locale/ICU dispatch and source providers required by
+the existing libc initialization and malloc wrappers. The source manifest
+records each OpenBSD group's compatibility include, warning settings and
+upstream larger-stack exception. The common warning settings also retain
+Soong's `-Wno-c99-designator`. Android's FILE layout, varargs handling and
+long-double conversion stay in Android-compiled code; no host printf adapter
+is substituted. This remains a partial source build with unresolved imports.
+
+`components.json` now includes the minimal pinned AOSP Arm string library.
+Bionic's unchanged static dispatcher binds its 15 public entry points to the
+baseline implementations; see ADR 0015. The build produces `strings-test.o`
+from the exact production objects with test-only symbol prefixes, plus an
+original NDK-compiled scalar oracle. It rejects unresolved test imports and
+forbidden instructions. Linux and the signed macOS wrapper must each complete
+all 35,908 guarded-page cases. Compile success alone is not a runtime result.

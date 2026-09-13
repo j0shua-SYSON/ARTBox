@@ -29,6 +29,14 @@ conversion against separate test errno storage. It requires 100 iterations and
 200 successful writes and compares immutable bytes again afterward. This is a
 fixture harness, not a complete dynamic-library namespace or thread runtime.
 
+The expanded fixture also links the pinned AOSP baseline memory/string objects
+and their independent scalar oracle. It must pass 35,908 cases in host-created
+guarded mappings through the same precompiled seven-word bridge. The same NDK
+object runs on native Linux. This checks actual signed guest string code;
+host mappings isolate overreads/writes, and no host libc function supplies the
+expected results. The report times these checks separately from syscall loops.
+The framework retains the complete Arm routines license before signing.
+
 The same wrapper is also built and signature-verified for arm64 iOS 15. Each
 framework includes Bionic's complete reviewed notice. The framework is a separate
 CI artifact; it is not yet embedded in the app's M1 IPA. Apple linking and native

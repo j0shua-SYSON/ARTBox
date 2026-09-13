@@ -80,6 +80,8 @@ jobs:
             build/m2/bionic/*/LIBCUTILS-NOTICE.txt
             build/m2/bionic/*/SCUDO-NOTICE.txt
             build/m2/bionic/*/GWP_ASAN-NOTICE.txt
+            build/m2/bionic/*/ARM-ROUTINES-NOTICE.txt
+            build/m2/bionic/*/strings-test.o
             build/m2/bionic/*/allocator-tls-test.o
             build/m2/bionic/*/bionic_inline_raise.h
             build/m2/bionic/*/syscall-test.o
@@ -116,6 +118,8 @@ jobs:
         run: python3 -B scripts/test_bionic_syscalls.py --evidence-root build/oracle
       - name: Compare the original and adapted allocator thread-local state
         run: python3 -B scripts/test_allocator_tls.py --evidence-root build/oracle
+      - name: Check the NDK string objects against scalar and guarded-page oracles
+        run: python3 -B scripts/test_bionic_strings.py --evidence-root build/oracle
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: linux-arm64-oracle
@@ -124,5 +128,6 @@ jobs:
             artifacts/m2-inline-raise-linux.json
             artifacts/m2-syscall-stubs-linux.json
             artifacts/m2-allocator-tls-linux.json
+            artifacts/m2-strings-linux.json
           if-no-files-found: error
           retention-days: 7

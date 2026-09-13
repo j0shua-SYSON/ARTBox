@@ -1,5 +1,5 @@
 {
-  "description": "AOSP Android allocator groups linked with the Bionic partial source build; not runtime acceptance",
+  "description": "Pinned AOSP libraries supporting the partial Bionic source build; not full runtime acceptance",
   "common_flags": [
     "-DANDROID",
     "-D_LIBC=1",
@@ -71,6 +71,29 @@
         "gwp_asan/platform_specific/guarded_pool_allocator_posix.cpp",
         "gwp_asan/platform_specific/mutex_posix.cpp",
         "gwp_asan/platform_specific/utilities_posix.cpp"
+      ],
+      "flags": []
+    },
+    "arm-routines": {
+      "source_commit": "514df029da8aa4146726f6a020ddc69cf34a007d",
+      "includes": [
+        "string/aarch64"
+      ],
+      "sources": [
+        "string/aarch64/memchr-mte.S",
+        "string/aarch64/memcmp.S",
+        "string/aarch64/memcpy.S",
+        "string/aarch64/memrchr.S",
+        "string/aarch64/memset.S",
+        "string/aarch64/stpcpy.S",
+        "string/aarch64/strchr-mte.S",
+        "string/aarch64/strchrnul-mte.S",
+        "string/aarch64/strcmp.S",
+        "string/aarch64/strcpy.S",
+        "string/aarch64/strlen-mte.S",
+        "string/aarch64/strncmp.S",
+        "string/aarch64/strnlen.S",
+        "string/aarch64/strrchr-mte.S"
       ],
       "flags": []
     }

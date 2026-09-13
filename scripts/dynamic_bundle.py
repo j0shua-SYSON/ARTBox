@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from wrap_dynamic import verify_macho
 
 
-def prepare(packed, directory, platform, notice, notice_sha256):
+def prepare(packed, directory, platform, notice, notice_sha256, extra_notices=None):
     if sys.platform != "darwin" or platform not in ("macos", "ios"):
         raise RuntimeError("Dynamic framework linking requires Xcode on macOS")
     name = "ARTBoxBionicSlice"
@@ -42,6 +42,15 @@ def prepare(packed, directory, platform, notice, notice_sha256):
     if hashlib.sha256(notice_data).hexdigest() != notice_sha256:
         raise RuntimeError("Bionic framework notice differs from its reviewed source pin")
     (framework / "BIONIC-NOTICE.txt").write_bytes(notice_data)
+    notice_hashes = {"BIONIC-NOTICE.txt": notice_sha256}
+    for name, (path, expected) in (extra_notices or {}).items():
+        if Path(name).name != name or name == "BIONIC-NOTICE.txt":
+            raise RuntimeError("Invalid additional framework notice name")
+        data = path.read_bytes()
+        if hashlib.sha256(data).hexdigest() != expected:
+            raise RuntimeError(f"Framework notice differs from its reviewed source: {name}")
+        (framework / name).write_bytes(data)
+        notice_hashes[name] = expected
     command("codesign", "--force", "--sign", "-", "--timestamp=none", framework)
     command("codesign", "--verify", "--strict", "--verbose=2", framework)
     after = verify_macho(binary.read_bytes(), layout)
@@ -49,5 +58,6 @@ def prepare(packed, directory, platform, notice, notice_sha256):
         raise RuntimeError("Signing changed the verified guest address layout")
     (directory / "load-commands.txt").write_bytes(command("xcrun", "otool", "-l", binary, capture=True))
     return binary, {"platform": platform, "target": target, "layout": after, "notice_sha256": notice_sha256,
+                    "notices": notice_hashes,
                     "unsigned_bytes": unsigned_size,
                     "signed_bytes": binary.stat().st_size, "link_verify_sign_ns": time.perf_counter_ns() - started}
