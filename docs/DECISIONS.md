@@ -267,7 +267,7 @@ protection is unchanged. These tests do not establish complete Bionic startup.
 
 ## 0016 - Own anonymous reservations and track page state
 
-Status: implemented; local Windows tests pass, Apple/Linux CI verification pending.
+Status: implemented; Windows, macOS, Linux and signed-wrapper native comparisons pass at `2415969`.
 
 Scudo reserves inaccessible VA, replaces parts with fixed anonymous mappings,
 trims subranges and discards pages expecting zeros. Implement these operations

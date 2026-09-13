@@ -87,6 +87,27 @@ at `artifacts/m2-3f69405/ios/ARTBox.ipa` has SHA-256
 tested merge `b351157fbf407eb8da0b8fd03fe588f9ed400287` includes the implementation.
 The dynamic fixture remains separate from that IPA.
 
+The memory fixture at `2415969b06c35d4fc3e712621993e39a55efa8e2` passes
+[host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34755282319)
+and the [iOS regression](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34755282311).
+It adds 35 NDK-compiled memory/errno cases through the actual Bionic generic entry
+and `artbox_vm_syscall`, including reserved ranges, fixed commits, partial unmaps,
+read-only discards and write-implies-read. The exact caller object has SHA-256
+`3f2a22167ec212c75846a1efd95daf5ee8b28c6ec66a255e299aa2aaaf94a2fa`;
+both original and adapted Bionic paths pass it on native Linux ARM64.
+
+The macOS memory check takes 196 microseconds with 16 KiB pages; original/adapted
+Linux checks take 83.883/102.714 microseconds with 4 KiB pages. These include byte
+checks and setup, with different hosts and page sizes; they are not an allocator
+benchmark. Existing string cases and 100 five-syscall loops still pass. The
+wrapper preserves 65,536 RX and 1,640 RW bytes, with 33 PLT and two RELR bindings.
+Downloaded ELF, caller, source objects, notices and iOS Mach-O layout match their
+reports. The iOS framework binary SHA-256 is
+`fd1a20b99bebc53c04e8cc8d5e88683b11d9e12cf93bc9c6d826600e26f40a7f`.
+The M1 IPA at `artifacts/m2-2415969/ios/ARTBox.ipa` has SHA-256
+`24429b0c56deb7f6dc2183bd3712d48c9939939459629753c8c268c66540a574`;
+tested merge `07ca2b7a5caa127cb2273aad056f619cc1603d64` includes the implementation.
+
 Still required: complete Bionic linkage/startup, guest TLS and thread ownership,
 symbol versions/dependencies, general constructor ordering, RELRO protection,
 broader Linux semantics and integration in the iOS app. No physical iPhone
