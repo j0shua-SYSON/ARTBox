@@ -5,6 +5,7 @@
 #if defined(__linux__)
 #include <errno.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #endif
 
@@ -84,6 +85,14 @@ int main(void) {
         errno = 0;
         CHECK(munmap((char *)oracle + 1, page) == -1 && errno == 22);
         CHECK(munmap(oracle, page) == 0);
+    }
+    {
+        int status;
+        pid_t child = fork();
+        CHECK(child >= 0);
+        if (child == 0) _exit(0x123);
+        CHECK(waitpid(child, &status, 0) == child);
+        CHECK(WIFEXITED(status) && WEXITSTATUS(status) == 0x23);
     }
 #endif
     CHECK(artbox_guest_destroy(guest) == 0);
