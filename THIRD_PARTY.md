@@ -64,13 +64,13 @@ to make extraction work without filesystem symlink privileges. Runtime source
 changes and additional allocator/loader dependencies must be recorded as they
 are introduced. A full AOSP platform checkout is not needed for this source audit.
 
-The M2 build compiles the 48 libc translation units listed in
+The M2 build compiles the 50 selected/generated libc translation units recorded in
 `third_party/bionic/m2-objects.json` into partial relocatable objects. The
 upstream profile is unchanged source. The native profile applies the exact,
 hash-checked edits in `third_party/bionic/native-boundary.json` to
 `libc/platform/bionic/tls.h`, `libc/arch-arm64/bionic/__set_tls.c`,
 `libc/bionic/pthread_create.cpp`, `libc/bionic/pthread_exit.cpp` and
-`libc/private/bionic_inline_raise.h` in a separate
+`libc/private/bionic_inline_raise.h` and `libc/arch-arm64/bionic/syscall.S` in a separate
 build overlay. The edits route TLS access through ARTBox endpoints and omit
 Android shadow-call-stack setup/cleanup; the signal header uses a fixed-width
 raw-syscall endpoint instead of inline kernel entry. These BSD-licensed files retain their
@@ -93,3 +93,12 @@ Only these three files are fetched; the rest of system/core is not imported.
 The object artifacts retain that notice as `LIBCUTILS-NOTICE.txt` alongside
 the Bionic notice. Linux source-adaptation tests also receive the original and
 adapted BSD-licensed signal header with its original notice intact.
+
+The build also runs Bionic's unmodified `libc/tools/gensyscalls.py` against its
+original `libc/SYSCALLS.TXT`, then adapts the generated ARM64 kernel entry. The
+source hashes are pinned in `third_party/bionic/syscalls.json`. The generic
+`syscall.S` carries an AOSP BSD notice. Its included assembler headers retain
+their AOSP and Berkeley/OpenBSD/NetBSD notices; the complete libc notice remains
+with all object artifacts. Generated/modified Bionic assembly and test symbol
+renaming do not relicense that code as MIT. The generator is used as a build
+tool from the pinned archive; no rewritten syscall table is substituted.

@@ -178,6 +178,30 @@ adapted headers, exercises thread-targeted queued signals with non-null/default
 payloads, and tests errno preservation on invalid signals. Its raw test backend
 forwards to Linux; this does not establish Darwin signal support or Bionic startup.
 
+## 0013 - Adapt AOSP-generated syscall assembly and retain Bionic errno conversion
+
+Status: implemented in the source build; native oracle and runtime integration required.
+
+Use AOSP's pinned table and generator for the exported ARM64 stubs and aliases.
+A source adapter replaces each `svc` pair with a normal precompiled C call and
+preserves FP/LR and unwind metadata. Up to six argument registers shift to make
+room for the Linux syscall number; unused words are zero. The generic syscall
+entry can forward its existing seven register arguments directly. Preserve the
+original Bionic error-range test and tail call into `__set_errno_internal`.
+
+This avoids handwritten duplicate syscall numbers/prototypes and any runtime
+instruction patching. The cost is a stack frame, argument moves and a host call
+per entry, not yet timed. Nonstandard clone and thread-stack teardown entry
+points require separate implementations; ordinary table stubs cannot provide
+those thread lifecycle semantics.
+
+For verification, prefix a relocatable test copy so no Bionic export interposes
+on the Linux host libc. Link the actual Bionic errno setter and provide separate
+test TLS for its `__errno` dependency. Bulk cases use a capture backend with
+controlled results, exercising every generated entry/alias and callee-saved
+registers without issuing arbitrary Linux calls. Five explicit smoke cases run
+against Linux in both profiles. These checks do not establish the full runtime.
+
 ## No-JIT cost ledger
 
 | Constraint | Consequence / evidence |

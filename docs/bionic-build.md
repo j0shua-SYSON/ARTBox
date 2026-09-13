@@ -6,7 +6,7 @@ pthread translation units, three libc initialization units, errno accessors,
 futex/clone wrappers, open/stat wrappers and the AArch64 TLS setter. It also
 builds C++ initialization/destruction support, ELF TLS helpers, auxv/vDSO access,
 tracing, fd ownership/tracking, semaphores and signal wrappers. It produces
-48 AArch64 objects and combines them with a relocatable link. The default
+50 AArch64 objects (including generated syscall assembly) and combines them with a relocatable link. The default
 `native` profile applies the source adaptations below; `--profile upstream`
 builds a control with the original source. Neither produces `libc.so` or packages
 Android code into the app. `--ndk-root`, `--build-dir` and `--jobs` are configurable;
@@ -30,7 +30,7 @@ stack protection. C sources use Bionic's `gnu99` setting.
 
 The compiler reserves x18, x27 and x28 and disables emulated ELF TLS. These flags
 alone do not adapt handwritten assembly or TLS access. `native-boundary.json`
-specifies exact, hash-checked edits to five upstream files, written into an
+specifies exact, hash-checked edits to six upstream files, written into an
 overlay under the build directory. Original source and notices stay intact.
 
 - `__get_tls()` calls the precompiled `artbox_bionic_get_tls` endpoint.
@@ -59,19 +59,20 @@ their separate host TLS values. It does not yet execute Bionic's code.
 
 ## Current evidence and next boundaries
 
-`python scripts/test_bionic.py` compiles both profiles from the same 48 selected
-sources and verifies that they retain the same 282 global definitions. The
+`python scripts/test_bionic.py` compiles both profiles from the same 50 selected/generated
+sources and verifies that they retain the same 512 global definitions. The
 upstream control has 108 `TPIDR_EL0` reads, one write, one x18 reference and
-two inline `svc` instructions in the fd-ownership diagnostic path. The
+219 `svc` instructions: 216 generated entries, the generic entry and two
+in the fd-ownership diagnostic path. The
 native profile contains none of those instructions, no x27/x28 references,
 no `svc`, no unknown disassemblies and no outlined atomic imports. It retains
 both TLS bridge imports, the raw-syscall endpoint and stack-check failure calls.
 The native object has 58 failure-branch relocations and 140 guard-address
 relocations. This checks actual code references even after the failure handler
-is defined. The partial object still has 101 unresolved dependencies; no missing function is replaced
+is defined. The partial object still has 69 unresolved dependencies; no missing function is replaced
 with a placeholder.
 
-The remaining libc/allocator/loader components and syscall assembly are absent
+The remaining libc/allocator/loader components and special clone/teardown assembly are absent
 from this source selection. Their code needs the same checks when introduced.
 TLS block creation, module TLS layout, source dependency closure and native
 execution through signed dynamic packaging remain required. The instruction
@@ -115,3 +116,27 @@ signed manifests. The tested PR merge is `34db396a409cf03dce91a1f9e595f922d801ab
 whose parent includes the implementation commit. Bionic object, notice and
 exported-header hashes were checked after download. The IPA still contains
 the M1 runtime; these results do not close M2.
+
+## Generated syscall boundary
+
+The pinned AOSP `gensyscalls.py` and `SYSCALLS.TXT` produce all 216 ARM64 stubs
+and 13 aliases. Their hashes and the generic `syscall.S` hash are recorded in
+`third_party/bionic/syscalls.json`. ARTBox adapts the generated source before
+assembly: save FP/LR with unwind directives, shift up to six arguments into the
+fixed seven-word host endpoint, zero unused words, then restore the frame. The
+original Bionic errno tail remains: only raw results from -4095 through -1 become
+-1 with errno set. The generic Android variadic entry already has the seven
+register arguments in the required order; no variadic call crosses into Darwin.
+Assembly retains Soong's `-D__ASSEMBLY__` and Bionic's `-D_LIBC=1` settings.
+
+The syscall oracle links the exact NDK-assembled stubs, generic entry and real
+Bionic `__set_errno_internal` into prefixed test objects. A native Linux runner
+provides separate test errno storage and a capture backend. Every entry/alias
+gets nine boundary return values on four threads, with distinct 64-bit argument
+words and explicit x18, x19-x29 and stack/frame preservation checks. Only five
+selected smoke cases reach Linux: PID, UID, bad-fd write, zero-length mmap and
+an unknown syscall. Both original and adapted entries run those cases. The
+new runtime check requires CI verification; it does not prove complete Bionic
+startup, Darwin translations or dynamic packaging. A generated entry is not an
+implemented syscall; unsupported operations still require an explicit runtime
+error. The additional frame/call/argument moves have not been timed.
