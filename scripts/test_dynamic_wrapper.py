@@ -39,6 +39,9 @@ def main():
     strings = builds / "m2/bionic/native/strings-test.o"
     if hashlib.sha256(strings.read_bytes()).hexdigest() != report["strings"]["object_sha256"]:
         raise RuntimeError("Dynamic wrapper input differs from the verified Bionic string slice")
+    binary128 = builds / "m2/bionic/native/binary128-test.o"
+    if hashlib.sha256(binary128.read_bytes()).hexdigest() != report["binary128"]["object_sha256"]:
+        raise RuntimeError("Dynamic wrapper arithmetic differs from the reviewed Android compiler runtime")
     ndk = obtain(args.ndk_root)
     host = {"win32": "windows-x86_64", "darwin": "darwin-x86_64", "linux": "linux-x86_64"}[sys.platform]
     suffix = ".exe" if os.name == "nt" else ""
@@ -55,7 +58,7 @@ def main():
     subprocess.run([str(tools / f"ld.lld{suffix}"), "-shared", "--hash-style=both", "--build-id=none",
                     "-z", "max-page-size=16384", "--pack-dyn-relocs=relr", "-soname", elf.name,
                     "-T", str(ROOT / "fixtures/bionic-dynamic/image.ld"), str(source_object), str(strings), str(probe), str(vm_object),
-                    "-o", str(elf)], check=True)
+                    str(binary128), "-o", str(elf)], check=True)
     disassembly = subprocess.check_output([str(tools / f"llvm-objdump{suffix}"), "-d", "--no-show-raw-insn", str(elf)], text=True)
     boundary = inventory(disassembly)
     if any(boundary[key] for key in ("svc", "tpidr_mentions", "x18_mentions", "x27_mentions", "x28_mentions", "unknown_instructions")):
@@ -71,6 +74,7 @@ def main():
     result = {"scope": "Controlled dynamic Bionic syscall slice; no complete libc startup",
               "source_commit": report["source_commit"], "source_object_sha256": report["syscall_stubs"]["test_object_sha256"],
               "strings": report["strings"],
+              "binary128": report["binary128"],
               "vm": {"cases": 35, "object_sha256": hashlib.sha256(vm_object.read_bytes()).hexdigest(),
                      "source_sha256": hashlib.sha256(vm_source.read_bytes()).hexdigest()},
               "elf_sha256": hashlib.sha256(elf.read_bytes()).hexdigest(), "layout": layout, "inventory": boundary}
@@ -80,14 +84,16 @@ def main():
             binary, framework = prepare(build / "pack", build / target, target,
                                         builds / "m2/bionic/native/BIONIC-NOTICE.txt", report["notice_sha256"],
                                         {"ARM-ROUTINES-NOTICE.txt": (builds / "m2/bionic/native/ARM-ROUTINES-NOTICE.txt",
-                                                                    report["component_notices"]["arm-routines"]["sha256"])})
+                                                                    report["component_notices"]["arm-routines"]["sha256"]),
+                                         "COMPILER-RT-NOTICE.txt": (builds / "m2/bionic/native/COMPILER-RT-NOTICE.txt",
+                                                                    report["binary128"]["pin"]["notice_sha256"])})
             if target == "macos":
                 runner = builds / "host/artbox_native_dynamic"
                 output = subprocess.check_output([str(runner), str(binary), str(elf)], timeout=30)
                 native = json.loads(output)
                 if any(native[key] != value for key, value in
                        {"iterations": 100, "writes": 200, "exit_status": 0, "constructor_runs": 1,
-                        "string_cases": 35908, "vm_cases": 35}.items()):
+                        "string_cases": 35908, "vm_cases": 35, "binary128_cases": 123}.items()):
                     raise RuntimeError("Signed dynamic Bionic slice did not complete its native contract")
                 framework["native"] = native
             result["frameworks"][target] = framework
