@@ -1,5 +1,8 @@
 #import <UIKit/UIKit.h>
-#import "ConsoleViewController.h"
+#import "LauncherViewController.h"
+#if ARTBOX_UI_TESTING
+extern void ARTBoxCheckLauncher(UIWindow *window);
+#endif
 
 @interface ARTBoxSceneDelegate : UIResponder <UIWindowSceneDelegate>
 @property(nonatomic, strong) UIWindow *window;
@@ -15,10 +18,13 @@
         return;
     }
     self.window = [[UIWindow alloc] initWithWindowScene:(UIWindowScene *)scene];
-    ConsoleViewController *console = [[ConsoleViewController alloc] init];
+    ARTBoxLauncherViewController *launcher = [[ARTBoxLauncherViewController alloc] init];
     self.window.rootViewController = [[UINavigationController alloc]
-        initWithRootViewController:console];
+        initWithRootViewController:launcher];
     [self.window makeKeyAndVisible];
+#if ARTBOX_UI_TESTING
+    ARTBoxCheckLauncher(self.window);
+#endif
 }
 @end
 

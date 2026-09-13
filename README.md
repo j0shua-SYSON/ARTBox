@@ -8,6 +8,9 @@ No CPU emulation, guest kernel, JIT, private entitlements, or jailbreak dependen
 **A static NDK ARM64 hello runs natively on macOS through both signed packaging
 prototypes. The iOS 15 app includes both; physical iPhone execution is unverified.
 Android app execution is under development.**
+The standalone ARTBox iOS app opens an app library with search, APK import,
+the built-in Hello demo and a separate runtime log. Imported files are saved
+locally; imported APK execution is not available yet. See the [launcher](docs/launcher.md).
 See [status](docs/STATUS.md), [architecture decisions](docs/DECISIONS.md), and the
 [ELF-to-Mach-O versus wrapper design](docs/loader-design.md).
 
@@ -43,7 +46,7 @@ python3 scripts/build.py ios --with-guest
 This generates an Xcode project, builds the arm64 iOS 15 device target, checks
 the signature and empty entitlements, and writes `artifacts/ARTBox.ipa` with a
 provenance manifest. `--with-guest` builds the M1 fixture with pinned NDK r28c
-and embeds both signed frameworks. Omit it for the startup console alone.
+and embeds both signed frameworks. Omit it to build the launcher without the demo runtime.
 GitHub Actions also produces a temporary IPA artifact.
 
 The IPA has an ad-hoc transport signature (`codesign -s -`). Installation needs

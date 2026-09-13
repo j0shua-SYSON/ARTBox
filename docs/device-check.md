@@ -17,7 +17,8 @@ actual observations are recorded.
    Re-sign embedded frameworks with the same team when present. Launch from
    the home screen with the debugger detached. The transport signature alone
    is insufficient for installation. No JIT or private entitlements are needed.
-4. Verify that the log console contains `ARTBox ready`. Background and foreground
+4. Verify that ARTBox opens its app library. Open Runtime log to see `ARTBox ready`.
+   Tap Hello to run the built-in demo. Background and foreground
    once, then terminate and relaunch. Record crashes, blank screens or duplicate
    startup messages on foregrounding. For M1, both Converted and Wrapped should
    also print hello and `exit 0; five syscalls verified`.

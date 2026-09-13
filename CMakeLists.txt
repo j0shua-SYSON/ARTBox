@@ -6,6 +6,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 endif()
 set(ARTBOX_BUNDLE_ID "com.j0shua.ARTBox" CACHE STRING "iOS application bundle identifier")
 set(ARTBOX_GUEST_BUNDLES "" CACHE PATH "Prepared and signed M1 framework directory")
+option(ARTBOX_UI_TESTING "Include simulator-only launcher integration checks" OFF)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
@@ -38,9 +39,19 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
     endif()
     enable_language(OBJC)
     set(CMAKE_XCODE_GENERATE_SCHEME ON)
-    add_executable(ARTBox MACOSX_BUNDLE app/main.m app/ConsoleViewController.m)
+    add_executable(ARTBox MACOSX_BUNDLE app/main.m app/LauncherViewController.m app/LibraryStore.m app/ConsoleViewController.m)
+    target_sources(ARTBox PRIVATE app/Assets.xcassets)
+    set_source_files_properties(app/Assets.xcassets PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    if(ARTBOX_UI_TESTING)
+        if(NOT CMAKE_OSX_SYSROOT MATCHES "iphonesimulator")
+            message(FATAL_ERROR "Launcher integration hooks are only allowed in a simulator build")
+        endif()
+        target_sources(ARTBox PRIVATE app/tests/LauncherChecks.m)
+        target_include_directories(ARTBox PRIVATE app)
+        target_compile_definitions(ARTBox PRIVATE ARTBOX_UI_TESTING=1)
+    endif()
     target_link_libraries(ARTBox PRIVATE artbox_core
-        "-framework UIKit" "-framework Foundation" "-framework CoreGraphics")
+        "-framework UIKit" "-framework Foundation" "-framework CoreGraphics" "-framework UniformTypeIdentifiers")
     if(ARTBOX_GUEST_BUNDLES)
         target_link_libraries(ARTBox PRIVATE artbox_platform)
         target_compile_definitions(ARTBox PRIVATE ARTBOX_M1=1)
@@ -60,6 +71,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
         XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${ARTBOX_BUNDLE_ID}"
+        XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC "YES"
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/app/ARTBox.entitlements"
         XCODE_ATTRIBUTE_CLANG_MODULE_CACHE_PATH "$ENV{CLANG_MODULE_CACHE_PATH}"
