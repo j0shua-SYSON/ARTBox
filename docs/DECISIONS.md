@@ -153,6 +153,31 @@ The upstream control and adapted profile preserve 171 global definitions across
 instructions. Host tests verify per-thread and nested binding isolation. These
 checks do not prove full Bionic ABI compatibility or native guest execution.
 
+## 0012 - Route inline signal delivery through the raw syscall boundary
+
+Status: accepted for the Bionic source build; Darwin signal support pending.
+
+Adding the real fd-ownership diagnostics exposed two inline `svc` instructions
+in `fdsan_error`, through Bionic's `inline_raise` header. Keep the diagnostic
+and fatal behavior; route the kernel entry through `artbox_bionic_syscall`
+with one syscall number and six unsigned 64-bit arguments. The result is a
+signed 64-bit raw Linux value. No variadic call crosses the Apple/Android ABI.
+The source overlay retains the original implementation for the upstream control.
+
+The endpoint must preserve guest errno, including on failure: the original
+inline assembly discards the raw negative result without changing errno. An
+ordinary libc `syscall` call would change that behavior. Arguments continue to
+use Android signal numbers and the Android `siginfo_t` wire layout; the future
+runtime must translate them, not forward them directly to Darwin. The endpoint
+is still unresolved in the partial Bionic object. Nothing silently handles or
+discards fatal signals on iOS.
+
+The cost is an additional precompiled call in this diagnostic path, with no
+runtime code generation. The Linux comparison builds the actual original and
+adapted headers, exercises thread-targeted queued signals with non-null/default
+payloads, and tests errno preservation on invalid signals. Its raw test backend
+forwards to Linux; this does not establish Darwin signal support or Bionic startup.
+
 ## No-JIT cost ledger
 
 | Constraint | Consequence / evidence |

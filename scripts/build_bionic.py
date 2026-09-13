@@ -18,7 +18,7 @@ import subprocess
 from environment import ROOT, environment
 from ndk import REVISION, obtain as obtain_ndk
 from sources import obtain as obtain_source
-from bionic_adapt import adapt_sources, check_native, inventory
+from bionic_adapt import adapt_sources, check_native, inventory, stack_references
 
 
 def digest(path):
@@ -43,6 +43,8 @@ def main():
     if manifest["source_commit"] != pin["commit"]:
         raise RuntimeError("Bionic source selection does not match the pinned source revision")
     source = obtain_source("bionic")
+    cutils = obtain_source("libcutils-headers")
+    cutils_pin = json.loads((ROOT / "third_party/sources.json").read_text(encoding="utf-8"))["libcutils-headers"]
     adaptations, overlay = [], None
     if args.profile == "native":
         patch = json.loads((ROOT / "third_party/bionic/native-boundary.json").read_text(encoding="utf-8"))
@@ -55,7 +57,7 @@ def main():
     platform = {"win32": "windows-x86_64", "darwin": "darwin-x86_64", "linux": "linux-x86_64"}[sys.platform]
     tools = ndk / "toolchains/llvm/prebuilt" / platform / "bin"
     # Bionic's libc_defaults selects no C++ standard library. Soong at the same
-    # Android tag selects gnu++20 and this anonymous-typedef warning exception.
+    # Android tag selects gnu++20 and these warning exceptions.
     # Keep -Werror; do not alter upstream source to compensate for missing flags.
     flags = ["--target=aarch64-linux-android35", "-O2", "-fPIC", "-D_LIBC=1",
              "-D__BIONIC_LP32_USE_STAT64", "-DUSE_SCUDO", "-fno-builtin",
@@ -63,6 +65,7 @@ def main():
              "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Wunused", "-Werror",
              "-Wno-char-subscripts", "-Wno-deprecated-declarations", "-Wno-gcc-compat",
              "-Wno-reorder-init-list", "-Wno-non-c-typedef-for-linkage", "-Wframe-larger-than=2048",
+             "-Wno-missing-field-initializers", "-Wno-vla-cxx-extension",
              "-Werror=pointer-to-int-cast", "-Werror=int-to-pointer-cast", "-Werror=type-limits",
              "-Wexit-time-destructors"]
     if args.profile == "native":
@@ -70,7 +73,7 @@ def main():
                   "-mstack-protector-guard=global"]
     language_flags = {".cpp": ["-std=gnu++20", "-fno-exceptions", "-fno-rtti", "-nostdinc++"],
                       ".c": ["-std=gnu99"]}
-    includes = ["-I", str(source / "libstdc++/include")]
+    includes = ["-I", str(source / "libstdc++/include"), "-I", str(cutils / "libcutils/include")]
     if overlay:
         includes += ["-I", str(overlay / "libc"), "-I", str(overlay / "libc/platform")]
     for relative in (".", "include", "platform", "private", "bionic", "async_safe/include",
@@ -113,7 +116,7 @@ def main():
     combined = build / "bionic-m2-partial.o"
     subprocess.run([str(tools / f"ld.lld{suffix}"), "-r", *[str(e[2]) for e in entries], "-o", str(combined)], check=True)
     structure = json.loads(subprocess.check_output([str(tools / f"llvm-readobj{suffix}"), "--elf-output-style=JSON",
-                                                   "--file-headers", "--symbols", str(combined)]))[0]
+                                                   "--file-headers", "--symbols", "--relocations", str(combined)]))[0]
     header = structure["ElfHeader"]
     if not header["Type"].endswith("(0x1)") or header["Machine"]["Value"] != 183:
         raise RuntimeError("Bionic objects did not link to an AArch64 relocatable ELF")
@@ -123,7 +126,7 @@ def main():
             setter["Other"]["Value"] & 3 != 2 or not setter["Section"]["Value"]:
         raise RuntimeError("Bionic __set_tls must remain a defined hidden function")
     if args.profile == "native":
-        for name in ("artbox_bionic_get_tls", "artbox_bionic_set_tls"):
+        for name in ("artbox_bionic_get_tls", "artbox_bionic_set_tls", "artbox_bionic_syscall"):
             entry = named.get(name)
             if not entry or entry["Section"]["Value"] != 0 or entry["Other"]["Value"] & 3:
                 raise RuntimeError(f"Bionic host endpoint must be an ordinary unresolved import: {name}")
@@ -136,18 +139,27 @@ def main():
     disassembly = subprocess.check_output([str(tools / f"llvm-objdump{suffix}"), "-d", "--no-show-raw-insn", str(combined)], text=True)
     (build / "disassembly.txt").write_text(disassembly, encoding="utf-8")
     boundaries = inventory(disassembly)
+    protection = stack_references(structure["Relocations"])
     if args.profile == "native":
-        check_native(boundaries, undefined)
+        check_native(boundaries, undefined, protection)
     notice = build / "BIONIC-NOTICE.txt"
     shutil.copyfile(source / pin["notice"], notice)
     if digest(notice) != pin["notice_sha256"]:
         raise RuntimeError("Bionic notice changed during compilation")
+    cutils_notice = build / "LIBCUTILS-NOTICE.txt"
+    shutil.copyfile(cutils / cutils_pin["notice"], cutils_notice)
+    if digest(cutils_notice) != cutils_pin["notice_sha256"]:
+        raise RuntimeError("libcutils notice changed during compilation")
+    inline_raise = build / "bionic_inline_raise.h"
+    shutil.copyfile((overlay or source) / "libc/private/bionic_inline_raise.h", inline_raise)
     report = {"scope": "Partial source compilation and ABI inventory; no libc.so, guest execution or M2 acceptance",
               "profile": args.profile, "source_commit": pin["commit"], "selection_sha256": digest(manifest_path), "ndk_revision": REVISION,
               "compiler": subprocess.check_output([str(compiler), "--version"], text=True).splitlines()[0],
               "flags": flags, "compiled": compiled, "adaptations": adaptations,
               "defined_symbols": defined, "partial_object_sha256": digest(combined),
-              "notice_sha256": digest(notice), "undefined_symbols": undefined, "native_boundary_inventory": boundaries}
+              "notice_sha256": digest(notice), "undefined_symbols": undefined, "native_boundary_inventory": boundaries,
+              "stack_protection": protection, "dependencies": {"libcutils-headers": cutils_pin},
+              "inline_raise_sha256": digest(inline_raise)}
     artifacts = Path(os.environ["ARTBOX_ARTIFACTS_DIR"])
     artifacts.mkdir(parents=True, exist_ok=True)
     (artifacts / f"m2-bionic-{args.profile}.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

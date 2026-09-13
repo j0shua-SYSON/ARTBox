@@ -36,9 +36,9 @@ def main():
     if any(upstream[key] != native[key] for key in ("source_commit", "selection_sha256", "compiler")):
         raise RuntimeError("The Bionic profiles do not share a source selection and toolchain")
     control = upstream["native_boundary_inventory"]
-    if not all(control[name] > 0 for name in ("tpidr_el0_read", "tpidr_el0_write", "x18_mentions")):
+    if not all(control[name] > 0 for name in ("tpidr_el0_read", "tpidr_el0_write", "x18_mentions", "svc")):
         raise RuntimeError("The upstream Bionic control no longer exercises the adapted instruction classes")
-    check_native(native["native_boundary_inventory"], native["undefined_symbols"])
+    check_native(native["native_boundary_inventory"], native["undefined_symbols"], native["stack_protection"])
     if native["defined_symbols"] != upstream["defined_symbols"] or "__set_tls" not in native["defined_symbols"]:
         raise RuntimeError("Bionic adaptation changed the set of global definitions")
     if [entry["source"] for entry in native["compiled"]] != [entry["source"] for entry in upstream["compiled"]]:
@@ -49,6 +49,7 @@ def main():
               "upstream_object_sha256": upstream["partial_object_sha256"],
               "native_object_sha256": native["partial_object_sha256"],
               "upstream_inventory": control, "native_inventory": native["native_boundary_inventory"],
+              "native_stack_protection": native["stack_protection"],
               "unresolved_dependencies": len(native["undefined_symbols"])}
     (artifacts / "m2-bionic-profile-check.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(f"Bionic profiles preserve {result['global_definitions']} global definitions across {result['compiled_units']} units")

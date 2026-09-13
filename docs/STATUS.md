@@ -39,12 +39,13 @@ targets the M1 static fixture.
 The Bionic Android 15 source archive and notice are pinned and staged through
 portable Python tooling. Source extraction tests cover hash/size mismatch,
 path escape, aliases and case collisions. The [Bionic build](bionic-build.md)
-compiles and combines 34 source units in upstream and native profiles. The
+compiles and combines 48 source units in upstream and native profiles. The
 native overlay redirects Bionic TLS to precompiled host endpoints and removes
-Android's x18 shadow-stack ownership; its object passes the checked instruction
-gate with the same 171 global definitions. Host TLS isolation passes across
+Android's x18 shadow-stack ownership; its inline signal path now requires a
+fixed-width raw-syscall endpoint that remains unimplemented; its object passes the checked instruction
+gate with the same 282 global definitions. Host TLS isolation passes across
 12 threads, but guest TLS construction and binding are not integrated yet.
-The native partial object has 93 unresolved dependencies. No Bionic runtime
+The native partial object has 101 unresolved dependencies. No Bionic runtime
 executes yet.
 The [M2 contract](m2-contract.md) fixes the acceptance areas before compatibility
 work; signed dynamic packaging, symbol versions and Bionic build dependencies

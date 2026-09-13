@@ -64,14 +64,16 @@ to make extraction work without filesystem symlink privileges. Runtime source
 changes and additional allocator/loader dependencies must be recorded as they
 are introduced. A full AOSP platform checkout is not needed for this source audit.
 
-The M2 build compiles the 34 libc translation units listed in
+The M2 build compiles the 48 libc translation units listed in
 `third_party/bionic/m2-objects.json` into partial relocatable objects. The
 upstream profile is unchanged source. The native profile applies the exact,
 hash-checked edits in `third_party/bionic/native-boundary.json` to
 `libc/platform/bionic/tls.h`, `libc/arch-arm64/bionic/__set_tls.c`,
-`libc/bionic/pthread_create.cpp` and `libc/bionic/pthread_exit.cpp` in a separate
+`libc/bionic/pthread_create.cpp`, `libc/bionic/pthread_exit.cpp` and
+`libc/private/bionic_inline_raise.h` in a separate
 build overlay. The edits route TLS access through ARTBox endpoints and omit
-Android shadow-call-stack setup/cleanup. These BSD-licensed files retain their
+Android shadow-call-stack setup/cleanup; the signal header uses a fixed-width
+raw-syscall endpoint instead of inline kernel entry. These BSD-licensed files retain their
 original notices; the patch contexts and derived copies remain subject to those
 notices. They are not relicensed as MIT.
 
@@ -81,11 +83,13 @@ represented as a complete libc. `docs/bionic-build.md` records compiler settings
 and remaining native boundaries. Soong's compiler configuration at the same
 tag was consulted for build settings, with no Soong source imported into ARTBox.
 
-The next Bionic dependency selection needs the unmodified `libcutils/include/cutils/trace.h`
+The Bionic tracing helper uses the unmodified `libcutils/include/cutils/trace.h`
 and `compiler.h` headers from [AOSP system/core at android-15.0.0_r1](https://github.com/aosp-mirror/platform_system_core/tree/fc7bc8c4bfb4c6095e34ea784509dae56f25b486),
 commit `fc7bc8c4bfb4c6095e34ea784509dae56f25b486`. Both carry Apache-2.0
 headers (AOSP copyright 2012 and 2009, respectively). The exact-file pin in
 `third_party/sources.json` includes their sizes and SHA-256 hashes and the
 complete `libcutils/NOTICE`, including its Apache-2.0 text and AOSP notice.
 Only these three files are fetched; the rest of system/core is not imported.
-Builds that use the headers must retain that notice alongside the Bionic notice.
+The object artifacts retain that notice as `LIBCUTILS-NOTICE.txt` alongside
+the Bionic notice. Linux source-adaptation tests also receive the original and
+adapted BSD-licensed signal header with its original notice intact.

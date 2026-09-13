@@ -11,7 +11,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from environment import environment
-from bionic_adapt import adapt_sources, check_native, inventory
+from bionic_adapt import adapt_sources, check_native, inventory, stack_references
 
 
 class Adaptation(unittest.TestCase):
@@ -64,17 +64,33 @@ class Adaptation(unittest.TestCase):
 
     def test_instruction_gate_has_a_positive_control(self):
         ordinary = "path/x18/fixture.o:\n0000 <x28>:\n 0: ldr x8, [x0]\n 4: ret\n"
-        symbols = [{"symbol": name} for name in ("artbox_bionic_get_tls", "artbox_bionic_set_tls", "__stack_chk_fail")]
-        check_native(inventory(ordinary), symbols)
+        symbols = [{"symbol": name} for name in ("artbox_bionic_get_tls", "artbox_bionic_set_tls", "artbox_bionic_syscall")]
+        protection = {"failure_branches": 2, "guard_address_relocations": 4}
+        check_native(inventory(ordinary), symbols, protection)
         for instruction in ("mrs x8, TPIDR_EL0", "msr TPIDR_EL0, x0", "mrs x2, TPIDRRO_EL0",
                             "mov x18, x1", "str w27, [sp]", "mov x28, x0", "svc #0", "<unknown>"):
             with self.subTest(instruction=instruction):
                 with self.assertRaises(RuntimeError):
-                    check_native(inventory(ordinary + " 8: " + instruction + "\n"), symbols)
+                    check_native(inventory(ordinary + " 8: " + instruction + "\n"), symbols, protection)
         with self.assertRaises(RuntimeError):
-            check_native(inventory(""), symbols)
+            check_native(inventory(""), symbols, protection)
         with self.assertRaises(RuntimeError):
-            check_native(inventory(ordinary), symbols + [{"symbol": "__aarch64_cas4_acq"}])
+            check_native(inventory(ordinary), symbols + [{"symbol": "__aarch64_cas4_acq"}], protection)
+        for missing in protection:
+            with self.subTest(missing=missing), self.assertRaises(RuntimeError):
+                check_native(inventory(ordinary), symbols, {**protection, missing: 0})
+
+    def test_stack_protection_requires_code_references_not_an_undefined_name(self):
+        def relocation(kind, symbol):
+            return {"Relocation": {"Type": {"Name": kind}, "Symbol": {"Name": symbol}}}
+        refs = [{"Relocs": [relocation("R_AARCH64_CALL26", "__stack_chk_fail"),
+                             relocation("R_AARCH64_JUMP26", "__stack_chk_fail"),
+                             relocation("R_AARCH64_ADR_GOT_PAGE", "__stack_chk_guard"),
+                             relocation("R_AARCH64_LD64_GOT_LO12_NC", "__stack_chk_guard"),
+                             relocation("R_AARCH64_ABS64", "__stack_chk_fail"),
+                             relocation("R_AARCH64_CALL26", "unrelated")]}]
+        self.assertEqual(stack_references(refs), {"failure_branches": 2, "guard_address_relocations": 2})
+        self.assertEqual(stack_references([]), {"failure_branches": 0, "guard_address_relocations": 0})
 
 
 if __name__ == "__main__":

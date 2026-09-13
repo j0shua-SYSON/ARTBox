@@ -2,17 +2,43 @@
   "description": "Partial Bionic objects needed for M2 bring-up; not a complete or runnable libc",
   "source_commit": "361ba86734fb2821a6adcfdf775db8abd04e0de0",
   "source_flags": {
-    "libc/arch-arm64/bionic/__set_tls.c": ["-fno-stack-protector", "-ffreestanding"],
-    "libc/bionic/__libc_init_main_thread.cpp": ["-fno-stack-protector", "-ffreestanding"],
-    "libc/bionic/libc_init_dynamic.cpp": ["-fno-stack-protector"]
+    "libc/arch-arm64/bionic/__set_tls.c": [
+      "-fno-stack-protector",
+      "-ffreestanding"
+    ],
+    "libc/bionic/__libc_init_main_thread.cpp": [
+      "-fno-stack-protector",
+      "-ffreestanding"
+    ],
+    "libc/bionic/libc_init_dynamic.cpp": [
+      "-fno-stack-protector"
+    ],
+    "libc/bionic/__stack_chk_fail.cpp": [
+      "-fno-stack-protector",
+      "-ffreestanding"
+    ],
+    "libc/bionic/getauxval.cpp": [
+      "-fno-stack-protector",
+      "-ffreestanding"
+    ]
   },
   "sources": [
     "libc/arch-arm64/bionic/__set_tls.c",
+    "libc/bionic/__cxa_guard.cpp",
+    "libc/bionic/__cxa_thread_atexit_impl.cpp",
     "libc/bionic/__errno.cpp",
     "libc/bionic/__libc_init_main_thread.cpp",
     "libc/bionic/__set_errno.cpp",
+    "libc/bionic/__stack_chk_fail.cpp",
+    "libc/bionic/atexit.cpp",
+    "libc/bionic/bionic_elf_tls.cpp",
     "libc/bionic/bionic_futex.cpp",
+    "libc/bionic/bionic_systrace.cpp",
+    "libc/bionic/bionic_time_conversions.cpp",
     "libc/bionic/clone.cpp",
+    "libc/bionic/fdsan.cpp",
+    "libc/bionic/fdtrack.cpp",
+    "libc/bionic/getauxval.cpp",
     "libc/bionic/libc_init_common.cpp",
     "libc/bionic/libc_init_dynamic.cpp",
     "libc/bionic/lstat.cpp",
@@ -40,6 +66,10 @@
     "libc/bionic/pthread_setschedparam.cpp",
     "libc/bionic/pthread_sigqueue.cpp",
     "libc/bionic/pthread_spinlock.cpp",
-    "libc/bionic/stat.cpp"
+    "libc/bionic/semaphore.cpp",
+    "libc/bionic/sigaction.cpp",
+    "libc/bionic/signal.cpp",
+    "libc/bionic/stat.cpp",
+    "libc/bionic/vdso.cpp"
   ]
 }
