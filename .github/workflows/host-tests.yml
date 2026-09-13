@@ -48,6 +48,7 @@ jobs:
             artifacts/host-metrics.json
             artifacts/m1-native.json
             build/m1/hello.elf
+            build/m1/elf-build.json
             build/m1/macos/ARTBox*-load-commands.txt
             build/host/Testing/Temporary/LastTest.log
           if-no-files-found: error
