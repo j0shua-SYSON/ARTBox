@@ -5,15 +5,17 @@ sys.dont_write_bytecode = True
 
 import hashlib
 import io
+import json
 import os
 from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from environment import environment
-from sources import unpack, verify_archive
+from sources import obtain_files, unpack, verify_archive
 
 
 class Sources(unittest.TestCase):
@@ -80,6 +82,54 @@ class Sources(unittest.TestCase):
                     unpack(self.archive, self.output, [])
                 self.assertFalse((self.output / "good").exists())
                 self.assertFalse((self.root / "escape").exists())
+
+    def file_spec(self):
+        contents = {"include/header.h": b"/* original header notice */\n", "NOTICE": b"complete license\n"}
+        spec = {"repository": "example/source", "tag": "test-v1", "commit": "a" * 40,
+                "notice": "NOTICE", "notice_sha256": hashlib.sha256(contents["NOTICE"]).hexdigest(),
+                "files": [{"path": name, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+                          for name, data in contents.items()]}
+        return spec, contents
+
+    def test_exact_files_keep_notices_and_revalidate_cached_bytes(self):
+        spec, contents = self.file_spec()
+        def download(command, stdout, check):
+            name = command[2].split("/contents/", 1)[1].split("?ref=", 1)[0]
+            self.assertIn("?ref=" + spec["commit"], command[2])
+            stdout.write(contents[name])
+        with patch("sources.subprocess.run", side_effect=download) as fetch:
+            result = obtain_files("fixture", spec, self.root)
+            self.assertEqual(fetch.call_count, 2)
+            for name, data in contents.items():
+                self.assertEqual((result / name).read_bytes(), data)
+            self.assertEqual(json.loads((result / ".artbox-source.json").read_text()), spec)
+            self.assertEqual(obtain_files("fixture", spec, self.root), result)
+            self.assertEqual(fetch.call_count, 2)
+            header = result / "include/header.h"
+            header.write_bytes(b"x" * len(contents["include/header.h"]))
+            with self.assertRaisesRegex(RuntimeError, "SHA-256"):
+                obtain_files("fixture", spec, self.root)
+
+    def test_failed_file_download_is_never_installed(self):
+        spec, contents = self.file_spec()
+        for corrupt in (b"short", b"x" * len(contents["NOTICE"])):
+            def download(command, stdout, check):
+                name = command[2].split("/contents/", 1)[1].split("?ref=", 1)[0]
+                stdout.write(corrupt if name == "NOTICE" else contents[name])
+            with self.subTest(corrupt=corrupt), patch("sources.subprocess.run", side_effect=download):
+                with self.assertRaises(RuntimeError):
+                    obtain_files("fixture", spec, self.root)
+                self.assertFalse((self.root / "sources/fixture-aaaaaaaaaaaa").exists())
+
+    def test_bad_file_selection_is_rejected_before_fetch(self):
+        for name in ("../escape", "/absolute", "drive:escape", "back\\slash", "include/HEADER.h",
+                     "include/header.h/child", ".artbox-source.json"):
+            spec, _ = self.file_spec()
+            spec["files"].append({"path": name, "bytes": 1, "sha256": "0" * 64})
+            with self.subTest(name=name), patch("sources.subprocess.run") as fetch:
+                with self.assertRaises(RuntimeError):
+                    obtain_files("fixture", spec, self.root)
+                fetch.assert_not_called()
 
 
 if __name__ == "__main__":

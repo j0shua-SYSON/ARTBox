@@ -18,5 +18,30 @@
       "libc/kernel/uapi/linux/netfilter_ipv6",
       "tools/versioner"
     ]
+  },
+  "libcutils-headers": {
+    "repository": "aosp-mirror/platform_system_core",
+    "tag": "android-15.0.0_r1",
+    "commit": "fc7bc8c4bfb4c6095e34ea784509dae56f25b486",
+    "files": [
+      {
+        "path": "libcutils/include/cutils/trace.h",
+        "sha256": "118278d32f4301d05e67223f03004025d143dc78a2c7c14d41f1914d495d80ac",
+        "bytes": 11901
+      },
+      {
+        "path": "libcutils/NOTICE",
+        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+        "bytes": 10695
+      },
+      {
+        "path": "libcutils/include/cutils/compiler.h",
+        "sha256": "b544a1f41e0ec7592773af661cd21ba53c3e1165dd4a67c32d6cd9d79cf2abd6",
+        "bytes": 1359
+      }
+    ],
+    "upstream": "https://android.googlesource.com/platform/system/core",
+    "notice": "libcutils/NOTICE",
+    "notice_sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
   }
 }

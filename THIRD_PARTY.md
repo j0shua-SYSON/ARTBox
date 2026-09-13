@@ -80,3 +80,12 @@ hash-verified aggregate libc notice. They are not linked into the iOS app or
 represented as a complete libc. `docs/bionic-build.md` records compiler settings
 and remaining native boundaries. Soong's compiler configuration at the same
 tag was consulted for build settings, with no Soong source imported into ARTBox.
+
+The next Bionic dependency selection needs the unmodified `libcutils/include/cutils/trace.h`
+and `compiler.h` headers from [AOSP system/core at android-15.0.0_r1](https://github.com/aosp-mirror/platform_system_core/tree/fc7bc8c4bfb4c6095e34ea784509dae56f25b486),
+commit `fc7bc8c4bfb4c6095e34ea784509dae56f25b486`. Both carry Apache-2.0
+headers (AOSP copyright 2012 and 2009, respectively). The exact-file pin in
+`third_party/sources.json` includes their sizes and SHA-256 hashes and the
+complete `libcutils/NOTICE`, including its Apache-2.0 text and AOSP notice.
+Only these three files are fetched; the rest of system/core is not imported.
+Builds that use the headers must retain that notice alongside the Bionic notice.
