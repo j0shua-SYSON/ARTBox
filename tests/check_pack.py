@@ -7,12 +7,12 @@ import subprocess
 import sys
 
 tool, fixture, output = map(Path, sys.argv[1:4])
-command = [sys.executable, "-B", str(tool)] if tool.suffix == ".py" else [str(tool)]
+pack_command = [sys.executable, "-B", str(tool)] if tool.suffix == ".py" else [str(tool)]
 output = output.resolve()
 output.mkdir(parents=True, exist_ok=True)
 original = fixture.read_bytes()
 digest = hashlib.sha256(original).hexdigest()
-subprocess.run([*command, str(fixture), str(output), "macos"], check=True)
+subprocess.run([*pack_command, str(fixture), str(output), "macos"], check=True)
 info = json.loads((output / "pack-info.json").read_text())
 payload = (output / "payload.bin").read_bytes()
 assert info["svc_sites"] == 6 and info["entry_offset"] == 0
@@ -60,12 +60,15 @@ mutations.append(("truncated-header", original[:63]))
 bad = bytearray(original); struct.pack_into("<Q", bad, 40, len(original) - 1); mutations.append(("section-table", bad))
 bad = bytearray(original); struct.pack_into("<Q", bad, 96, len(original)); mutations.append(("segment-size", bad))
 bad = bytearray(original); struct.pack_into("<Q", bad, 24, 0); mutations.append(("entry", bad))
+bad = bytearray(original); struct.pack_into("<I", bad, text_offset + info["text_bytes"] - 4, 0xD503201F); mutations.append(("fallthrough", bad))
+section_table = struct.unpack_from("<Q", original, 40)[0]
+bad = bytearray(original); struct.pack_into("<Q", bad, section_table + 64 + 8, 0); mutations.append(("text-not-allocated", bad))
 for name, data in mutations:
     path = output / (name + ".elf")
     path.write_bytes(data)
     rejected = output / name
     rejected.mkdir(exist_ok=True)
-    run = subprocess.run([*command, str(path), str(rejected), "macos"], capture_output=True, timeout=10)
+    run = subprocess.run([*pack_command, str(path), str(rejected), "macos"], capture_output=True, timeout=10)
     assert run.returncode != 0 and run.stderr, name
     assert not list(rejected.iterdir()), name
 assert hashlib.sha256(fixture.read_bytes()).hexdigest() == digest
