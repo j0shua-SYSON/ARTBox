@@ -85,7 +85,7 @@ artbox_elf_result artbox_elf_find_section(const artbox_elf *image, const char *n
     size_t name_size;
     unsigned i;
     int found = 0;
-    artbox_elf_section result;
+    artbox_elf_section result = {0};
     if (!image || !name || !out || !image->data || image->size < 64)
         return ARTBOX_ELF_INVALID;
     data = image->data;
