@@ -5,7 +5,8 @@ Host tests verify exactly `ARTBox ready` and exit code 0. Python tooling builds
 and tests on Windows, macOS and Linux. The iOS workflow builds the real arm64
 device target, verifies its transport signature and emits an IPA with provenance.
 
-The revised cross-platform tooling is awaiting CI on the rewritten history.
+Windows, macOS, Linux and iOS CI pass. The downloaded iOS 15 IPA matches its
+provenance manifest. See [M0 acceptance](acceptance/m0.md) for measured results.
 See [M0 PR #1](https://github.com/j0shua-SYSON/ARTBox/pull/1).
 The project owner waived M0's manual device gate. Physical-device launch and
 lifecycle behavior remain unverified; no device pass is claimed.
