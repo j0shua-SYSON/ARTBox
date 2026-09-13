@@ -34,9 +34,18 @@ int64_t artbox_vm_syscall(void *space, uint64_t number, uint64_t a0, uint64_t a1
  * ranges may be protected but cannot be replaced, discarded or freed here.
  * The owner retains their lifetime until the address space is destroyed. */
 int artbox_vm_register_data(artbox_vm *space, void *address, size_t length, unsigned protection);
+/* Borrow immutable signed code/constants for syscall reads. No operation may
+ * change this range's protection or contents. It need not be page-aligned. */
+int artbox_vm_register_readonly(artbox_vm *space, const void *address, size_t length);
+/* Copy while holding the mapping lock, preventing a concurrent VM unmap or
+ * protection change between validation and access. Host buffers must be valid
+ * and separate from the guest range. These do not synchronize guest data races. */
+int artbox_vm_read(artbox_vm *space, uint64_t address, void *destination, size_t length);
+int artbox_vm_write(artbox_vm *space, uint64_t address, const void *source, size_t length);
 /* A snapshot of metadata, not a pin against another thread changing a map. */
 int artbox_vm_access(artbox_vm *space, uint64_t address, uint64_t length, unsigned required);
 uint64_t artbox_vm_reserved_bytes(artbox_vm *space);
+size_t artbox_vm_page_size(const artbox_vm *space);
 #ifdef __cplusplus
 }
 #endif

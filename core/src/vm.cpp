@@ -1,6 +1,7 @@
 #include "artbox/vm.h"
 #include <algorithm>
 #include <exception>
+#include <cstring>
 #include <mutex>
 #include <new>
 #include <vector>
@@ -12,6 +13,7 @@ struct Region {
     size_t length = 0;
     size_t live = 0;
     bool owned = true;
+    bool protectable = true;
     std::vector<unsigned char> pages;
 };
 int protection(uint64_t value) {
@@ -50,6 +52,17 @@ struct artbox_vm {
     bool present(const Region &region, size_t first, size_t count) const {
         for (size_t n = first; n < first + count; ++n)
             if (!(region.pages[n] & mapped)) return false;
+        return true;
+    }
+    bool accessible(uint64_t address, size_t length, unsigned required) {
+        if (poisoned) return false;
+        if (!length) return true;
+        Region *region = containing(address, length);
+        if (!region) return false;
+        size_t first = static_cast<size_t>(address - region->base) / ops.page_size;
+        size_t last = static_cast<size_t>(address - region->base + length - 1) / ops.page_size;
+        for (size_t n = first; n <= last; ++n)
+            if ((region->pages[n] & (mapped | required)) != (mapped | required)) return false;
         return true;
     }
     // A failed native mutation may have changed some pages. Stop subsequent
@@ -148,6 +161,7 @@ int artbox_vm_mprotect(artbox_vm *space, uint64_t address, uint64_t length, uint
     if (!length) return 0;
     Region *region = space->containing(address, size);
     if (!region) return -12;
+    if (!region->protectable) return -1;
     size_t first = static_cast<size_t>(address - region->base) / space->ops.page_size;
     size_t count = size / space->ops.page_size;
     if (!space->present(*region, first, count)) return -12;
@@ -243,21 +257,55 @@ int artbox_vm_register_data(artbox_vm *space, void *address, size_t length, unsi
 int artbox_vm_access(artbox_vm *space, uint64_t address, uint64_t length, unsigned required) {
     if (!space || (required & ~3u) || length > SIZE_MAX || length > UINT64_MAX - address) return 0;
     std::lock_guard<std::mutex> guard(space->lock);
-    if (space->poisoned) return 0;
-    if (!length) return 1;
-    Region *region = space->containing(address, static_cast<size_t>(length));
-    if (!region) return 0;
-    size_t first = static_cast<size_t>(address - region->base) / space->ops.page_size;
-    size_t last = static_cast<size_t>(address - region->base + length - 1) / space->ops.page_size;
-    for (size_t n = first; n <= last; ++n)
-        if ((region->pages[n] & (mapped | required)) != (mapped | required)) return 0;
-    return 1;
+    return space->accessible(address, static_cast<size_t>(length), required);
+}
+
+int artbox_vm_register_readonly(artbox_vm *space, const void *address, size_t length) {
+    if (!space || !address || !length || length > UINTPTR_MAX - reinterpret_cast<uintptr_t>(address)) return -22;
+    std::lock_guard<std::mutex> guard(space->lock);
+    if (space->poisoned) return -5;
+    uintptr_t base = reinterpret_cast<uintptr_t>(address);
+    for (const auto &region : space->regions)
+        if (overlaps(base, length, region.base, region.length)) return -17;
+    if (space->regions.size() == space->region_limit) return -12;
+    Region region;
+    region.base = base;
+    region.length = length;
+    region.live = (length - 1) / space->ops.page_size + 1;
+    region.owned = false;
+    region.protectable = false;
+    try { region.pages.assign(region.live, static_cast<unsigned char>(mapped | 1)); }
+    catch (const std::exception &) { return -12; }
+    space->regions.push_back(std::move(region));
+    return 0;
+}
+
+int artbox_vm_read(artbox_vm *space, uint64_t address, void *destination, size_t length) {
+    if (!space || (!destination && length)) return -22;
+    std::lock_guard<std::mutex> guard(space->lock);
+    if (space->poisoned) return -5;
+    if (!space->accessible(address, length, 1)) return -14;
+    if (length) std::memcpy(destination, reinterpret_cast<const void *>(address), length);
+    return 0;
+}
+
+int artbox_vm_write(artbox_vm *space, uint64_t address, const void *source, size_t length) {
+    if (!space || (!source && length)) return -22;
+    std::lock_guard<std::mutex> guard(space->lock);
+    if (space->poisoned) return -5;
+    if (!space->accessible(address, length, 2)) return -14;
+    if (length) std::memcpy(reinterpret_cast<void *>(address), source, length);
+    return 0;
 }
 
 uint64_t artbox_vm_reserved_bytes(artbox_vm *space) {
     if (!space) return 0;
     std::lock_guard<std::mutex> guard(space->lock);
     return space->reserved;
+}
+
+size_t artbox_vm_page_size(const artbox_vm *space) {
+    return space ? space->ops.page_size : 0;
 }
 
 int64_t artbox_vm_syscall(void *context, uint64_t number, uint64_t a0, uint64_t a1,

@@ -189,12 +189,23 @@ int main() {
     int64_t mapped = artbox_vm_mmap(vm, 0, page * 3, 3, 0x22, 123, page);
     CHECK(mapped > 0); // Anonymous mappings ignore fd and aligned offset.
     uint64_t base = static_cast<uint64_t>(mapped);
+    unsigned char copied[16] = {};
+    const unsigned char payload[16] = {1, 2, 3, 4};
+    CHECK(artbox_vm_write(vm, base + page, payload, sizeof(payload)) == 0);
+    CHECK(artbox_vm_read(vm, base + page, copied, sizeof(copied)) == 0 && !std::memcmp(copied, payload, sizeof(payload)));
+    CHECK(artbox_vm_read(vm, 0, nullptr, 0) == 0 && artbox_vm_write(vm, 0, nullptr, 0) == 0);
+    CHECK(artbox_vm_read(vm, UINT64_MAX, copied, sizeof(copied)) == -14);
+    CHECK(artbox_vm_read(vm, base + page * 3 - 8, copied, sizeof(copied)) == -14);
     CHECK(artbox_vm_access(vm, base, page * 3, 3));
     CHECK(artbox_vm_mprotect(vm, base + page, page, 1) == 0);
+    CHECK(artbox_vm_write(vm, base + page, payload, sizeof(payload)) == -14);
+    CHECK(artbox_vm_read(vm, base + page, copied, sizeof(copied)) == 0 && !std::memcmp(copied, payload, sizeof(payload)));
     CHECK(artbox_vm_access(vm, base, page * 3, 1));
     CHECK(!artbox_vm_access(vm, base, page * 3, 2));
     CHECK(artbox_vm_mprotect(vm, base, page, 4) == -1);
     CHECK(artbox_vm_munmap(vm, base + page, page) == 0);
+    CHECK(artbox_vm_read(vm, base + page, copied, sizeof(copied)) == -14);
+    CHECK(artbox_vm_write(vm, base + page, payload, sizeof(payload)) == -14);
     CHECK(!artbox_vm_access(vm, base, page * 3, 1));
     CHECK(artbox_vm_madvise(vm, base, page * 3, 4) == -12);
     CHECK(artbox_vm_munmap(vm, base, page * 3) == 0);
@@ -210,6 +221,21 @@ int main() {
     CHECK(artbox_vm_madvise(vm, base, page, 4) == -1);
     CHECK(artbox_vm_mprotect(vm, base, page, 3) == 0);
     CHECK(artbox_vm_reserved_bytes(vm) == 0);
+
+    void *immutable = nullptr;
+    CHECK(ops.reserve(page, &immutable) == 0 && ops.protect(immutable, page, 3) == 0);
+    std::memcpy(immutable, payload, sizeof(payload));
+    CHECK(ops.protect(immutable, page, 1) == 0);
+    uint64_t immutable_address = reinterpret_cast<uintptr_t>(immutable);
+    CHECK(artbox_vm_register_readonly(vm, immutable, page) == 0);
+    CHECK(artbox_vm_read(vm, immutable_address, copied, sizeof(copied)) == 0 && !std::memcmp(copied, payload, sizeof(payload)));
+    CHECK(artbox_vm_write(vm, immutable_address, payload, sizeof(payload)) == -14);
+    CHECK(artbox_vm_mprotect(vm, immutable_address, page, 3) == -1);
+    CHECK(artbox_vm_munmap(vm, immutable_address, page) == -1);
+    CHECK(artbox_vm_mmap(vm, immutable_address, page, 3, 0x32, -1, 0) == -1);
+    CHECK(artbox_vm_madvise(vm, immutable_address, page, 4) == -1);
+    CHECK(artbox_vm_register_readonly(vm, payload, sizeof(payload)) == 0);
+    CHECK(artbox_vm_read(vm, reinterpret_cast<uintptr_t>(payload) + 1, copied, 3) == 0 && copied[0] == 2);
 
     std::atomic<unsigned> failures{0};
     std::vector<std::thread> threads;
@@ -227,9 +253,37 @@ int main() {
     });
     for (auto &thread : threads) thread.join();
     CHECK(failures == 0 && artbox_vm_reserved_bytes(vm) == 0);
+
+    // Repeatedly invalidate a page while another thread copies from it. A
+    // metadata-only check followed by an unlocked copy could fault here.
+    mapped = artbox_vm_mmap(vm, 0, page * 3, 3, 0x22, -1, 0);
+    CHECK(mapped > 0);
+    base = static_cast<uint64_t>(mapped) + page;
+    std::atomic<bool> stop{false};
+    std::atomic<unsigned> reads{0};
+    std::thread reader([&] {
+        while (!stop) {
+            unsigned char value = 0xff;
+            int result = artbox_vm_read(vm, base, &value, 1);
+            if ((result == 0 && value != 0 && value != 0x67) || (result != 0 && result != -14)) ++failures;
+            ++reads;
+        }
+    });
+    for (unsigned n = 0; n < 256; ++n) {
+        unsigned char value = 0x67;
+        if (artbox_vm_write(vm, base, &value, 1) || artbox_vm_mprotect(vm, base, page, 0) ||
+            artbox_vm_mprotect(vm, base, page, 3) || artbox_vm_munmap(vm, base, page) ||
+            artbox_vm_mmap(vm, base, page, 3, 0x32, -1, 0) != static_cast<int64_t>(base)) ++failures;
+        while (reads < n + 1) std::this_thread::yield();
+    }
+    stop = true;
+    reader.join();
+    CHECK(failures == 0 && reads >= 256);
+    CHECK(artbox_vm_munmap(vm, static_cast<uint64_t>(mapped), page * 3) == 0);
     CHECK(artbox_vm_destroy(vm) == 0);
     std::memset(borrowed, 0x77, page * 2); // VM destruction did not free borrowed storage.
     CHECK(ops.release(borrowed, page * 2) == 0);
+    CHECK(ops.release(immutable, page) == 0);
     CHECK(failures_and_limits(ops) == 0);
     std::printf("VM: %u checks and 1024 concurrent mapping lifecycles passed\n", checks);
     return 0;
