@@ -92,4 +92,10 @@ payload and unchanged errno after invalid signals. The adapted header calls a
 Linux-only test backend with the proposed fixed-width raw interface; the
 original header enters Linux directly. This is a source-adaptation test, not a
 Bionic execution or Darwin signal result. The current CI result must be checked
-before treating this new oracle as verified.
+before treating this new oracle as verified. It uses Clang, matching Bionic's
+compiler family, and checks that the original path still contains a kernel-entry
+instruction while the adapted path does not. The first GCC-built upstream
+control timed out: a local reproduction showed GCC discarding this non-volatile
+assembly because its output is unused, consistent with [GCC's documented
+optimization](https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html#Volatile).
+The check rejects a lost control instead of treating it as a successful adaptation.
