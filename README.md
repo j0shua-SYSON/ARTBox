@@ -13,7 +13,8 @@ See [status](docs/STATUS.md), [architecture decisions](docs/DECISIONS.md), and t
 
 ## Build the portable core
 
-Install Python 3.9+, CMake 3.24+, and a C11 compiler using your preferred tooling.
+Install Python 3.9+, CMake 3.24+, and C11/C++11 compilers using your preferred tooling.
+The runtime layer is C; the host thread-isolation test uses C++ standard threads.
 Use the same Python entry point on Windows, macOS, and Linux:
 
 ```sh
