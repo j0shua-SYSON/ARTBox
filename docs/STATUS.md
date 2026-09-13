@@ -1,32 +1,37 @@
 # ARTBox status
 
-M0 provides a portable startup contract and an iOS 15+ UIKit log console.
-Host tests verify exactly `ARTBox ready` and exit code 0. The iOS workflow builds
-the real arm64 device target, validates its transport signature and emits an IPA.
-Python automation passes Windows, macOS, Linux and iOS CI. The downloaded
-iOS 15 IPA matches its manifest; see [M0 acceptance](acceptance/m0.md).
+M0 is merged and tagged `m0`: a portable startup contract and an iOS 15+ UIKit
+log console. Host tests verify exactly `ARTBox ready` and exit code 0. Python
+automation passes Windows, macOS, Linux and iOS CI; see [M0 acceptance](acceptance/m0.md).
 
-M0's physical-device check was waived by the project owner. Device execution
-remains unverified; the waiver is not a passing device result. The milestone PR
-and its CI results are tracked in [PR #1](https://github.com/j0shua-SYSON/ARTBox/pull/1).
+M1 meets its automated acceptance: the same static, libc-free NDK ARM64 ELF
+runs natively on macOS through both signed Mach-O conversion and linker-wrapper
+frameworks. Each passes 100 hello/exit invocations and five syscall counts.
+Native ARM64 Linux runs the original ELF unchanged. The iOS 15 device build
+embeds both signed frameworks and verifies the IPA; its console uses the same
+entry tested on the Mac. See [M1 evidence](acceptance/m1.md) and
+[PR #2](https://github.com/j0shua-SYSON/ARTBox/pull/2).
 
-M1 is in progress. Static ELF validation and five syscall contracts have portable
-tests. The Python packer emits both Mach-O conversion and linker-wrapper inputs
-from the same static NDK ELF. Local format checks and LLVM assembly/disassembly
-pass; Apple signing and native execution of these prototypes remain unverified.
-Dynamic Bionic, ART, Binder, graphics and APK
-execution remain future milestones. The [loader design](loader-design.md) was
-recorded before loader implementation.
+Physical-device checks are waived for all milestones by the project owner.
+Physical iPhone execution and lifecycle behavior remain unverified. Automated
+acceptance, CI and artifact checks remain required.
 
-## Next verification
+The Apple-linker wrapper is selected for M2 based on the measured M1 experiment;
+the direct converter remains a comparison prototype. The [loader design](loader-design.md)
+was recorded before implementation. Dynamic Bionic, ART, Binder, graphics and
+APK execution remain future work.
 
-1. Sign and execute the same static NDK ARM64 ELF through both packaging prototypes.
-2. Compare native Apple execution with unchanged execution on ARM64 Linux,
-   record five-syscall results and measure packaging and runtime costs.
+## Next milestone: dynamic Bionic
 
-## Three largest M1 risks
+M2 must load real Bionic dynamically and run an NDK suite with threads, files
+and mmap. The current parser and packer accept only the controlled M1 static
+fixture. They do not yet support general ELF dependencies, RELA/RELR, GNU hash,
+TLS or constructors.
 
-1. Preserving ELF addressing inside signed, dyld-compatible Mach-O containers.
-2. Android/Apple ABI differences, particularly reserved registers and TLS.
-3. A normal Bionic-linked executable requires more than the initial five calls;
-   the libc-free NDK fixture does not establish Bionic compatibility.
+## Three largest M2 risks
+
+1. Preserving dynamic ELF addressing, relocations and dependencies in signed
+   Mach-O containers without runtime text fixups.
+2. Bionic TLS, reserved registers and Android/Apple calling-convention bridges.
+3. Linux-compatible threads, futexes, files and mapping behavior sufficient for
+   the dynamically linked NDK suite's 90% acceptance target.

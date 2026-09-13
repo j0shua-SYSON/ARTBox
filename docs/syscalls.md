@@ -1,8 +1,9 @@
 # Linux syscall compatibility
 
-The five M1 contracts are implemented in portable C. Windows tests pass;
-the M1 PR runs Linux oracle checks and Darwin/Windows implementations in CI.
-Native guest execution and device results remain pending.
+The five M1 contracts are implemented in portable C and pass Windows, macOS
+and Linux CI. Both signed packaging candidates execute on native ARM64 macOS;
+the identical original ELF runs on native ARM64 Linux. Physical iPhone execution
+remains unverified, with physical-device gates waived for all milestones.
 
 | Syscall (AArch64 number) | Implemented subset | Deliberate differences / missing behavior |
 | --- | --- | --- |
@@ -15,7 +16,8 @@ Native guest execution and device results remain pending.
 `tests/test_syscalls.c` checks return values, readable ranges, protection changes,
 mapping cleanup, unsupported flags and exit unwinding. On Linux it also invokes
 real host syscalls for mmap/write error cases, protection and unmap alignment,
-and memory access. Those checks are distinct from the no-exec/ownership policy.
+memory access, and low-eight-bit exit status. Those checks are distinct from
+the no-exec/ownership policy.
 
 The Linux error values are explicit: EPERM 1, EIO 5, EBADF 9, ENOMEM 12,
 EACCES 13, EFAULT 14, EINVAL 22, ENOSYS 38, ENOTSUP 95. Guest flags and host

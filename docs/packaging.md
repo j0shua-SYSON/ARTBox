@@ -45,5 +45,9 @@ not native execution or signing results.
 Local tests verify retained instruction bytes, branch destinations, Mach-O
 segments and rejected malformed/unsupported inputs. NDK LLVM independently
 decodes the export trie and generated instructions, and assembles the wrapper
-as an arm64 iOS 15 Mach-O object. Apple linker, codesign, dyld and native execution
-validation remain required before choosing a packaging approach.
+as an arm64 iOS 15 Mach-O object. ARM64 macOS CI links/signs both candidates,
+loads them through dyld, executes each 100 times and exercises the shared iOS
+app entry. Native Linux CI runs the unchanged original ELF as an oracle. iOS
+CI builds the app with both signed embedded frameworks and verifies the IPA.
+See [M1 acceptance](acceptance/m1.md) for measurements and the wrapper selection.
+Physical-device checks are optional; physical iPhone execution is unverified.
