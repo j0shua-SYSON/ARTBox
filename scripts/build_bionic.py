@@ -19,6 +19,7 @@ from environment import ROOT, environment
 from ndk import REVISION, obtain as obtain_ndk
 from sources import obtain as obtain_source
 from bionic_adapt import adapt_sources, check_native, inventory, stack_references
+from bionic_syscalls import generate as generate_syscalls
 
 
 def digest(path):
@@ -52,6 +53,10 @@ def main():
             raise RuntimeError("Bionic adaptation does not match the pinned revision")
         overlay = build / "overlay"
         adaptations = adapt_sources(source, overlay, patch)
+    generated, syscall_info = generate_syscalls(source, build / "generated", args.profile)
+    if syscall_info["pin"]["source_commit"] != pin["commit"] or \
+            manifest.get("generated_sources") != ["generated/syscalls-arm64.S"]:
+        raise RuntimeError("Bionic syscall selection does not match the source manifest")
     ndk = obtain_ndk(args.ndk_root)
     suffix = ".exe" if os.name == "nt" else ""
     platform = {"win32": "windows-x86_64", "darwin": "darwin-x86_64", "linux": "linux-x86_64"}[sys.platform]
@@ -72,7 +77,7 @@ def main():
         flags += ["-DARTBOX_NATIVE_HOST=1", "-march=armv8-a", "-mno-outline-atomics",
                   "-mstack-protector-guard=global"]
     language_flags = {".cpp": ["-std=gnu++20", "-fno-exceptions", "-fno-rtti", "-nostdinc++"],
-                      ".c": ["-std=gnu99"]}
+                      ".c": ["-std=gnu99"], ".S": []}
     includes = ["-I", str(source / "libstdc++/include"), "-I", str(cutils / "libcutils/include")]
     if overlay:
         includes += ["-I", str(overlay / "libc"), "-I", str(overlay / "libc/platform")]
@@ -89,6 +94,9 @@ def main():
         output = build / "objects" / (relative + ".o")
         output.parent.mkdir(parents=True, exist_ok=True)
         entries.append((relative, path, output))
+    generated_object = build / "objects/generated/syscalls-arm64.S.o"
+    generated_object.parent.mkdir(parents=True, exist_ok=True)
+    entries.append(("generated/syscalls-arm64.S", generated, generated_object))
 
     def compile_one(entry):
         relative, path, output = entry
@@ -96,13 +104,15 @@ def main():
             raise RuntimeError(f"Unsupported Bionic source language: {path.suffix}")
         source_flags = manifest.get("source_flags", {}).get(relative, [])
         driver = compiler if path.suffix == ".cpp" else tools / f"clang{suffix}"
-        command = [str(driver), *flags, *language_flags[path.suffix], *source_flags, *includes, "-c", str(path), "-o", str(output)]
+        applied_flags = flags if path.suffix != ".S" else ["--target=aarch64-linux-android35", "-fPIC",
+                                                          "-mbranch-protection=none", "-D_LIBC=1", "-D__ASSEMBLY__"]
+        command = [str(driver), *applied_flags, *language_flags[path.suffix], *source_flags, *includes, "-c", str(path), "-o", str(output)]
         result = subprocess.run(command, capture_output=True)
         output.with_suffix(".log").write_bytes(result.stdout + result.stderr)
         if result.returncode:
             return {"source": relative, "exit": result.returncode, "source_sha256": digest(path)}
         return {"source": relative, "exit": 0, "source_sha256": digest(path), "object_sha256": digest(output),
-                "source_flags": source_flags, "language_flags": language_flags[path.suffix]}
+                "source_flags": source_flags, "language_flags": language_flags[path.suffix], "flags": applied_flags}
 
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         compiled = list(pool.map(compile_one, entries))
@@ -110,6 +120,17 @@ def main():
     failed = [r["source"] for r in compiled if r["exit"]]
     if failed:
         raise RuntimeError(f"Bionic compilation failed for {', '.join(failed)}; see per-source logs in {build}")
+
+    # Run these exact assembled stubs and the real Bionic errno helper on Linux.
+    # Prefix only the test copy so no definition can interpose on the host libc.
+    test_names = {"generated/syscalls-arm64.S", "libc/arch-arm64/bionic/syscall.S", "libc/bionic/__set_errno.cpp"}
+    test_inputs = [entry[2] for entry in entries if entry[0] in test_names]
+    if len(test_inputs) != 3:
+        raise RuntimeError("Bionic syscall oracle inputs are incomplete")
+    test_unprefixed, test_object = build / "syscall-test-unprefixed.o", build / "syscall-test.o"
+    subprocess.run([str(tools / f"ld.lld{suffix}"), "-r", *map(str, test_inputs), "-o", str(test_unprefixed)], check=True)
+    subprocess.run([str(tools / f"llvm-objcopy{suffix}"), "--prefix-symbols=artbox_stub_", str(test_unprefixed), str(test_object)], check=True)
+    syscall_info["test_object_sha256"] = digest(test_object)
 
     # A relocatable link verifies these objects agree on their shared symbols.
     # Remaining undefined symbols are required dependencies, never zero stubs.
@@ -159,7 +180,7 @@ def main():
               "defined_symbols": defined, "partial_object_sha256": digest(combined),
               "notice_sha256": digest(notice), "undefined_symbols": undefined, "native_boundary_inventory": boundaries,
               "stack_protection": protection, "dependencies": {"libcutils-headers": cutils_pin},
-              "inline_raise_sha256": digest(inline_raise)}
+              "inline_raise_sha256": digest(inline_raise), "syscall_stubs": syscall_info}
     artifacts = Path(os.environ["ARTBOX_ARTIFACTS_DIR"])
     artifacts.mkdir(parents=True, exist_ok=True)
     (artifacts / f"m2-bionic-{args.profile}.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

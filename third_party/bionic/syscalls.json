@@ -1,0 +1,9 @@
+{
+  "source_commit": "361ba86734fb2821a6adcfdf775db8abd04e0de0",
+  "description": "Original AOSP generator/table and handwritten generic syscall entry; generated derivatives retain Bionic notices",
+  "inputs": {
+    "libc/tools/gensyscalls.py": "ecfe5f9265dd47112cd0334a2917d5d72cfe7ce9d76f3a0bd0c305bada8387dc",
+    "libc/SYSCALLS.TXT": "c3c72838cf1d4e8832941fe50ff520eae5d34829e20d2fbf5d3368bdd3209216",
+    "libc/arch-arm64/bionic/syscall.S": "b97fa9ab41091230be33bd7ce8c101fe33ef28ae7356997cdd90613fc7d8a387"
+  }
+}

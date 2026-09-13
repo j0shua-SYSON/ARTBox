@@ -35,6 +35,7 @@ jobs:
           ${{ matrix.python }} -B tests/test_environment.py
           ${{ matrix.python }} -B tests/test_sources.py
           ${{ matrix.python }} -B tests/test_bionic_adapt.py
+          ${{ matrix.python }} -B tests/test_bionic_syscalls.py
           ${{ matrix.python }} -B scripts/build.py host
       - name: Build the pinned NDK ELF and test both packaging inputs
         if: matrix.os == 'macos-15'
@@ -69,6 +70,8 @@ jobs:
             build/m2/bionic/*/BIONIC-NOTICE.txt
             build/m2/bionic/*/LIBCUTILS-NOTICE.txt
             build/m2/bionic/*/bionic_inline_raise.h
+            build/m2/bionic/*/syscall-test.o
+            build/m2/bionic/*/generated/syscall-test.h
             build/m1/hello.elf
             build/m1/elf-build.json
             build/m1/macos/ARTBox*-load-commands.txt
@@ -97,11 +100,14 @@ jobs:
           --manifest build/oracle/artifacts/m1-native.json
       - name: Compare Bionic inline signals with the original native Linux path
         run: python3 -B scripts/test_bionic_raise.py --evidence-root build/oracle
+      - name: Execute NDK Bionic syscall entries and the real errno helper
+        run: python3 -B scripts/test_bionic_syscalls.py --evidence-root build/oracle
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: linux-arm64-oracle
           path: |
             artifacts/m1-linux.json
             artifacts/m2-inline-raise-linux.json
+            artifacts/m2-syscall-stubs-linux.json
           if-no-files-found: error
           retention-days: 7

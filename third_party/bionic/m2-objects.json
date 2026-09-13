@@ -24,6 +24,7 @@
   },
   "sources": [
     "libc/arch-arm64/bionic/__set_tls.c",
+    "libc/arch-arm64/bionic/syscall.S",
     "libc/bionic/__cxa_guard.cpp",
     "libc/bionic/__cxa_thread_atexit_impl.cpp",
     "libc/bionic/__errno.cpp",
@@ -71,5 +72,8 @@
     "libc/bionic/signal.cpp",
     "libc/bionic/stat.cpp",
     "libc/bionic/vdso.cpp"
+  ],
+  "generated_sources": [
+    "generated/syscalls-arm64.S"
   ]
 }

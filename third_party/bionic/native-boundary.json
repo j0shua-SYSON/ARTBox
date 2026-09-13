@@ -59,6 +59,16 @@
           "after": "// ARTBox: no inline kernel entry or variadic cross-platform call.\n#if defined(ARTBOX_NATIVE_HOST)\n  (void)artbox_bionic_syscall(__NR_rt_tgsigqueueinfo, pid, tid, sig,\n                             reinterpret_cast<uintptr_t>(&info), 0, 0);\n#elif defined(__arm__)\n"
         }
       ]
+    },
+    {
+      "path": "libc/arch-arm64/bionic/syscall.S",
+      "sha256": "b97fa9ab41091230be33bd7ce8c101fe33ef28ae7356997cdd90613fc7d8a387",
+      "replacements": [
+        {
+          "before": "ENTRY(syscall)\n    /* Move syscall No. from x0 to x8 */\n    mov     x8, x0\n    /* Move syscall parameters from x1 thru x6 to x0 thru x5 */\n    mov     x0, x1\n    mov     x1, x2\n    mov     x2, x3\n    mov     x3, x4\n    mov     x4, x5\n    mov     x5, x6\n    svc     #0\n\n",
+          "after": "ENTRY(syscall)\n    // ARTBox: fixed-width C call; preserve the caller's frame and return address.\n    stp     x29, x30, [sp, #-16]!\n    .cfi_def_cfa_offset 16\n    .cfi_offset x29, -16\n    .cfi_offset x30, -8\n    mov     x29, sp\n    bl      artbox_bionic_syscall\n    ldp     x29, x30, [sp], #16\n    .cfi_def_cfa_offset 0\n    .cfi_restore x29\n    .cfi_restore x30\n\n"
+        }
+      ]
     }
   ]
 }
