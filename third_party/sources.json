@@ -166,5 +166,40 @@
     ],
     "notice": "LICENSE",
     "notice_sha256": "650afbf29f214451e02241adc42534e82c9d6ae2b38e2444b92b5a1ffcaf9346"
+  },
+  "property-info": {
+    "repository": "aosp-mirror/platform_system_core",
+    "upstream": "https://android.googlesource.com/platform/system/core",
+    "tag": "android-15.0.0_r1",
+    "commit": "fc7bc8c4bfb4c6095e34ea784509dae56f25b486",
+    "notice": "libcutils/NOTICE",
+    "notice_sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+    "files": [
+      {
+        "path": "property_service/libpropertyinfoparser/Android.bp",
+        "bytes": 711,
+        "sha256": "f2cd9039e4968babb54a81fa59ed6c273bc7a5f3e459adfdb4123d55933ef2fe"
+      },
+      {
+        "path": "property_service/libpropertyinfoparser/property_info_parser.cpp",
+        "bytes": 7942,
+        "sha256": "cd340fdd555b42d056d01fb489d619a26782886d577cc8b2837eebfad63ad54c"
+      },
+      {
+        "path": "property_service/libpropertyinfoparser/include/property_info_parser/property_info_parser.h",
+        "bytes": 8235,
+        "sha256": "3054e6fc677e76006f62b8c8d70c73cfe3f1f33b20b8f6cdad0db5a4f2f530d8"
+      },
+      {
+        "path": "libcutils/include/private/android_filesystem_config.h",
+        "bytes": 12874,
+        "sha256": "e73226d7a3139e8a4a7d679f800e02a5d31460862231fded2edd88ea93df404c"
+      },
+      {
+        "path": "libcutils/NOTICE",
+        "bytes": 10695,
+        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+      }
+    ]
   }
 }

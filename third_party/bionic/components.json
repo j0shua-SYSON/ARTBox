@@ -96,6 +96,22 @@
         "string/aarch64/strrchr-mte.S"
       ],
       "flags": []
+    },
+    "property-info": {
+      "source_commit": "fc7bc8c4bfb4c6095e34ea784509dae56f25b486",
+      "includes": [
+        "property_service/libpropertyinfoparser/include",
+        "libcutils/include"
+      ],
+      "sources": [
+        "property_service/libpropertyinfoparser/property_info_parser.cpp"
+      ],
+      "flags": [],
+      "additional_notices": {
+        "property_service/libpropertyinfoparser/property_info_parser.cpp": "cd340fdd555b42d056d01fb489d619a26782886d577cc8b2837eebfad63ad54c",
+        "property_service/libpropertyinfoparser/include/property_info_parser/property_info_parser.h": "3054e6fc677e76006f62b8c8d70c73cfe3f1f33b20b8f6cdad0db5a4f2f530d8",
+        "libcutils/include/private/android_filesystem_config.h": "e73226d7a3139e8a4a7d679f800e02a5d31460862231fded2edd88ea93df404c"
+      }
     }
   },
   "profile_symbol_differences": {

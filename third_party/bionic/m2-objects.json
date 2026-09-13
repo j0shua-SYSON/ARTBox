@@ -302,6 +302,34 @@
       "openbsd-compat.h",
       "-Wno-sign-compare",
       "-Wframe-larger-than=5000"
+    ],
+    "libc/upstream-freebsd/lib/libc/string/wcslen.c": [
+      "-include",
+      "freebsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-freebsd/lib/libc/string/wcsnlen.c": [
+      "-include",
+      "freebsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-freebsd/lib/libc/string/wcsspn.c": [
+      "-include",
+      "freebsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-openbsd/lib/libc/string/strdup.c": [
+      "-include",
+      "openbsd-compat.h",
+      "-Wno-sign-compare"
+    ],
+    "libc/upstream-openbsd/lib/libc/string/strndup.c": [
+      "-include",
+      "openbsd-compat.h",
+      "-Wno-sign-compare"
     ]
   },
   "sources": [
@@ -470,7 +498,23 @@
     "libc/upstream-openbsd/lib/libc/string/strlcpy.c",
     "libc/upstream-openbsd/lib/libc/string/strncpy.c",
     "libc/upstream-openbsd/lib/libc/string/strsep.c",
-    "libc/upstream-openbsd/lib/libc/string/strstr.c"
+    "libc/upstream-openbsd/lib/libc/string/strstr.c",
+    "libc/bionic/wcstod.cpp",
+    "libc/arch-common/bionic/crtbegin_so.c",
+    "libc/bionic/system_property_api.cpp",
+    "libc/bionic/mkdir.cpp",
+    "libc/bionic/fsetxattr.cpp",
+    "libc/upstream-freebsd/lib/libc/string/wcslen.c",
+    "libc/upstream-freebsd/lib/libc/string/wcsnlen.c",
+    "libc/upstream-freebsd/lib/libc/string/wcsspn.c",
+    "libc/upstream-openbsd/lib/libc/string/strdup.c",
+    "libc/upstream-openbsd/lib/libc/string/strndup.c",
+    "libc/system_properties/context_node.cpp",
+    "libc/system_properties/contexts_split.cpp",
+    "libc/system_properties/contexts_serialized.cpp",
+    "libc/system_properties/prop_area.cpp",
+    "libc/system_properties/prop_info.cpp",
+    "libc/system_properties/system_properties.cpp"
   ],
   "generated_sources": [
     "generated/syscalls-arm64.S"
@@ -480,6 +524,8 @@
     "upstream-openbsd/android/include",
     "upstream-openbsd/lib/libc/include",
     "upstream-openbsd/lib/libc/stdio",
-    "upstream-openbsd/lib/libc/gdtoa"
+    "upstream-openbsd/lib/libc/gdtoa",
+    "system_properties/include",
+    "upstream-freebsd/android/include"
   ]
 }
