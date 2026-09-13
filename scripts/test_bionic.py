@@ -33,13 +33,13 @@ def main():
         subprocess.run(command, check=True)
         reports[profile] = json.loads((artifacts / f"m2-bionic-{profile}.json").read_text(encoding="utf-8"))
     upstream, native = reports["upstream"], reports["native"]
-    if any(upstream[key] != native[key] for key in ("source_commit", "selection_sha256", "allocator_selection_sha256", "dependencies", "compiler")):
+    if any(upstream[key] != native[key] for key in ("source_commit", "selection_sha256", "component_selection_sha256", "dependencies", "compiler")):
         raise RuntimeError("The Bionic profiles do not share a source selection and toolchain")
     control = upstream["native_boundary_inventory"]
     if not all(control[name] > 0 for name in ("tpidr_el0_read", "tpidr_el0_write", "x18_mentions", "svc")):
         raise RuntimeError("The upstream Bionic control no longer exercises the adapted instruction classes")
     check_native(native["native_boundary_inventory"], native["undefined_symbols"], native["stack_protection"])
-    policy = json.loads((ROOT / "third_party/bionic/allocators.json").read_text(encoding="utf-8"))["profile_symbol_differences"]
+    policy = json.loads((ROOT / "third_party/bionic/components.json").read_text(encoding="utf-8"))["profile_symbol_differences"]
     upstream_names, native_names = set(upstream["defined_symbols"]), set(native["defined_symbols"])
     if upstream_names - native_names != set(policy["upstream_only"]) or \
             native_names - upstream_names != set(policy["native_only"]) or "__set_tls" not in native_names:

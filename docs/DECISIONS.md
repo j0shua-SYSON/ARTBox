@@ -237,6 +237,34 @@ eight-byte GWP TLS definition in the control and none in the native object. This
 retains a precise build comparison without treating compiler-generated template
 outlines as Android libc exports. Execution and performance remain separate checks.
 
+## 0015 - Use AOSP's baseline ARM64 string dispatcher
+
+Status: selected; native guarded-page checks are required in CI.
+
+Use the unchanged Bionic `static_function_dispatch.S` and the 14 matching
+Arm optimized routines from AOSP `android-15.0.0_r1`. They provide 15 public
+memory/string entry points, including both memcpy and memmove. This is the
+existing static baseline configuration, so these functions need no IFUNC
+resolver or runtime instruction patch. Remove the temporary generic strrchr
+provider to avoid duplicate definitions. Both source profiles use this selection.
+
+Fetch only the required assembly, shared header, build description and complete
+license, with exact file hashes. Preserve the Arm source notices and license in
+object and signed-framework artifacts. The `*-mte` names describe granule-safe
+algorithms using baseline ARMv8-A and Advanced SIMD; no memory-tagging feature
+is enabled. Retain memset's DCZID_EL0 check: its 64-byte DC ZVA path runs only
+when the CPU advertises that size and permits it. Other configurations take
+the vector-store path. The native tests include large zero fills.
+
+The cost is losing CPU-specific IFUNC selection and any resulting performance
+benefit; there is no benchmark against Android's tuned dispatcher yet. The
+same NDK test object runs 35,908 cases against an independent scalar oracle on
+Linux and through the signed macOS wrapper. Buffers have guard pages on both
+sides; cases include zero length at the boundary, unaligned starts, unsigned
+comparison, copy footprints and overlap in both directions. The original test
+caller deliberately has no stack-guard/libc dependency; production C/C++ stack
+protection is unchanged. These tests do not establish complete Bionic startup.
+
 ## No-JIT cost ledger
 
 | Constraint | Consequence / evidence |
@@ -249,3 +277,4 @@ outlines as Android libc exports. Execution and performance remain separate chec
 | No runtime-generated native trampolines | Use precompiled ABI bridges or supported DEX interpreter paths. |
 | Guest TLS must coexist with host TLS | The Bionic source profile uses a precompiled call and host TLS lookup; runtime cost remains unmeasured. |
 | Android register and CPU-runtime assumptions cannot carry over unchanged | The current source profile omits Android SCS, uses a global stack guard and emits baseline atomics; performance and hardening tradeoffs remain to be measured. |
+| Baseline string dispatch avoids IFUNC resolution | AOSP's static ARM64 dispatcher loses CPU-specific selection; guarded-page correctness is tested, and the performance difference remains unmeasured. |

@@ -36,6 +36,9 @@ def main():
     source_object = builds / "m2/bionic/native/syscall-test.o"
     if hashlib.sha256(source_object.read_bytes()).hexdigest() != report["syscall_stubs"]["test_object_sha256"]:
         raise RuntimeError("Dynamic wrapper input differs from the verified Bionic syscall slice")
+    strings = builds / "m2/bionic/native/strings-test.o"
+    if hashlib.sha256(strings.read_bytes()).hexdigest() != report["strings"]["object_sha256"]:
+        raise RuntimeError("Dynamic wrapper input differs from the verified Bionic string slice")
     ndk = obtain(args.ndk_root)
     host = {"win32": "windows-x86_64", "darwin": "darwin-x86_64", "linux": "linux-x86_64"}[sys.platform]
     suffix = ".exe" if os.name == "nt" else ""
@@ -47,7 +50,7 @@ def main():
                     "-c", str(ROOT / "fixtures/bionic-dynamic/probe.c"), "-o", str(probe)], check=True)
     subprocess.run([str(tools / f"ld.lld{suffix}"), "-shared", "--hash-style=both", "--build-id=none",
                     "-z", "max-page-size=16384", "--pack-dyn-relocs=relr", "-soname", elf.name,
-                    "-T", str(ROOT / "fixtures/bionic-dynamic/image.ld"), str(source_object), str(probe),
+                    "-T", str(ROOT / "fixtures/bionic-dynamic/image.ld"), str(source_object), str(strings), str(probe),
                     "-o", str(elf)], check=True)
     disassembly = subprocess.check_output([str(tools / f"llvm-objdump{suffix}"), "-d", "--no-show-raw-insn", str(elf)], text=True)
     boundary = inventory(disassembly)
@@ -63,18 +66,21 @@ def main():
     subprocess.run([sys.executable, "-B", str(ROOT / "tools/wrap_dynamic.py"), str(elf), str(build / "pack")], check=True)
     result = {"scope": "Controlled dynamic Bionic syscall slice; no complete libc startup",
               "source_commit": report["source_commit"], "source_object_sha256": report["syscall_stubs"]["test_object_sha256"],
+              "strings": report["strings"],
               "elf_sha256": hashlib.sha256(elf.read_bytes()).hexdigest(), "layout": layout, "inventory": boundary}
     if sys.platform == "darwin":
         result["frameworks"] = {}
         for target in ("macos", "ios"):
             binary, framework = prepare(build / "pack", build / target, target,
-                                        builds / "m2/bionic/native/BIONIC-NOTICE.txt", report["notice_sha256"])
+                                        builds / "m2/bionic/native/BIONIC-NOTICE.txt", report["notice_sha256"],
+                                        {"ARM-ROUTINES-NOTICE.txt": (builds / "m2/bionic/native/ARM-ROUTINES-NOTICE.txt",
+                                                                    report["component_notices"]["arm-routines"]["sha256"])})
             if target == "macos":
                 runner = builds / "host/artbox_native_dynamic"
                 output = subprocess.check_output([str(runner), str(binary), str(elf)], timeout=30)
                 native = json.loads(output)
                 if any(native[key] != value for key, value in
-                       {"iterations": 100, "writes": 200, "exit_status": 0, "constructor_runs": 1}.items()):
+                       {"iterations": 100, "writes": 200, "exit_status": 0, "constructor_runs": 1, "string_cases": 35908}.items()):
                     raise RuntimeError("Signed dynamic Bionic slice did not complete its native contract")
                 framework["native"] = native
             result["frameworks"][target] = framework

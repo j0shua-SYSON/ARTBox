@@ -46,13 +46,13 @@ def main():
     source = obtain_source("bionic")
     cutils = obtain_source("libcutils-headers")
     cutils_pin = json.loads((ROOT / "third_party/sources.json").read_text(encoding="utf-8"))["libcutils-headers"]
-    allocator_path = ROOT / "third_party/bionic/allocators.json"
-    allocators = json.loads(allocator_path.read_text(encoding="utf-8"))
+    component_path = ROOT / "third_party/bionic/components.json"
+    libraries = json.loads(component_path.read_text(encoding="utf-8"))
     source_pins = json.loads((ROOT / "third_party/sources.json").read_text(encoding="utf-8"))
     components = {}
-    for name, selection in allocators["components"].items():
+    for name, selection in libraries["components"].items():
         if selection["source_commit"] != source_pins[name]["commit"]:
-            raise RuntimeError(f"Allocator selection differs from source pin: {name}")
+            raise RuntimeError(f"Component selection differs from source pin: {name}")
         components[name] = obtain_source(name)
     adaptations, overlay = [], None
     if args.profile == "native":
@@ -74,6 +74,8 @@ def main():
     # Keep -Werror; do not alter upstream source to compensate for missing flags.
     abi_flags = ["--target=aarch64-linux-android35", "-fPIC", "-mbranch-protection=none",
                  "-ffixed-x18", "-ffixed-x27", "-ffixed-x28"]
+    assembly_flags = ["--target=aarch64-linux-android35", "-fPIC", "-march=armv8-a",
+                      "-mbranch-protection=none", "-D_LIBC=1", "-D__ASSEMBLY__"]
     native_flags = ["-DARTBOX_NATIVE_HOST=1", "-march=armv8-a", "-mno-outline-atomics",
                     "-mstack-protector-guard=global"] if args.profile == "native" else []
     flags = ["--target=aarch64-linux-android35", "-O2", "-fPIC", "-D_LIBC=1", "-DANDROID",
@@ -82,7 +84,7 @@ def main():
              "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Wunused", "-Werror",
              "-Wno-char-subscripts", "-Wno-deprecated-declarations", "-Wno-gcc-compat",
              "-Wno-reorder-init-list", "-Wno-non-c-typedef-for-linkage", "-Wframe-larger-than=2048",
-             "-Wno-missing-field-initializers", "-Wno-vla-cxx-extension",
+             "-Wno-missing-field-initializers", "-Wno-vla-cxx-extension", "-Wno-c99-designator",
              "-Werror=pointer-to-int-cast", "-Werror=int-to-pointer-cast", "-Werror=type-limits",
              "-Wexit-time-destructors"]
     if args.profile == "native":
@@ -95,13 +97,15 @@ def main():
     includes = ["-I", str(source / "libstdc++/include"), "-I", str(cutils / "libcutils/include")]
     includes += ["-I", str(ROOT / "third_party/bionic/adapters")]
     for name, component in components.items():
-        for relative in allocators["components"][name]["includes"]:
+        for relative in libraries["components"][name]["includes"]:
             includes += ["-I", str(component / relative)]
     if overlay:
         includes += ["-I", str(overlay / "libc"), "-I", str(overlay / "libc/platform")]
     for relative in (".", "include", "platform", "private", "bionic", "async_safe/include",
                      "kernel/uapi/asm-arm64", "kernel/uapi", "kernel/android/uapi"):
         includes += ["-isystem" if relative == "include" else "-I", str(source / "libc" / relative)]
+    for relative in manifest.get("includes", []):
+        includes += ["-I", str(source / "libc" / relative)]
     compiler = tools / f"clang++{suffix}"
     entries = []
     for relative in manifest["sources"]:
@@ -116,17 +120,18 @@ def main():
     generated_object.parent.mkdir(parents=True, exist_ok=True)
     entries.append(("generated/syscalls-arm64.S", generated, generated_object, None))
     for name, component in components.items():
-        selection = allocators["components"][name]
-        component_flags = abi_flags + native_flags + allocators["common_flags"] + selection["flags"]
+        selection = libraries["components"][name]
+        component_flags = abi_flags + native_flags + libraries["common_flags"] + selection["flags"]
         if args.profile == "native":
             component_flags += ['-DGWP_ASAN_PLATFORM_TLS_HEADER="artbox_gwp_asan_tls.h"']
         for relative in selection["sources"]:
             path = component / relative
             if not path.resolve().is_relative_to(component.resolve()) or not path.is_file():
-                raise RuntimeError(f"Invalid allocator source selection: {name}/{relative}")
+                raise RuntimeError(f"Invalid component source selection: {name}/{relative}")
             output = build / "objects" / name / (relative + ".o")
             output.parent.mkdir(parents=True, exist_ok=True)
-            entries.append((name + "/" + relative, path, output, component_flags))
+            applied = assembly_flags + selection["flags"] if path.suffix == ".S" else component_flags
+            entries.append((name + "/" + relative, path, output, applied))
 
     def compile_one(entry):
         relative, path, output, component_flags = entry
@@ -134,8 +139,7 @@ def main():
             raise RuntimeError(f"Unsupported Bionic source language: {path.suffix}")
         source_flags = manifest.get("source_flags", {}).get(relative, [])
         driver = compiler if path.suffix == ".cpp" else tools / f"clang{suffix}"
-        applied_flags = (component_flags or flags) if path.suffix != ".S" else ["--target=aarch64-linux-android35", "-fPIC",
-                                                          "-mbranch-protection=none", "-D_LIBC=1", "-D__ASSEMBLY__"]
+        applied_flags = component_flags if component_flags is not None else (assembly_flags if path.suffix == ".S" else flags)
         command = [str(driver), *applied_flags, *language_flags[path.suffix], *source_flags, *includes, "-c", str(path), "-o", str(output)]
         result = subprocess.run(command, capture_output=True)
         output.with_suffix(".log").write_bytes(result.stdout + result.stderr)
@@ -161,6 +165,33 @@ def main():
     subprocess.run([str(tools / f"ld.lld{suffix}"), "-r", *map(str, test_inputs), "-o", str(test_unprefixed)], check=True)
     subprocess.run([str(tools / f"llvm-objcopy{suffix}"), "--prefix-symbols=artbox_stub_", str(test_unprefixed), str(test_object)], check=True)
     syscall_info["test_object_sha256"] = digest(test_object)
+
+    # Keep the exact production string implementations and dispatcher together;
+    # prefix only this test copy to prevent host-libc interposition.
+    string_inputs = [entry[2] for entry in entries if entry[0].startswith("arm-routines/") or
+                     entry[0] == "libc/arch-arm64/static_function_dispatch.S"]
+    if len(string_inputs) != 15:
+        raise RuntimeError("The baseline ARM64 string oracle inputs are incomplete")
+    strings_raw, strings_prefixed = build / "strings-unprefixed.o", build / "strings-prefixed.o"
+    string_check, string_test = build / "strings-check.o", build / "strings-test.o"
+    subprocess.run([str(tools / f"ld.lld{suffix}"), "-r", *map(str, string_inputs), "-o", str(strings_raw)], check=True)
+    subprocess.run([str(tools / f"llvm-objcopy{suffix}"), "--prefix-symbols=artbox_string_",
+                    str(strings_raw), str(strings_prefixed)], check=True)
+    # This standalone oracle has no libc/TLS dependency, including a stack guard.
+    subprocess.run([str(tools / f"clang{suffix}"), *abi_flags, "-std=c11", "-O2", "-fno-builtin",
+                    "-fno-stack-protector", "-Wall", "-Wextra", "-Werror", "-c",
+                    str(ROOT / "fixtures/bionic-strings/check.c"), "-o", str(string_check)], check=True)
+    subprocess.run([str(tools / f"ld.lld{suffix}"), "-r", str(strings_prefixed), str(string_check),
+                    "-o", str(string_test)], check=True)
+    if subprocess.check_output([str(tools / f"llvm-nm{suffix}"), "--undefined-only", str(string_test)]).strip():
+        raise RuntimeError("The string oracle unexpectedly depends on host library functions")
+    string_inventory = inventory(subprocess.check_output([str(tools / f"llvm-objdump{suffix}"), "-d",
+                                                          "--no-show-raw-insn", str(string_test)], text=True))
+    if any(string_inventory[key] for key in ("svc", "tpidr_mentions", "x18_mentions", "x27_mentions", "x28_mentions", "unknown_instructions")):
+        raise RuntimeError("String routines or their oracle violate the native instruction boundary")
+    strings = {"object_sha256": digest(string_test), "inventory": string_inventory, "cases": 35908,
+               "check_sha256": digest(ROOT / "fixtures/bionic-strings/check.c"),
+               "source_commit": source_pins["arm-routines"]["commit"]}
 
     allocator_test = build / "allocator-tls-test.o"
     subprocess.run([str(compiler), *flags, *language_flags[".cpp"], *includes, "-c",
@@ -212,21 +243,21 @@ def main():
     shutil.copyfile(cutils / cutils_pin["notice"], cutils_notice)
     if digest(cutils_notice) != cutils_pin["notice_sha256"]:
         raise RuntimeError("libcutils notice changed during compilation")
-    allocator_notices = {}
+    component_notices = {}
     for name, component in components.items():
         component_pin = source_pins[name]
         parts = {component_pin["notice"]: component_pin["notice_sha256"],
-                 **allocators["components"][name].get("additional_notices", {})}
+                 **libraries["components"][name].get("additional_notices", {})}
         notice_data = bytearray()
         for relative, expected in parts.items():
             path = component / relative
             if digest(path) != expected:
-                raise RuntimeError(f"Allocator notice changed: {name}/{relative}")
+                raise RuntimeError(f"Component notice changed: {name}/{relative}")
             notice_data.extend(f"\n--- {name}/{relative} ---\n".encode("utf-8"))
             notice_data.extend(path.read_bytes())
         notice_path = build / (name.upper() + "-NOTICE.txt")
         notice_path.write_bytes(notice_data)
-        allocator_notices[name] = {"sha256": digest(notice_path), "parts": parts}
+        component_notices[name] = {"sha256": digest(notice_path), "parts": parts}
     inline_raise = build / "bionic_inline_raise.h"
     shutil.copyfile((overlay or source) / "libc/private/bionic_inline_raise.h", inline_raise)
     report = {"scope": "Partial source compilation and ABI inventory; no libc.so, guest execution or M2 acceptance",
@@ -241,8 +272,9 @@ def main():
               "notice_sha256": digest(notice), "undefined_symbols": undefined, "native_boundary_inventory": boundaries,
               "stack_protection": protection, "dependencies": {"libcutils-headers": cutils_pin,
                   **{name: source_pins[name] for name in components}},
-              "allocator_selection_sha256": digest(allocator_path), "allocator_notices": allocator_notices,
-              "allocator_tls": allocator_tls, "inline_raise_sha256": digest(inline_raise), "syscall_stubs": syscall_info}
+              "component_selection_sha256": digest(component_path), "component_notices": component_notices,
+              "allocator_tls": allocator_tls, "strings": strings,
+              "inline_raise_sha256": digest(inline_raise), "syscall_stubs": syscall_info}
     artifacts = Path(os.environ["ARTBOX_ARTIFACTS_DIR"])
     artifacts.mkdir(parents=True, exist_ok=True)
     (artifacts / f"m2-bionic-{args.profile}.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

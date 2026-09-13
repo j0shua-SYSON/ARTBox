@@ -64,7 +64,7 @@ to make extraction work without filesystem symlink privileges. Runtime source
 changes and additional allocator/loader dependencies must be recorded as they
 are introduced. A full AOSP platform checkout is not needed for this source audit.
 
-The M2 build compiles the 73 selected/generated libc translation units recorded in
+The M2 build compiles the selected/generated libc translation units recorded in
 `third_party/bionic/m2-objects.json` into partial relocatable objects. The
 upstream profile is unchanged source. The native profile applies the exact,
 hash-checked edits in `third_party/bionic/native-boundary.json` to
@@ -129,3 +129,16 @@ object into `libartbox_bionic_slice.so`; its probe and wrapper code are original
 MIT code. Apple-built `ARTBoxBionicSlice.framework` artifacts include the complete
 hash-verified `BIONIC-NOTICE.txt` before signing. This prototype contains Bionic
 syscall entries and its errno setter, not a complete libc or the allocators.
+
+The baseline ARM64 memory/string implementations come from
+[AOSP Arm optimized routines](https://android.googlesource.com/platform/external/arm-optimized-routines/+/514df029da8aa4146726f6a020ddc69cf34a007d),
+commit `514df029da8aa4146726f6a020ddc69cf34a007d` at `android-15.0.0_r1`.
+The exact-file pin fetches 14 assembly files, their shared header, Android.bp
+and LICENSE (17 files, 66,632 bytes). The implementations carry Arm's
+`MIT OR Apache-2.0 WITH LLVM-exception` notice; ARTBox uses the MIT option and
+preserves the complete supplied license, including its alternative terms.
+The original Bionic dispatcher retains its AOSP BSD notice. No source is
+rewritten or relicensed. `ARM-ROUTINES-NOTICE.txt` accompanies the compiled
+objects and is included with the Bionic notice before signing the expanded
+dynamic fixture. It remains separate from the M1 IPA. The scalar oracle and
+host test drivers are original MIT code; symbol prefixing affects test copies.

@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <time.h>
 
 static _Thread_local int guest_errno;
@@ -68,6 +69,21 @@ static void exit_entry(const void* entry, artbox_guest* guest, artbox_dispatch_f
     abort();
 }
 
+static int check_strings(const void* entry, size_t page) {
+    if (!entry || page < 4096 || page > SIZE_MAX / 3) return 1;
+    unsigned char* a = mmap(NULL, page * 3, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    unsigned char* b = mmap(NULL, page * 3, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    if (a == MAP_FAILED || b == MAP_FAILED || mprotect(a + page, page, PROT_READ | PROT_WRITE) ||
+        mprotect(b + page, page, PROT_READ | PROT_WRITE)) return 1;
+    uint64_t result = artbox_call7(entry, (uintptr_t)(a + page), (uintptr_t)(b + page), page, 0, 0, 0, 0);
+    if (munmap(a, page * 3) || munmap(b, page * 3)) return 1;
+    if (result != 35908) {
+        fprintf(stderr, "string check: %" PRId64 " (negative source line on failure)\n", (int64_t)result);
+        return 1;
+    }
+    return 0;
+}
+
 int main(int argc, char** argv) {
     FILE* input;
     long length;
@@ -81,7 +97,7 @@ int main(int argc, char** argv) {
     artbox_memory_ops memory = artbox_native_memory();
     artbox_guest* guest;
     const void *generic, *probe, *message;
-    uint64_t started, loaded, relocated, executing, finished;
+    uint64_t started, loaded, relocated, strings_finished, executing, finished;
     if (argc != 3) return 2;
     input = fopen(argv[2], "rb");
     if (!input || fseek(input, 0, SEEK_END) || (length = ftell(input)) < 0 || length > 64 * 1024 * 1024 || fseek(input, 0, SEEK_SET)) return 2;
@@ -117,6 +133,8 @@ int main(int argc, char** argv) {
         artbox_call7((const void*)(uintptr_t)constructor, 0, 0, 0, 0, 0, 0, 0);
     }
     relocated = now();
+    if (check_strings(lookup(&dynamic, rx, "artbox_string_check", 2), memory.page_size)) return 1;
+    strings_finished = now();
     guest = artbox_guest_create(&memory, output, NULL, rx, (size_t)elf.segments[0].file_size);
     if (!guest) return 1;
     const artbox_syscall_binding binding = {dispatch, guest};
@@ -146,8 +164,9 @@ int main(int argc, char** argv) {
     free(original);
     printf("{\"iterations\":100,\"writes\":200,\"exit_status\":0,\"constructor_runs\":1,"
            "\"rela\":%zu,\"plt\":%zu,\"relr\":%zu,\"dlopen_and_validate_ns\":%" PRIu64 ","
-           "\"relocate_and_construct_ns\":%" PRIu64 ",\"guest_setup_ns\":%" PRIu64 ",\"iterations_ns\":%" PRIu64 "}\n",
+           "\"relocate_and_construct_ns\":%" PRIu64 ",\"string_cases\":35908,\"string_page_size\":%zu,\"strings_ns\":%" PRIu64 ","
+           "\"guest_setup_ns\":%" PRIu64 ",\"iterations_ns\":%" PRIu64 "}\n",
            stats.rela_count, stats.plt_count, stats.relr_count, loaded - started, relocated - loaded,
-           executing - relocated, finished - executing);
+           memory.page_size, strings_finished - relocated, executing - strings_finished, finished - executing);
     return 0;
 }

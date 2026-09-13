@@ -71,5 +71,100 @@
       ".clang-format"
     ],
     "repository": "aosp-mirror-neo/platform_external_gwp_asan"
+  },
+  "arm-routines": {
+    "repository": "aosp-mirror-neo/platform_external_arm-optimized-routines",
+    "upstream": "https://android.googlesource.com/platform/external/arm-optimized-routines",
+    "tag": "android-15.0.0_r1",
+    "commit": "514df029da8aa4146726f6a020ddc69cf34a007d",
+    "files": [
+      {
+        "path": "LICENSE",
+        "bytes": 13491,
+        "sha256": "650afbf29f214451e02241adc42534e82c9d6ae2b38e2444b92b5a1ffcaf9346"
+      },
+      {
+        "path": "Android.bp",
+        "bytes": 7389,
+        "sha256": "f11bf4f9656b2850aa2996d684bcbb5d00ed6eb2e3785fbc923e18fbfd83a0e7"
+      },
+      {
+        "path": "string/aarch64/memchr-mte.S",
+        "bytes": 2337,
+        "sha256": "4c3be96e77af0d0f8689986e9393852505dcb4846cce11a027629bb9bd152623"
+      },
+      {
+        "path": "string/aarch64/memcmp.S",
+        "bytes": 3626,
+        "sha256": "39c262acede9d21e943e43039caee21723f271620b4f038b7ff7420e35e54113"
+      },
+      {
+        "path": "string/aarch64/memcpy.S",
+        "bytes": 5540,
+        "sha256": "4827fc216b524db80aad010f70b7be7c7db6374856086c4335cd1e27d497d037"
+      },
+      {
+        "path": "string/aarch64/memrchr.S",
+        "bytes": 2315,
+        "sha256": "990aef4de7ba92c155e4c7044bc636cd94ee7606fd6466a71a611076f5328f58"
+      },
+      {
+        "path": "string/aarch64/memset.S",
+        "bytes": 2180,
+        "sha256": "fef2e83bd94799f0f950f8d775e52724a20d60a401f401f8877cb9ab500e2f7c"
+      },
+      {
+        "path": "string/aarch64/stpcpy.S",
+        "bytes": 209,
+        "sha256": "7bd4e0624f03d4aa6bf84360e92c9df64128b5bbee66193e2c565b3bbed54b9d"
+      },
+      {
+        "path": "string/aarch64/strchr-mte.S",
+        "bytes": 2421,
+        "sha256": "3c8d0e4a48b2dbd78cb1c436e34e9a71e8aadb7f6632206283e8e51648bd2f45"
+      },
+      {
+        "path": "string/aarch64/strchrnul-mte.S",
+        "bytes": 1940,
+        "sha256": "805b1d0218c8ee6ccf7cd0a96861ab96862d80208e6853bf5599b931ed96e9cc"
+      },
+      {
+        "path": "string/aarch64/strcmp.S",
+        "bytes": 4155,
+        "sha256": "96fa2c79d8fc7a9e401c689505b9804f226b148fd9ac8144ded79f907175ff34"
+      },
+      {
+        "path": "string/aarch64/strcpy.S",
+        "bytes": 3127,
+        "sha256": "3c20d2344e69b7372a91ada84b2f38b4b21f6fed88d7f9daf795c736237574b8"
+      },
+      {
+        "path": "string/aarch64/strlen-mte.S",
+        "bytes": 1546,
+        "sha256": "c1c50d0e50df89660a0d6492936d865851a9af6d4435d6a1fa9e08f6f873607e"
+      },
+      {
+        "path": "string/aarch64/strrchr-mte.S",
+        "bytes": 3263,
+        "sha256": "5fbf0b30212c54fe2af588170a4ff9e098f0364d640b5a3936e35a6d406134bf"
+      },
+      {
+        "path": "string/aarch64/strncmp.S",
+        "bytes": 9023,
+        "sha256": "a0d7cbd3a8a2fcfe8474d45ba25093c9d3923196da49cc630d31a391e9e3cb22"
+      },
+      {
+        "path": "string/aarch64/strnlen.S",
+        "bytes": 2050,
+        "sha256": "f20ac62c4b20170d08f76a23af3ca030bf10598e95b44f61dfc361ebcf615702"
+      },
+      {
+        "path": "string/aarch64/asmdefs.h",
+        "bytes": 2020,
+        "sha256": "46c2a031ddf311b9622b2f8785e2c2985269e7d5cdbae219651e7b798f3822de"
+      }
+    ],
+    "notice": "LICENSE",
+    "notice_sha256": "650afbf29f214451e02241adc42534e82c9d6ae2b38e2444b92b5a1ffcaf9346"
   }
 }
