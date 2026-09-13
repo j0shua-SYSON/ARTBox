@@ -113,16 +113,18 @@ def main():
                     binaries[name] = binary
         result["images"][name] = data
     if sys.platform == "darwin":
-        process = subprocess.run([str(builds / "host/artbox_native_bionic_startup"), str(binaries["libc"]), str(libc),
-                                  str(binaries["client"]), str(app)], capture_output=True, timeout=60)
-        (build / "startup.stdout").write_bytes(process.stdout)
-        (build / "startup.stderr").write_bytes(process.stderr)
-        if process.returncode:
-            print(process.stderr.decode("utf-8", errors="replace"), file=sys.stderr)
-        process.check_returncode()
-        result["native"] = json.loads(process.stdout)
-        if result["native"]["cases"] != 146:
-            raise RuntimeError("NDK allocator client did not complete")
+        (build / "input-manifest.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+        for key, options in (("native", []), ("sampled_native", ["--sampled"])):
+            process = subprocess.run([str(builds / "host/artbox_native_bionic_startup"), str(binaries["libc"]), str(libc),
+                                      str(binaries["client"]), str(app), *options], capture_output=True, timeout=60)
+            (build / (key + ".stdout")).write_bytes(process.stdout)
+            (build / (key + ".stderr")).write_bytes(process.stderr)
+            if process.returncode:
+                print(process.stderr.decode("utf-8", errors="replace"), file=sys.stderr)
+            process.check_returncode()
+            result[key] = json.loads(process.stdout)
+            if result[key]["cases"] != 146:
+                raise RuntimeError("NDK allocator client did not complete")
     (artifacts / "m2-bionic-startup.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print("Bionic startup fixture built" + (" and executed through signed macOS wrappers" if sys.platform == "darwin" else "; Apple execution required"))
 

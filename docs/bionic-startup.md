@@ -67,3 +67,10 @@ client ELF SHA-256:
 `21644a7083513fecacd2e4e58153103c842844f700b185fee1e781fa73a5122b`.
 Physical iPhone execution is unverified. This is substantial M2 startup progress;
 the mandatory guest threads, regular files and file-backed mappings remain open.
+
+The current test also requests a second fresh process with
+`GWP_ASAN_PROCESS_SAMPLING=1` and `GWP_ASAN_SAMPLE_RATE=1` in its guest environment.
+This uses AOSP's existing options. The same client must pass and at least one
+observed allocation must belong to the initialized GWP-ASan pool. The purpose is
+to cover the otherwise randomly selected startup path; this additional run is
+pending CI. It does not test recovery from memory faults or claim signal support.
