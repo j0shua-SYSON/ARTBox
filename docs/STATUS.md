@@ -82,6 +82,12 @@ profiles on native Linux ARM64. Its macOS run takes 196 microseconds with 16 KiB
 pages, including syscall bridges and byte checks. This is a correctness-fixture
 timing, not allocator throughput. Actual allocator execution and TLS startup remain
 open. See [memory semantics](syscalls.md#m2-memory-manager) and ADR 0016.
+The startup dispatcher adds guest PID/TID, exit-clear pointer registration,
+realtime/monotonic clocks and secure random bytes. VM copies now hold the mapping
+lock across access, including tests racing copies against partial unmaps.
+All 12 local CTest contracts pass. The new 36-case NDK startup-service caller is
+included in the signed-wrapper/Linux comparison and awaits native CI. Exit-TID
+clear/wake, guest thread creation and full libc startup remain unimplemented.
 The current partial build includes real stdio/gdtoa and the baseline AOSP ARM64
 string dispatcher. Its 35,908-case guarded-page oracle passes on native Linux
 and in the signed macOS wrapper; downloaded objects and the iOS wrapper are verified.

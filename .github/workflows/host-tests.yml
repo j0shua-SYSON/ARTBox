@@ -73,6 +73,7 @@ jobs:
             artifacts/m2-dynamic-wrapper.json
             build/m2/dynamic-wrapper/libartbox_bionic_slice.so
             build/m2/dynamic-wrapper/vm-check.o
+            build/m2/dynamic-wrapper/system-check.o
             build/m2/dynamic-wrapper/pack/layout.json
             build/m2/dynamic-wrapper/*/load-commands.txt
             build/m2/dynamic-wrapper/ios/ARTBoxBionicSlice.framework/

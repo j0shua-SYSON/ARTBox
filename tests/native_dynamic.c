@@ -5,6 +5,7 @@
 #include "artbox/native_memory.h"
 #include "artbox/native_syscall.h"
 #include "artbox/native_vm.h"
+#include "artbox/native_system.h"
 #include <dlfcn.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -98,7 +99,7 @@ int main(int argc, char** argv) {
     artbox_memory_ops memory = artbox_native_memory();
     artbox_guest* guest;
     const void *generic, *probe, *message;
-    uint64_t started, loaded, relocated, strings_finished, quad_finished, vm_finished, executing, finished;
+    uint64_t started, loaded, relocated, strings_finished, quad_finished, vm_finished, system_finished, executing, finished;
     if (argc != 3) return 2;
     input = fopen(argv[2], "rb");
     if (!input || fseek(input, 0, SEEK_END) || (length = ftell(input)) < 0 || length > 64 * 1024 * 1024 || fseek(input, 0, SEEK_SET)) return 2;
@@ -151,17 +152,24 @@ int main(int argc, char** argv) {
         artbox_vm* vm = artbox_vm_create(&vm_ops, UINT64_C(16) << 30, 256);
         const void* vm_probe = lookup(&dynamic, rx, "artbox_vm_check", 2);
         if (!vm || !vm_probe) return 1;
-        const artbox_syscall_binding vm_binding = {artbox_vm_syscall, vm};
+        artbox_kernel_thread thread;
+        artbox_system_ops system = artbox_native_system();
+        if (artbox_kernel_thread_init(&thread, vm, &system, 10000, 10000)) return 1;
+        const artbox_syscall_binding vm_binding = {artbox_kernel_call, &thread};
         const artbox_syscall_binding* saved = artbox_native_syscall_swap(&vm_binding);
         errno = EDOM;
         int64_t result = (int64_t)artbox_call7(vm_probe, memory.page_size, 0, 0, 0, 0, 0, 0);
+        vm_finished = now();
+        const void* system_probe = lookup(&dynamic, rx, "artbox_system_check", 2);
+        if (!system_probe) return 1;
+        int64_t system_result = (int64_t)artbox_call7(system_probe, memory.page_size, 10000, 10000, 0, 0, 0, 0);
+        system_finished = now();
         artbox_native_syscall_swap(saved);
-        if (result != 35 || errno != EDOM || artbox_vm_reserved_bytes(vm) || artbox_vm_destroy(vm)) {
-            fprintf(stderr, "VM check: %" PRId64 " (negative source line on failure)\n", result);
+        if (result != 35 || system_result != 36 || errno != EDOM || artbox_vm_reserved_bytes(vm) || artbox_vm_destroy(vm)) {
+            fprintf(stderr, "VM/system checks: %" PRId64 "/%" PRId64 " (negative source line on failure)\n", result, system_result);
             return 1;
         }
     }
-    vm_finished = now();
     guest = artbox_guest_create(&memory, output, NULL, rx, (size_t)elf.segments[0].file_size);
     if (!guest) return 1;
     const artbox_syscall_binding binding = {dispatch, guest};
@@ -194,9 +202,10 @@ int main(int argc, char** argv) {
            "\"relocate_and_construct_ns\":%" PRIu64 ",\"string_cases\":35908,\"string_page_size\":%zu,\"strings_ns\":%" PRIu64 ","
            "\"vm_cases\":35,\"vm_ns\":%" PRIu64 ","
            "\"binary128_cases\":123,\"binary128_ns\":%" PRIu64 ","
+           "\"system_cases\":36,\"system_ns\":%" PRIu64 ","
            "\"guest_setup_ns\":%" PRIu64 ",\"iterations_ns\":%" PRIu64 "}\n",
            stats.rela_count, stats.plt_count, stats.relr_count, loaded - started, relocated - loaded,
            memory.page_size, strings_finished - relocated, vm_finished - quad_finished, quad_finished - strings_finished,
-           executing - vm_finished, finished - executing);
+           system_finished - vm_finished, executing - system_finished, finished - executing);
     return 0;
 }

@@ -329,6 +329,34 @@ The same NDK object runs through the signed Mac wrapper and native Linux runner.
 Keep test-only symbol prefixes separate from production definitions. These checks
 do not cover all floating-point environment modes or general variadic ABI bridges.
 
+## 0018 - Stage syscall copies through the owned address space
+
+Status: implemented; local tests pass, native startup-service checks pending.
+
+Use the VM's mapping mutex for validation and copying as one operation. Snapshot
+access checks alone cannot prevent another guest thread changing protection or
+unmapping a buffer before a syscall touches it. Immutable signed input ranges
+may be registered for reads, with mutation and protection changes forbidden.
+The owner retains their lifetime. This guards mapping changes, not guest data
+races or arbitrary native memory access.
+
+Stage CSPRNG output in 256-byte host buffers, then copy into guest memory under
+the lock. Report bytes already copied if a later chunk becomes inaccessible.
+Encode Linux ARM64 clock results explicitly as two little-endian 64-bit words;
+never expose host timespec layout or clock IDs. Use native OS randomness only:
+BCryptGenRandom on Windows, arc4random_buf on Darwin, getrandom on Linux. The
+host is already initialized; entropy-pool readiness and guest signal interruption
+are not emulated. Additional staging and mutex operations cost time, not code
+generation. Per-syscall overhead has not been benchmarked.
+
+Thread descriptors carry guest PID/TID and the pointer registered by
+set_tid_address. Registration stores that pointer without touching its memory,
+as Linux does. The later thread-exit implementation must clear/wake it after the
+native thread stops using its stack; this change does not claim that lifecycle.
+Tests include invalid flags, unaligned clock outputs, read-only buffers, partial
+random progress, provider failure and concurrent copy/unmap. The same NDK caller
+checks the public Bionic error conversion on Linux and through the signed wrapper.
+
 ## No-JIT cost ledger
 
 | Constraint | Consequence / evidence |
