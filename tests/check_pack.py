@@ -7,11 +7,12 @@ import subprocess
 import sys
 
 tool, fixture, output = map(Path, sys.argv[1:4])
+command = [sys.executable, "-B", str(tool)] if tool.suffix == ".py" else [str(tool)]
 output = output.resolve()
 output.mkdir(parents=True, exist_ok=True)
 original = fixture.read_bytes()
 digest = hashlib.sha256(original).hexdigest()
-subprocess.run([str(tool), str(fixture), str(output), "macos"], check=True)
+subprocess.run([*command, str(fixture), str(output), "macos"], check=True)
 info = json.loads((output / "pack-info.json").read_text())
 payload = (output / "payload.bin").read_bytes()
 assert info["svc_sites"] == 6 and info["entry_offset"] == 0
@@ -55,13 +56,17 @@ bad = bytearray(original); struct.pack_into("<I", bad, text_offset, 0xD65F03C0);
 bad = bytearray(original); struct.pack_into("<I", bad, text_offset, 0xD53BD040); mutations.append(("tls", bad))
 bad = bytearray(original); struct.pack_into("<I", bad, text_offset, 0x14010000); mutations.append(("branch-outside", bad))
 bad = bytearray(original); struct.pack_into("<I", bad, text_offset, 0x4EA01C00); mutations.append(("simd", bad))
+mutations.append(("truncated-header", original[:63]))
+bad = bytearray(original); struct.pack_into("<Q", bad, 40, len(original) - 1); mutations.append(("section-table", bad))
+bad = bytearray(original); struct.pack_into("<Q", bad, 96, len(original)); mutations.append(("segment-size", bad))
+bad = bytearray(original); struct.pack_into("<Q", bad, 24, 0); mutations.append(("entry", bad))
 for name, data in mutations:
     path = output / (name + ".elf")
     path.write_bytes(data)
     rejected = output / name
     rejected.mkdir(exist_ok=True)
-    run = subprocess.run([str(tool), str(path), str(rejected), "macos"], capture_output=True, timeout=10)
+    run = subprocess.run([*command, str(path), str(rejected), "macos"], capture_output=True, timeout=10)
     assert run.returncode != 0 and run.stderr, name
     assert not list(rejected.iterdir()), name
 assert hashlib.sha256(fixture.read_bytes()).hexdigest() == digest
-print("packaging: retained text, six static SVC veneers, Mach-O layout and nine rejection cases PASS")
+print(f"packaging: retained text, six static SVC veneers, Mach-O layout and {len(mutations)} rejection cases PASS")
