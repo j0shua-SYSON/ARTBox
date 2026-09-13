@@ -8,7 +8,6 @@
 
 @interface ConsoleViewController ()
 @property(nonatomic, strong) UITextView *console;
-@property(nonatomic) BOOL runHello;
 - (void)appendMessage:(NSString *)message;
 @end
 
@@ -31,15 +30,9 @@ static void app_log(void *context, const char *message, size_t length) {
 
 @implementation ConsoleViewController
 
-- (instancetype)initWithRunHello:(BOOL)runHello {
-    self = [super initWithNibName:nil bundle:nil];
-    if (self) _runHello = runHello;
-    return self;
-}
-
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = self.runHello ? @"Hello" : @"Runtime log";
+    self.title = @"ARTBox";
     self.view.backgroundColor = UIColor.systemBackgroundColor;
 
     self.console = [[UITextView alloc] initWithFrame:CGRectZero];
@@ -70,7 +63,6 @@ static void app_log(void *context, const char *message, size_t length) {
         [self appendMessage:@"ARTBox startup failed"];
     }
 #if ARTBOX_M1
-    if (!self.runHello) return;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
         const artbox_host guestHost = {app_log, (__bridge void *)self};
         NSString *frameworks = NSBundle.mainBundle.privateFrameworksPath;
@@ -88,8 +80,6 @@ static void app_log(void *context, const char *message, size_t length) {
             app_log((__bridge void *)self, result.UTF8String, [result lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
         }
     });
-#else
-    if (self.runHello) [self appendMessage:@"This build does not include the Hello demo. Install the ARTBox IPA to run it."];
 #endif
 }
 
