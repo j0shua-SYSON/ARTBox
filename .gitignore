@@ -1,0 +1,11 @@
+/.env/
+/.tmp/
+/build/
+/artifacts/
+/work/
+__pycache__/
+*.pyc
+*.user
+*.xcuserstate
+xcuserdata/
+.DS_Store
