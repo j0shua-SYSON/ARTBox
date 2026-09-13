@@ -41,12 +41,13 @@ No operation grants execute permission or replaces borrowed storage. A failed
 native mutation stops further use of the address space because the host may
 have changed some pages already; destruction still attempts cleanup.
 
-Local Windows tests pass 1,024 concurrent mapping lifecycles, reservation limit
+Windows, macOS and Linux tests pass 1,024 concurrent mapping lifecycles, reservation limit
 recovery, borrowed-storage ownership and injected failures, plus three actual
 hardware protection faults caught in child processes. The same 35-case memory
-caller is built by the NDK and linked into the signed Bionic wrapper; CI must run
+caller is built by the NDK and linked into the signed Bionic wrapper; CI runs
 that identical object through original/adapted Bionic on native Linux ARM64 and
-through the translated syscall binding on macOS. These results are reported
+through the translated syscall binding on macOS. All 35 cases pass at `2415969`.
+These results are reported
 separately from full allocator startup. See [ADR 0016](DECISIONS.md#0016---own-anonymous-reservations-and-track-page-state).
 
 The Linux error values are explicit: EPERM 1, EIO 5, EBADF 9, ENOMEM 12,
