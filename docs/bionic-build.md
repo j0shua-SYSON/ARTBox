@@ -91,11 +91,27 @@ deliveries across eight threads, checking receiver thread, signal, sender,
 payload and unchanged errno after invalid signals. The adapted header calls a
 Linux-only test backend with the proposed fixed-width raw interface; the
 original header enters Linux directly. This is a source-adaptation test, not a
-Bionic execution or Darwin signal result. The current CI result must be checked
-before treating this new oracle as verified. It uses Clang, matching Bionic's
+Bionic execution or Darwin signal result. It uses Clang, matching Bionic's
 compiler family, and checks that the original path still contains a kernel-entry
 instruction while the adapted path does not. The first GCC-built upstream
 control timed out: a local reproduction showed GCC discarding this non-volatile
 assembly because its output is unused, consistent with [GCC's documented
 optimization](https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html#Volatile).
 The check rejects a lost control instead of treating it as a successful adaptation.
+
+At implementation commit `cad1f910c525977e12cf6daf184c63bf3eadfdee`, the
+[host and Linux ARM64 run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34749696847)
+passed both 48-unit profiles and both signal paths. The Linux compiler was
+Clang 18.1.3; it retained three kernel-entry instructions in the original test
+and zero in the adapted test. Each delivered 1,024 signals across eight threads
+with zero failures. The adapted endpoint received 1,032 calls, including the
+eight invalid-signal checks.
+
+The [iOS regression build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34749696848)
+also passed. Its downloaded transport IPA at `artifacts/m2-cad1f91/ios/ARTBox.ipa`
+has SHA-256 `a433a2c0213e2dd80fc862b49b1a5e66752a8cea7c6a81448eb454fa46d748bd`.
+The app and both M1 frameworks retain arm64 iOS 15 metadata and match their
+signed manifests. The tested PR merge is `34db396a409cf03dce91a1f9e595f922d801ab50`,
+whose parent includes the implementation commit. Bionic object, notice and
+exported-header hashes were checked after download. The IPA still contains
+the M1 runtime; these results do not close M2.
