@@ -67,7 +67,13 @@ The allocator build retains AOSP Scudo and GWP-ASan. GWP-ASan's platform TLS hoo
 uses initialized guest-owned state through Bionic's native-bridge slot, avoiding
 initial-exec ELF TLS. Its Linux oracle passes 8,192 exchanges per profile across
 eight native threads, using the exact NDK-built caller objects.
-Allocator execution, its larger mapping requirements and TLS startup remain open.
+The portable M2 mapper now supports Scudo-shaped anonymous reservations, partial
+protection/unmap, fixed commit inside owned ranges and immediate zero-on-discard.
+Local Windows tests pass all 11 CTest contracts, including 1,024 concurrent
+mapping lifecycles and three actual protection faults. The NDK memory caller
+is linked into the signed Bionic slice for Apple/Linux CI comparison; that new
+execution evidence is pending. Actual allocator execution and TLS startup remain
+open. See [memory semantics](syscalls.md#m2-memory-manager) and ADR 0016.
 The current partial build includes real stdio/gdtoa and the baseline AOSP ARM64
 string dispatcher. Its 35,908-case guarded-page oracle passes on native Linux
 and in the signed macOS wrapper; downloaded objects and the iOS wrapper are verified.

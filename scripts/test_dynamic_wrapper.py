@@ -48,9 +48,13 @@ def main():
     subprocess.run([str(clang), "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-stack-protector",
                     "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
                     "-c", str(ROOT / "fixtures/bionic-dynamic/probe.c"), "-o", str(probe)], check=True)
+    vm_source, vm_object = ROOT / "fixtures/bionic-vm/check.c", build / "vm-check.o"
+    subprocess.run([str(clang), "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-stack-protector",
+                    "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
+                    "-c", str(vm_source), "-o", str(vm_object)], check=True)
     subprocess.run([str(tools / f"ld.lld{suffix}"), "-shared", "--hash-style=both", "--build-id=none",
                     "-z", "max-page-size=16384", "--pack-dyn-relocs=relr", "-soname", elf.name,
-                    "-T", str(ROOT / "fixtures/bionic-dynamic/image.ld"), str(source_object), str(strings), str(probe),
+                    "-T", str(ROOT / "fixtures/bionic-dynamic/image.ld"), str(source_object), str(strings), str(probe), str(vm_object),
                     "-o", str(elf)], check=True)
     disassembly = subprocess.check_output([str(tools / f"llvm-objdump{suffix}"), "-d", "--no-show-raw-insn", str(elf)], text=True)
     boundary = inventory(disassembly)
@@ -67,6 +71,8 @@ def main():
     result = {"scope": "Controlled dynamic Bionic syscall slice; no complete libc startup",
               "source_commit": report["source_commit"], "source_object_sha256": report["syscall_stubs"]["test_object_sha256"],
               "strings": report["strings"],
+              "vm": {"cases": 35, "object_sha256": hashlib.sha256(vm_object.read_bytes()).hexdigest(),
+                     "source_sha256": hashlib.sha256(vm_source.read_bytes()).hexdigest()},
               "elf_sha256": hashlib.sha256(elf.read_bytes()).hexdigest(), "layout": layout, "inventory": boundary}
     if sys.platform == "darwin":
         result["frameworks"] = {}
@@ -80,7 +86,8 @@ def main():
                 output = subprocess.check_output([str(runner), str(binary), str(elf)], timeout=30)
                 native = json.loads(output)
                 if any(native[key] != value for key, value in
-                       {"iterations": 100, "writes": 200, "exit_status": 0, "constructor_runs": 1, "string_cases": 35908}.items()):
+                       {"iterations": 100, "writes": 200, "exit_status": 0, "constructor_runs": 1,
+                        "string_cases": 35908, "vm_cases": 35}.items()):
                     raise RuntimeError("Signed dynamic Bionic slice did not complete its native contract")
                 framework["native"] = native
             result["frameworks"][target] = framework

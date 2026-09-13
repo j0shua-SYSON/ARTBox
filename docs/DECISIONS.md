@@ -265,6 +265,50 @@ comparison, copy footprints and overlap in both directions. The original test
 caller deliberately has no stack-guard/libc dependency; production C/C++ stack
 protection is unchanged. These tests do not establish complete Bionic startup.
 
+## 0016 - Own anonymous reservations and track page state
+
+Status: implemented; local Windows tests pass, Apple/Linux CI verification pending.
+
+Scudo reserves inaccessible VA, replaces parts with fixed anonymous mappings,
+trims subranges and discards pages expecting zeros. Implement these operations
+in a portable C++ address-space manager with a C API, using small native reserve,
+protect, reset and release callbacks. A mutex serializes mapping metadata and
+native mutations. Memory accessibility checks are snapshots, not pins against
+another thread unmapping storage. Guest accesses must stop before destruction.
+
+Keep each host reservation until its last guest page is unmapped. Windows
+[VirtualFree](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree)
+can decommit subranges but releases a reservation as a whole. This choice gives
+all hosts the same ownership model; the cost is retained inaccessible VA and
+one metadata byte per native page. The caller sets reservation and region
+budgets. Scudo's full VA usage and physical iPhone limits remain unmeasured.
+
+For Linux `MADV_DONTNEED`, replace only owned anonymous pages at the same VA.
+[Linux's contract](https://www.man7.org/linux/man-pages/man2/madvise.2.html)
+requires zero-fill-on-demand for private anonymous memory; Apple's
+[documented advice](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/madvise.2.html)
+does not promise those zeros. Remapping incurs a mapping operation rather than
+a paging hint. Windows uses decommit/recommit. Partial unmaps use the same reset
+with no access. No path requests executable pages. Write-only guest protection
+maps to read/write, matching the
+[Linux ARM64 protection map](https://github.com/torvalds/linux/blob/v6.6/arch/arm64/mm/mmap.c)
+and a paired native Linux test.
+
+Permit protection changes on registered, verified non-executable image data
+and host thread stacks, but reject replacing, discarding or freeing those borrowed
+ranges. Fixed mappings may only replace one owned reservation; file/shared
+mappings and protection/advice spanning separate reservations remain unsupported.
+A failed native mutation invalidates subsequent address-space operations; stale
+metadata must not authorize further access. Failed initial allocation rollback
+remains tracked for destruction to retry.
+
+Tests exercise allocator-shaped reservation/commit/trim sequences and immediate
+zeroing, quota recovery, borrowed ownership, failure cleanup and concurrency.
+Child processes catch expected hardware faults without crash/core artifacts.
+An identical NDK caller tests the real Bionic error tails in the signed Mac slice
+and both original/adapted Bionic Linux paths. This proves a memory boundary;
+executing the actual allocator and constructing guest TLS remain separate work.
+
 ## No-JIT cost ledger
 
 | Constraint | Consequence / evidence |
