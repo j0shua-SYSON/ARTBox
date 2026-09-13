@@ -259,7 +259,7 @@
     if (self.importing) return;
     UTType *apk = [UTType typeWithFilenameExtension:@"apk" conformingToType:UTTypeData];
     UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc]
-        initForOpeningContentTypes:@[apk ?: UTTypeData] asCopy:YES];
+        initForOpeningContentTypes:@[apk ? apk : UTTypeData] asCopy:YES];
     picker.delegate = self;
     picker.allowsMultipleSelection = NO;
     [self presentViewController:picker animated:YES completion:nil];
