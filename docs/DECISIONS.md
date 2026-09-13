@@ -73,6 +73,33 @@ checks signatures and bundle contents; physical execution remains unverified.
 The instruction allowlist enforces this fixture's ABI contract. It does not
 establish isolation from malicious native code inside the host process.
 
+## ADR 0008 - Pin Bionic independently of the platform tree (accepted, M2)
+
+Use the AOSP Bionic `android-15.0.0_r1` archive and commit recorded in
+`third_party/sources.json`. Fetch through the GitHub CLI and verify archive and
+notice hashes. Stage original sources in the configured cache; compatibility
+patches and build selections belong in the repository. Extract regular files
+and materialize internal header aliases without requiring symlink privileges.
+Omit the listed editor/versioner files and unused, case-colliding netfilter
+headers. Additional allocator and loader dependencies require their own pins
+and license reviews. The NDK supplies a compiler, not a substitute runtime libc.
+
+## ADR 0009 - Preserve ELF load bias in the signed wrapper (proposed, M2)
+
+Start with source-built Bionic and suite ELFs using a controlled link layout.
+Group immutable content in signed Mach-O text and writable content in aligned
+data segments. Verify that the final Apple-linked image preserves the ELF
+address differences for every loaded range before signing. This permits normal
+data relocations using one image load bias. Reject layouts that fail that
+comparison; do not repair signed instructions at runtime.
+
+An arbitrary existing ELF may need retained static relocations and further
+build-time transformation. That generalization is not established by a
+controlled source-built image. The runtime loader will validate dynamic tables,
+resolve dependencies and symbols in a guest namespace, relocate owned writable
+data, establish TLS, protect RELRO and invoke precompiled constructors. Each
+operation needs tests before it is used by Bionic.
+
 ## No-JIT cost ledger
 
 | Constraint | Consequence / evidence |

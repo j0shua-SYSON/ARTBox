@@ -1,0 +1,22 @@
+{
+  "bionic": {
+    "repository": "aosp-mirror/platform_bionic",
+    "upstream": "https://android.googlesource.com/platform/bionic",
+    "tag": "android-15.0.0_r1",
+    "commit": "361ba86734fb2821a6adcfdf775db8abd04e0de0",
+    "archive": "bionic-android-15.0.0_r1.tar.gz",
+    "archive_bytes": 6214925,
+    "archive_sha256": "bc1ddf365bec62f30ee5fc057d87ed54e11558f4d4187e90966d0c0e22bd159e",
+    "notice": "libc/NOTICE",
+    "notice_sha256": "75b5d593f1f741cd94dc88d18ba39d7c33d6b716e6985d7cabe308539f46b264",
+    "exclude": [
+      ".clang-format",
+      "libfdtrack/.clang-format",
+      "libc/versioner-dependencies",
+      "libc/kernel/uapi/linux/netfilter",
+      "libc/kernel/uapi/linux/netfilter_ipv4",
+      "libc/kernel/uapi/linux/netfilter_ipv6",
+      "tools/versioner"
+    ]
+  }
+}

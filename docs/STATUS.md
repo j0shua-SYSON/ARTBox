@@ -21,12 +21,18 @@ the direct converter remains a comparison prototype. The [loader design](loader-
 was recorded before implementation. Dynamic Bionic, ART, Binder, graphics and
 APK execution remain future work.
 
-## Next milestone: dynamic Bionic
+## M2 in progress: dynamic Bionic
 
 M2 must load real Bionic dynamically and run an NDK suite with threads, files
 and mmap. The current parser and packer accept only the controlled M1 static
 fixture. They do not yet support general ELF dependencies, RELA/RELR, GNU hash,
 TLS or constructors.
+
+The Bionic Android 15 source archive and notice are pinned and staged through
+portable Python tooling. Source extraction tests cover hash/size mismatch,
+path escape, aliases and case collisions. No Bionic runtime executes yet.
+The [M2 contract](m2-contract.md) fixes the acceptance areas before compatibility
+work; dynamic ELF metadata and relocation tests are next.
 
 ## Three largest M2 risks
 

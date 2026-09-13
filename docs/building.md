@@ -59,6 +59,19 @@ frameworks, executes each 100 times on the native CPU and tests the same entry
 used by the iOS app. CI separately runs the original ELF on native ARM64 Linux.
 Neither the packer nor the portable host tests emulate an ARM64 CPU.
 
+## Pinned sources for M2 development
+
+```sh
+python scripts/sources.py bionic
+```
+
+This optional development command requires an authenticated GitHub CLI (`gh`).
+It verifies the archive and notice hashes in `third_party/sources.json` and
+extracts the selected source into `ARTBOX_CACHE_DIR/sources`. Existing GitHub
+credentials are used; CI can provide `GH_TOKEN` through its normal secret
+environment. Original source archives stay in the configured download cache.
+This fetch command does not build or claim a working Bionic runtime.
+
 ## Paths and environment
 
 | Setting | Default | Command-line option |
