@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.png binary
+*.ipa binary
+*.mobileprovision binary
