@@ -69,8 +69,12 @@ Physical iPhone execution is unverified. This is substantial M2 startup progress
 the mandatory guest threads, regular files and file-backed mappings remain open.
 
 The current test also requests a second fresh process with
-`GWP_ASAN_PROCESS_SAMPLING=1` and `GWP_ASAN_SAMPLE_RATE=1` in its guest environment.
+`GWP_ASAN_PROCESS_SAMPLING=1`, `GWP_ASAN_SAMPLE_RATE=1` and
+`GWP_ASAN_MAX_ALLOCS=32` in its guest environment.
 This uses AOSP's existing options. The same client must pass and at least one
-observed allocation must belong to the initialized GWP-ASan pool. The purpose is
-to cover the otherwise randomly selected startup path; this additional run is
-pending CI. It does not test recovery from memory faults or claim signal support.
+observed allocation must belong to the initialized GWP-ASan pool. Both modes
+pass at `118a0bb`; the sampled run observes 30 guarded allocations. The purpose
+is to cover the otherwise randomly selected startup path. Setting the pool
+capacity explicitly avoids AOSP increasing it inversely with the artificial
+sampling rate; the 32-slot capacity adjustment awaits CI. This does not test
+recovery from memory faults or claim signal support.
