@@ -42,7 +42,7 @@ overlay under the build directory. Original source and notices stay intact.
 - `inline_raise` submits its signal through a fixed seven-word
   `artbox_bionic_syscall` endpoint instead of inline `svc`. This raw endpoint
   must return negative Linux error numbers without modifying guest errno. It
-  remains an unresolved runtime dependency; signal translation is not implemented.
+  uses the host dispatch endpoint described below; signal translation is not implemented.
 - Compiler stack checks use Bionic's global guard. Atomic operations use the
   baseline Armv8-A instruction path with `-mno-outline-atomics`, so they do not
   depend on Android's CPU-feature-detecting atomic helpers.
@@ -90,7 +90,7 @@ The native Linux oracle compiles both exported versions of the actual
 `bionic_inline_raise.h` against the system libc. It requires 1,024 signal
 deliveries across eight threads, checking receiver thread, signal, sender,
 payload and unchanged errno after invalid signals. The adapted header calls a
-Linux-only test backend with the proposed fixed-width raw interface; the
+Linux-only test backend with the fixed-width raw interface; the
 original header enters Linux directly. This is a source-adaptation test, not a
 Bionic execution or Darwin signal result. It uses Clang, matching Bionic's
 compiler family, and checks that the original path still contains a kernel-entry
@@ -136,7 +136,28 @@ gets nine boundary return values on four threads, with distinct 64-bit argument
 words and explicit x18, x19-x29 and stack/frame preservation checks. Only five
 selected smoke cases reach Linux: PID, UID, bad-fd write, zero-length mmap and
 an unknown syscall. Both original and adapted entries run those cases. The
-new runtime check requires CI verification; it does not prove complete Bionic
+runtime check passes on native Linux ARM64; it does not prove complete Bionic
 startup, Darwin translations or dynamic packaging. A generated entry is not an
 implemented syscall; unsupported operations still require an explicit runtime
 error. The additional frame/call/argument moves have not been timed.
+
+At implementation `b2bc96678744b0282188fb391f6d1239fcc0d722`, the
+[host and Linux run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34750412923)
+passed all 230 entry points, 8,280 capture cases and five smoke cases for each
+profile with zero failures. Downloaded NDK object/header hashes match the
+Linux report. The [iOS build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34750412917)
+passed its M1 regression. Its IPA at `artifacts/m2-b2bc966/ios/ARTBox.ipa` has
+SHA-256 `536f3e3dbd35a3ef65ef175f3b3d06c8a8b4332d2d8ee6521930422f45c89c1d`.
+The tested merge `e2c30ab52b5897da79347f06e914eb1938ce7886` includes that
+implementation as a parent. Both downloaded partial objects, notices and
+exported headers match their reports. Bionic is not yet embedded in this IPA.
+
+The precompiled host endpoint now selects an immutable per-thread dispatch
+binding, forwards all seven words and preserves host errno for returning calls.
+It leaves raw results unchanged so the original Bionic tail owns guest errno.
+New threads start unbound and receive -ENOSYS until the runtime binds a handler.
+The caller owns the binding/context lifetime and restores prior bindings after
+nested entry or non-local exit. A host test covers 12 threads and 1,000 nested
+calls per thread, plus the five M1 translations and exit cleanup through the
+exported endpoint. This provides the transport; full Bionic TLS and thread
+startup still need integration. The extra call and host TLS lookup are untimed.
