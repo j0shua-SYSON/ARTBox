@@ -41,6 +41,9 @@ jobs:
       - name: Execute both signed inputs on the native ARM64 CPU
         if: matrix.os == 'macos-15'
         run: python3 -B scripts/test_native.py
+      - name: Compare dynamic ELF program headers with LLVM
+        if: matrix.os == 'macos-15'
+        run: python3 -B scripts/test_dynamic.py
       - name: Upload host evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -48,6 +51,7 @@ jobs:
           path: |
             artifacts/host-metrics.json
             artifacts/m1-native.json
+            artifacts/m2-metadata.json
             build/m1/hello.elf
             build/m1/elf-build.json
             build/m1/macos/ARTBox*-load-commands.txt
