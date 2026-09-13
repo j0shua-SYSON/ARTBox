@@ -208,7 +208,8 @@ const char *artbox_elf_result_string(artbox_elf_result result) {
     case ARTBOX_ELF_OK: return "valid supported ELF";
     case ARTBOX_ELF_INVALID: return "invalid ELF bounds or structure";
     case ARTBOX_ELF_UNSUPPORTED: return "unsupported ELF feature";
-    case ARTBOX_ELF_NOT_FOUND: return "required ELF section not found";
+    case ARTBOX_ELF_NOT_FOUND: return "required ELF item or symbol not found";
+    case ARTBOX_ELF_NO_MEMORY: return "ELF operation exhausted host memory";
     default: return "unknown ELF result";
     }
 }
