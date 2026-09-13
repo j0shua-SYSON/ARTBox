@@ -1,5 +1,6 @@
 #include "artbox/guest.h"
 #include "artbox/native_memory.h"
+#include "artbox/native_hello.h"
 #include <dlfcn.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -10,6 +11,15 @@
 
 typedef struct capture { char bytes[64]; size_t size; } capture;
 static uint64_t entered_at;
+
+static void demo_log(void *context, const char *message, size_t length) {
+    capture *sink = context;
+    if (length < sizeof(sink->bytes) - sink->size) {
+        memcpy(sink->bytes + sink->size, message, length);
+        sink->size += length;
+        sink->bytes[sink->size++] = '\n';
+    }
+}
 
 static uint64_t now(void) {
     struct timespec value;
@@ -43,9 +53,16 @@ int main(int argc, char **argv) {
     artbox_memory_ops memory = artbox_native_memory();
     capture sink = {{0}, 0};
     struct rusage usage;
-    if (argc != 3) { fprintf(stderr, "usage: native_hello SIGNED_LIBRARY IMAGE_BYTES\n"); return 2; }
+    if (argc != 3 && argc != 4) { fprintf(stderr, "usage: native_hello SIGNED_LIBRARY IMAGE_BYTES [--demo]\n"); return 2; }
     image_size = (size_t)strtoull(argv[2], &end, 10);
     if (*end || image_size < 4 || image_size > 1024u * 1024u) return 2;
+    if (argc == 4) {
+        artbox_host host = {demo_log, &sink};
+        if (strcmp(argv[3], "--demo") || artbox_run_native_hello(argv[1], image_size, &host) != 0 ||
+            sink.size != sizeof(expected) - 1 || memcmp(sink.bytes, expected, sizeof(expected) - 1)) return 1;
+        puts("app entry: hello and five syscalls PASS");
+        return 0;
+    }
     start = now();
     library = dlopen(argv[1], RTLD_NOW | RTLD_LOCAL);
     if (!library) { fprintf(stderr, "dlopen: %s\n", dlerror()); return 1; }
