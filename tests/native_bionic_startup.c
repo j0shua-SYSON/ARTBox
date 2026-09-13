@@ -133,6 +133,17 @@ static void load(module *m, const char *framework, const char *file) {
 static int64_t dispatch(void *context, uint64_t n, uint64_t a0, uint64_t a1, uint64_t a2,
                         uint64_t a3, uint64_t a4, uint64_t a5) {
     int64_t value = artbox_kernel_call(context, n, a0, a1, a2, a3, a4, a5);
+    if (n == 66 && a0 == 2 && a2 <= 16) {
+        // Observe Bionic's fatal diagnostics without pretending writev is
+        // implemented: the syscall still returns its original ENOSYS below.
+        for (uint64_t i = 0; i < a2; ++i) {
+            uint64_t vector[2];
+            if (a1 > UINT64_MAX - i * 16 || artbox_vm_read(vm, a1 + i * 16, vector, sizeof(vector))) break;
+            char text[1024];
+            size_t length = vector[1] > sizeof(text) ? sizeof(text) : (size_t)vector[1];
+            if (!artbox_vm_read(vm, vector[0], text, length)) (void)fwrite(text, 1, length, stderr);
+        }
+    }
     // A bounded diagnostic console, not the future virtual descriptor table.
     if (n == 64 && (a0 == 1 || a0 == 2)) {
         char buffer[1024];
