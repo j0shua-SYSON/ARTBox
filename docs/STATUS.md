@@ -62,8 +62,10 @@ now call the raw endpoint in the native profile. Native Linux ARM64 passes
 8,280 capture cases and five smoke cases per profile using the actual NDK-built
 entries and Bionic errno helper. An exported entry does not imply that its
 syscall is implemented. The native partial object has 17 unresolved dependencies (14 strong).
-The 221-source property/CRT selection passes CI at `aaeece1`; the new arithmetic
-objects and 123-case native oracle pass local compilation and await native CI.
+The 221-source property/CRT selection and arithmetic objects pass CI at `726d758`.
+All 123 exact-bit arithmetic/comparison cases pass in the signed macOS wrapper
+and with the identical NDK object on native Linux ARM64. Downloaded object,
+notice, iOS framework and IPA hashes/layouts match their reports.
 Complete Bionic startup and dynamic execution remain unimplemented. The host
 dispatch test covers 12 threads, nested bindings and the five M1 syscalls;
 it does not add syscall semantics or initialize guest TLS.

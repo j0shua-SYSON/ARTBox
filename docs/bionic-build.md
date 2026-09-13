@@ -275,11 +275,22 @@ Android's 128-bit long double entirely in its own compiled ABI. Both profiles
 link identical hash-checked members and retain the complete LLVM toolchain notice.
 The original NDK test caller passes only an integer result across the Apple
 boundary: 123 exact-bit products, ordered comparisons, signed-zero and NaN cases.
-CI must execute the identical caller/helpers on native Linux and in the signed
+CI executes the identical caller/helpers on native Linux and in the signed
 macOS wrapper; iOS linking/signing preserves the same bytes. Local compilation
-and instruction checks pass; native arithmetic execution is pending.
+and instruction checks pass, as do native arithmetic tests at `726d758`.
 
 With these helpers the local native object has 75,947 decoded instructions,
 1,387 global definitions shared with the control and 17 unresolved dependencies
 (14 strong). The 221 compiled source units are separate from the two prebuilt
 NDK arithmetic members. This is still not complete Bionic startup.
+
+Implementation `726d75825b858b9e648bcf23ee1f2d43717f4ced` passes
+[host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34755905118)
+and the [iOS regression](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34755905119).
+The 123 arithmetic cases take 8 microseconds in the signed Mac wrapper and
+2.104 microseconds on the native Linux runner, including the test caller.
+These single samples are correctness-fixture timings, not a platform performance
+comparison. The exact CI NDK test-object SHA-256 is
+`cbef4a00ab63b5d07aea0efeae1689a0087c1e6b75d4e3ae5787e9efdcfdcd58`.
+Both hosts use the two pinned production members unchanged. Downloaded partial
+objects, component notices and signed iOS framework layout match their reports.
