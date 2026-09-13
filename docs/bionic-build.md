@@ -214,7 +214,7 @@ Bionic allocator runtime and has not been executed on a physical device.
 
 ## Stdio and baseline strings
 
-The selection now has 204 units. It adds the actual Bionic stdio, OpenBSD
+The selection at `3f69405` has 204 units. It adds the actual Bionic stdio, OpenBSD
 stdio/gdtoa dependencies, locale/ICU dispatch and source providers required by
 the existing libc initialization and malloc wrappers. The source manifest
 records each OpenBSD group's compatibility include, warning settings and
@@ -242,3 +242,27 @@ has 71,228 decoded instructions, 1,263 global definitions, 198 stack-failure
 branches and 661 guard-address relocations. It has 33 unresolved imports,
 including 30 strong imports; the existing five weak profile differences remain
 exact. This is substantial source closure, not complete Bionic initialization.
+
+## Property and CRT dependencies
+
+The current selection compiles 221 units: 183 Bionic source/generated units,
+23 allocator units, 14 Arm string units and one property-info parser. It uses
+the real shared-library CRT for pthread-atfork registration and finalization,
+wide-string conversion dependencies, Bionic's six system-property implementation
+units and public API, and their mkdir/xattr/string-duplication providers.
+The FreeBSD sources use their upstream compatibility include and warning flags;
+the ARM64 CRT does not enable the legacy ARM32 workaround.
+
+Only five hash-pinned files are fetched for property-info from the already
+reviewed system/core revision. The complete notice and original source/header
+notices accompany object artifacts. The property parser and Bionic startup will
+use the virtual filesystem; no host properties or success-only placeholder is
+substituted. Actual property initialization still requires runtime integration.
+
+Local NDK comparison passes with 1,378 shared global definitions and the same
+five allowed weak differences. The native build has 75,560 decoded instructions,
+221 stack-failure branches and 709 guard-address relocations. All checked
+syscall/thread-pointer/reserved-register instruction counts remain zero. Its
+21 unresolved dependencies include 18 strong imports: four binary128 compiler
+helpers, loader APIs, native TLS/syscall endpoints and thread/process boundaries.
+CI verification of this expanded source selection is pending.

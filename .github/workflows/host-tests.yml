@@ -82,6 +82,7 @@ jobs:
             build/m2/bionic/*/SCUDO-NOTICE.txt
             build/m2/bionic/*/GWP_ASAN-NOTICE.txt
             build/m2/bionic/*/ARM-ROUTINES-NOTICE.txt
+            build/m2/bionic/*/PROPERTY-INFO-NOTICE.txt
             build/m2/bionic/*/strings-test.o
             build/m2/bionic/*/allocator-tls-test.o
             build/m2/bionic/*/bionic_inline_raise.h

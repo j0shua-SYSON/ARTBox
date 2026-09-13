@@ -142,3 +142,16 @@ rewritten or relicensed. `ARM-ROUTINES-NOTICE.txt` accompanies the compiled
 objects and is included with the Bionic notice before signing the expanded
 dynamic fixture. It remains separate from the M1 IPA. The scalar oracle and
 host test drivers are original MIT code; symbol prefixing affects test copies.
+
+The property dependency adds the unmodified `libpropertyinfoparser` implementation,
+public header and Android.bp, plus `libcutils/include/private/android_filesystem_config.h`
+and the complete `libcutils/NOTICE`, from the same pinned system/core commit above.
+This is a separate five-file selection named `property-info`; the existing tracing
+header selection is unchanged. The parser source/header carry AOSP's 2017
+Apache-2.0 notice; the filesystem-ID header carries its 2007 Apache-2.0 notice.
+`PROPERTY-INFO-NOTICE.txt` retains the complete license and all three original
+source/header notices with object artifacts. Bionic's six system-property units
+and public API retain the archive's AOSP BSD notices; FreeBSD wide-string and
+OpenBSD duplication helpers retain their original permissive notices in the
+Bionic archive and complete libc notice. No property service or proprietary
+property data is imported. This source build is not yet property runtime support.
