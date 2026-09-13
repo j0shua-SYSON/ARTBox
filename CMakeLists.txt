@@ -46,12 +46,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         target_compile_definitions(ARTBox PRIVATE ARTBOX_M1=1)
         target_include_directories(ARTBox PRIVATE "${ARTBOX_GUEST_BUNDLES}/pack")
         foreach(kind Converted Wrapped)
-            add_custom_command(TARGET ARTBox POST_BUILD
-                COMMAND "${CMAKE_COMMAND}" -E copy_directory
-                    "${ARTBOX_GUEST_BUNDLES}/ARTBox${kind}.framework"
-                    "$<TARGET_BUNDLE_DIR:ARTBox>/Frameworks/ARTBox${kind}.framework"
-                VERBATIM)
+            set_property(TARGET ARTBox APPEND PROPERTY XCODE_EMBED_FRAMEWORKS
+                "${ARTBOX_GUEST_BUNDLES}/ARTBox${kind}.framework")
         endforeach()
+        set_property(TARGET ARTBox PROPERTY XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY NO)
     endif()
     target_compile_options(ARTBox PRIVATE -fobjc-arc -Werror=unguarded-availability-new)
     set_target_properties(ARTBox PROPERTIES
