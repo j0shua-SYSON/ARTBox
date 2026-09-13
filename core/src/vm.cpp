@@ -184,7 +184,7 @@ int artbox_vm_munmap(artbox_vm *space, uint64_t address, uint64_t length) {
         if (removed) {
             int result = space->mutation(space->ops.reset(reinterpret_cast<void *>(begin), static_cast<size_t>(end - begin), 0));
             if (result) return result;
-            std::fill_n(region.pages.begin() + static_cast<ptrdiff_t>(first), count, 0);
+            std::fill_n(region.pages.begin() + static_cast<ptrdiff_t>(first), count, static_cast<unsigned char>(0));
             region.live -= removed;
         }
         ++i;
