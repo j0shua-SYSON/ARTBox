@@ -85,8 +85,11 @@ open. See [memory semantics](syscalls.md#m2-memory-manager) and ADR 0016.
 The startup dispatcher adds guest PID/TID, exit-clear pointer registration,
 realtime/monotonic clocks and secure random bytes. VM copies now hold the mapping
 lock across access, including tests racing copies against partial unmaps.
-All 12 local CTest contracts pass. The new 36-case NDK startup-service caller is
-included in the signed-wrapper/Linux comparison and awaits native CI. Exit-TID
+All 12 CTest contracts pass on Windows, macOS and Linux at `b17aaf2`. The identical
+36-case NDK startup-service caller passes in the signed macOS wrapper and both
+Linux Bionic profiles. The Mac fixture takes 26 microseconds; Linux takes 36.430
+and 30.942 microseconds (single correctness runs, not throughput measurements).
+Downloaded fixture hashes, signed iOS wrapper and IPA are verified. Exit-TID
 clear/wake, guest thread creation and full libc startup remain unimplemented.
 The current partial build includes real stdio/gdtoa and the baseline AOSP ARM64
 string dispatcher. Its 35,908-case guarded-page oracle passes on native Linux
