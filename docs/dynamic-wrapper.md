@@ -108,6 +108,22 @@ The M1 IPA at `artifacts/m2-2415969/ios/ARTBox.ipa` has SHA-256
 `24429b0c56deb7f6dc2183bd3712d48c9939939459629753c8c268c66540a574`;
 tested merge `07ca2b7a5caa127cb2273aad056f619cc1603d64` includes the implementation.
 
+The binary128 fixture at `726d75825b858b9e648bcf23ee1f2d43717f4ced` passes
+[native CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34755905118):
+all 123 arithmetic/comparison cases in the signed Mac wrapper and with the
+identical NDK object on Linux. The test returns only an integer across the host
+boundary, preserving Android's binary128 ABI for every helper call. Both pinned
+compiler-rt members and their complete LLVM notice are included in the framework.
+The prior string/memory checks and 100 five-syscall loops still pass.
+
+The downloaded iOS wrapper SHA-256 is
+`6a992b3aa89e149dd6c9a86189c6a32964597d893222e5807bf702e6e0528218`.
+It retains 65,536 RX and 1,640 RW bytes with 33 PLT and two RELR bindings; all
+three notices match their reports. The M1 regression IPA at
+`artifacts/m2-726d758/ios/ARTBox.ipa` has SHA-256
+`193d99ba63f8d15b78ecff2bb22e1e3ed061bc410469c4573b7e216246ee05a7`.
+Its tested merge `3c8e84fed179a8e5a6ec615174bb81749f5890e6` includes the implementation.
+
 Still required: complete Bionic linkage/startup, guest TLS and thread ownership,
 symbol versions/dependencies, general constructor ordering, RELRO protection,
 broader Linux semantics and integration in the iOS app. No physical iPhone

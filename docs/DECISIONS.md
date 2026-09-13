@@ -311,7 +311,7 @@ executing the actual allocator and constructing guest TLS remain separate work.
 
 ## 0017 - Keep binary128 arithmetic inside the Android ABI
 
-Status: selected; NDK compilation and instruction checks pass, native tests pending.
+Status: implemented; native Linux and signed macOS arithmetic tests pass at `726d758`.
 
 Android ARM64 long double uses binary128. Apple's ARM64 long-double ABI differs,
 so binding Bionic's compiler arithmetic helpers to host symbols would silently
