@@ -331,7 +331,7 @@ do not cover all floating-point environment modes or general variadic ABI bridge
 
 ## 0018 - Stage syscall copies through the owned address space
 
-Status: implemented; local tests pass, native startup-service checks pending.
+Status: implemented; portable and signed-native startup-service checks pass at `b17aaf2`.
 
 Use the VM's mapping mutex for validation and copying as one operation. Snapshot
 access checks alone cannot prevent another guest thread changing protection or

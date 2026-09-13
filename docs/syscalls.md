@@ -77,7 +77,8 @@ follow the [kernel implementation](https://github.com/torvalds/linux/blob/v6.6/d
 The local host contract checks buffer canaries, layouts, error propagation and
 partial progress across an inaccessible page. Its Linux branch compares real
 syscalls. An identical 36-case NDK caller is now linked into the signed wrapper
-and both Linux Bionic paths; native CI execution of that addition is pending.
+and both Linux Bionic paths; all 36 cases pass at `b17aaf2`, alongside all 12
+portable CTest contracts on Windows, macOS and Linux.
 
 The Linux error values are explicit: EPERM 1, EIO 5, EBADF 9, ENOMEM 12,
 EACCES 13, EFAULT 14, EINVAL 22, ENOSYS 38, ENOTSUP 95. Guest flags and host
