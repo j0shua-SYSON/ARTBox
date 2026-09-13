@@ -43,5 +43,33 @@
     "upstream": "https://android.googlesource.com/platform/system/core",
     "notice": "libcutils/NOTICE",
     "notice_sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+  },
+  "scudo": {
+    "upstream": "https://android.googlesource.com/platform/external/scudo",
+    "tag": "android-15.0.0_r1",
+    "commit": "67dd481e24c770b9f416f61844c2d015f125c134",
+    "archive": "scudo-android-15.0.0_r1.tar.gz",
+    "archive_bytes": 179923,
+    "archive_sha256": "ebfcc39ca44937c68e5e424c0e016e613f476972cdbc23c1fd8fbb107efb2c8f",
+    "notice": "LICENSE.TXT",
+    "notice_sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+    "exclude": [
+      ".clang-format"
+    ],
+    "repository": "aosp-mirror-neo/platform_external_scudo"
+  },
+  "gwp_asan": {
+    "upstream": "https://android.googlesource.com/platform/external/gwp_asan",
+    "tag": "android-15.0.0_r1",
+    "commit": "df96c8131b0e2cb91e7668a537bda7f18bc25635",
+    "archive": "gwp_asan-android-15.0.0_r1.tar.gz",
+    "archive_bytes": 51656,
+    "archive_sha256": "f3481a502b0e3d48659207c486f2c2ee16e3b19519c41244efdd50d1e40ada52",
+    "notice": "LICENSE.TXT",
+    "notice_sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+    "exclude": [
+      ".clang-format"
+    ],
+    "repository": "aosp-mirror-neo/platform_external_gwp_asan"
   }
 }

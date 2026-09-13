@@ -6,7 +6,8 @@ pthread translation units, three libc initialization units, errno accessors,
 futex/clone wrappers, open/stat wrappers and the AArch64 TLS setter. It also
 builds C++ initialization/destruction support, ELF TLS helpers, auxv/vDSO access,
 tracing, fd ownership/tracking, semaphores and signal wrappers. It produces
-50 AArch64 objects (including generated syscall assembly) and combines them with a relocatable link. The default
+73 Bionic objects and 23 Scudo/GWP-ASan objects (including generated syscall assembly)
+and combines them with a relocatable link. The default
 `native` profile applies the source adaptations below; `--profile upstream`
 builds a control with the original source. Neither produces `libc.so` or packages
 Android code into the app. `--ndk-root`, `--build-dir` and `--jobs` are configurable;
@@ -59,20 +60,21 @@ their separate host TLS values. It does not yet execute Bionic's code.
 
 ## Current evidence and next boundaries
 
-`python scripts/test_bionic.py` compiles both profiles from the same 50 selected/generated
-sources and verifies that they retain the same 512 global definitions. The
-upstream control has 108 `TPIDR_EL0` reads, one write, one x18 reference and
-219 `svc` instructions: 216 generated entries, the generic entry and two
-in the fd-ownership diagnostic path. The
+`python scripts/test_bionic.py` compiles both profiles from the same 96 selected/generated
+sources. They share 894 global definitions; the exact differences are four weak
+Scudo template outlines and GWP-ASan's replaced eight-byte TLS variable. The
+check rejects any other difference, any strong-definition difference or an
+unexpected ELF TLS object. The upstream control has 189 `TPIDR_EL0` reads,
+one write, one x18 reference and 221 `svc` instructions. The
 native profile contains none of those instructions, no x27/x28 references,
 no `svc`, no unknown disassemblies and no outlined atomic imports. It retains
 both TLS bridge imports, the raw-syscall endpoint and stack-check failure calls.
-The native object has 58 failure-branch relocations and 140 guard-address
+The native object has 94 failure-branch relocations and 218 guard-address
 relocations. This checks actual code references even after the failure handler
-is defined. The partial object still has 69 unresolved dependencies; no missing function is replaced
+is defined. The partial object still has 72 unresolved dependencies; no missing function is replaced
 with a placeholder.
 
-The remaining libc/allocator/loader components and special clone/teardown assembly are absent
+The remaining libc/loader components and special clone/teardown assembly are absent
 from this source selection. Their code needs the same checks when introduced.
 TLS block creation, module TLS layout, source dependency closure and native
 execution through signed dynamic packaging remain required. The instruction
@@ -161,3 +163,37 @@ nested entry or non-local exit. A host test covers 12 threads and 1,000 nested
 calls per thread, plus the five M1 translations and exit cleanup through the
 exported endpoint. This provides the transport; full Bionic TLS and thread
 startup still need integration. The extra call and host TLS lookup are untimed.
+
+## Allocator dependency build
+
+`third_party/bionic/allocators.json` selects the real Scudo and GWP-ASan source
+groups from their matching AOSP tag. It records compiler flags and notice hashes.
+Scudo retains Android's custom size classes, shared TSD registry and Bionic
+wrappers, `-O3`, CRC support and its upstream stack-protector exception. Both
+profiles disable TBI/MTE through Scudo's existing configuration switches; the
+runtime must advertise CPU capabilities accurately. GWP-ASan retains its sampled
+guarded allocator and crash-handler implementation. The Bionic dynamic malloc,
+heapprofd and limit wrappers are compiled rather than replaced.
+
+Both components use Soong's `-DANDROID` as well as the NDK's `__ANDROID__` macro.
+The initial compile probe omitted the former and selected an empty POSIX mapping
+name helper; retaining the upstream Android define fixed that error with warnings
+still treated as errors. Component-specific compiler flags are recorded per object.
+
+GWP-ASan's default initial-exec TLS reads `TPIDR_EL0`, even when Bionic's explicit
+TLS getter is adapted. Its supported platform-header hook now returns an actual
+`ThreadLocalPackedVariables` object from `TLS_SLOT_NATIVE_BRIDGE_GUEST_STATE`.
+The runtime must initialize aligned storage with the upstream constructor and
+bind it before allocator entry; it cannot allocate recursively inside the getter.
+The threaded Linux fixture compiles the original state/getter or the platform
+hook with the same NDK inputs. It checks the constructor's sentinel, all bit
+fields, errno preservation and independent state over 8,192 exchanges. Runtime
+CI verification is pending. This is a TLS adaptation test, not allocator startup.
+
+The instruction-gated native partial object contains 38,505 decoded instructions
+with zero checked kernel entries, thread-pointer or reserved-register accesses.
+Its 897 global definitions differ from the control's 896 only by the exact weak
+outlines/TLS object listed in the allocator manifest. The extra calls change
+Clang's inlining decisions; those internal C++ outlines are not missing libc
+exports. Full dynamic packaging, malloc execution, mapping semantics and the
+remaining 72 dependencies still need integration.

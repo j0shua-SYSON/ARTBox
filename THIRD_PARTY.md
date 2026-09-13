@@ -64,7 +64,7 @@ to make extraction work without filesystem symlink privileges. Runtime source
 changes and additional allocator/loader dependencies must be recorded as they
 are introduced. A full AOSP platform checkout is not needed for this source audit.
 
-The M2 build compiles the 50 selected/generated libc translation units recorded in
+The M2 build compiles the 73 selected/generated libc translation units recorded in
 `third_party/bionic/m2-objects.json` into partial relocatable objects. The
 upstream profile is unchanged source. The native profile applies the exact,
 hash-checked edits in `third_party/bionic/native-boundary.json` to
@@ -102,3 +102,24 @@ their AOSP and Berkeley/OpenBSD/NetBSD notices; the complete libc notice remains
 with all object artifacts. Generated/modified Bionic assembly and test symbol
 renaming do not relicense that code as MIT. The generator is used as a build
 tool from the pinned archive; no rewritten syscall table is substituted.
+
+The allocator dependencies use the same AOSP `android-15.0.0_r1` tag:
+
+| Component | Immutable AOSP revision | Built source scope |
+| --- | --- | --- |
+| [Scudo](https://android.googlesource.com/platform/external/scudo/+/67dd481e24c770b9f416f61844c2d015f125c134) | `67dd481e24c770b9f416f61844c2d015f125c134` | 15 standalone units, Android configuration and Bionic C wrappers |
+| [GWP-ASan](https://android.googlesource.com/platform/external/gwp_asan/+/df96c8131b0e2cb91e7668a537bda7f18bc25635) | `df96c8131b0e2cb91e7668a537bda7f18bc25635` | Eight allocator, POSIX and crash-handler units; shared units compiled once |
+
+GitHub `aosp-mirror-neo` archives are pinned by size and SHA-256; their commit
+IDs were checked against the official AOSP tag. These LLVM-derived sources
+carry Apache-2.0 with LLVM exceptions, with legacy permissive license texts in
+`LICENSE.TXT`. Scudo's Android configuration also carries an AOSP BSD notice.
+`SCUDO-NOTICE.txt` includes the complete license file and unchanged configuration
+header; `GWP_ASAN-NOTICE.txt` includes the complete license file. Both are verified
+and retained beside the CI objects. The original source notices remain intact.
+
+The project-owned `artbox_gwp_asan_tls.h` uses GWP-ASan's platform-header hook;
+it is original MIT integration code. It changes no allocator source file and
+does not relicense Scudo or GWP-ASan. The new Linux fixture includes the pinned
+GWP-ASan state definition and inline getter in its NDK-built objects, so those
+objects retain the corresponding notice. No allocator is shipped in the M1 IPA.

@@ -180,7 +180,7 @@ forwards to Linux; this does not establish Darwin signal support or Bionic start
 
 ## 0013 - Adapt AOSP-generated syscall assembly and retain Bionic errno conversion
 
-Status: implemented in the source build; native oracle and runtime integration required.
+Status: source build and native Linux oracle pass; complete runtime integration required.
 
 Use AOSP's pinned table and generator for the exported ARM64 stubs and aliases.
 A source adapter replaces each `svc` pair with a normal precompiled C call and
@@ -201,6 +201,34 @@ test TLS for its `__errno` dependency. Bulk cases use a capture backend with
 controlled results, exercising every generated entry/alias and callee-saved
 registers without issuing arbitrary Linux calls. Five explicit smoke cases run
 against Linux in both profiles. These checks do not establish the full runtime.
+
+## 0014 - Keep the AOSP allocators and bind their state before entry
+
+Status: compiled and instruction checked; allocator runtime integration pending.
+
+Use Scudo and GWP-ASan from the matching Android 15 tag, with their real Bionic
+wrappers and complete notices. Retain Android's Scudo configuration and use its
+existing switches to disable TBI/MTE in both build profiles. Pointer tagging and
+hardware memory-tag diagnostics are not available in this configuration. Keep
+the guarded allocator and ordinary Scudo checks; do not substitute a host malloc
+or claim equivalent Android hardening. Scudo's ordinary Android mapping pattern
+requires more than the M1 mapper supports and must be implemented/tested next.
+
+GWP-ASan's initial-exec ELF TLS remains incompatible with host thread-pointer
+ownership. Use its platform TLS header hook to reach a real upstream state
+object through Bionic's native-bridge guest-state slot, which ARTBox owns. This
+adds the existing Bionic TLS call/host lookup to sampling operations. The runtime
+owns aligned storage, upstream constructor initialization and the slot binding
+before entry. No allocation occurs in this hook. That initialization is not yet
+connected to Bionic startup. The Linux comparison exercises actual NDK-built
+state access on eight native threads in both profiles.
+
+Replacing one ELF TLS object and adding calls changes weak C++ template outlining
+at `-O3`. Record the exact five symbol differences and require them to remain weak;
+all other global definitions must match. Also require exactly the original
+eight-byte GWP TLS definition in the control and none in the native object. This
+retains a precise build comparison without treating compiler-generated template
+outlines as Android libc exports. Execution and performance remain separate checks.
 
 ## No-JIT cost ledger
 
