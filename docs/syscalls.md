@@ -30,10 +30,22 @@ use 16 KiB Mach-O alignment. Memory allocated for the guest never requests
 execute permission. File-backed mappings, virtual filesystem, futexes, threads,
 signals, epoll, eventfd, pipes and sockets remain future work.
 
-The M2 source profile routes Bionic's inline queued-signal operation through a
-proposed `artbox_bionic_syscall(number, a0, a1, a2, a3, a4, a5)` boundary. All
-arguments are `uint64_t`; its `int64_t` result is raw Linux success/negative errno,
-and it must leave guest errno unchanged. The endpoint is an unresolved import,
-not an implemented signal syscall. The native Linux comparison tests the actual
-original/adapted signal header using a Linux test backend; it does not exercise
-a Darwin translation or count toward M2's runtime suite.
+The M2 source profile routes all 216 generated Bionic syscall entries, 13 aliases,
+the generic entry and inline queued signals through
+`artbox_bionic_syscall(number, a0, a1, a2, a3, a4, a5)`. All arguments are
+`uint64_t`; its `int64_t` result is raw Linux success/negative errno. Bionic's
+original assembly tail converts errors to -1 and guest errno.
+
+The host endpoint selects a borrowed immutable dispatch binding in native
+thread-local storage. Returning calls preserve host errno. Unbound threads or
+bindings without a handler return -ENOSYS. The owner keeps the binding/context
+alive and restores the previous binding after nested entry or a non-local exit.
+Guest TLS binding is separate. `native_syscall_boundary` checks 12 threads,
+1,000 nested dispatches each, full-width arguments, errno and TLS isolation,
+and the existing five-syscall translator through this exact exported entry.
+
+Native Linux ARM64 also executes the actual NDK-built syscall entries and Bionic
+errno helper: 8,280 capture cases and five real syscall smoke cases per profile.
+The signal comparison uses the actual original/adapted header with a Linux test
+backend. Neither test implements Darwin signals or counts toward M2's dynamic
+runtime suite. Transporting a syscall number does not implement that syscall.
