@@ -58,7 +58,8 @@ dispatch test covers 12 threads, nested bindings and the five M1 syscalls;
 it does not add syscall semantics or initialize guest TLS.
 The allocator build retains AOSP Scudo and GWP-ASan. GWP-ASan's platform TLS hook
 uses initialized guest-owned state through Bionic's native-bridge slot, avoiding
-initial-exec ELF TLS. Its new threaded Linux oracle still needs CI verification.
+initial-exec ELF TLS. Its Linux oracle passes 8,192 exchanges per profile across
+eight native threads, using the exact NDK-built caller objects.
 Allocator execution, its larger mapping requirements and TLS startup remain open.
 The original and adapted signal headers pass 1,024 thread-directed deliveries
 each on native Linux ARM64, including payload and errno checks. This uses the

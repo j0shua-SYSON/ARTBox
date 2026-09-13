@@ -187,8 +187,8 @@ The runtime must initialize aligned storage with the upstream constructor and
 bind it before allocator entry; it cannot allocate recursively inside the getter.
 The threaded Linux fixture compiles the original state/getter or the platform
 hook with the same NDK inputs. It checks the constructor's sentinel, all bit
-fields, errno preservation and independent state over 8,192 exchanges. Runtime
-CI verification is pending. This is a TLS adaptation test, not allocator startup.
+fields, errno preservation and independent state over 8,192 exchanges. Both
+profiles pass in native Linux CI. This is a TLS adaptation test, not allocator startup.
 
 The instruction-gated native partial object contains 38,505 decoded instructions
 with zero checked kernel entries, thread-pointer or reserved-register accesses.
@@ -197,3 +197,16 @@ outlines/TLS object listed in the allocator manifest. The extra calls change
 Clang's inlining decisions; those internal C++ outlines are not missing libc
 exports. Full dynamic packaging, malloc execution, mapping semantics and the
 remaining 72 dependencies still need integration.
+
+Implementation `9d22426eb134f90daf18ee7709a2db05eee05695` passes
+[host and Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34751449577)
+and the [iOS regression build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34751449507).
+Each allocator TLS profile completed all 8,192 exchanges on eight threads with
+zero failures; the existing signal, syscall and M1 native checks also passed.
+Downloaded partial objects, caller objects, exported headers and all four
+component notices match their reports. The tested merge
+`db2ec90937a48ccff7f9957a9296035ef7c654d5` includes that implementation parent.
+The M1 IPA at `artifacts/m2-9d22426/ios/ARTBox.ipa` has SHA-256
+`e979fbc7636ddc7c80a009923980679a553873860c6c8f1afbbf7d60cfe5a323`.
+It retains the verified arm64 iOS 15 app/framework manifests; it contains no
+Bionic allocator runtime and has not been executed on a physical device.
