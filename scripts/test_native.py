@@ -34,19 +34,21 @@ def main():
         if sys.platform != "linux" or not args.manifest:
             raise RuntimeError("The Linux oracle requires Linux and the paired Mac manifest")
         manifest = json.loads(args.manifest.read_text())
+        minimum = Path("/proc/sys/vm/mmap_min_addr").read_text().strip()
         digest = hashlib.sha256(fixture.read_bytes()).hexdigest()
         if digest != manifest["pack"]["input_sha256"]:
             raise RuntimeError("Linux oracle input differs from the packaged Mac input")
         fixture.chmod(fixture.stat().st_mode | 0o111)
         output = subprocess.run([str(fixture)], capture_output=True, timeout=10)
         if output.returncode != 0 or output.stdout != b"hello from Android ARM64\n" or output.stderr:
-            raise RuntimeError(f"Original Linux ELF failed with exit {output.returncode}")
+            raise RuntimeError(f"Original Linux ELF failed with exit {output.returncode}; mmap_min_addr={minimum}")
         if hashlib.sha256(fixture.read_bytes()).hexdigest() != digest:
             raise RuntimeError("Oracle execution changed the ELF bytes")
         (artifacts / "m1-linux.json").write_text(json.dumps({
             "scope": "Unchanged NDK ELF on native ARM64 Linux", "input_sha256": digest,
             "exit_status": output.returncode, "output": output.stdout.decode(),
             "platform": platform.platform(), "architecture": platform.machine(),
+            "mmap_min_addr": int(minimum),
         }, indent=2) + "\n", encoding="utf-8")
         print("Linux ARM64: unchanged NDK ELF printed hello and exited 0", flush=True)
         return
