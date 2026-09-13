@@ -1,4 +1,4 @@
-"""Fetch pinned source archives with gh into the configured build cache."""
+"""Fetch pinned source archives or exact file sets with gh into the build cache."""
 import sys
 
 sys.dont_write_bytecode = True
@@ -9,10 +9,12 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import posixpath
+import re
 import shutil
 import subprocess
 import tarfile
 import tempfile
+from urllib.parse import quote
 
 from environment import ROOT, environment
 
@@ -89,12 +91,74 @@ def unpack(archive, destination, exclude):
                 output.chmod(member.mode & 0o777)
 
 
+def obtain_files(name, spec, cache):
+    """Install a complete hash-checked file selection; recheck all cached files."""
+    if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", name) or not re.fullmatch(r"[0-9a-f]{40}", spec["commit"]):
+        raise RuntimeError("Invalid pinned source name or commit")
+    selected = {}
+    for entry in spec["files"]:
+        raw = entry["path"]
+        path = PurePosixPath(raw)
+        if path.is_absolute() or not path.parts or ".." in path.parts or ":" in raw or "\\" in raw or \
+                path.as_posix() != raw or raw.casefold() == ".artbox-source.json":
+            raise RuntimeError("Unsafe pinned source file path")
+        key = raw.casefold()
+        if key in selected or entry["bytes"] < 0 or not re.fullmatch(r"[0-9a-f]{64}", entry["sha256"]):
+            raise RuntimeError("Duplicate or invalid pinned source file")
+        selected[key] = entry
+    if not selected:
+        raise RuntimeError("Empty pinned source selection")
+    for key in selected:
+        if any(parent.as_posix() in selected for parent in PurePosixPath(key).parents):
+            raise RuntimeError("Pinned source file occupies a directory path")
+    notice = selected.get(spec["notice"].casefold())
+    if not notice or notice["path"] != spec["notice"] or notice["sha256"] != spec["notice_sha256"]:
+        raise RuntimeError("Pinned source selection must include its reviewed notice")
+
+    def verify(directory):
+        for entry in selected.values():
+            path = directory / entry["path"]
+            if not path.resolve().is_relative_to(directory.resolve()) or not path.is_file():
+                raise RuntimeError("Cached source file is missing or escapes its tree")
+            if path.stat().st_size != entry["bytes"]:
+                raise RuntimeError("Source file size differs from the pin")
+            if hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"]:
+                raise RuntimeError("Source file SHA-256 differs from the pin")
+
+    parent = cache / "sources"
+    parent.mkdir(parents=True, exist_ok=True)
+    installed = parent / f"{name}-{spec['commit'][:12]}"
+    marker = installed / ".artbox-source.json"
+    if installed.is_symlink():
+        raise RuntimeError("Cached source directory must not be a symlink")
+    if installed.exists():
+        if not marker.is_file() or json.loads(marker.read_text(encoding="utf-8")) != spec:
+            raise RuntimeError("Cached source provenance differs; use a fresh source cache")
+        verify(installed)
+    else:
+        with tempfile.TemporaryDirectory(prefix=f"{name}-", dir=parent) as temporary:
+            stage = Path(temporary) / "source"
+            for entry in selected.values():
+                path = stage / entry["path"]
+                path.parent.mkdir(parents=True, exist_ok=True)
+                endpoint = f"repos/{spec['repository']}/contents/{quote(entry['path'], safe='/')}?ref={spec['commit']}"
+                with path.open("wb") as output:
+                    subprocess.run(["gh", "api", endpoint, "-H", "Accept: application/vnd.github.raw+json"],
+                                   stdout=output, check=True)
+            verify(stage)
+            (stage / ".artbox-source.json").write_text(json.dumps(spec, indent=2) + "\n", encoding="utf-8")
+            stage.replace(installed)
+    return installed
+
+
 def obtain(name):
     specs = json.loads((ROOT / "third_party/sources.json").read_text(encoding="utf-8"))
     if name not in specs:
         raise RuntimeError(f"Unknown pinned source: {name}")
     spec = specs[name]
     cache = Path(os.environ["ARTBOX_CACHE_DIR"])
+    if "files" in spec:
+        return obtain_files(name, spec, cache)
     downloads = cache / "downloads"
     downloads.mkdir(parents=True, exist_ok=True)
     archive = downloads / spec["archive"]
