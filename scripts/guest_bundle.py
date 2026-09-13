@@ -67,4 +67,7 @@ def prepare(fixture, directory, platform):
             "signed_bytes": binary.stat().st_size, "link_or_copy_and_sign_ns": signing_ns,
             "signed_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
         }
-    return {"pack": info, "frameworks": results}
+    toolchain = json.loads(fixture.with_name("elf-build.json").read_text())
+    if toolchain["elf_sha256"] != info["input_sha256"]:
+        raise RuntimeError("ELF differs from its toolchain provenance record")
+    return {"pack": info, "toolchain": toolchain, "frameworks": results}
