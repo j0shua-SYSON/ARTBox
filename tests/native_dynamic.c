@@ -4,6 +4,7 @@
 #include "artbox/native_call.h"
 #include "artbox/native_memory.h"
 #include "artbox/native_syscall.h"
+#include "artbox/native_vm.h"
 #include <dlfcn.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -97,7 +98,7 @@ int main(int argc, char** argv) {
     artbox_memory_ops memory = artbox_native_memory();
     artbox_guest* guest;
     const void *generic, *probe, *message;
-    uint64_t started, loaded, relocated, strings_finished, executing, finished;
+    uint64_t started, loaded, relocated, strings_finished, vm_finished, executing, finished;
     if (argc != 3) return 2;
     input = fopen(argv[2], "rb");
     if (!input || fseek(input, 0, SEEK_END) || (length = ftell(input)) < 0 || length > 64 * 1024 * 1024 || fseek(input, 0, SEEK_SET)) return 2;
@@ -135,6 +136,22 @@ int main(int argc, char** argv) {
     relocated = now();
     if (check_strings(lookup(&dynamic, rx, "artbox_string_check", 2), memory.page_size)) return 1;
     strings_finished = now();
+    {
+        artbox_vm_ops vm_ops = artbox_native_vm();
+        artbox_vm* vm = artbox_vm_create(&vm_ops, UINT64_C(16) << 30, 256);
+        const void* vm_probe = lookup(&dynamic, rx, "artbox_vm_check", 2);
+        if (!vm || !vm_probe) return 1;
+        const artbox_syscall_binding vm_binding = {artbox_vm_syscall, vm};
+        const artbox_syscall_binding* saved = artbox_native_syscall_swap(&vm_binding);
+        errno = EDOM;
+        int64_t result = (int64_t)artbox_call7(vm_probe, memory.page_size, 0, 0, 0, 0, 0, 0);
+        artbox_native_syscall_swap(saved);
+        if (result != 35 || errno != EDOM || artbox_vm_reserved_bytes(vm) || artbox_vm_destroy(vm)) {
+            fprintf(stderr, "VM check: %" PRId64 " (negative source line on failure)\n", result);
+            return 1;
+        }
+    }
+    vm_finished = now();
     guest = artbox_guest_create(&memory, output, NULL, rx, (size_t)elf.segments[0].file_size);
     if (!guest) return 1;
     const artbox_syscall_binding binding = {dispatch, guest};
@@ -165,8 +182,10 @@ int main(int argc, char** argv) {
     printf("{\"iterations\":100,\"writes\":200,\"exit_status\":0,\"constructor_runs\":1,"
            "\"rela\":%zu,\"plt\":%zu,\"relr\":%zu,\"dlopen_and_validate_ns\":%" PRIu64 ","
            "\"relocate_and_construct_ns\":%" PRIu64 ",\"string_cases\":35908,\"string_page_size\":%zu,\"strings_ns\":%" PRIu64 ","
+           "\"vm_cases\":35,\"vm_ns\":%" PRIu64 ","
            "\"guest_setup_ns\":%" PRIu64 ",\"iterations_ns\":%" PRIu64 "}\n",
            stats.rela_count, stats.plt_count, stats.relr_count, loaded - started, relocated - loaded,
-           memory.page_size, strings_finished - relocated, executing - strings_finished, finished - executing);
+           memory.page_size, strings_finished - relocated, vm_finished - strings_finished,
+           executing - vm_finished, finished - executing);
     return 0;
 }

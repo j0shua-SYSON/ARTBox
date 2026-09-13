@@ -72,6 +72,7 @@ jobs:
             artifacts/m2-bionic-profile-check.json
             artifacts/m2-dynamic-wrapper.json
             build/m2/dynamic-wrapper/libartbox_bionic_slice.so
+            build/m2/dynamic-wrapper/vm-check.o
             build/m2/dynamic-wrapper/pack/layout.json
             build/m2/dynamic-wrapper/*/load-commands.txt
             build/m2/dynamic-wrapper/ios/ARTBoxBionicSlice.framework/
@@ -120,6 +121,8 @@ jobs:
         run: python3 -B scripts/test_allocator_tls.py --evidence-root build/oracle
       - name: Check the NDK string objects against scalar and guarded-page oracles
         run: python3 -B scripts/test_bionic_strings.py --evidence-root build/oracle
+      - name: Compare signed-wrapper memory operations with the original Bionic Linux path
+        run: python3 -B scripts/test_bionic_vm.py --evidence-root build/oracle
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: linux-arm64-oracle
@@ -129,5 +132,6 @@ jobs:
             artifacts/m2-syscall-stubs-linux.json
             artifacts/m2-allocator-tls-linux.json
             artifacts/m2-strings-linux.json
+            artifacts/m2-vm-linux.json
           if-no-files-found: error
           retention-days: 7

@@ -19,6 +19,36 @@ real host syscalls for mmap/write error cases, protection and unmap alignment,
 memory access, and low-eight-bit exit status. Those checks are distinct from
 the no-exec/ownership policy.
 
+## M2 memory manager
+
+`artbox_vm_syscall` routes the four memory numbers to a mutex-protected portable
+address space. It is connected to the signed Bionic slice's NDK memory caller;
+the M1 invocation keeps its original five-syscall context. Complete Bionic
+startup and the M2 threads/files/mmap acceptance suite are still pending.
+
+| Number | M2 subset | Limits / differences |
+| --- | --- | --- |
+| `mmap` (222) | Anonymous/private, page rounding, address hints, `MAP_NORESERVE`, fixed replacement within an owned reservation, demand-zero memory | Hints may be ignored; fixed mapping outside one owned reservation returns ENOTSUP. File/shared mappings are unsupported. Anonymous fd and aligned offset are ignored as on Linux. |
+| `mprotect` (226) | Partial mapped ranges, none/read/read-write, write implies read for the Linux ARM64 target, zero length | Range must fit one reservation or registered image-data range. Executable protection returns EPERM. A hole returns ENOMEM. |
+| `munmap` (215) | Partial ranges, holes, repeated unmaps and ranges spanning owned reservations | A partial unmap retains inaccessible host VA until the reservation's last live page is removed. Registered image/stack storage cannot be unmapped. |
+| `madvise` (233) | `MADV_NORMAL` and anonymous `MADV_DONTNEED`, including read-only pages; discarded bytes are immediately demand-zero | Other advice returns ENOTSUP; holes/cross-reservation ranges return ENOMEM. Registered borrowed storage cannot be discarded. |
+
+Native callbacks reserve inaccessible storage, change protection, replace a
+subrange with fresh anonymous pages, and release reservations. The owner chooses
+the VA budget and region count. Verified non-executable image data or host stack
+pages can be registered as borrowed storage; the owner retains their lifetime.
+No operation grants execute permission or replaces borrowed storage. A failed
+native mutation stops further use of the address space because the host may
+have changed some pages already; destruction still attempts cleanup.
+
+Local Windows tests pass 1,024 concurrent mapping lifecycles, reservation limit
+recovery, borrowed-storage ownership and injected failures, plus three actual
+hardware protection faults caught in child processes. The same 35-case memory
+caller is built by the NDK and linked into the signed Bionic wrapper; CI must run
+that identical object through original/adapted Bionic on native Linux ARM64 and
+through the translated syscall binding on macOS. These results are reported
+separately from full allocator startup. See [ADR 0016](DECISIONS.md#0016---own-anonymous-reservations-and-track-page-state).
+
 The Linux error values are explicit: EPERM 1, EIO 5, EBADF 9, ENOMEM 12,
 EACCES 13, EFAULT 14, EINVAL 22, ENOSYS 38, ENOTSUP 95. Guest flags and host
 `errno` are translated at the platform boundary. An unsupported syscall returns
@@ -27,7 +57,7 @@ ENOSYS; it is never forwarded to Darwin using the Linux syscall number.
 The native page size comes from the host (supported contract: power of two,
 4 KiB through 64 KiB). The fixture requests 16 KiB and both packaging routes
 use 16 KiB Mach-O alignment. Memory allocated for the guest never requests
-execute permission. File-backed mappings, virtual filesystem, futexes, threads,
+execute permission. File-backed mappings, virtual filesystem, futexes, guest threads,
 signals, epoll, eventfd, pipes and sockets remain future work.
 
 The M2 source profile routes all 216 generated Bionic syscall entries, 13 aliases,
