@@ -16,13 +16,14 @@ from ndk import obtain
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ndk-root", type=Path)
+    parser.add_argument("--build-dir", type=Path)
     args = parser.parse_args()
     os.environ.update(environment())
     ndk = obtain(args.ndk_root)
     host = {"win32": "windows-x86_64", "darwin": "darwin-x86_64", "linux": "linux-x86_64"}[sys.platform]
     suffix = ".exe" if os.name == "nt" else ""
     clang = ndk / "toolchains/llvm/prebuilt" / host / "bin" / f"clang{suffix}"
-    build = Path(os.environ["ARTBOX_BUILD_DIR"]) / "m1"
+    build = args.build_dir.resolve() if args.build_dir else Path(os.environ["ARTBOX_BUILD_DIR"]) / "m1"
     build.mkdir(parents=True, exist_ok=True)
     fixture = build / "hello.elf"
     subprocess.run([

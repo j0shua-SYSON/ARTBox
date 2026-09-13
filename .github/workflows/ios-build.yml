@@ -24,7 +24,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Build, sign and inspect the real device target
-        run: python3 -B scripts/build.py ios
+        run: python3 -B scripts/build.py ios --with-guest
       - name: Upload temporary IPA and provenance
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -32,6 +32,7 @@ jobs:
           path: |
             artifacts/ARTBox.ipa
             artifacts/build-info.json
+            artifacts/guest-bundles.json
             artifacts/embedded-entitlements.plist
             artifacts/macho-*.txt
           if-no-files-found: error
