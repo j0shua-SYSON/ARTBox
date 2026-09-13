@@ -34,12 +34,48 @@ jobs:
         run: |
           ${{ matrix.python }} -B tests/test_environment.py
           ${{ matrix.python }} -B scripts/build.py host
+      - name: Build the pinned NDK ELF and test both packaging inputs
+        if: matrix.os == 'macos-15'
+        run: python3 -B scripts/test_pack.py
+      - name: Execute both signed inputs on the native ARM64 CPU
+        if: matrix.os == 'macos-15'
+        run: python3 -B scripts/test_native.py
       - name: Upload host evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: host-evidence-${{ matrix.os }}
           path: |
             artifacts/host-metrics.json
+            artifacts/m1-native.json
+            build/m1/hello.elf
+            build/m1/elf-build.json
+            build/m1/macos/ARTBox*-load-commands.txt
             build/host/Testing/Temporary/LastTest.log
+          if-no-files-found: error
+          retention-days: 7
+  linux-oracle:
+    name: unchanged ELF on native Linux ARM64
+    needs: host
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: host-evidence-macos-15
+          path: build/oracle
+      - name: Run the exact ELF used by both Mac packaging candidates
+        run: >-
+          python3 -B scripts/test_native.py --platform linux
+          --elf build/oracle/build/m1/hello.elf
+          --manifest build/oracle/artifacts/m1-native.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: linux-arm64-oracle
+          path: artifacts/m1-linux.json
           if-no-files-found: error
           retention-days: 7

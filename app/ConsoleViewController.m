@@ -1,6 +1,10 @@
 #import "ConsoleViewController.h"
 
 #include "artbox/runtime.h"
+#if ARTBOX_M1
+#include "artbox/native_hello.h"
+#include "guest_image.h"
+#endif
 
 @interface ConsoleViewController ()
 @property(nonatomic, strong) UITextView *console;
@@ -58,6 +62,25 @@ static void app_log(void *context, const char *message, size_t length) {
     if (artbox_start(&host) != ARTBOX_OK) {
         [self appendMessage:@"ARTBox startup failed"];
     }
+#if ARTBOX_M1
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        const artbox_host guestHost = {app_log, (__bridge void *)self};
+        NSString *frameworks = NSBundle.mainBundle.privateFrameworksPath;
+        for (NSString *kind in @[@"Converted", @"Wrapped"]) {
+            NSString *name = [@"ARTBox" stringByAppendingString:kind];
+            NSString *library = [[frameworks stringByAppendingPathComponent:
+                [name stringByAppendingString:@".framework"]] stringByAppendingPathComponent:name];
+            NSString *starting = [NSString stringWithFormat:@"%@: starting Android hello", kind];
+            app_log((__bridge void *)self, starting.UTF8String, [starting lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
+            int status = artbox_run_native_hello(library.fileSystemRepresentation,
+                                                ARTBOX_GUEST_IMAGE_SIZE, &guestHost);
+            NSString *result = status == 0 ?
+                [NSString stringWithFormat:@"%@: exit 0; five syscalls verified", kind] :
+                [NSString stringWithFormat:@"%@: failed (%d)", kind, status];
+            app_log((__bridge void *)self, result.UTF8String, [result lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
+        }
+    });
+#endif
 }
 
 - (void)appendMessage:(NSString *)message {

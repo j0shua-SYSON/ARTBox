@@ -34,3 +34,15 @@ Google Play Services, vendor blobs, or a reference project's CPU emulator.
 
 Preinstalled CMake, Ninja, GCC/Clang, Xcode, Git, GitHub CLI, and hosted Actions
 are build tools, not vendored dependencies. No package manager installs them.
+
+## M1 build tools
+
+The original `fixtures/hello/hello.S` is assembled with Android NDK **r28c**
+(`28.2.13676358`, Clang 19.0.1), using `-nostdlib` and a project linker script.
+It includes no Bionic or NDK runtime objects. NDK archives remain build tools,
+outside Git and the shipped app; their bundled notices govern those tools.
+The pinned release is [android/ndk r28c](https://github.com/android/ndk/releases/tag/r28c).
+
+Apple's [Mach-O format header](https://github.com/apple-oss-distributions/cctools/blob/main/include/mach-o/loader.h)
+was consulted for container constants and layouts. Its APSL-2.0 header is not
+vendored or copied into ARTBox; the Python encoder is original implementation.
