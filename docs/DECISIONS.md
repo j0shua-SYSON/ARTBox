@@ -27,16 +27,21 @@ Xcode provisioning entry point. The bundle identifier is configurable.
 Host CI, iOS compile/sign verification, and physical-device execution establish
 different things. An empty-entitlement `codesign -s -` IPA is a transport
 artifact, following S5LBox's build pattern. Record each milestone's CI results,
-measurements and device status before tagging. The project owner waived M0's
-manual device gate; this permits M1 work after green M0 CI without claiming
-physical-device execution. Later device evidence remains an explicit requirement.
+measurements and device status before tagging. The project owner waived physical
+device checks for all milestones. They are optional evidence, never a milestone
+gate. Automated acceptance, CI and artifact checks remain required; a waiver
+does not establish physical-device execution or lifecycle behavior.
 
-## ADR 0005 - Signed native packaging (proposed, M1)
+## ADR 0005 - Signed native packaging (accepted, M1)
 
-The pre-implementation [loader comparison](loader-design.md) recommends prototyping
-both approaches against identical ELF input. Initially prefer an Apple-linker
-wrapper for a controlled source-built ELF; measure before selecting. Signing
-bytes does not adapt Android TLS, reserved registers or the function ABI.
+The pre-implementation [loader comparison](loader-design.md) required both
+approaches against identical ELF input. Both signed candidates now execute on
+ARM64 macOS and build for iOS 15; see [M1 evidence](acceptance/m1.md). Select the
+Apple-linker wrapper for M2: Apple tools own container metadata, the signed
+fixture is smaller, and the host experiment shows no invocation penalty.
+Keep the converter as an experimental comparison. Physical iPhone execution
+remains unverified under ADR 0004. Signing bytes does not adapt Android TLS,
+reserved registers or the function ABI.
 No writable/executable mappings or runtime instruction mutation. Unsupported
 post-install native code must fail explicitly.
 
@@ -61,8 +66,9 @@ Mach-O text segment. The wrapper uses a regular section in `__TEXT` because it
 contains both instructions and constants. LLVM rejected `some_instructions` as
 an assembly section attribute; segment protection, not that annotation, controls
 execution. Local LLVM inspection validates the container/export layout and
-generated veneers. Only native dyld execution can establish that either route
-works, so the packaging recommendation remains provisional.
+generated veneers. ARM64 macOS CI additionally loads both signed frameworks
+through dyld and executes their guest code on the native CPU. The iOS build
+checks signatures and bundle contents; physical execution remains unverified.
 
 The instruction allowlist enforces this fixture's ABI contract. It does not
 establish isolation from malicious native code inside the host process.
@@ -71,7 +77,7 @@ establish isolation from malicious native code inside the host process.
 
 | Constraint | Consequence / evidence |
 | --- | --- |
-| Prepare native code before signing | New native libraries need conversion, rebuild and re-sign; unimplemented. |
+| Prepare native code before signing | The M1 fixture is transformed and signed at build time; adding native code requires a rebuilt, signed bundle. General native libraries remain unsupported. |
 | No ART JIT or runtime code patching | Use the DEX interpreter or signed host-produced AOT; slowdown not measured. |
 | No executable anonymous mappings | Guest executable `mmap`/`mprotect` requests fail explicitly. |
 | Fix ABI/TLS/syscalls before install | Native input compatibility is constrained and must be tested. |

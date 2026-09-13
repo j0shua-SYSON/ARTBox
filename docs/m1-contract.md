@@ -33,5 +33,6 @@ semantics. A guest exit unwinds to a saved host context, never UIApplication.
 Validate portable behavior on Windows, differential syscall results on Linux,
 native execution of both signed frameworks on ARM64 macOS, and real arm64 iOS
 compilation/signing. Device execution remains unverified until there is actual
-evidence; the user waived M0's manual check. Record conversion size/time and
+evidence. The project owner subsequently waived physical-device gates for all
+milestones; automated checks remain required. Record conversion size/time and
 paired native-call/load measurements before selecting a packaging route.

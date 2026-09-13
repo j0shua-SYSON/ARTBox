@@ -1,7 +1,7 @@
 # Native ARM64 loading under iOS signing
 
-Status: design recorded before loader implementation. The two packaging
-prototypes and their measurements belong to M1. See STATUS.md for current progress.
+Status: design recorded before loader implementation; experiment results and
+selection added at M1. See [M1 acceptance](acceptance/m1.md) for measured evidence.
 
 ## Recommendation
 
@@ -9,9 +9,10 @@ Prototype both routes against the **same controlled static NDK ARM64 ELF**.
 Prefer a linker-produced signed Mach-O wrapper for initial bring-up: Apple
 tools own the container and signature, and ARTBox exposes one narrow guest
 entry. Keep full ELF-to-Mach-O conversion as the generalization candidate.
-This is a provisional engineering recommendation, not a measured selection.
-Do not declare Layer 0's choice settled until both prototypes execute on the
-Apple host and provisioned device and their measurements are recorded.
+That initial recommendation is now accepted for M2. Both prototypes execute
+on the ARM64 Apple host and produce signed iOS 15 frameworks. The wrapper is
+smaller for this fixture and has no observed invocation penalty. Physical-device
+checks were waived for all milestones; iPhone execution remains unverified.
 
 | | Build-time ELF-to-Mach-O conversion | Build-time signed wrapper |
 | --- | --- | --- |
@@ -71,7 +72,9 @@ Build a pinned NDK fixture with retained relocation information and audited
 code boundaries. Produce both candidate containers from the identical ELF.
 Test return values, all five syscall results, text/data references, unsupported
 input rejection, and explicit exit 0. Run native execution on an ARM64 Mac and
-on a provisioned iPhone; Windows only validates formats and portable semantics.
+compare the original ELF on native ARM64 Linux. Build/sign the real iOS target.
+Physical-device execution is optional under ADR 0004; Windows validates formats
+and portable semantics.
 
 Record input/output SHA-256, tool versions, signed binary/text/data sizes,
 conversion duration, cold load-to-entry latency, peak/resident memory (with
@@ -82,12 +85,16 @@ as well as successes. No fake performance values or skips counted as passes.
 
 | Evidence | Converter | Wrapper |
 | --- | --- | --- |
-| Build / native execution / device acceptance | Not attempted | Not attempted |
-| Conversion time / size / load latency / memory | Not measured | Not measured |
+| ARM64 macOS native execution | Pass, 100 invocations | Pass, 100 invocations |
+| iOS 15 build and signature verification | Pass | Pass |
+| Physical-device execution | Unverified; gate waived | Unverified; gate waived |
+| Conversion time / size / load latency / memory | Recorded in [M1 evidence](acceptance/m1.md) | Recorded in [M1 evidence](acceptance/m1.md) |
 
-Select the simpler route that passes the complete experiment; if neither does,
-limit the supported native input contract or accept a DEX interpreter path
-later. Do not add JIT, CPU emulation, kernel boot, or entitlement workarounds.
+The wrapper is selected for further development, with the physical execution
+gap recorded. Generalizing either route still needs dynamic ELF and ABI work;
+the static fixture does not establish Bionic or APK compatibility. Unsupported
+native inputs remain explicit errors. A future DEX interpreter path must not
+introduce JIT, CPU emulation, kernel boot, or entitlement workarounds.
 
 ## Sources and implications
 
