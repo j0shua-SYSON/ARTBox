@@ -11,7 +11,8 @@ typedef enum artbox_elf_result {
     ARTBOX_ELF_OK = 0,
     ARTBOX_ELF_INVALID,
     ARTBOX_ELF_UNSUPPORTED,
-    ARTBOX_ELF_NOT_FOUND
+    ARTBOX_ELF_NOT_FOUND,
+    ARTBOX_ELF_NO_MEMORY
 } artbox_elf_result;
 
 typedef struct artbox_elf_segment {

@@ -100,6 +100,27 @@ resolve dependencies and symbols in a guest namespace, relocate owned writable
 data, establish TLS, protect RELRO and invoke precompiled constructors. Each
 operation needs tests before it is used by Bionic.
 
+## 0010 — Prepare data relocations before modifying a loaded image
+
+Status: accepted for M2's relocation API; runtime integration pending.
+
+Signed code cannot be repaired at runtime, and a failed import lookup must not
+leave a half-relocated data image available to guest code. The portable engine
+therefore takes explicit writable PT_LOAD views and immutable source metadata.
+It prepares all RELA/RELR writes, checks destinations and resolves ordinary
+symbols before committing any bytes. It never maps memory or calls guest code.
+PLT entries resolve eagerly, avoiding a runtime-generated lazy-binding path.
+
+The cost is temporary storage and sorting proportional to relocation count.
+Overlapping/composed writes are rejected; IFUNC and TLS need separate runtime
+support before they can participate. A caller-provided resolver keeps Android
+symbol scope separate from host `dlsym`. RELRO protection belongs after data
+relocation, and the signed-package verifier must independently establish that
+the supplied load bias matches executable and writable segment addresses.
+
+Portable failure tests and byte comparisons against LLVM-expanded relocations
+on actual NDK outputs cover this API. They do not establish Bionic execution.
+
 ## No-JIT cost ledger
 
 | Constraint | Consequence / evidence |
