@@ -72,8 +72,8 @@ initial-exec ELF TLS. Its Linux oracle passes 8,192 exchanges per profile across
 eight native threads, using the exact NDK-built caller objects.
 Allocator execution, its larger mapping requirements and TLS startup remain open.
 The current partial build includes real stdio/gdtoa and the baseline AOSP ARM64
-string dispatcher. Its 35,908-case guarded-page oracle is required on native
-Linux and in the signed macOS wrapper; runtime results are pending CI.
+string dispatcher. Its 35,908-case guarded-page oracle passes on native Linux
+and in the signed macOS wrapper; downloaded objects and the iOS wrapper are verified.
 The original and adapted signal headers pass 1,024 thread-directed deliveries
 each on native Linux ARM64, including payload and errno checks. This uses the
 system libc and a Linux test endpoint; it is not Bionic or Darwin signal execution.
