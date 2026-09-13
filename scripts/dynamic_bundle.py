@@ -15,10 +15,11 @@ sys.path.insert(0, str(ROOT / "tools"))
 from wrap_dynamic import verify_macho
 
 
-def prepare(packed, directory, platform, notice, notice_sha256, extra_notices=None):
+def prepare(packed, directory, platform, notice, notice_sha256, extra_notices=None, name="ARTBoxBionicSlice"):
     if sys.platform != "darwin" or platform not in ("macos", "ios"):
         raise RuntimeError("Dynamic framework linking requires Xcode on macOS")
-    name = "ARTBoxBionicSlice"
+    if not name.isascii() or not name.isalnum() or not name.startswith("ARTBox"):
+        raise ValueError("Framework name must be an ASCII ARTBox identifier")
     framework = directory / (name + ".framework")
     framework.mkdir(parents=True, exist_ok=True)
     binary = framework / name
@@ -32,7 +33,7 @@ def prepare(packed, directory, platform, notice, notice_sha256, extra_notices=No
             "-Wl,-exported_symbol,_artbox_dynamic_rx", "-Wl,-exported_symbol,_artbox_dynamic_rw", "-o", binary)
     before = verify_macho(binary.read_bytes(), layout)
     unsigned_size = binary.stat().st_size
-    plist = {"CFBundleIdentifier": "org.artbox.BionicSlice", "CFBundleExecutable": name,
+    plist = {"CFBundleIdentifier": "org.artbox." + name[len("ARTBox"):], "CFBundleExecutable": name,
              "CFBundleName": name, "CFBundlePackageType": "FMWK", "CFBundleVersion": "1",
              "CFBundleShortVersionString": "1.0", "CFBundleInfoDictionaryVersion": "6.0",
              "CFBundleSupportedPlatforms": ["iPhoneOS" if platform == "ios" else "MacOSX"]}

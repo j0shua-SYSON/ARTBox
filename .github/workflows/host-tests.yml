@@ -58,6 +58,19 @@ jobs:
       - name: Execute a Bionic syscall slice through a signed dynamic wrapper
         if: matrix.os == 'macos-15'
         run: python3 -B scripts/test_dynamic_wrapper.py
+      - name: Initialize real Bionic and run its dynamically linked allocator client
+        if: matrix.os == 'macos-15'
+        run: python3 -B scripts/test_bionic_startup.py
+      - name: Preserve Bionic startup diagnostics
+        if: always() && matrix.os == 'macos-15'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: bionic-startup
+          path: |
+            artifacts/m2-bionic-startup.json
+            build/m2/bionic-startup/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Upload host evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
