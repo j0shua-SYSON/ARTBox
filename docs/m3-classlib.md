@@ -12,7 +12,8 @@ python -B scripts/test_dex_loader.py --classlib-root build/m3/classlib
 ```
 
 Both commands configure their temporary and cache paths through
-`scripts/environment.py`. All paths are configurable. `ARTBOX_JAVA_HOME` can replace `--java-home`, followed by the
+`scripts/environment.py`. All paths are configurable. `ARTBOX_JAVA_HOME` can
+replace `--java-home`, followed by the
 runner's JDK 17 environment variables and `JAVA_HOME`. Use `--build-dir` for
 the output directory, `--jobs` for D8 concurrency and `--java-heap-mb` /
 `--dex-heap-mb` for the two compiler heaps. Defaults are two jobs and 768/1024 MB.
@@ -58,7 +59,8 @@ license notices and `corresponding-source.zip`. The latter contains all selected
 source, original build declarations, ARTBox build commands/configuration and
 generated inputs. Extract it to inspect the exact sources used; the embedded
 `artbox` directory contains the portable command and pin manifest for rebuilding
-with a supplied compiler and either a supplied or pinned portable JDK. R8 is fetched by its recorded hash.
+with a supplied compiler and either a supplied or pinned portable JDK. R8 is
+fetched by its recorded hash.
 JDK and R8 tool binaries are not included in the output. Preserve the source
 bundle and notices when redistributing the implementation DEX.
 
@@ -77,7 +79,40 @@ types and Object's private transient `shadow$_klass_` / `shadow$_monitor_`
 fields. That metadata check does not prove an allocated ART object's layout.
 Negative cases cover a corrupt checksum, an out-of-range class index with
 corrected checksums, a duplicate class set and a missing secondary DEX.
-Native CI results for this new fixture are pending.
+At `5afd004209f4265f1b19fee51cdc632a6e086b0e`, all five cases pass on both
+native macOS and Linux ARM64. The tested PR merge is
+`c6a6f813e5a162a9b4c485d4bad16847085a7d3f`.
+[Host, class-library and integrated iOS CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34856968336)
+and [independent iOS CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34856967795)
+pass. The first Mac run selected JDK 21 and stopped before compilation; the
+pinned portable JDK fixes that dependency without changing the Java sources.
+
+| Native host | Javac build | D8 build | Complete class-set verification |
+| --- | ---: | ---: | ---: |
+| macOS ARM64 | 25.157 s | 23.530 s | 32.497 ms |
+| Linux ARM64 | 14.757 s | 19.869 s | 26.972 ms |
+
+These single-run timings include process startup. Both jobs use Temurin
+17.0.20.1 and produce byte-identical DEX, also matching the Windows build:
+
+| Data file | SHA-256 |
+| --- | --- |
+| classes.dex | `5a5fb479581da8f68e888c13d5c4974e98015f90d8598947644ddf27004e2967` |
+| classes2.dex | `d6c7206e70a2a9838d58545228cdb6b94adc36df1f8ce628ff3c5c96449e6e17` |
+
+Downloaded evidence under `artifacts/m3-5afd004/` matches GitHub's archive
+digests. The DEX files, selected corresponding source, generated inputs,
+project source blobs, notices and compiled objects match their recorded
+hashes. The 218,336-byte Mac executable and 227,744-byte iOS framework have
+ordinary ad-hoc signatures, empty entitlements and no writable executable
+segment. Their 49/51 CodeDirectory page hashes are independently checked.
+The iOS load commands and plist require iOS 15.0. This framework exposes the
+format inspection entry; it does not embed a running ART instance.
+
+| Signed binary | SHA-256 |
+| --- | --- |
+| Mac classlib-check | `600104f6d2036a3e598171b150cf252acef1b5b060e681b8e41d37395a616ef2` |
+| iOS ARTBoxClassLibrary | `5bcf40ad406750464e8c1b9debd73973cd2dec559b9a01eeb2ed4155fa9e9789` |
 
 The next integration steps are a linked ART runtime, native method libraries,
 runtime resources, heap/reference adaptations and checked interpreter-only

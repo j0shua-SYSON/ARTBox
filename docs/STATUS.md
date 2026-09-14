@@ -76,8 +76,11 @@ The portable [class-library builder](m3-classlib.md) now compiles 3,227 pinned
 AOSP Java inputs into 6,422 classes and two DEX039 files containing 7,309 class
 definitions. The output includes selected corresponding source and notices.
 Local Java/D8 compilation passes; native AOSP class-library verification and
-its iOS 15 library build are being added to CI. Native libraries, resources
-and ART interpreter startup remain incomplete.
+its iOS 15 library build pass at `5afd004`. All five class-library cases pass
+on each native Mac/Linux ARM64 host. Downloaded source, notices, compiled
+objects, DEX files and signed binaries match the recorded provenance; both
+platforms produce identical DEX. Native libraries, resources and ART interpreter
+startup remain incomplete.
 
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build
