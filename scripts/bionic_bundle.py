@@ -26,6 +26,7 @@ def prepare(evidence, output, revision):
     expected = {'cases': 146, 'futex_cases': 19, 'file_cases': 41, 'mapping_cases': 43,
                 'pthread_result': 0, 'threads_reaped': 6, 'tls_modules': 2, 'tls_threads': 7,
                 'tls_result': 0, 'linked_images': 4, 'version_result': 46}
+    expected.update(vm_cases=35, timeout_cases=18)
     for mode in ('native', 'sampled_native'):
         if any(report[mode].get(k) != v for k, v in expected.items()):
             raise RuntimeError('M2 source artifact did not pass the required native suites')

@@ -614,7 +614,7 @@ static TLS lifetime follows Bionic thread mappings and the native reaper.
 
 ## ADR 0028 - One native acceptance runner for macOS and iOS
 
-Status: shared runner and integrated M2 device build added; CI pending.
+Status: shared native runner, Linux comparisons and integrated M2 IPA pass at `545f8b6`; downloaded IPA verified.
 
 The macOS test executable and the iOS console call the same Apple platform
 acceptance runner. Only argument collection and log presentation differ. Keep
@@ -630,3 +630,27 @@ read-only bundle resources and verify the copied framework signatures and bytes.
 The iOS console creates a fresh rooted filesystem and runs the normal suite on
 a background queue. Forced-sampling execution remains a separate Mac process.
 Physical execution is still unverified and is not a milestone gate.
+
+## ADR 0029 - Freeze the final M2 expectations and pair remaining cases
+
+Freeze 328 expectations in the versioned acceptance manifest before virtual proc
+implementation and final acceptance reporting. Existing numbered memory/file
+checks retain their counts; thread, TLS, version and constructor workloads are
+whole contracts, without counting retries or repeated iterations as new tests.
+The contract documents when this numerical denominator was fixed; the earlier
+area requirements remain the design basis. All groups are mandatory and aborted
+or unexecuted cases cannot count as passing.
+
+Run the 35-case anonymous-memory object inside full dynamic Bionic as well as the
+existing slice, and test each exact object through the native Linux Bionic stubs.
+The 18 timeout expectations compile from identical source against each runtime's
+pthread headers: opaque pthread storage is not shared across libc ABIs. Cover
+realtime/monotonic deadlines, invalid nanoseconds, mutex reacquisition and actual
+expiry, allowing spurious wakeups until the original deadline.
+
+Establish the 22-case proc caller on native Linux before implementing its virtual
+nodes. The [Linux cmdline operations](https://github.com/torvalds/linux/blob/master/fs/proc/base.c)
+read argv through the current file offset and use generic llseek, with stat size
+zero. The first ARTBox path will serve an immutable initial-argv snapshot, with
+live argv mutations, setproctitle and broader proc files explicitly unsupported.
+No kernel source is copied.

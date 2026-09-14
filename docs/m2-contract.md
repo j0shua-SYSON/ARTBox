@@ -58,3 +58,31 @@ at least 90% overall, native ARM64 macOS execution, portable host tests, and a
 signed iOS 15 build containing the same suite and libraries. Report timings,
 resident memory, pass/fail counts and the concrete remaining incompatibilities.
 M3 starts only after M2's automated acceptance is green.
+
+## Frozen integration denominator (version 1)
+
+`fixtures/bionic-startup/acceptance.json` fixes **328 acceptance expectations**:
+146 allocator/device, 19 futex, 41 regular-file, 43 file-mapping, 35 anonymous
+memory, 18 pthread-timeout, 22 proc-commandline, plus four complete workload
+contracts (pthread lifecycle/concurrency, ELF TLS, symbol versions, and startup
+constructors). Repeated loop iterations, synchronization retries and internal
+assertions do not inflate those four workload counts. Each workload must finish
+all its assertions to contribute its one pass. Both normal and forced-sampling
+processes must pass; they are separate runs of the same denominator.
+
+The area requirements above predate compatibility work. This numeric integration
+manifest is frozen after the existing allocator/file/TLS work and before the
+new proc implementation and final M2 acceptance integration. It does not claim
+the exact numerical denominator was fixed before every earlier M2 change.
+Failures and unexecuted cases remain in the denominator; an aborted process
+cannot produce a passing acceptance record. No failing case may be removed or
+reclassified to reach the threshold. All current groups are mandatory, a
+stricter gate than the minimum 90 percent.
+
+The proc fixture specifies a read-only snapshot of initial argv bytes at
+`/proc/self/cmdline`, virtual proc directories, zero stat size, independent open
+offsets, EOF, partial reads, rewind/SEEK_END and errno behavior. It does not cover
+mutating argv/setproctitle, `/proc/self/maps`, readlink or arbitrary process IDs.
+The Linux kernel reads live argument memory; that mutation behavior is a known
+limitation of the first snapshot path. Test the raw caller against native Linux
+before adding the proc compatibility implementation.
