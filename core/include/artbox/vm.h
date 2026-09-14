@@ -53,6 +53,12 @@ int artbox_vm_load_u32(artbox_vm *space, uint64_t address,
                        const artbox_atomic_u32_ops *ops, uint32_t *value);
 int artbox_vm_store_u32(artbox_vm *space, uint64_t address,
                         const artbox_atomic_u32_ops *ops, uint32_t value);
+/* Validate and hold a writable word across preparation, then publish value.
+ * A failed preparation leaves the word unchanged. prepare must not reenter VM;
+ * a successfully started child must wait for its owner to release it. This
+ * prevents clone failure from returning with a worker on a freed guest stack. */
+int artbox_vm_prepare_store_u32(artbox_vm *space, uint64_t address,
+    const artbox_atomic_u32_ops *ops, uint32_t value, int (*prepare)(void *), void *context);
 /* A snapshot of metadata, not a pin against another thread changing a map. */
 int artbox_vm_access(artbox_vm *space, uint64_t address, uint64_t length, unsigned required);
 uint64_t artbox_vm_reserved_bytes(artbox_vm *space);
