@@ -14,7 +14,7 @@ static pthread_cond_t changed;
 static pthread_key_t key;
 static unsigned ready, go, destructors, counter;
 static _Atomic unsigned destructor_errors;
-struct argument { unsigned index; pid_t tid; void *self; };
+struct argument { unsigned index; pid_t tid; void *self; int *errno_address; };
 static struct argument arguments[JOINED + DETACHED];
 static void destroy_value(void *value) {
     struct argument *a = value;
@@ -27,7 +27,7 @@ static void destroy_value(void *value) {
 }
 static void *worker(void *value) {
     struct argument *a = value;
-    a->tid = gettid(); a->self = (void *)pthread_self();
+    a->tid = gettid(); a->self = (void *)pthread_self(); a->errno_address = &errno;
     ASSERT(a->tid > 10000 && getpid() == 10000 && a->self != NULL);
     ASSERT(pthread_setspecific(key, a) == 0 && pthread_getspecific(key) == a);
     errno = (int)(200 + a->index);
@@ -36,6 +36,7 @@ static void *worker(void *value) {
     ASSERT(pthread_cond_broadcast(&changed) == 0);
     while (!go) ASSERT(pthread_cond_wait(&changed, &lock) == 0);
     ASSERT(pthread_mutex_unlock(&lock) == 0);
+    ASSERT(errno == (int)(200 + a->index));
     for (unsigned i = 0; i < ITERATIONS; ++i) {
         size_t size = (i + 1) * 37;
         unsigned char *p = malloc(size);
@@ -45,10 +46,14 @@ static void *worker(void *value) {
         ASSERT(q != NULL);
         for (size_t j = 0; j < size; ++j) ASSERT(q[j] == a->index);
         free(q);
-        ASSERT(pthread_getspecific(key) == a && errno == (int)(200 + a->index));
+        ASSERT(pthread_getspecific(key) == a && &errno == a->errno_address);
+        // Successful allocation may change errno. Pthread synchronization must
+        // preserve this thread's distinct value across competing workers.
+        errno = (int)(200 + a->index);
         ASSERT(pthread_mutex_lock(&lock) == 0);
         ++counter;
         ASSERT(pthread_mutex_unlock(&lock) == 0);
+        ASSERT(errno == (int)(200 + a->index));
     }
     void *result = (void *)(uintptr_t)(a->index + 1);
     if (a->index & 1) pthread_exit(result);
@@ -74,7 +79,11 @@ int artbox_pthread_check(void) {
         CHECK(pthread_join(handles[i], &result) == 0);
         if ((intptr_t)result < 0) return (int)(intptr_t)result; // Preserve the worker's failing source line.
         CHECK(result == (void *)(uintptr_t)(i + 1));
-        for (unsigned j = 0; j < i; ++j) CHECK(arguments[i].tid != arguments[j].tid);
+        CHECK(arguments[i].errno_address != &errno);
+        for (unsigned j = 0; j < i; ++j) {
+            CHECK(arguments[i].tid != arguments[j].tid);
+            CHECK(arguments[i].errno_address != arguments[j].errno_address);
+        }
     }
     CHECK(destructors == JOINED && counter == JOINED * ITERATIONS);
     pthread_attr_t attr;
