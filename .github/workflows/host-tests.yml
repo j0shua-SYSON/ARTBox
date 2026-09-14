@@ -35,6 +35,7 @@ jobs:
           ${{ matrix.python }} -B tests/test_environment.py
           ${{ matrix.python }} -B tests/test_sources.py
           ${{ matrix.python }} -B tests/test_classlib_build.py
+          ${{ matrix.python }} -B tests/test_jdk.py
           ${{ matrix.python }} -B tests/test_bionic_adapt.py
           ${{ matrix.python }} -B tests/test_bionic_syscalls.py
           ${{ matrix.python }} -B tests/test_dynamic_pack.py
@@ -179,7 +180,7 @@ jobs:
       - name: Build pinned implementation Java and DEX
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 -B scripts/build_art_classlib.py
+        run: python3 -B scripts/build_art_classlib.py --fetch-jdk
       - name: Verify class libraries and malformed inputs with AOSP
         env:
           GH_TOKEN: ${{ github.token }}

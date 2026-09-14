@@ -286,3 +286,11 @@ blob and checked against SHA-256
 `4a84f75723c26d647025204560161bf9e02bdf05700f4014d377393c349f22dc` before execution.
 An existing JDK 17 is selected by the builder; its version is recorded. Any
 separately installed JDK retains its distribution's own licenses.
+
+The optional portable JDK download selects Eclipse Temurin `17.0.20.1+1` from
+`adoptium/temurin17-binaries`, with platform archive sizes and SHA-256 values in
+`third_party/jdk.json`, cross-checked against the release's checksum files.
+The complete distribution is retained under the configured tool cache,
+including GPL-2.0, the Classpath and assembly exceptions, and bundled dependency
+notices under `legal/`. It is a host compiler and is not redistributed in the
+class-library or app artifacts.
