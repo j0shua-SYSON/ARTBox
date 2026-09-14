@@ -44,9 +44,10 @@ def main():
                         str(ROOT / "fixtures/bionic-files/linux.c"), str(obj), str(stubs), "-o", str(executable)], check=True)
         root = Path(tempfile.mkdtemp(prefix=profile + "-root-", dir=build))
         (root / "data").mkdir()
-        process = subprocess.run([str(executable)], cwd=root, capture_output=True, text=True, timeout=15)
+        process = subprocess.run([str(executable)], cwd=root, capture_output=True, text=True, encoding="utf-8", timeout=15)
         (build / (profile + ".log")).write_text(process.stdout + process.stderr, encoding="utf-8")
-        process.check_returncode()
+        if process.returncode:
+            raise RuntimeError(f"{profile} file oracle failed ({process.returncode}):\n{process.stdout}{process.stderr}")
         record = json.loads(process.stdout)
         if record["cases"] != 41:
             raise RuntimeError("File caller did not complete")
