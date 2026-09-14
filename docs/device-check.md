@@ -36,3 +36,11 @@ Tester and date:
 ```
 
 Do not commit certificates, profiles, private keys or device identifiers.
+
+For the integrated M2 build, use `ARTBox-M2-ipa` from a passing `host-tests`
+run. It includes four additional signed frameworks and the same native suite
+used on macOS. The expected final console message is `M2: suite passed`, after
+its JSON result. On a Mac, the equivalent build command is
+`python3 scripts/build.py ios --with-guest --m2-evidence PATH_TO_STARTUP_ARTIFACT`;
+the artifact must be from the exact checked-out project revision. All embedded
+frameworks need ordinary provisioning signatures for installation.

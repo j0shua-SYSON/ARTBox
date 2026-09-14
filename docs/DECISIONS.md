@@ -571,7 +571,7 @@ than relying only on per-image metadata assertions. Both signed Bionic profiles 
 
 ## ADR 0027 - Guest ELF TLS through Bionic and precompiled TLSDESC access
 
-Status: portable relocation/template tests pass in CI at `9f07f30`; native integration added, awaiting CI.
+Status: signed Bionic and original Linux ELF TLS pass at `32121e5`; all CI is green.
 
 Register PT_TLS templates with module IDs in dependency-scope order, then let
 Bionic reserve and initialize their static storage in each native guest thread.
@@ -611,3 +611,22 @@ covering initial DTV allocation and a subsequent access. The signed resolver
 also preserves x1, LR and NZCV. No code or third-party implementation was copied
 for these fixtures. Dynamic DTV allocation uses Bionic's existing allocator;
 static TLS lifetime follows Bionic thread mappings and the native reaper.
+
+## ADR 0028 - One native acceptance runner for macOS and iOS
+
+Status: shared runner and integrated M2 device build added; CI pending.
+
+The macOS test executable and the iOS console call the same Apple platform
+acceptance runner. Only argument collection and log presentation differ. Keep
+the portable loader, memory, filesystem and thread engines in the core. The
+runner remains diagnostic and single-use: unexpected faults or failed contracts
+terminate the process, and it is not a recoverable APK runtime API.
+
+The host workflow builds/signs all four iOS frameworks while testing their Mac
+counterparts. After the host and Linux oracle jobs pass, a device job consumes
+that exact run's artifact, checks its project revision, ELF/layout hashes and
+notices, then builds a real iOS 15 target. Embed the original ELF metadata as
+read-only bundle resources and verify the copied framework signatures and bytes.
+The iOS console creates a fresh rooted filesystem and runs the normal suite on
+a background queue. Forced-sampling execution remains a separate Mac process.
+Physical execution is still unverified and is not a milestone gate.
