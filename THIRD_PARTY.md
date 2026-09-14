@@ -180,8 +180,30 @@ Runtime/interpreter build definitions, startup/JIT paths, thread access,
 managed-reference storage and low-address mapping code were studied for the
 [M3 contract](docs/m3-contract.md). No ART implementation was copied into the
 first native address-space probe, which is original MIT-licensed test code.
-ART and each class-library/build dependency still require explicit source pins
-and retained notices before compilation or redistribution.
+The `art-references` exact-file pin now selects 12 files (including that notice)
+for the `ObjectReference`, `HeapReference` and `CompressedReference` contract.
+The original ARTBox fixture is MIT. The AOSP headers retain their Apache-2.0
+notices, including in generated source overlays. This selection does not build
+the ART runtime, interpreter, collector or class libraries.
+
+Its header dependencies are separate `android-15.0.0_r1` exact-file pins:
+
+- [libbase](https://android.googlesource.com/platform/system/libbase/+/68f963c62f7fddc70c34df141d943ae0f7631020),
+  commit `68f963c62f7fddc70c34df141d943ae0f7631020`: five headers and the
+  complete Apache-2.0 `NOTICE` (`libbase-references`).
+- [fmtlib](https://android.googlesource.com/platform/external/fmtlib/+/360e74bb8ec766ee05e5c4e8956c811391e3e9e5),
+  commit `360e74bb8ec766ee05e5c4e8956c811391e3e9e5`: seven headers, MIT
+  `LICENSE` and the supplied older BSD-2-Clause `NOTICE` (`fmtlib-references`).
+  Both license files are retained; ARTBox does not rely on the optional
+  compiled-object exception to remove attribution.
+
+These headers are compiled with NDK r28c's libc++ headers. The complete LLVM
+toolchain notice, already hash-pinned in `third_party/bionic/builtins.json`,
+accompanies the fixture as `LIBCXX-NOTICE.txt`. The reference objects do not
+link additional compiler-rt or libc++ runtime archive members. Reference
+frameworks retain `ART-NOTICE.txt`, `LIBBASE-NOTICE.txt`, `FMT-LICENSE.txt`,
+`FMT-NOTICE.txt` and `LIBCXX-NOTICE.txt` before signing. Class-library and
+broader runtime dependencies still need separate review and selection.
 
 Apple's APSL-2.0 `bsd/kern/mach_loader.c` was consulted to explain the native
 ARM64 reduced-pagezero rejection. No kernel code is imported or executed by

@@ -15,11 +15,19 @@ sys.path.insert(0, str(ROOT / "tools"))
 from wrap_dynamic import verify_macho
 
 
-def prepare(packed, directory, platform, notice, notice_sha256, extra_notices=None, name="ARTBoxBionicSlice"):
+def prepare(packed, directory, platform, notice, notice_sha256, extra_notices=None, name="ARTBoxBionicSlice",
+            notice_name="BIONIC-NOTICE.txt"):
     if sys.platform != "darwin" or platform not in ("macos", "ios"):
         raise RuntimeError("Dynamic framework linking requires Xcode on macOS")
     if not name.isascii() or not name.isalnum() or not name.startswith("ARTBox"):
         raise ValueError("Framework name must be an ASCII ARTBox identifier")
+    def valid_notice(value):
+        return value.isascii() and value.endswith('.txt') and all(c.isalnum() or c in '-_.' for c in value)
+    if not valid_notice(notice_name) or any(not valid_notice(n) for n in (extra_notices or {})):
+        raise ValueError("Framework notices must have plain ASCII .txt filenames")
+    notice_names = [notice_name, *(extra_notices or {})]
+    if len({n.casefold() for n in notice_names}) != len(notice_names):
+        raise ValueError("Duplicate framework notice name")
     framework = directory / (name + ".framework")
     framework.mkdir(parents=True, exist_ok=True)
     binary = framework / name
@@ -41,12 +49,10 @@ def prepare(packed, directory, platform, notice, notice_sha256, extra_notices=No
     (framework / "Info.plist").write_bytes(plistlib.dumps(plist))
     notice_data = notice.read_bytes()
     if hashlib.sha256(notice_data).hexdigest() != notice_sha256:
-        raise RuntimeError("Bionic framework notice differs from its reviewed source pin")
-    (framework / "BIONIC-NOTICE.txt").write_bytes(notice_data)
-    notice_hashes = {"BIONIC-NOTICE.txt": notice_sha256}
+        raise RuntimeError("Framework notice differs from its reviewed source pin")
+    (framework / notice_name).write_bytes(notice_data)
+    notice_hashes = {notice_name: notice_sha256}
     for name, (path, expected) in (extra_notices or {}).items():
-        if Path(name).name != name or name == "BIONIC-NOTICE.txt":
-            raise RuntimeError("Invalid additional framework notice name")
         data = path.read_bytes()
         if hashlib.sha256(data).hexdigest() != expected:
             raise RuntimeError(f"Framework notice differs from its reviewed source: {name}")

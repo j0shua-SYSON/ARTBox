@@ -49,8 +49,18 @@ two low-address heap reservations and compares the default Apple null guard
 with a reduced guard in native executables. ARM64 macOS rejected the reduced
 guard before entry (EBADMACHO), consistent with XNU's hard 4 GiB requirement.
 A checked heap-relative reference codec and retained negative launch test now
-cover the selected alternative. Full signed comparison and native codec CI are
-pending; this does not yet compile or execute ART.
+cover the selected alternative. At `0f1aed8`, signed ARM64 macOS reports the
+exact EBADMACHO errno (88), and native memory above 4 GiB round-trips through
+the codec. Both iOS 15 probe binaries link and pass signature/layout checks;
+their launch behavior is unverified. All required CI is green at that revision.
+
+The next fixture selects AOSP's real `ObjectReference`, `HeapReference` and
+`CompressedReference` headers and tests 19 cases with heap poisoning both off
+and on. A narrow source overlay redirects raw-pointer compression through the
+checked codec while retaining AOSP's four-byte storage and poison encoding.
+The native Linux control uses the original headers and absolute low addresses;
+the signed Mac wrapper uses heap-relative high addresses. This comparison is
+being validated and does not yet boot ART, collect objects or execute DEX.
 
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build
