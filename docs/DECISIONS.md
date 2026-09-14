@@ -505,7 +505,7 @@ boundary. No Linux implementation code is copied.
 
 ## ADR 0025 - Validate ELF versions independently of load-group scope
 
-Status: local parser/lookups and NDK/LLVM comparisons pass; CI pending.
+Status: local and CI parser/lookups and NDK/LLVM comparisons pass at `0184ec4`.
 
 Decode DT_VERSYM, DT_VERDEF and DT_VERNEED through bounded file spans without
 requiring section headers. Each image owns its numeric version indices; retain
@@ -515,10 +515,11 @@ before publishing a view. Bound the image to 256 version records.
 
 Named lookup admits a matching hidden version; unqualified lookup selects an
 export without the hidden bit. Like the pinned AOSP linker, an unversioned DSO
-or global symbol may interpose on a versioned request. The future load-group
-owner must separately validate the specifically named dependency's required
-versions, including weak requirements, before relocation. Metadata validation
-alone does not implement that dependency check.
+or global symbol may interpose on a versioned request. The load-group owner
+must also resolve each specifically named dependency in the manifest. Version
+matching follows AOSP: a candidate without the requested definition may only
+provide an unversioned/global symbol, never an unrelated named version. Metadata
+validation alone does not implement that dependency check.
 
 Original NDK fixtures export two versions of one name and import both. Compare
 all records and symbol assignments against LLVM under GNU, SysV and dual hash
@@ -526,3 +527,38 @@ tables and after removing section headers; verify each named export lookup.
 LLVM 19 prints an empty text-only Predecessors field inside its JSON output;
 the test strips only that exact empty field and retains the raw reference.
 AOSP linker sources were studied for behavior; their code was not copied.
+
+## ADR 0026 - Manifest-scoped linking with atomic group relocation
+
+Status: all 19 local contracts pass; signed integration pending CI.
+
+The platform loads and verifies signed bundle wrappers, then hands immutable ELF
+metadata and writable data views to a portable load-group engine. Only manifest
+basenames satisfy DT_NEEDED; no guest name enters the host library search path.
+Resolve the root's breadth-first dependency closure, deduplicate shared children,
+and retain deterministic traversal through cycles. Unreachable manifest entries
+cannot supply symbols. A single group is bounded to 64 entries and 256 MiB of
+staged writable data; later groups/namespaces will need an explicit global scope.
+
+Resolve references by name and version with DT_SYMBOLIC self priority, normal
+visibility rules, first eligible definitions (including weak interposers), and
+explicit precompiled host exports after the guest scope. Missing weak imports
+retain ELF zero binding; missing strong imports fail. Each DT_VERNEED provider
+must exist in the resolved DT_NEEDED graph. AOSP permits unversioned/global
+interposition; no unrelated named version may satisfy the lookup.
+
+Stage every writable segment and finish every relocation before copying any
+module back. This adds temporary data memory but prevents half-linked groups.
+Reject overlapping writable views and aliases into immutable ELF inputs.
+Constructor pointers must land inside a registered executable file span; validate
+the complete call list before execution. Initialize dependencies before parents,
+visit cycles once, and make repeated/reentrant initialization idempotent. A
+failed guest callback poisons initialization. Guest threads must be stopped before
+an owner destroys the group; destruction does not unload native wrappers.
+
+Tests cover a diamond with a cycle, shuffled manifest order, an unreachable
+export, weak and strong references, DT_SYMBOLIC, explicit bridge imports, late
+relocation rollback, invalid constructor pointers, repeated initialization and
+callback failure. The existing signed Bionic client now uses the same engine.
+ELF TLS, preinit arrays, unloading/finalization and dlopen scope growth are not
+implemented by this initial load-group step.

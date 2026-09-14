@@ -1,6 +1,7 @@
-// Controlled two-image startup fixture. This is not the general guest loader.
+// Signed Bionic fixture using the portable manifest-scoped load-group engine.
 #include "artbox/dynamic.h"
 #include "artbox/relocation.h"
+#include "artbox/linker.h"
 #include "artbox/native_call.h"
 #include "artbox/native_tls.h"
 #include "artbox/native_syscall.h"
@@ -31,6 +32,7 @@ typedef struct module {
     artbox_relocation_stats relocations;
 } module;
 static module images[2];
+static artbox_load_group *load_group;
 static artbox_vm *vm;
 static artbox_vfs *filesystem;
 static artbox_native_files *backing_files;
@@ -106,14 +108,6 @@ static artbox_elf_result resolve(void *context, const artbox_dynamic *dynamic, u
     artbox_elf_symbol symbol;
     (void)context;
     if (artbox_dynamic_symbol(dynamic, index, &symbol) != ARTBOX_ELF_OK) return ARTBOX_ELF_INVALID;
-    // A bounded, fixed load group: libc first, then its NDK client.
-    for (unsigned i = 0; i < 2; ++i) {
-        artbox_elf_symbol found;
-        if (artbox_dynamic_lookup(&images[i].dynamic, symbol.name, &found) == ARTBOX_ELF_OK) {
-            *address = (uintptr_t)images[i].rx + found.value;
-            return ARTBOX_ELF_OK;
-        }
-    }
 #define HOST(import_name, entry) if (!strcmp(symbol.name, import_name)) { \
     void (*p)(void) = (void (*)(void))(entry); \
     _Static_assert(sizeof(p) == sizeof(*address), "ARM64 code pointer"); \
@@ -217,20 +211,12 @@ static void run_child(void *context, artbox_kernel_thread *kernel, const artbox_
     artbox_native_syscall_swap(previous);
     // Return normally; the portable reaper joins before clear-TID or unmap.
 }
-static void construct(module *m) {
-    artbox_elf_table *table = &m->dynamic.init_array;
-    uint64_t start = m->elf.segments[1].virtual_address, length = m->elf.segments[1].memory_size;
-    if (table->size && (table->size % 8 || table->address < start || table->address - start > length ||
-        table->size > length - (table->address - start))) fail("constructor table");
-    for (uint64_t i = 0; i < table->size; i += 8) {
-        uint64_t p;
-        memcpy(&p, m->rx + table->address + i, 8);
-        if (!p || p == UINT64_MAX) continue; // CRT sentinels.
-        if (p % 4 || p < (uintptr_t)m->rx || p - (uintptr_t)m->rx >= m->elf.segments[0].file_size) fail("constructor address");
-        fprintf(stderr, "constructor %u ELF+0x%" PRIx64 "\n", constructors, p - (uintptr_t)m->rx);
-        artbox_call7((void *)(uintptr_t)p, 0, 0, 0, 0, 0, 0, 0);
-        ++constructors;
-    }
+static artbox_elf_result construct(void *context, uint64_t address) {
+    (void)context;
+    fprintf(stderr, "constructor %u through manifest load group\n", constructors);
+    artbox_call7((void *)(uintptr_t)address, 0, 0, 0, 0, 0, 0, 0);
+    ++constructors;
+    return ARTBOX_ELF_OK;
 }
 static void *run(void *context) {
     (void)context;
@@ -263,8 +249,10 @@ static void *run(void *context) {
     if (artbox_call7(entry(&images[0], "artbox_bootstrap_main"), (uintptr_t)args, 0, 0, 0, 0, 0, 0)) fail("bootstrap return");
     if (!artbox_bionic_get_tls()) fail("no real Bionic TCB");
     fprintf(stderr, "bootstrap complete; running real libc constructors\n");
-    construct(&images[0]);
-    construct(&images[1]);
+    if (artbox_load_group_initialize(load_group, construct, NULL) != ARTBOX_ELF_OK) fail("load-group constructors");
+    unsigned initialized = constructors;
+    if (artbox_load_group_initialize(load_group, construct, NULL) != ARTBOX_ELF_OK || constructors != initialized)
+        fail("constructor idempotence");
     fprintf(stderr, "NDK allocator client entry\n");
     result = (int32_t)artbox_call7(entry(&images[1], "artbox_startup_check"), 0, 0, 0, 0, 0, 0, 0);
     int64_t scratch = artbox_vm_mmap(vm, 0, artbox_vm_page_size(vm), 3, 0x22, -1, 0);
@@ -322,13 +310,16 @@ int main(int argc, char **argv) {
     if (!threads) fail("native thread manager");
     uint64_t start = now();
     load(&images[0], argv[1], argv[2]); load(&images[1], argv[3], argv[4]);
-    if (images[0].dynamic.needed_count || images[1].dynamic.needed_count != 1 ||
-        strcmp(images[1].dynamic.needed[0], "libc.so")) fail("fixture dependency graph");
+    artbox_relocation_memory memory[2]; artbox_link_module modules[2];
     for (unsigned i = 0; i < 2; ++i) {
-        artbox_relocation_memory memory = {1, images[i].rw, (size_t)images[i].elf.segments[1].memory_size};
-        artbox_elf_result status = artbox_relocate(&images[i].dynamic, (uintptr_t)images[i].rx, &memory, 1, resolve, NULL, &images[i].relocations);
-        if (status != ARTBOX_ELF_OK) { fprintf(stderr, "relocation result %d\n", status); fail("relocations"); }
+        memory[i] = (artbox_relocation_memory){1, images[i].rw, (size_t)images[i].elf.segments[1].memory_size};
+        modules[i] = (artbox_link_module){images[i].dynamic.soname, &images[i].dynamic, (uintptr_t)images[i].rx, &memory[i], 1};
     }
+    artbox_elf_result linked = artbox_load_group_create(modules, 2, "libstartup_client.so", resolve, NULL, &load_group);
+    if (linked == ARTBOX_ELF_OK) linked = artbox_load_group_relocate(load_group);
+    if (linked != ARTBOX_ELF_OK) { fprintf(stderr, "load group result %d\n", linked); fail("manifest load group"); }
+    for (unsigned i = 0; i < 2; ++i)
+        if (artbox_load_group_stats(load_group, modules[i].name, &images[i].relocations) != ARTBOX_ELF_OK) fail("relocation statistics");
     uint64_t loaded = now();
     size_t stack_size = 4 * 1024 * 1024, page = ops.page_size;
     int64_t stack = artbox_vm_mmap(vm, 0, stack_size + 2 * page, 0, 0x22, -1, 0);
@@ -348,6 +339,8 @@ int main(int argc, char **argv) {
     if (artbox_vfs_destroy(filesystem) || artbox_native_files_close(backing_files)) fail("filesystem cleanup");
     if (artbox_futex_destroy(futex)) fail("futex cleanup");
     if (artbox_vm_destroy(vm)) fail("release reservations");
+    if (artbox_load_group_count(load_group) != 2) fail("reachable load-group size");
+    artbox_load_group_destroy(load_group);
     printf("{\"cases\":146,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
            ",\"startup_client_ns\":%" PRIu64 ",\"reserved_bytes\":%" PRIu64 ",\"gwp_enabled\":%" PRIu64
            ",\"guarded_samples\":%" PRIu64 ",\"futex_cases\":%" PRId64
