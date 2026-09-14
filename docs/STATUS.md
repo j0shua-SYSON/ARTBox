@@ -59,8 +59,12 @@ The next fixture selects AOSP's real `ObjectReference`, `HeapReference` and
 and on. A narrow source overlay redirects raw-pointer compression through the
 checked codec while retaining AOSP's four-byte storage and poison encoding.
 The native Linux control uses the original headers and absolute low addresses;
-the signed Mac wrapper uses heap-relative high addresses. This comparison is
-being validated and does not yet boot ART, collect objects or execute DEX.
+the signed Mac wrapper uses heap-relative high addresses. At `2586a50`, all
+38 cases pass on each native OS, with independently checked stored bit patterns
+and retained acquire/release instructions. Four Mac/iOS frameworks pass layout,
+signature and notice checks. See [reference evidence](m3-references.md).
+This does not yet boot ART, collect objects or execute DEX. AOSP DEX loading and
+verification are the next dependency bring-up step.
 
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build
