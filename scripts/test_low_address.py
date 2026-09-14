@@ -2,6 +2,7 @@
 import sys
 sys.dont_write_bytecode = True
 
+import argparse
 import hashlib
 import json
 import os
@@ -70,8 +71,26 @@ def observe(executable, available):
     return result
 
 
+def expect_rejected(executable):
+    if sys.platform != 'darwin' or platform.machine().lower() not in ('arm64', 'aarch64'):
+        raise RuntimeError('The hard-page-zero rejection contract requires native Apple ARM64')
+    try:
+        result = subprocess.run([str(executable), 'available'], capture_output=True, timeout=30)
+    except OSError as error:
+        if error.errno != 88:  # Darwin EBADMACHO, not a generic execution failure.
+            raise
+        return {'launch_rejected': True, 'errno': error.errno, 'reason': 'Darwin EBADMACHO'}
+    raise RuntimeError(f'Reduced-guard ARM64 executable unexpectedly started: exit {result.returncode}')
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--expect-rejected', type=Path)
+    args = parser.parse_args()
     os.environ.update(environment())
+    if args.expect_rejected:
+        print(json.dumps(expect_rejected(args.expect_rejected)))
+        return
     build = Path(os.environ['ARTBOX_BUILD_DIR'])
     artifacts = Path(os.environ['ARTBOX_ARTIFACTS_DIR'])
     source = ROOT / 'tests/native_low_address.c'
@@ -95,7 +114,8 @@ def main():
             host = default if name == 'default' else build / 'host/test_low_address_reduced_guard'
             run('codesign', '--force', '--sign', '-', '--entitlements', ROOT / 'app/ARTBox.entitlements', host)
             host_layout = macho(host, 1, guard)
-            observed = observe(host, name == 'reduced')
+            observed = (expect_rejected(host) if name == 'reduced' and host_layout['cpu'] == 0x100000c
+                        else observe(host, name == 'reduced'))
             device = folder / ('probe-' + name + '-ios')
             command = ['xcrun', '--sdk', 'iphoneos', 'clang', '-target', 'arm64-apple-ios15.0',
                        '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror', str(source), '-o', str(device)]
@@ -106,6 +126,10 @@ def main():
             result['profiles'][name] = {'host': host_layout, 'native': observed,
                                         'ios': macho(device, 2, guard)}
         result['device_execution_verified'] = False
+    reference = default.parent / ('test_managed_reference.exe' if os.name == 'nt' else 'test_managed_reference')
+    result['heap_relative_reference'] = json.loads(run(reference))
+    if result['heap_relative_reference']['high_address_roundtrip'] is not True:
+        raise RuntimeError('Heap-relative reference contract failed')
     (artifacts / 'm3-low-address.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(result, indent=2))
 

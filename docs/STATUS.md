@@ -46,8 +46,11 @@ provider is not implemented; portable VFS tests use an injected provider there.
 The [M3 contract](m3-contract.md) specifies real ART/DEX execution, runtime
 code-generation checks and shared iOS integration. Its first host probe tests
 two low-address heap reservations and compares the default Apple null guard
-with a reduced guard in signed native executables. Native Apple and iOS linker
-evidence is pending; this does not yet compile or execute ART.
+with a reduced guard in native executables. ARM64 macOS rejected the reduced
+guard before entry (EBADMACHO), consistent with XNU's hard 4 GiB requirement.
+A checked heap-relative reference codec and retained negative launch test now
+cover the selected alternative. Full signed comparison and native codec CI are
+pending; this does not yet compile or execute ART.
 
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build

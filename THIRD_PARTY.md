@@ -182,3 +182,7 @@ managed-reference storage and low-address mapping code were studied for the
 first native address-space probe, which is original MIT-licensed test code.
 ART and each class-library/build dependency still require explicit source pins
 and retained notices before compilation or redistribution.
+
+Apple's APSL-2.0 `bsd/kern/mach_loader.c` was consulted to explain the native
+ARM64 reduced-pagezero rejection. No kernel code is imported or executed by
+ARTBox; the retained negative test and heap-relative codec are original code.
