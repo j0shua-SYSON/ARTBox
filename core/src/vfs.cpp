@@ -98,7 +98,7 @@ struct Walk {
         while ((slash = relative.find('/', begin)) != std::string::npos) {
             std::string component = relative.substr(begin, slash - begin);
             void *next = nullptr;
-            int error = fs->files.open(fs->files.context, current, component.c_str(), 0x90000, 0, &next);
+            int error = fs->files.open(fs->files.context, current, component.c_str(), 0x84000, 0, &next);
             if (error) return error;
             if (owned) {
                 error = fs->files.close(owned);
@@ -173,9 +173,9 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
                 return (permissions & flags) == flags ? 0 : -13;
             }
             if ((flags & 3u) == 3u) return -22;
-            if (flags & ~(3u | 0x40u | 0x80u | 0x100u | 0x200u | 0x400u | 0x800u | 0x8000u | 0x10000u | 0x20000u | 0x80000u)) return -95;
+            if (flags & ~(3u | 0x40u | 0x80u | 0x100u | 0x200u | 0x400u | 0x800u | 0x8000u | 0x4000u | 0x20000u | 0x80000u)) return -95;
             if (kind && (flags & 0xc0) == 0xc0) return -17;
-            if (kind && kind != 4 && (flags & 0x10000)) return -20;
+            if (kind && kind != 4 && (flags & 0x4000)) return -20;
             if (kind == 4 && ((flags & 3) || (flags & 0x200))) return -21;
             if (kind == 3 && (flags & 3)) return -13;
             if (below(p.canonical, "system") && ((flags & 3) || (flags & (0x40 | 0x200)))) return -30;
@@ -186,7 +186,7 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
             if (!kind) {
                 Walk walk(fs, p.directory);
                 if ((error = walk.resolve(p.relative))) return error;
-                unsigned native_flags = flags | (p.trailing ? 0x10000u : 0);
+                unsigned native_flags = flags | (p.trailing ? 0x4000u : 0);
                 if ((error = fs->files.open(fs->files.context, walk.current, walk.leaf.c_str(), native_flags,
                                              static_cast<uint32_t>(a3) & 0777u, &d.handle))) return error;
                 artbox_file_info info{};

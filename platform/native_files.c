@@ -49,7 +49,7 @@ static int open_file(void *context, void *directory, const char *name, uint32_t 
     if (flags & 0x200) native |= O_TRUNC;
     if (flags & 0x400) native |= O_APPEND;
     if (flags & 0x800) native |= O_NONBLOCK;
-    if (flags & 0x10000) native |= O_DIRECTORY;
+    if (flags & 0x4000) native |= O_DIRECTORY;
     int fd = openat(directory_fd(context, directory), name, native, (mode_t)(mode & 0777));
     if (fd < 0) { int result = error(); free(file); return result; }
     file->fd = fd; *out = file;

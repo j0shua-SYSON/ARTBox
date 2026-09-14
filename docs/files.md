@@ -51,3 +51,9 @@ file per worker, writes 32 records, checks fstat/seek, reads each record back an
 closes it. The signed process now owns a rooted file provider; each normal/sampled
 process receives a fresh root retained with its diagnostic artifacts. This new
 signed execution still awaits CI.
+
+The first ARM64 Linux file oracle rejected directory opens: the initial table
+used the generic Linux flag layout. ARM64 uses `O_DIRECTORY=0x4000`,
+`O_NOFOLLOW=0x8000`, `O_DIRECT=0x10000`, and `O_LARGEFILE=0x20000`.
+The core and native provider now use these guest values; the NDK caller asserts
+them against its target headers. Direct I/O remains explicitly unsupported.

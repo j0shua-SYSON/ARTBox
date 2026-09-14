@@ -1,6 +1,13 @@
 // Original fixed-word file caller, MIT. Reuse one NDK object on both hosts.
 #include <stdint.h>
 #include <stddef.h>
+#if defined(__aarch64__) && defined(__linux__)
+#include <fcntl.h>
+_Static_assert(O_DIRECTORY == 0x4000, "ARM64 directory flag");
+_Static_assert(O_NOFOLLOW == 0x8000, "ARM64 no-follow flag");
+_Static_assert(O_DIRECT == 0x10000, "ARM64 direct IO flag");
+_Static_assert(O_LARGEFILE == 0x20000, "ARM64 large-file flag");
+#endif
 extern int64_t artbox_file_syscall(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 extern int *artbox_file_errno(void);
 #define P(x) ((uint64_t)(uintptr_t)(x))
@@ -35,7 +42,7 @@ int64_t artbox_files_check(uint64_t page) {
     for (unsigned i=0; i<10; ++i) if (((unsigned char *)(uintptr_t)data)[i] != (unsigned char)n->text[i]) return -__LINE__;
     CHECK(CALL(63, (uint64_t)file, data, 1, 0) == 0);
     CHECK(CALL(63, (uint64_t)file, 0, 1, 0) == 0);
-    int64_t dir = CALL(56,UINT64_MAX-99,P(n->dir),0x10000,0);
+    int64_t dir = CALL(56,UINT64_MAX-99,P(n->dir),0x4000,0);
     CHECK(dir >= 3);
     int64_t ro = CALL(56,(uint64_t)dir,P(n->leaf),0,0);
     CHECK(ro >= 3);
@@ -64,7 +71,7 @@ int64_t artbox_files_check(uint64_t page) {
     CHECK(CALL(64,(uint64_t)append,P(n->xy),2,0)==2);
     CHECK(CALL(80,(uint64_t)file,data,0,0)==0 && word(stat+48,8)==4);
     CHECK(ERROR(CALL(62,(uint64_t)file,UINT64_MAX,0,0),22));
-    CHECK(ERROR(CALL(56,(uint64_t)dir,P(n->leaf),0x10000,0),20));
+    CHECK(ERROR(CALL(56,(uint64_t)dir,P(n->leaf),0x4000,0),20));
     CHECK(CALL(57,(uint64_t)dir,0,0,0)==0);
     CHECK(CALL(57,(uint64_t)file,0,0,0)==0);
     CHECK(CALL(57,(uint64_t)append,0,0,0)==0);
