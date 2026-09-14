@@ -25,6 +25,17 @@ typedef struct artbox_relocation_stats {
 typedef artbox_elf_result (*artbox_relocation_resolver)(void *context,
     const artbox_dynamic *dynamic, uint32_t symbol_index, uint64_t *address);
 
+/* Bind a TLSDESC to a precompiled resolver and a stable, owner-managed argument.
+ * The resolver is never called by the relocator. Index zero denotes this module
+ * plus addend. TLS symbol values are offsets, not load-biased addresses. */
+typedef artbox_elf_result (*artbox_tlsdesc_binding)(void *context,
+    const artbox_dynamic *dynamic, uint32_t symbol_index, uint64_t addend,
+    uint64_t *entry, uint64_t *argument);
+artbox_elf_result artbox_relocate_tls(const artbox_dynamic *dynamic, uint64_t load_bias,
+    const artbox_relocation_memory *memory, unsigned memory_count,
+    artbox_relocation_resolver resolve, artbox_tlsdesc_binding tls, void *context,
+    artbox_relocation_stats *stats);
+
 /* Apply AArch64 ABS64/GLOB_DAT/JUMP_SLOT/RELATIVE and RELR to data views.
  * load_bias is the ELF load-time address adjustment, not a data-view pointer.
  * These views can be staging buffers; packaging must prove the actual signed

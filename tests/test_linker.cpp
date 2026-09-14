@@ -1,4 +1,5 @@
 #include "artbox/linker.h"
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -54,6 +55,54 @@ static artbox_elf_result host(void*,const artbox_dynamic *d,uint32_t index,uint6
     ++bridges;*address=0xabcdef;return ARTBOX_ELF_OK;
 }
 struct Initializers { artbox_load_group *group; std::vector<uint64_t> addresses; bool fail=false; };
+static void tls_module(Module &m, bool defined) {
+    auto p=[&](size_t at,uint64_t v,unsigned width=8) { put(m.bytes.data()+at,v,width); };
+    if (defined) {
+        p(56,4,2);p(232,7,4);p(236,4,4);p(240,0x1800);p(248,0x4800);
+        p(264,8);p(272,64);p(280,32);p(0x1800,0x1234);
+    }
+    p(0x61c,0x16,1);p(0x620,defined?8:0);p(0x628,8);
+    p(0x1400,0x4500);p(0x1408,UINT64_C(1)<<32|1031);p(0x1410,7);
+    CHECK(artbox_elf_open(m.bytes.data(),m.bytes.size(),&m.elf)==ARTBOX_ELF_OK);
+    CHECK(artbox_dynamic_open(&m.elf,&m.dynamic)==ARTBOX_ELF_OK);
+    std::copy(m.bytes.begin()+4096,m.bytes.end(),m.rw.begin());
+}
+static void tls_tests() {
+    Module root("tls-client.so",0x100000,{"tls-provider.so"},{{"tls",false,false}});
+    Module provider("tls-provider.so",0x200000,{},{{"tls",true,false}},"tls");
+    tls_module(root,false);tls_module(provider,true);
+    artbox_link_module pair[]={provider.view,root.view};artbox_load_group *g=nullptr;
+    CHECK(artbox_load_group_create(pair,2,"tls-client.so",nullptr,nullptr,&g)==ARTBOX_ELF_OK);
+    CHECK(artbox_load_group_tls_count(g)==1);
+    artbox_tls_template t{};
+    CHECK(artbox_load_group_tls_template(g,0,&t)==ARTBOX_ELF_OK && t.module_id==1 &&
+          t.init_data==reinterpret_cast<uintptr_t>(provider.rw.data()+0x800) &&
+          t.init_size==8 && t.memory_size==64 && t.alignment==32 && t.skew==0);
+    CHECK(artbox_load_group_tls_template(g,1,&t)==ARTBOX_ELF_NOT_FOUND);
+    auto before=root.rw;
+    CHECK(artbox_load_group_relocate(g)==ARTBOX_ELF_UNSUPPORTED && root.rw==before);
+    CHECK(artbox_load_group_tls_resolver(g,0x204800)==ARTBOX_ELF_INVALID);
+    CHECK(artbox_load_group_tls_resolver(g,0x200200)==ARTBOX_ELF_OK);
+    CHECK(artbox_load_group_relocate(g)==ARTBOX_ELF_OK);
+    for (const auto *m:{&root,&provider}) {
+        CHECK(word(m->rw.data()+0x500)==0x200200);
+        const auto *index=reinterpret_cast<const uint64_t*>(static_cast<uintptr_t>(word(m->rw.data()+0x508)));
+        CHECK(index && index[0]==1 && index[1]==15);
+    }
+    uint64_t address=0;
+    CHECK(artbox_load_group_lookup(g,"tls",nullptr,&address)==ARTBOX_ELF_UNSUPPORTED);
+    CHECK(artbox_load_group_tls_resolver(g,0x200200)==ARTBOX_ELF_INVALID);
+    artbox_load_group_destroy(g);
+    /* A late error cannot publish an earlier module's TLS descriptor. */
+    Module missing("missing.so",0x300000,{"bad-tls.so"},{{"tls",false,false}});
+    Module bad("bad-tls.so",0x400000,{},{{"tls",true,false},{"absent",false,false}},"tls");
+    tls_module(missing,false);tls_module(bad,true);
+    artbox_link_module failure[]={missing.view,bad.view};before=missing.rw;auto other=bad.rw;
+    CHECK(artbox_load_group_create(failure,2,"missing.so",nullptr,nullptr,&g)==ARTBOX_ELF_OK);
+    CHECK(artbox_load_group_tls_resolver(g,0x400200)==ARTBOX_ELF_OK);
+    CHECK(artbox_load_group_relocate(g)==ARTBOX_ELF_NOT_FOUND && missing.rw==before && bad.rw==other);
+    artbox_load_group_destroy(g);
+}
 static artbox_elf_result invoke(void *context,uint64_t address) {
     auto &init=*static_cast<Initializers*>(context);init.addresses.push_back(address);
     if (init.fail) return ARTBOX_ELF_UNSUPPORTED;
@@ -61,6 +110,7 @@ static artbox_elf_result invoke(void *context,uint64_t address) {
     return ARTBOX_ELF_OK;
 }
 int main() {
+    tls_tests();
     Module root("root.so",0x100000,{"left.so","right.so"},{{"root",true,false},{"shared",false,false},{"optional",false,true},{"bridge",false,false}});
     Module left("left.so",0x200000,{"leaf.so"},{{"shared",true,true},{"root",false,false}});
     Module right("right.so",0x300000,{"leaf.so"},{{"shared",true,false}});

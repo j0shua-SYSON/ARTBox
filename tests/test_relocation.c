@@ -57,6 +57,33 @@ static artbox_elf_result resolve(void *opaque, const artbox_dynamic *dynamic,
 static artbox_elf_result apply(fixture *f) {
     return artbox_relocate(&f->dynamic, 0x10000000, &f->mapping, 1, resolve, f, &f->stats);
 }
+static artbox_elf_result tls_binding(void *opaque, const artbox_dynamic *d,
+    uint32_t index, uint64_t addend, uint64_t *entry, uint64_t *argument) {
+    fixture *f = opaque;
+    if (d != &f->dynamic || index != 1 || addend != 7) return ARTBOX_ELF_INVALID;
+    ++f->calls; *entry = 0x8000; *argument = 0x9000; return f->resolved;
+}
+static int tls_tests(void) {
+    fixture f;
+    reset(&f); symbol(&f, 1, 6, 0, 0, 0); rela(&f, 0, 0x4000, 1, 1031, 7);
+    CHECK(artbox_relocate_tls(&f.dynamic, 0, &f.mapping, 1, resolve, tls_binding, &f, &f.stats) == ARTBOX_ELF_OK);
+    CHECK(u64(f.memory) == 0x8000 && u64(f.memory + 8) == 0x9000 && f.calls == 1 && f.stats.rela_count == 1);
+    /* Descriptor writes cover sixteen bytes: overlap and a truncated second
+     * word fail before binding, with no partially published resolver pointer. */
+    for (unsigned mode = 0; mode < 3; ++mode) {
+        reset(&f); symbol(&f, 1, 6, 0, 0, 0); rela(&f, 0, 0x4000, 1, 1031, 7);
+        if (mode == 0) { f.dynamic.rela.size = 48; rela(&f, 1, 0x4008, 0, 1027, 0); }
+        if (mode == 1) rela(&f, 0, 0x47f8, 1, 1031, 7);
+        if (mode == 2) f.resolved = ARTBOX_ELF_NOT_FOUND;
+        memset(&f.stats, 0xa5, sizeof(f.stats));
+        artbox_relocation_stats old = f.stats;
+        memcpy(f.original, f.memory, sizeof(f.memory));
+        CHECK(artbox_relocate_tls(&f.dynamic, 0, &f.mapping, 1, resolve, tls_binding, &f, &f.stats) != ARTBOX_ELF_OK);
+        CHECK(!memcmp(f.original, f.memory, sizeof(f.memory)) && !memcmp(&old, &f.stats, sizeof(old)));
+        CHECK(f.calls == (mode == 2 ? 1u : 0u));
+    }
+    return 0;
+}
 static int rejected(fixture *f, artbox_elf_result expected) {
     artbox_relocation_stats before;
     memset(&f->stats, 0xa5, sizeof(f->stats)); before = f->stats;
@@ -69,6 +96,7 @@ static int rejected(fixture *f, artbox_elf_result expected) {
 int main(void) {
     fixture f;
     unsigned i;
+    CHECK(tls_tests() == 0);
     reset(&f);
     CHECK(apply(&f) == ARTBOX_ELF_OK);
     CHECK(u64(f.memory) == 0x10001234 && f.stats.rela_count == 1 && f.calls == 0);
