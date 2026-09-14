@@ -44,6 +44,26 @@ def save(path, data):
     path.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
 
 
+def time_source(art, build):
+    """Supply declarations before the pinned time header uses them (libstdc++)."""
+    relative = 'libartbase/base/time_utils.cc'
+    source = art / relative
+    expected = 'b847b3b46fd799c0f8f75d02c6d2ee8a7daa8e7203825dcc0b2d6d65dba1fab8'
+    if digest(source) != expected:
+        raise RuntimeError('ART time source differs from the reviewed upstream input')
+    original = source.read_text(encoding='utf-8')
+    before = '#include "time_utils.h"'
+    if original.count(before) != 1 or original.count('#include <limits>\n') != 1:
+        raise RuntimeError('ART time include context is missing or ambiguous')
+    changed = original.replace('#include <limits>\n', '', 1).replace(
+        before, '// ARTBox: declare std::min and numeric_limits before time_utils.h.\n'
+        '#include <algorithm>\n#include <limits>\n\n' + before, 1)
+    output = build / 'overlay' / relative
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_bytes(changed.encode('utf-8'))
+    return output, {'path': relative, 'upstream_sha256': expected, 'adapted_sha256': digest(output)}
+
+
 def compile_units(compiler, flags, units, directory, jobs):
     directory.mkdir(parents=True, exist_ok=True)
     def compile_one(item):
@@ -106,14 +126,18 @@ def main():
               'project_commit': run('git', 'rev-parse', 'HEAD', text=True).strip(),
               'sources': {n: specs[n] for n in names}, 'fixture': layout,
               'inputs': {n: digest(p) for n, p in inputs.items()},
-              'project_sources': {p: digest(ROOT / p) for p in ('fixtures/art-dex/check.cpp', 'scripts/dex_fixture.py')},
+              'project_sources': {p: digest(ROOT / p) for p in ('fixtures/art-dex/check.cpp', 'scripts/dex_fixture.py',
+                                                              'scripts/test_dex_loader.py')},
               'native_execution': False, 'device_execution_verified': False}
+    time_unit, record['time_include_adaptation'] = time_source(art, build)
     if args.evidence_root:
         reference = json.loads((args.evidence_root / 'artifacts/m3-dex-loader.json').read_text(encoding='utf-8'))
-        if any(record[key] != reference[key] for key in ('project_commit', 'inputs', 'sources', 'project_sources')):
+        if any(record[key] != reference[key] for key in ('project_commit', 'inputs', 'sources', 'project_sources',
+                                                        'time_include_adaptation')):
             raise RuntimeError('DEX reference provenance or generated inputs differ')
     units = [('dex-' + n, art / 'libdexfile/dex' / (n + '.cc')) for n in DEX_UNITS]
     units += [('artbase-' + n.replace('/', '-'), art / 'libartbase/base' / (n + '.cc')) for n in BASE_UNITS]
+    units = [(name, time_unit if name == 'artbase-time_utils' else path) for name, path in units]
     generator_headers = ['dex_file.h', 'dex_file_layout.h', 'dex_instruction.h', 'dex_instruction_utils.h', 'invoke_type.h']
     # Forward-slash paths also match the upstream generator's include-prefix logic on Windows.
     generated = run(sys.executable, '-B', art / 'tools/generate_operator_out.py', (art / 'libdexfile').as_posix(),
@@ -122,7 +146,7 @@ def main():
     enum_source.write_bytes(generated)
     units += [('dex-operators', enum_source)]
     record['generated_operators_sha256'] = digest(enum_source)
-    include_paths = [art / 'libdexfile', art / 'libartbase', art / 'libartpalette/include',
+    include_paths = [art / 'libdexfile', art / 'libartbase', art / 'libartbase/base', art / 'libartpalette/include',
                      base / 'include', log / 'liblog/include', zip_source / 'include',
                      zip_source / 'incfs_support/include', fmt / 'include', jni / 'include_jni', ids / 'libcutils/include']
     flags = ['-std=c++20', '-O2', '-DNDEBUG', '-DART_PAGE_SIZE_AGNOSTIC', '-DSTATIC_LIB', '-DART_STATIC_LIBARTBASE',
