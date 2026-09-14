@@ -52,8 +52,17 @@ entire-process peak RSS is 6,160,384 and 5,996,544 bytes, respectively.
 Version metadata and per-image named lookups now pass local malformed-input
 contracts and 12 real NDK/LLVM comparisons using GNU, SysV and dual hash tables,
 with and without section tables. Hidden/default versions and provider names are
-validated. CI for this parser extension is pending; it does not yet establish
-dependency-wide version binding or guest execution of the version fixture.
+validated. [Host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34822171575)
+and [iOS CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34822171579) pass at
+`0184ec4`; guest execution of the version fixture is still outstanding.
+
+The new portable manifest load-group engine resolves DT_NEEDED in breadth-first
+scope order, handles cycles and DT_SYMBOLIC, stages all data relocations before
+committing any module, and validates all constructor addresses before running
+exactly-once dependency initialization. All 19 local contracts pass, including a
+late unresolved import leaving the entire group unchanged. The signed Bionic
+harness now uses this engine instead of its fixed lookup loop; native CI is pending.
+Guest ELF TLS, preinit arrays, unloading and multiple dlopen groups remain open.
 
 ## Next work and remaining acceptance
 

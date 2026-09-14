@@ -1,7 +1,7 @@
 """Build real Bionic startup and a separately linked NDK allocator client.
 
-Apple execution uses two signed wrappers and an explicitly bounded test load
-group. Optional netd is absent; unexpected loader/thread calls fail the test.
+Apple execution uses signed wrappers and the portable manifest load-group engine.
+Optional netd is absent; unexpected loader/thread calls fail the test.
 This is not M2's complete threads/files/mmap acceptance suite.
 """
 import sys
@@ -104,7 +104,7 @@ def main():
     libc, app = build / "libc.so", build / "libstartup_client.so"
     command("ld.lld", *link, "-soname", libc.name, partial, bootstrap, "-o", libc)
     command("ld.lld", *link, "-soname", app.name, client, futex_object, thread_object, file_object, mapping_object, "--no-as-needed", libc, "-o", app)
-    result = {"scope": "Real Bionic TLS/constructors/allocator in a controlled two-image test; not full M2",
+    result = {"scope": "Real Bionic TLS/constructors/allocator through a manifest load group; not full M2",
               "source_commit": report["source_commit"], "partial_object_sha256": digest(partial),
               "bootstrap_source_sha256": digest(ROOT / "fixtures/bionic-startup/bootstrap.cpp"),
               "client_source_sha256": digest(ROOT / "fixtures/bionic-startup/check.c"), "images": {},

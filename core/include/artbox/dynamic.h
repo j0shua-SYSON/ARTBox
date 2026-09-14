@@ -61,7 +61,7 @@ artbox_elf_result artbox_dynamic_version(const artbox_dynamic *dynamic, uint32_t
                                        artbox_elf_version *out);
 /* A NULL version selects a default-visible version. Named lookup permits hidden
  * versions. Following AOSP, an unversioned DSO/global symbol may interpose; the
- * load-group owner separately validates each DT_NEEDED provider's requirements. */
+ * load-group owner separately validates that each named DT_NEEDED provider exists. */
 artbox_elf_result artbox_dynamic_lookup_version(const artbox_dynamic *dynamic, const char *name,
                                               const char *version, artbox_elf_symbol *out);
 #ifdef __cplusplus
