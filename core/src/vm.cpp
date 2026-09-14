@@ -335,6 +335,16 @@ int artbox_vm_prepare_store_u32(artbox_vm *space, uint64_t address,
     return 0;
 }
 
+int64_t artbox_vm_transfer(artbox_vm *space, uint64_t address, size_t length, unsigned access,
+    int64_t (*transfer)(void *context, void *buffer, size_t length), void *context) {
+    if (!space || !transfer || (access != 1 && access != 2) || length > static_cast<uint64_t>(INT64_MAX)) return -22;
+    std::lock_guard<std::mutex> guard(space->lock);
+    if (space->poisoned) return -5;
+    if (length && !space->accessible(address, length, access)) return -14;
+    int64_t result = transfer(context, reinterpret_cast<void*>(address), length);
+    return result > static_cast<int64_t>(length) ? -5 : result;
+}
+
 size_t artbox_vm_page_size(const artbox_vm *space) {
     return space ? space->ops.page_size : 0;
 }

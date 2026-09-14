@@ -1,10 +1,10 @@
 #ifndef ARTBOX_DEVICES_H
 #define ARTBOX_DEVICES_H
-#include "artbox/kernel.h"
+#include "artbox/vfs.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef struct artbox_devices artbox_devices;
+typedef artbox_vfs artbox_devices;
 /* Initial virtual descriptor table: null, zero and a read-only urandom device.
  * Descriptors start at 3. No host descriptor or host path is exposed to guests.
  * Share one table across a guest process; destroy only after its threads stop. */
