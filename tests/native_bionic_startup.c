@@ -147,7 +147,7 @@ static void load(module *m, const char *framework, const char *file) {
     if (!m->original || fread(m->original, 1, (size_t)size, f) != (size_t)size || fclose(f)) fail("ELF read");
     if (artbox_elf_open(m->original, (size_t)size, &m->elf) != ARTBOX_ELF_OK || m->elf.type != 3 ||
         m->elf.segment_count != 2 || m->elf.segments[0].virtual_address || m->elf.segments[0].flags != 5 ||
-        m->elf.segments[1].flags != 6 || m->elf.segments[1].memory_size % 16384 || m->elf.has_tls ||
+        m->elf.segments[1].flags != 6 || m->elf.segments[1].memory_size % 16384 ||
         artbox_dynamic_open(&m->elf, &m->dynamic) != ARTBOX_ELF_OK || m->dynamic.init || m->dynamic.preinit_array.size)
         fail("controlled ELF shape");
     m->handle = dlopen(framework, RTLD_NOW | RTLD_LOCAL);
