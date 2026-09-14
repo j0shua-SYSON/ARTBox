@@ -56,7 +56,7 @@ static int open_mock(void *context, void *directory, const char *name, uint32_t 
     }
     Node *n = &found->second;
     if (n->link) return -40;
-    if ((flags & 0x10000) && !n->directory) return -20;
+    if ((flags & 0x4000) && !n->directory) return -20;
     if (n->directory && ((flags & 3) || (flags & 0x200))) return -21;
     if (flags & 0x200) n->bytes.clear();
     *out = new Handle{fs, n, 0, flags}; ++fs->handles; return 0;
@@ -110,7 +110,7 @@ static void contract(const artbox_file_ops &files) {
         CHECK(artbox_vm_write(vm, address, text, std::strlen(text) + 1) == 0); return address;
     };
     auto open = [&](const char *text, unsigned flags, int64_t dir = -100) { return call(56, static_cast<uint64_t>(dir), name(text), flags, 0644); };
-    int64_t null = open("/dev/null", 2), file = open("/data/file", 0xc2), dir = open("/data", 0x10000);
+    int64_t null = open("/dev/null", 2), file = open("/data/file", 0xc2), dir = open("/data", 0x4000);
     CHECK(null >= 3 && file >= 3 && dir >= 3 && null != file && file != dir && dir != null);
     CHECK(open("/data/file", 0xc2) == -17);
     CHECK(open("file", 0, file) == -20 && open("file", 0, 99) == -9);

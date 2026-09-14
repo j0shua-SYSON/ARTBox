@@ -40,7 +40,7 @@ int main() {
     CHECK(call(48, static_cast<uint32_t>(-100), path, 1) == -13);
     CHECK(call(48, static_cast<uint32_t>(-100), path, 8) == -22);
     CHECK(call(48, static_cast<uint32_t>(-100), 0, 0) == -14);
-    CHECK(call(56, static_cast<uint32_t>(-100), path, 0x10000) == -20);
+    CHECK(call(56, static_cast<uint32_t>(-100), path, 0x4000) == -20);
     CHECK(call(56, static_cast<uint32_t>(-100), path, 0x80 | 0x40) == -17);
     CHECK(call(56, static_cast<uint32_t>(-100), path, 1) == -13);
     int64_t random = call(56, static_cast<uint32_t>(-100), path, 0x80800);
