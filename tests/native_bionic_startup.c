@@ -6,7 +6,7 @@
 #include "artbox/native_syscall.h"
 #include "artbox/native_vm.h"
 #include "artbox/native_system.h"
-#include "artbox/devices.h"
+#include "artbox/native_files.h"
 #include "artbox/futex.h"
 #include "artbox/native_atomic.h"
 #include "artbox/native_thread.h"
@@ -32,7 +32,10 @@ typedef struct module {
 } module;
 static module images[2];
 static artbox_vm *vm;
-static artbox_devices *devices;
+static artbox_vfs *filesystem;
+static artbox_native_files *backing_files;
+static int64_t file_cases;
+static uint64_t file_ns;
 static artbox_futex *futex;
 static artbox_threads *threads;
 static _Thread_local artbox_kernel_thread *current_kernel;
@@ -171,7 +174,7 @@ static int64_t dispatch(void *context, uint64_t n, uint64_t a0, uint64_t a1, uin
     if (n == 93 && exit_boundary) finish_thread(0, 0, a0 ? -5 : 0);
     int64_t value = artbox_kernel_call(context, n, a0, a1, a2, a3, a4, a5);
     if (n == 98) value = artbox_futex_call(futex, a0, a1, a2, a3, a4, a5);
-    if (value == -38) value = artbox_devices_call(devices, context, n, a0, a1, a2, a3);
+    if (value == -38) value = artbox_vfs_call(filesystem, context, n, a0, a1, a2, a3);
     if (n == 66 && a0 == 2 && a2 <= 16) {
         // Observe Bionic's fatal diagnostics without pretending writev is
         // implemented: the syscall still returns its original ENOSYS below.
@@ -268,6 +271,11 @@ static void *run(void *context) {
     futex_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_futex_check"), (uint64_t)scratch, 0, 0, 0, 0, 0, 0);
     if (artbox_vm_munmap(vm, (uint64_t)scratch, artbox_vm_page_size(vm))) fail("futex fixture cleanup");
     if (futex_cases != 19) { fprintf(stderr, "futex caller: %" PRId64 "\n", futex_cases); fail("futex caller"); }
+    fprintf(stderr, "NDK file client entry\n");
+    uint64_t file_start = now();
+    file_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_files_check"), artbox_vm_page_size(vm), 0, 0, 0, 0, 0, 0);
+    file_ns = now() - file_start;
+    if (file_cases != 41) { fprintf(stderr, "file caller: %" PRId64 "\n", file_cases); fail("file acceptance"); }
     fprintf(stderr, "NDK pthread client entry\n");
     uint64_t thread_start = now();
     pthread_result = (int32_t)artbox_call7(entry(&images[1], "artbox_pthread_check"), force_sampling, 0, 0, 0, 0, 0, 0);
@@ -286,8 +294,8 @@ static void *run(void *context) {
     return NULL;
 }
 int main(int argc, char **argv) {
-    if (argc != 5 && (argc != 6 || strcmp(argv[5], "--sampled"))) return 2;
-    force_sampling = argc == 6;
+    if (argc != 6 && (argc != 7 || strcmp(argv[6], "--sampled"))) return 2;
+    force_sampling = argc == 7;
     for (unsigned i = 0; i < 4; ++i) {
         const int signals[] = {SIGSEGV, SIGBUS, SIGILL, SIGABRT};
         struct sigaction action;
@@ -298,10 +306,12 @@ int main(int argc, char **argv) {
     artbox_vm_ops ops = artbox_native_vm();
     artbox_system_ops system = artbox_native_system();
     vm = artbox_vm_create(&ops, UINT64_C(32) << 30, 4096);
-    devices = artbox_devices_create(256);
+    if (artbox_native_files_open(argv[5], &backing_files)) fail("rooted filesystem");
+    artbox_file_ops files = artbox_native_files_ops(backing_files);
+    filesystem = artbox_vfs_create(&files, 256);
     artbox_atomic_u32_ops atomic = artbox_native_atomic_u32();
     futex = artbox_futex_create(vm, &atomic, &system, 4096);
-    if (!vm || !devices || !futex || artbox_kernel_thread_init(&thread, vm, &system, 10000, 10000)) fail("kernel context");
+    if (!vm || !filesystem || !futex || artbox_kernel_thread_init(&thread, vm, &system, 10000, 10000)) fail("kernel context");
     artbox_thread_ops native_threads = artbox_native_threads();
     threads = artbox_threads_create(vm, futex, &atomic, &system, &native_threads, 10000, 10001, 64, run_child, NULL);
     if (!threads) fail("native thread manager");
@@ -330,15 +340,16 @@ int main(int argc, char **argv) {
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) || usage.ru_maxrss <= 0) fail("native resident-memory measurement");
     if (artbox_threads_destroy(threads)) fail("thread manager cleanup");
-    artbox_devices_destroy(devices);
+    if (artbox_vfs_destroy(filesystem) || artbox_native_files_close(backing_files)) fail("filesystem cleanup");
     if (artbox_futex_destroy(futex)) fail("futex cleanup");
     if (artbox_vm_destroy(vm)) fail("release reservations");
     printf("{\"cases\":146,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
            ",\"startup_client_ns\":%" PRIu64 ",\"reserved_bytes\":%" PRIu64 ",\"gwp_enabled\":%" PRIu64
            ",\"guarded_samples\":%" PRIu64 ",\"futex_cases\":%" PRId64
            ",\"pthread_result\":%d,\"threads_reaped\":%" PRIu64 ",\"pthread_client_ns\":%" PRIu64
-           ",\"thread_guarded_samples\":%" PRIu64 ",\"process_peak_rss_bytes\":%ld,\"unsupported_syscalls\":{",
-           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss);
+           ",\"thread_guarded_samples\":%" PRIu64 ",\"process_peak_rss_bytes\":%ld,"
+           "\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64 ",\"unsupported_syscalls\":{",
+           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, file_cases, file_ns);
     unsigned printed = 0;
     for (unsigned i = 0; i < 512; ++i) if (unsupported[i]) printf("%s\"%u\":%u", printed++ ? "," : "", i, unsupported[i]);
     puts("}}");

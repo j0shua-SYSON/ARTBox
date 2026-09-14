@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 
 from environment import ROOT, environment
 from ndk import obtain as obtain_ndk
@@ -82,6 +83,10 @@ def main():
     command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-stack-protector",
             "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
             "-c", futex_source, "-o", futex_object)
+    file_source, file_object = ROOT / "fixtures/bionic-files/check.c", build / "file-check.o"
+    command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
+            "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
+            "-c", file_source, "-o", file_object)
     # Bionic's priority-1 initializer must precede ordinary C++ constructors.
     # Pad writable storage to a complete native page for WriteProtected globals.
     script = (ROOT / "fixtures/bionic-dynamic/image.ld").read_text(encoding="utf-8")
@@ -94,7 +99,7 @@ def main():
             "--pack-dyn-relocs=relr", "-T", linker_script]
     libc, app = build / "libc.so", build / "libstartup_client.so"
     command("ld.lld", *link, "-soname", libc.name, partial, bootstrap, "-o", libc)
-    command("ld.lld", *link, "-soname", app.name, client, futex_object, thread_object, "--no-as-needed", libc, "-o", app)
+    command("ld.lld", *link, "-soname", app.name, client, futex_object, thread_object, file_object, "--no-as-needed", libc, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator in a controlled two-image test; not full M2",
               "source_commit": report["source_commit"], "partial_object_sha256": digest(partial),
               "bootstrap_source_sha256": digest(ROOT / "fixtures/bionic-startup/bootstrap.cpp"),
@@ -102,7 +107,8 @@ def main():
               "threads": {"source_sha256": digest(thread_source), "object_sha256": digest(thread_object),
                           "joined": 4, "detached": 2, "iterations_per_thread": 32},
               "rss_method": "Darwin getrusage RUSAGE_SELF ru_maxrss, bytes for the entire host process",
-              "futex": {"cases": 19, "source_sha256": digest(futex_source), "object_sha256": digest(futex_object)}}
+              "futex": {"cases": 19, "source_sha256": digest(futex_source), "object_sha256": digest(futex_object)},
+              "files": {"cases": 41, "source_sha256": digest(file_source), "object_sha256": digest(file_object)}}
     notices = {name.upper() + "-NOTICE.txt": (inputs / (name.upper() + "-NOTICE.txt"), data["sha256"])
                for name, data in report["component_notices"].items()}
     notices["LIBCUTILS-NOTICE.txt"] = (inputs / "LIBCUTILS-NOTICE.txt", report["dependencies"]["libcutils-headers"]["notice_sha256"])
@@ -128,8 +134,12 @@ def main():
     if sys.platform == "darwin":
         (build / "input-manifest.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
         for key, options in (("native", []), ("sampled_native", ["--sampled"])):
+            # Preserve disposable roots with the diagnostic artifact, even on failure.
+            root = Path(tempfile.mkdtemp(prefix=key + "-root-", dir=build))
+            (root / "data").mkdir()
+            (root / "system").mkdir()
             process = subprocess.run([str(builds / "host/artbox_native_bionic_startup"), str(binaries["libc"]), str(libc),
-                                      str(binaries["client"]), str(app), *options], capture_output=True, timeout=60)
+                                      str(binaries["client"]), str(app), str(root), *options], capture_output=True, timeout=60)
             (build / (key + ".stdout")).write_bytes(process.stdout)
             (build / (key + ".stderr")).write_bytes(process.stderr)
             if process.returncode:
@@ -138,6 +148,8 @@ def main():
             result[key] = json.loads(process.stdout)
             if result[key]["cases"] != 146 or result[key]["futex_cases"] != 19:
                 raise RuntimeError("NDK allocator client did not complete")
+            if result[key]["file_cases"] != 41:
+                raise RuntimeError("NDK regular-file client did not complete")
             if result[key]["pthread_result"] != 0 or result[key]["threads_reaped"] != 6:
                 raise RuntimeError("NDK pthread client did not complete")
             if key == "sampled_native" and result[key]["thread_guarded_samples"] < 6:

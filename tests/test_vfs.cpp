@@ -17,6 +17,17 @@
 #include <unistd.h>
 #endif
 #define CHECK(c) do { if (!(c)) { std::fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #c); std::exit(1); } } while (0)
+static artbox_vfs *caller_fs;
+static artbox_kernel_thread *caller_thread;
+static int caller_errno;
+extern "C" int64_t artbox_files_check(uint64_t);
+extern "C" int *artbox_file_errno(void) { return &caller_errno; }
+extern "C" int64_t artbox_file_syscall(uint64_t n, uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f) {
+    int64_t result = artbox_kernel_call(caller_thread, n, a, b, c, d, e, f);
+    if (result == -38) result = artbox_vfs_call(caller_fs, caller_thread, n, a, b, c, d);
+    if (result < 0 && result >= -4095) { caller_errno = static_cast<int>(-result); return -1; }
+    return result;
+}
 struct Node { std::string name; bool directory = false, link = false; uint32_t mode = 0644; std::vector<unsigned char> bytes; };
 struct Mock { std::map<std::string, Node> nodes; size_t handles = 0, reads = 0, writes = 0; };
 struct Handle { Mock *fs; Node *node; size_t position; unsigned flags; };
@@ -88,6 +99,10 @@ static void contract(const artbox_file_ops &files) {
     int64_t mapped = artbox_vm_mmap(vm, 0, 4 * memory.page_size, 3, 0x22, -1, 0); CHECK(mapped > 0);
     uint64_t address = static_cast<uint64_t>(mapped), data = address + memory.page_size, boundary = data + memory.page_size;
     artbox_vfs *fs = artbox_vfs_create(&files, 32); CHECK(fs);
+    caller_fs = fs; caller_thread = &thread;
+    int64_t cases = artbox_files_check(memory.page_size);
+    std::printf("File syscall caller: %lld\n", static_cast<long long>(cases));
+    CHECK(cases == 41);
     auto call = [&](uint64_t n, uint64_t a = 0, uint64_t b = 0, uint64_t c = 0, uint64_t d = 0) {
         return artbox_vfs_call(fs, &thread, n, a, b, c, d);
     };

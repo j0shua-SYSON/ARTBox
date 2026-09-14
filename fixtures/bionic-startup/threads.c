@@ -1,5 +1,8 @@
 // Original NDK pthread client, MIT. Uses real Bionic pthreads and allocator.
 #include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/stat.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdatomic.h>
@@ -38,6 +41,10 @@ static void *worker(void *value) {
     ASSERT(sigemptyset(&add) == 0 && sigaddset(&add, SIGUSR2) == 0);
     ASSERT(pthread_sigmask(SIG_BLOCK, &add, NULL) == 0);
     ASSERT(pthread_sigmask(SIG_SETMASK, NULL, &mask) == 0 && sigismember(&mask, SIGUSR2) == 1);
+    char path[64];
+    ASSERT(snprintf(path, sizeof(path), "data/thread-%u", a->index) > 0);
+    int fd = openat(AT_FDCWD, path, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+    ASSERT(fd >= 3);
     errno = (int)(200 + a->index);
     ASSERT(pthread_mutex_lock(&lock) == 0);
     ++ready;
@@ -55,6 +62,8 @@ static void *worker(void *value) {
         ASSERT(q != NULL);
         for (size_t j = 0; j < size; ++j) ASSERT(q[j] == a->index);
         free(q);
+        uint32_t record = a->index * 1000 + i;
+        ASSERT(write(fd, &record, sizeof(record)) == sizeof(record));
         ASSERT(pthread_getspecific(key) == a && &errno == a->errno_address);
         // Successful allocation may change errno. Pthread synchronization must
         // preserve this thread's distinct value across competing workers.
@@ -64,6 +73,14 @@ static void *worker(void *value) {
         ASSERT(pthread_mutex_unlock(&lock) == 0);
         ASSERT(errno == (int)(200 + a->index));
     }
+    struct stat st;
+    ASSERT(fstat(fd, &st) == 0 && S_ISREG(st.st_mode) && st.st_size == ITERATIONS * 4);
+    ASSERT(lseek(fd, 0, SEEK_SET) == 0);
+    for (unsigned i = 0; i < ITERATIONS; ++i) {
+        uint32_t record;
+        ASSERT(read(fd, &record, sizeof(record)) == sizeof(record) && record == a->index * 1000 + i);
+    }
+    ASSERT(close(fd) == 0);
     void *result = (void *)(uintptr_t)(a->index + 1);
     if (a->index & 1) pthread_exit(result);
     return result;

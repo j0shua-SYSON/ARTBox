@@ -48,10 +48,12 @@ All six workers perform guarded allocations in the forced-sampling process:
 6,144,000 and 5,783,552 bytes respectively (single correctness runs). These are
 macOS measurements, not iPhone budgets. Downloaded inputs and the IPA are verified.
 
-The new [rooted file table](files.md) passes all 17 local contracts. It combines
-regular files and devices, preserves directory-relative handles, rejects root
-escapes and checks partial I/O/file offsets. Native macOS/Linux provider execution
-and signed Bionic regular-file integration are pending.
+The new [rooted file table](files.md) passes all 17 contracts in CI at `9cf76a1`,
+including actual macOS/Linux file-provider execution. It combines regular files
+and devices, preserves directory-relative handles, rejects root escapes and
+checks partial I/O/file offsets. The pending signed integration adds a 41-case
+NDK caller paired with Linux and per-worker file write/stat/seek/read checks.
+The NDK build and local caller pass; signed Bionic file execution awaits CI.
 
 ## Next work and remaining acceptance
 
