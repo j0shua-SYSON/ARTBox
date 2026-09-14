@@ -683,7 +683,9 @@ artifact. No physical-device result is inferred from a signed build.
 
 ## ADR 0031 - Validate ART's low-address heap before adapting its references
 
-Status: host probe added; native Apple and iOS linker evidence pending.
+Status: the reduced guard was rejected before entry on native ARM64 macOS at
+`87b036f` (EBADMACHO). Heap-relative codec and negative launch contract added;
+full signed comparison and native codec CI pending.
 
 ART at Android 15 stores managed references as 32-bit addresses in
 `runtime/mirror/object_reference.h`. Our current app's 4 GiB `__PAGEZERO`
@@ -699,3 +701,22 @@ and memory cost), or accepting a slower managed path with explicitly adapted
 references. No CPU emulator, kernel or entitlement workaround is an option.
 The probe does not select the production layout until its native and signed
 device-build results are known; the current app layout remains the baseline.
+
+
+The native failure rules out the reduced-guard route for ARM64. Apple's
+[XNU loader](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/mach_loader.c)
+requires a 4 GiB hard page-zero region. Keep the default executable layout and
+retain the rejected prototype as an explicit EBADMACHO test; other errors or
+unexpected execution fail. This records the failed assumption without skipping
+the address-space check.
+
+Select heap-base-relative 32-bit byte offsets for initial switch interpretation.
+Reserve zero for null and keep a guard at the beginning of one stable, at-most
+4 GiB window. The first portable codec checks alignment, range and arithmetic
+before publishing an output. It does not allocate, collect, validate object
+liveness or modify ART yet. Native tests store and retrieve bytes through a
+reference to memory above 4 GiB, alongside malformed/overflow/null boundaries.
+An add/subtract and validation branches per reference are accepted initial
+costs. ART's stack references, JNI roots, read barriers, image relocation and
+future AOT output require a consistent adaptation; no compatibility with
+unmodified ART native reference accesses is implied.

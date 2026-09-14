@@ -44,14 +44,19 @@ as separately measured coverage, without introducing a runtime JIT.
 
 ## Early compatibility questions
 
-ART's managed references store 32-bit addresses. The current iOS app has a
-4 GiB `__PAGEZERO`, preventing the low-address heap expected by unmodified ART.
-Before changing the mapper or reference representation, compare the normal
-signed executable layout with a reduced null guard using public linker options.
-Reserve non-executable memory with hints only, verify independent ranges,
-demand-zero pages, 32-bit pointer round trips and cleanup. Never replace an
-existing image or mapping to make a probe pass. A successful Mac probe and
-iOS link/signature check do not prove that the heap is available on a device.
+ART's managed references store 32-bit addresses. The native ARM64 Mac rejected
+the reduced-guard executable with EBADMACHO before entry. Apple's XNU loader
+requires a 4 GiB hard page-zero region for ARM64. Retain that experiment as a
+negative launch contract, including strict signature and layout verification;
+its link success does not establish launch compatibility.
+
+Use checked heap-relative byte offsets for the initial managed reference path,
+with zero reserved for null and one stable heap window of at most 4 GiB. Test
+alignment, guard exclusion, range/overflow errors, unchanged outputs on failure
+and actual read/write round trips through a native allocation above 4 GiB.
+The first portable codec is a prerequisite, not an ART adaptation or a managed
+collector. All ART storage/access, stack references and future AOT conventions
+must use the same representation before claiming runtime compatibility.
 
 [Runtime startup](https://android.googlesource.com/platform/art/+/bebbc3cc49f2d9d5420197df0a336fbc3fcbea40/runtime/runtime.cc)
 can create a JIT cache for profiling even when compilation is disabled.
