@@ -4,6 +4,7 @@ import sys
 sys.dont_write_bytecode = True
 
 import hashlib
+import base64
 import io
 import json
 import os
@@ -191,6 +192,29 @@ class Sources(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 obtain_files("bad-archive", spec, self.root)
             fetch.assert_not_called()
+
+    def test_binary_git_blob_preserves_bytes_and_checks_its_hash(self):
+        spec, contents = self.file_spec()
+        data = b"\x00\xff\xfe\x80\r\nPK\x03\x04"
+        blob = hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
+        spec["files"].append({"path": "tool.jar", "bytes": len(data),
+                              "sha256": hashlib.sha256(data).hexdigest(), "git_blob": blob})
+        def download(command, stdout, check):
+            name = command[2].split("/contents/", 1)[1].split("?ref=", 1)[0]
+            stdout.write(contents[name])
+        encoded = {"sha": blob, "size": len(data), "encoding": "base64",
+                   "content": base64.b64encode(data).decode("ascii")}
+        with patch("sources.subprocess.run", side_effect=download), \
+                patch("sources.subprocess.check_output", return_value=json.dumps(encoded).encode()) as fetch:
+            result = obtain_files("binary", spec, self.root)
+            self.assertEqual((result / "tool.jar").read_bytes(), data)
+            fetch.assert_called_once_with(["gh", "api", "repos/example/source/git/blobs/" + blob])
+        encoded["content"] = base64.b64encode(b"x" * len(data)).decode("ascii")
+        with patch("sources.subprocess.run", side_effect=download), \
+                patch("sources.subprocess.check_output", return_value=json.dumps(encoded).encode()):
+            with self.assertRaisesRegex(RuntimeError, "blob"):
+                obtain_files("bad-binary", spec, self.root)
+        self.assertFalse((self.root / "sources/bad-binary-aaaaaaaaaaaa").exists())
 
 
 if __name__ == "__main__":
