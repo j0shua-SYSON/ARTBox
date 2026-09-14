@@ -121,3 +121,9 @@ but the native child/reaper lifecycle is still the next integration step.
 2. Bionic TLS, reserved registers and Android/Apple calling-convention bridges.
 3. Linux-compatible threads, futexes, files and mapping behavior sufficient for
    the dynamically linked NDK suite's 90% acceptance target.
+
+Thread integration in progress: the portable native-worker manager passes 130
+lifecycle iterations locally, including delayed native termination, clear-TID wake
+and detached unmap ordering. A six-thread real Bionic client builds successfully;
+signed execution is pending. M2 remains incomplete until the required thread,
+regular-file and mapping acceptance suite passes.

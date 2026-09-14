@@ -80,6 +80,16 @@ sampling rate; the 32-slot capacity passes CI at `ea5fd75`, with 30 observed
 guarded allocations and 8,866,004,992 total reserved bytes. This does not test
 recovery from memory faults or claim signal support.
 
-The next test adds a 19-case NDK futex caller to both startup modes and compares
-its identical object with Bionic's original/adapted syscall entries on Linux.
-It uses the real Bionic errno path and the process's native wait domain.
+At `7b62337`, the 19-case NDK futex caller passes in both signed startup modes
+and through both Bionic Linux syscall profiles. Source/object hashes and signed
+containers were downloaded and verified. The normal startup plus both callers
+measures 12.502 ms; forced GWP sampling measures 12.687 ms. These include a timed
+wait, native condition-variable scheduling and trace output, not allocator-only
+throughput. The regression IPA is still the M1 app; the newer Bionic frameworks
+are separate signed artifacts.
+
+The pending pthread extension uses real Bionic pthread_create/join/exit,
+condition variables, mutexes, errno and key destructors in four joinable and two
+detached workers. Each worker performs 32 malloc/realloc/free iterations. A native
+reaper must complete all six workers, including deferred detached-stack teardown.
+Portable lifetime tests pass; this new guest integration still awaits CI.
