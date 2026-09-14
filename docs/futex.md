@@ -40,6 +40,9 @@ Local tests cover timed waits, mismatch and bad-pointer errors, masks, private
 versus shared keys, active-domain destruction, clear-TID wakeup and 512 races
 between enqueue and wake. The 19-case original C caller is built once with the NDK,
 linked to real Bionic in the signed startup client, and reused with original and
-adapted Bionic syscall objects on native Linux. Its signed and Linux execution
-awaits CI. Signals/EINTR, robust owner death, PI, requeue and wake-op are not yet
+adapted Bionic syscall objects on native Linux. All 19 cases pass in both signed
+startup modes and both Linux profiles at `7b62337`; all 15 portable contracts and
+the iOS regression build pass. [Host/Linux evidence](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34815207011)
+and [iOS build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34815209434)
+are hash-paired with the downloaded caller and signed containers. Signals/EINTR, robust owner death, PI, requeue and wake-op are not yet
 implemented; they are not silently treated as successful operations.

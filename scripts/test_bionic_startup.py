@@ -67,12 +67,17 @@ def main():
 
     bootstrap, client = build / "bootstrap.o", build / "client.o"
     command("clang++", *report["flags"], "-std=gnu++20", "-fno-exceptions", "-fno-rtti", "-nostdinc++",
-            "-fno-stack-protector", "-ffreestanding", *includes,
+            "-fno-stack-protector", "-ffreestanding", "-I", ROOT / "core/include", *includes,
             "-c", ROOT / "fixtures/bionic-startup/bootstrap.cpp", "-o", bootstrap)
     command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin",
             "-fstack-protector-strong", "-mstack-protector-guard=global", "-march=armv8-a", "-mno-outline-atomics",
             "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
             "-c", ROOT / "fixtures/bionic-startup/check.c", "-o", client)
+    thread_source, thread_object = ROOT / "fixtures/bionic-startup/threads.c", build / "threads.o"
+    command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin",
+            "-fstack-protector-strong", "-mstack-protector-guard=global", "-march=armv8-a", "-mno-outline-atomics",
+            "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
+            "-c", thread_source, "-o", thread_object)
     futex_source, futex_object = ROOT / "fixtures/bionic-futex/check.c", build / "futex-check.o"
     command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-stack-protector",
             "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
@@ -89,11 +94,13 @@ def main():
             "--pack-dyn-relocs=relr", "-T", linker_script]
     libc, app = build / "libc.so", build / "libstartup_client.so"
     command("ld.lld", *link, "-soname", libc.name, partial, bootstrap, "-o", libc)
-    command("ld.lld", *link, "-soname", app.name, client, futex_object, "--no-as-needed", libc, "-o", app)
+    command("ld.lld", *link, "-soname", app.name, client, futex_object, thread_object, "--no-as-needed", libc, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator in a controlled two-image test; not full M2",
               "source_commit": report["source_commit"], "partial_object_sha256": digest(partial),
               "bootstrap_source_sha256": digest(ROOT / "fixtures/bionic-startup/bootstrap.cpp"),
               "client_source_sha256": digest(ROOT / "fixtures/bionic-startup/check.c"), "images": {},
+              "threads": {"source_sha256": digest(thread_source), "object_sha256": digest(thread_object),
+                          "joined": 4, "detached": 2, "iterations_per_thread": 32},
               "futex": {"cases": 19, "source_sha256": digest(futex_source), "object_sha256": digest(futex_object)}}
     notices = {name.upper() + "-NOTICE.txt": (inputs / (name.upper() + "-NOTICE.txt"), data["sha256"])
                for name, data in report["component_notices"].items()}
@@ -130,6 +137,8 @@ def main():
             result[key] = json.loads(process.stdout)
             if result[key]["cases"] != 146 or result[key]["futex_cases"] != 19:
                 raise RuntimeError("NDK allocator client did not complete")
+            if result[key]["pthread_result"] != 0 or result[key]["threads_reaped"] != 6:
+                raise RuntimeError("NDK pthread client did not complete")
     (artifacts / "m2-bionic-startup.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print("Bionic startup fixture built" + (" and executed through signed macOS wrappers" if sys.platform == "darwin" else "; Apple execution required"))
 
