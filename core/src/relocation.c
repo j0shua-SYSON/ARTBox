@@ -3,10 +3,11 @@
 #include <string.h>
 
 #define RELOCATION_LIMIT (1024u * 1024u)
-enum { R_NONE = 0, R_ABS64 = 257, R_GLOB_DAT = 1025, R_JUMP_SLOT = 1026, R_RELATIVE = 1027 };
+enum { R_NONE = 0, R_ABS64 = 257, R_GLOB_DAT = 1025, R_JUMP_SLOT = 1026, R_RELATIVE = 1027, R_TLSDESC = 1031 };
 typedef struct write_plan {
     unsigned char *target;
-    uint64_t address, value;
+    uint64_t address, value, argument;
+    unsigned width;
     uint32_t type, symbol;
 } write_plan;
 typedef struct preparation {
@@ -62,13 +63,13 @@ static artbox_elf_result check_memory(const preparation *p) {
     }
     return ARTBOX_ELF_OK;
 }
-static unsigned char *target(const preparation *p, uint64_t address) {
+static unsigned char *target(const preparation *p, uint64_t address, unsigned width) {
     unsigned i;
-    if (address > UINT64_MAX - 8) return NULL;
+    if (address > UINT64_MAX - width) return NULL;
     for (i = 0; i < p->memory_count; ++i) {
         const artbox_relocation_memory *m = &p->memory[i];
         uint64_t start = p->dynamic->image->segments[m->segment_index].virtual_address;
-        if (address >= start && m->size >= 8 && address - start <= m->size - 8)
+        if (address >= start && m->size >= width && address - start <= m->size - width)
             return m->data + (size_t)(address - start);
     }
     return NULL;
@@ -78,13 +79,14 @@ static artbox_elf_result add_write(preparation *p, uint64_t address, uint32_t ty
     write_plan *w;
     unsigned char *where;
     if (type == R_NONE) return ARTBOX_ELF_OK;
-    if (type != R_ABS64 && type != R_GLOB_DAT && type != R_JUMP_SLOT && type != R_RELATIVE)
+    if (type != R_ABS64 && type != R_GLOB_DAT && type != R_JUMP_SLOT && type != R_RELATIVE && type != R_TLSDESC)
         return ARTBOX_ELF_UNSUPPORTED;
     if (symbol >= p->dynamic->symbol_count || (type == R_RELATIVE && symbol)) return ARTBOX_ELF_INVALID;
-    where = target(p, address);
+    where = target(p, address, type == R_TLSDESC ? 16 : 8);
     if (!where) return ARTBOX_ELF_INVALID;
     w = &p->writes[p->count++];
     w->target = where; w->address = address; w->type = type; w->symbol = symbol;
+    w->width = type == R_TLSDESC ? 16 : 8; w->argument = 0;
     w->value = implicit ? u64(where) : addend;
     return ARTBOX_ELF_OK;
 }
@@ -161,9 +163,9 @@ static artbox_elf_result symbol_value(const artbox_dynamic *d, uint64_t bias, ui
     if (symbol.binding == 2) { *out = 0; return ARTBOX_ELF_OK; }
     return ARTBOX_ELF_NOT_FOUND;
 }
-artbox_elf_result artbox_relocate(const artbox_dynamic *dynamic, uint64_t load_bias,
+artbox_elf_result artbox_relocate_tls(const artbox_dynamic *dynamic, uint64_t load_bias,
     const artbox_relocation_memory *memory, unsigned memory_count,
-    artbox_relocation_resolver resolve, void *context, artbox_relocation_stats *stats) {
+    artbox_relocation_resolver resolve, artbox_tlsdesc_binding tls, void *context, artbox_relocation_stats *stats) {
     preparation p;
     uint64_t capacity, rela_count, relr_words;
     size_t i;
@@ -190,12 +192,33 @@ artbox_elf_result artbox_relocate(const artbox_dynamic *dynamic, uint64_t load_b
     error = prepare_rela(&p, &dynamic->plt_rela, &p.stats.plt_count);
     if (error != ARTBOX_ELF_OK) goto done;
     if (p.count) qsort(p.writes, p.count, sizeof(write_plan), by_address);
-    for (i = 1; i < p.count; ++i) if (p.writes[i].address - p.writes[i - 1].address < 8) {
+    for (i = 1; i < p.count; ++i) if (p.writes[i].address - p.writes[i - 1].address < p.writes[i - 1].width) {
         error = ARTBOX_ELF_UNSUPPORTED; goto done;
     }
     for (i = 0; i < p.count; ++i) {
         write_plan *w = &p.writes[i];
         uint64_t value = load_bias;
+        if (w->type == R_TLSDESC) {
+            if (!tls) { error = ARTBOX_ELF_UNSUPPORTED; goto done; }
+            if (w->symbol) {
+                artbox_elf_symbol symbol;
+                error = artbox_dynamic_symbol(dynamic, w->symbol, &symbol);
+                if (error != ARTBOX_ELF_OK) goto done;
+                if (symbol.type != 6 || symbol.binding > 2 || symbol.section >= 0xff00) {
+                    error = ARTBOX_ELF_UNSUPPORTED; goto done;
+                }
+                if ((!symbol.section && (!symbol.binding || symbol.visibility)) ||
+                    (symbol.section && (!dynamic->image->has_tls || symbol.value > dynamic->image->tls.memory_size ||
+                     symbol.size > dynamic->image->tls.memory_size - symbol.value))) {
+                    error = ARTBOX_ELF_INVALID; goto done;
+                }
+            }
+            error = tls(context, dynamic, w->symbol, w->value, &value, &w->argument);
+            if (error != ARTBOX_ELF_OK) goto done;
+            if (!value || (value & 3)) { error = ARTBOX_ELF_INVALID; goto done; }
+            w->value = value;
+            continue;
+        }
         if (w->type != R_RELATIVE) {
             error = symbol_value(dynamic, load_bias, w->symbol, resolve, context, &value);
             if (error != ARTBOX_ELF_OK) goto done;
@@ -203,9 +226,17 @@ artbox_elf_result artbox_relocate(const artbox_dynamic *dynamic, uint64_t load_b
         /* AAELF64 ABS64 and pointer-sized dynamic operations retain bits 63:0. */
         w->value += value;
     }
-    for (i = 0; i < p.count; ++i) p64(p.writes[i].target, p.writes[i].value);
+    for (i = 0; i < p.count; ++i) {
+        p64(p.writes[i].target, p.writes[i].value);
+        if (p.writes[i].width == 16) p64(p.writes[i].target + 8, p.writes[i].argument);
+    }
     if (stats) *stats = p.stats;
 done:
     free(p.writes);
     return error;
+}
+artbox_elf_result artbox_relocate(const artbox_dynamic *dynamic, uint64_t load_bias,
+    const artbox_relocation_memory *memory, unsigned memory_count,
+    artbox_relocation_resolver resolve, void *context, artbox_relocation_stats *stats) {
+    return artbox_relocate_tls(dynamic, load_bias, memory, memory_count, resolve, NULL, context, stats);
 }

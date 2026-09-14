@@ -567,4 +567,36 @@ The next execution fixture adds a versioned third library and calls both the
 hidden old and default new export from the NDK client. The exact provider ELF
 and caller object also run under the native Linux ARM64 linker. This tests
 version-aware scope relocation with distinct per-image version indices, rather
-than relying only on per-image metadata assertions. Initial native CI is pending.
+than relying only on per-image metadata assertions. Both signed Bionic profiles and native Linux pass at `5c8274d`; all CI is green.
+
+## ADR 0027 - Guest ELF TLS through Bionic and precompiled TLSDESC access
+
+Status: portable relocation/template tests pass; native integration in progress.
+
+Register PT_TLS templates with module IDs in dependency-scope order, then let
+Bionic reserve and initialize their static storage in each native guest thread.
+Keep Bionic's DTV and `__tls_get_addr`. Preserve Darwin's thread pointer and x18.
+TLS symbol values are module offsets, never ordinary load-biased addresses.
+
+The selected first access path compiles controlled source with global-dynamic
+ELF TLS and disables linker relaxation. At build time, replace compiler-emitted
+TP reads with zero-base instructions; a precompiled TLSDESC resolver returns the
+absolute guest address. The original assembly/object remains available for a
+native Linux oracle. Reject other TLS access models and unexplained TP accesses.
+This is a source build adaptation, not an arbitrary APK binary translator.
+
+The alternative is compiler emulated TLS, with a lookup on every access and no
+standard PT_TLS proof; retain it as a future fallback. Direct host TP substitution
+would corrupt the host ABI and is excluded. Faster static-offset TLSDESC access
+can follow measurements. The first bridge saves full SIMD registers around the
+real Bionic accessor, adding stack traffic and a function call per access.
+The [Arm TLSDESC convention](https://github.com/ARM-software/abi-aa/blob/main/sysvabi64/sysvabi64.rst#calling-convention)
+requires preservation beyond the ordinary C calling convention.
+
+The portable relocator prepares both descriptor words and checks sixteen-byte
+bounds/overlap before publishing either. The group owns stable descriptor
+arguments, drops them on failed group relocation, and requires threads to stop
+before destruction. It validates the precompiled resolver against signed RX
+ranges. Templates use relocated writable initialization bytes where present.
+Ordinary address lookup rejects TLS symbols. Preinit, later dlopen TLS modules,
+TLS unloading and other ELF TLS relocation models remain future work.

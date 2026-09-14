@@ -10,8 +10,8 @@ unverified. Launcher development is deferred; runtime milestones take priority.
 
 ## M2: real Bionic threads and rooted files run; acceptance is incomplete
 
-At `ce6c6eb`, [host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34820500656)
-and the [iOS regression build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34820500663)
+At `5c8274d`, [host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34823445890)
+and the [iOS regression build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34823445855)
 pass. Downloaded inputs, signed framework layouts, notices and IPA match their
 reports. Bionic frameworks are separate artifacts; the regression IPA still
 embeds M1, so the integrated M2 device build remains outstanding.
@@ -29,17 +29,18 @@ embeds M1, so the integrated M2 device build remains outstanding.
   ARM64 profiles. The oracle caught and corrected an ARM64 open-flag mismatch.
   Rooted paths reject traversal and symlinks; directory-relative handles remain
   pinned. See [files](files.md) and [startup evidence](bionic-startup.md).
-- All 17 portable contracts pass on Windows, macOS and Linux. Paired NDK/Linux
+- The manifest loader executes three signed libraries, including hidden/default
+  symbol-version calls (result 46), also verified with the exact NDK ELF/object
+  on Linux ARM64. The 43 file-mapping cases pass in both environments.
+- All 19 portable contracts pass on Windows, macOS and Linux. Paired NDK/Linux
   oracles also cover 35 memory, 53 startup-service, 19 futex, 35,908 string and
   123 binary128 cases, plus syscall and TLS boundaries.
 
-One correctness run takes 12.631 ms for startup and all clients, including
-3.357 ms for the pthread/file workload and 0.457 ms for the raw file caller.
-Forced GWP sampling takes 18.454 ms overall and observes all 192 worker mallocs
-in guarded allocations. Entire-process peak RSS is 6,078,464 bytes normally and
-5,931,008 bytes sampled; Scudo reserves about 8.25 GiB of virtual address space.
-These macOS measurements include tracing and a timed wait, and are not iPhone
-memory or throughput measurements.
+One correctness run takes 14.816 ms for startup and all clients, including
+4.320 ms for the pthread/file workload and 1.446 ms for files and file mappings.
+Forced GWP sampling takes 24.523 ms overall and observes all 192 worker mallocs.
+Peak process RSS is 6,651,904 / 6,373,376 bytes respectively. These are traced
+macOS process measurements, not iPhone or steady-state performance.
 
 At `b1a94c5`, [mapping host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34821237500)
 and the [iOS build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34821237477)
@@ -85,3 +86,7 @@ libraries. M2 is not tagged or complete. M3-M7 remain unimplemented.
    several syscall families remain unsupported.
 3. Fitting Bionic/Scudo and future ART within ordinary iOS memory limits, then
    packaging the integrated suite into the device build.
+
+ELF TLS work now adds bounded templates and transactional sixteen-byte TLSDESC
+relocation to the portable load group. Native Bionic template/access integration
+is in progress; it is not yet included in the verified execution above.

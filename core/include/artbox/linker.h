@@ -17,6 +17,18 @@ typedef struct artbox_link_module {
     unsigned memory_count;
 } artbox_link_module;
 typedef struct artbox_load_group artbox_load_group;
+/* Fixed-width native/Android bridge. IDs start at one in dependency scope order.
+ * Initialization bytes include data relocations after the group is relocated. */
+typedef struct artbox_tls_template {
+    uint64_t module_id, init_data, init_size, memory_size, alignment, skew;
+} artbox_tls_template;
+unsigned artbox_load_group_tls_count(const artbox_load_group *group);
+artbox_elf_result artbox_load_group_tls_template(const artbox_load_group *group,
+    unsigned index, artbox_tls_template *out);
+/* Register a signed guest RX entry before relocation. Its platform contract is
+ * a TLSDESC resolver returning an absolute address to build-adapted callers.
+ * No guest thread may outlive this group's descriptor arguments/templates. */
+artbox_elf_result artbox_load_group_tls_resolver(artbox_load_group *group, uint64_t address);
 artbox_elf_result artbox_load_group_create(const artbox_link_module *modules, unsigned count,
     const char *root, artbox_relocation_resolver host_exports, void *host_context,
     artbox_load_group **out);
