@@ -822,3 +822,20 @@ explicit feature level to expose that declaration. Build Linux with
 `_POSIX_C_SOURCE=200809L`, retaining the upstream POSIX return ABI and source.
 Preserve per-unit compiler diagnostics with the Linux artifact for subsequent
 dependency failures.
+
+## 0034: Fetch large source selections from a pinned archive
+
+Status: accepted for M3 build preparation.
+
+The ART class libraries require thousands of Java source files. Fetching each
+file through GitHub's contents API adds thousands of requests to a fresh build.
+Allow an existing exact file selection to specify a reviewed archive hash and
+size as its transport. Stream only selected regular files into a temporary
+tree, then verify all file hashes and notices before installation. Revalidate
+cached selected files on reuse, as with individual-file downloads.
+
+This retains a larger compressed archive in the configured cache in exchange
+for one download per component. Unselected files and aliases are not installed.
+Tests cover selection, cache corruption, archive corruption, traversal, missing
+files, duplicate/case-conflicting entries and selected aliases. Existing small
+selections continue to support individual-file downloads.

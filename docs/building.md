@@ -77,6 +77,11 @@ credentials are used; CI can provide `GH_TOKEN` through its normal secret
 environment. Original source archives stay in the configured download cache.
 This fetch command does not build or claim a working Bionic runtime.
 
+A source pin can combine an archive hash with an explicit file list. This
+downloads the archive once and extracts only the pinned regular files, checking
+each file before installing the source tree. Cached selections are revalidated
+on reuse. This mode is useful for larger class-library source selections.
+
 ## Paths and environment
 
 | Setting | Default | Command-line option |
