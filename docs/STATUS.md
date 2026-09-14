@@ -1,6 +1,6 @@
 # ARTBox status
 
-M0-M2 automated acceptance passes. The project targets ordinary signed arm64
+M0-M2 are merged and tagged; automated acceptance passes. The project targets ordinary signed arm64
 **iOS 15+** apps. Physical checks are waived as milestone gates; physical iPhone
 execution remains unverified. Runtime milestones take priority over launcher UI.
 
@@ -41,7 +41,13 @@ other ELF TLS models, signal delivery, broader proc files, mutable directories
 and additional syscall families remain unsupported. The Windows native file
 provider is not implemented; portable VFS tests use an injected provider there.
 
-## Next: M3 ART bring-up
+## In progress: M3 ART bring-up
+
+The [M3 contract](m3-contract.md) specifies real ART/DEX execution, runtime
+code-generation checks and shared iOS integration. Its first host probe tests
+two low-address heap reservations and compares the default Apple null guard
+with a reduced guard in signed native executables. Native Apple and iOS linker
+evidence is pending; this does not yet compile or execute ART.
 
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build
