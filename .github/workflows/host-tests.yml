@@ -233,6 +233,7 @@ jobs:
             build/m3/art-references/*.log
             artifacts/m3-dex-loader-linux.json
             build/m3/dex-loader/linux/*.log
+            build/m3/dex-loader/linux/objects/*.log
             build/m2/proc/*.log
             build/m2/timeouts/native.log
             build/m2/elf-tls/native.log
