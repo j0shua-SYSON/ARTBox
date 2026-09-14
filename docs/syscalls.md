@@ -152,3 +152,17 @@ I/O and 512 concurrent appends. `/system` is read-only and parent/symlink traver
 is rejected. Guest stat ownership is UID/GID 10000. This provider does not yet
 supply file-backed mappings, mutable directories or multiple guest users.
 The 41-case NDK caller and actual Bionic per-thread file client are awaiting CI.
+
+### File-backed data mapping extension (native CI pending)
+
+| ARM64 call | Implemented subset | Evidence |
+| --- | --- | --- |
+| mmap 222 | Private/shared regular-file data, independent FD lifetime, offset and permission checks; no executable or fixed file maps | 43-case identical NDK mapping caller; portable ownership tests |
+| mprotect 226 | Preserve shared read-only descriptor ceiling across protection changes | NDK mapping caller and injected backing |
+| munmap 215 | Partial file views, final reservation/reference cleanup | NDK mapping caller and injected backing |
+| madvise 233 | DONTNEED restores private file pages and preserves shared changes; anonymous replacements remain zero-fill | NDK mapping caller |
+| msync 227 | Shared MS_SYNC writeback, private/ASYNC no-op after validation; one reservation | NDK mapping caller |
+
+`openat` flags use the ARM64 UAPI layout, checked at NDK compile time. The first
+real Linux ARM64 file oracle exposed the initial generic-layout error; the
+correction passes at `ce6c6eb` without removing any file tests.

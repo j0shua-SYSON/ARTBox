@@ -3,11 +3,20 @@
 #include <exception>
 #include <cstring>
 #include <mutex>
+#include <memory>
 #include <new>
 #include <vector>
 
 namespace {
 constexpr unsigned mapped = 0x80;
+constexpr unsigned file_page = 0x40, deny_write = 0x20;
+struct FileMapping {
+    artbox_vm_file_ops ops{};
+    void *reference = nullptr;
+    uint64_t offset = 0;
+    unsigned sharing = 0;
+    ~FileMapping() { if (reference) ops.release(reference); }
+};
 struct Region {
     uintptr_t base = 0;
     size_t length = 0;
@@ -15,6 +24,7 @@ struct Region {
     bool owned = true;
     bool protectable = true;
     std::vector<unsigned char> pages;
+    std::shared_ptr<FileMapping> file;
 };
 int protection(uint64_t value) {
     if (value & ~UINT64_C(7)) return -22;
@@ -150,6 +160,57 @@ int64_t artbox_vm_mmap(artbox_vm *space, uint64_t address, uint64_t length, uint
     return static_cast<int64_t>(reinterpret_cast<uintptr_t>(storage));
 }
 
+int64_t artbox_vm_map_file(artbox_vm *space, uint64_t address, uint64_t length,
+    uint64_t prot, uint64_t flags, uint64_t offset, void *file,
+    const artbox_vm_file_ops *ops, unsigned maximum) {
+    if (!space || !file || !ops || !ops->acquire || !ops->release || !ops->map || !ops->sync ||
+        (maximum != 1 && maximum != 3)) return -22;
+    std::lock_guard<std::mutex> guard(space->lock);
+    if (space->poisoned) return -5;
+    size_t size = space->rounded(length);
+    if (!size || (offset & (space->ops.page_size - 1))) return -22;
+    if (size > static_cast<uint64_t>(INT64_MAX) || offset > static_cast<uint64_t>(INT64_MAX) - size) return -75;
+    int permissions = protection(prot);
+    if (permissions < 0) return permissions;
+    unsigned sharing = static_cast<unsigned>(flags & 0xf);
+    if (sharing != 1 && sharing != 2) return -22;
+    if (flags & ~UINT64_C(0x4003)) return -95;
+    if (static_cast<unsigned>(permissions) & ~maximum) return -13;
+    (void)address; // Ordinary hints may be ignored, as with anonymous storage.
+    if (space->regions.size() == space->region_limit || size > space->limit - space->reserved) return -12;
+    Region region;
+    region.length = size; region.live = size / space->ops.page_size;
+    try {
+        region.pages.assign(region.live, static_cast<unsigned char>(mapped | file_page |
+            (maximum == 1 ? deny_write : 0) | static_cast<unsigned>(permissions)));
+        region.file = std::make_shared<FileMapping>();
+    } catch (const std::exception &) { return -12; }
+    region.file->ops = *ops; region.file->offset = offset; region.file->sharing = sharing;
+    int error = ops->acquire(file, &region.file->reference);
+    if (error) return error;
+    if (!region.file->reference) return -5;
+    void *storage = nullptr;
+    error = space->ops.reserve(size, &storage);
+    if (error) return error;
+    region.base = reinterpret_cast<uintptr_t>(storage);
+    if (!region.base || region.base > INT64_MAX || !space->range(region.base, size)) {
+        if (storage) space->ops.release(storage, size);
+        return -12;
+    }
+    error = ops->map(region.file->reference, storage, size, static_cast<unsigned>(permissions), sharing, offset);
+    if (error) {
+        if (space->ops.release(storage, size)) {
+            space->poisoned = true;
+            space->reserved += size;
+            space->regions.push_back(std::move(region));
+        }
+        return error;
+    }
+    space->reserved += size;
+    space->regions.push_back(std::move(region));
+    return static_cast<int64_t>(reinterpret_cast<uintptr_t>(storage));
+}
+
 int artbox_vm_mprotect(artbox_vm *space, uint64_t address, uint64_t length, uint64_t prot) {
     if (!space) return -22;
     std::lock_guard<std::mutex> guard(space->lock);
@@ -165,9 +226,13 @@ int artbox_vm_mprotect(artbox_vm *space, uint64_t address, uint64_t length, uint
     size_t first = static_cast<size_t>(address - region->base) / space->ops.page_size;
     size_t count = size / space->ops.page_size;
     if (!space->present(*region, first, count)) return -12;
+    if (permissions & 2)
+        for (size_t n = first; n < first + count; ++n)
+            if (region->pages[n] & deny_write) return -13;
     int result = space->mutation(space->ops.protect(reinterpret_cast<void *>(address), size, static_cast<unsigned>(permissions)));
-    if (!result) std::fill_n(region->pages.begin() + static_cast<ptrdiff_t>(first), count,
-                            static_cast<unsigned char>(mapped | static_cast<unsigned>(permissions)));
+    if (!result)
+        for (size_t n = first; n < first + count; ++n)
+            region->pages[n] = static_cast<unsigned char>((region->pages[n] & ~3u) | static_cast<unsigned>(permissions));
     return result;
 }
 
@@ -224,9 +289,44 @@ int artbox_vm_madvise(artbox_vm *space, uint64_t address, uint64_t length, int a
     for (size_t n = first; n < first + count;) {
         size_t end = n + 1;
         while (end < first + count && region->pages[end] == region->pages[n]) ++end;
-        int result = space->mutation(space->ops.reset(reinterpret_cast<void *>(region->base + n * space->ops.page_size),
-                                   (end - n) * space->ops.page_size, region->pages[n] & 3));
+        void *start = reinterpret_cast<void *>(region->base + n * space->ops.page_size);
+        size_t bytes = (end - n) * space->ops.page_size;
+        int result;
+        if (region->pages[n] & file_page) {
+            const auto &f = *region->file;
+            result = f.ops.map(f.reference, start, bytes, region->pages[n] & 3, f.sharing,
+                               f.offset + n * space->ops.page_size);
+        } else result = space->ops.reset(start, bytes, region->pages[n] & 3);
+        result = space->mutation(result);
         if (result) return result;
+        n = end;
+    }
+    return 0;
+}
+
+int artbox_vm_msync(artbox_vm *space, uint64_t address, uint64_t length, uint64_t flags) {
+    if (!space) return -22;
+    std::lock_guard<std::mutex> guard(space->lock);
+    if (space->poisoned) return -5;
+    size_t size = space->rounded(length);
+    if ((flags & ~UINT64_C(7)) || (flags & 5) == 5 || !space->range(address, size) || (!size && length)) return -22;
+    if (!length) return 0;
+    Region *region = space->containing(address, size);
+    if (!region) return -12;
+    size_t first = static_cast<size_t>(address - region->base) / space->ops.page_size;
+    size_t count = size / space->ops.page_size;
+    if (!space->present(*region, first, count)) return -12;
+    // Linux MS_ASYNC (including flags=0) does not initiate writeback. PRIVATE
+    // pages never propagate their copy-on-write changes into the backing file.
+    if (!(flags & 4) || !region->file || region->file->sharing != 1) return 0;
+    for (size_t n = first; n < first + count;) {
+        if (!(region->pages[n] & file_page)) { ++n; continue; }
+        size_t end = n + 1;
+        while (end < first + count && (region->pages[end] & file_page)) ++end;
+        int error = region->file->ops.sync(region->file->reference,
+            reinterpret_cast<void*>(region->base + n * space->ops.page_size),
+            (end - n) * space->ops.page_size, static_cast<unsigned>(flags));
+        if (error) return error;
         n = end;
     }
     return 0;
@@ -355,6 +455,7 @@ int64_t artbox_vm_syscall(void *context, uint64_t number, uint64_t a0, uint64_t 
     switch (number) {
         case 222: return artbox_vm_mmap(space, a0, a1, a2, a3, static_cast<int64_t>(a4), a5);
         case 226: return artbox_vm_mprotect(space, a0, a1, a2);
+        case 227: return artbox_vm_msync(space, a0, a1, a2);
         case 215: return artbox_vm_munmap(space, a0, a1);
         case 233: return artbox_vm_madvise(space, a0, a1, static_cast<int>(static_cast<uint32_t>(a2)));
         default: return -38;

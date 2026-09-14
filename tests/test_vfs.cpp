@@ -21,9 +21,11 @@ static artbox_vfs *caller_fs;
 static artbox_kernel_thread *caller_thread;
 static int caller_errno;
 extern "C" int64_t artbox_files_check(uint64_t);
+extern "C" int64_t artbox_file_mapping_check(uint64_t);
 extern "C" int *artbox_file_errno(void) { return &caller_errno; }
 extern "C" int64_t artbox_file_syscall(uint64_t n, uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f) {
-    int64_t result = artbox_kernel_call(caller_thread, n, a, b, c, d, e, f);
+    int64_t result = n == 222 ? artbox_vfs_mmap(caller_fs, caller_thread->vm, a, b, c, d, static_cast<int64_t>(e), f) :
+        artbox_kernel_call(caller_thread, n, a, b, c, d, e, f);
     if (result == -38) result = artbox_vfs_call(caller_fs, caller_thread, n, a, b, c, d);
     if (result < 0 && result >= -4095) { caller_errno = static_cast<int>(-result); return -1; }
     return result;
@@ -173,7 +175,7 @@ int main(int argc, char **argv) {
     for (const char *name : {"", "data", "system"}) { Node n; n.name = name; n.directory = true; n.mode = 0755; mock.nodes.emplace(name, n); }
     for (const char *name : {"data/link", "data/jump"}) { Node n; n.name = name; n.link = true; mock.nodes.emplace(name, n); }
     Node ro; ro.name = "system/readonly"; mock.nodes.emplace(ro.name, ro);
-    artbox_file_ops files{&mock, open_mock, close_mock, read_mock, write_mock, seek_mock, stat_mock, stat_at_mock};
+    artbox_file_ops files{&mock, open_mock, close_mock, read_mock, write_mock, seek_mock, stat_mock, stat_at_mock, {}};
     contract(files); CHECK(mock.handles == 0);
 #if defined(__linux__)
     int root = ::open(argv[1], O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
@@ -192,6 +194,16 @@ int main(int argc, char **argv) {
 #else
     CHECK(artbox_native_files_open(argv[1], &native) == 0);
     contract(artbox_native_files_ops(native));
+    artbox_vm_ops memory = artbox_native_vm(); artbox_system_ops system = artbox_native_system();
+    artbox_vm *vm = artbox_vm_create(&memory, memory.page_size * 32, 16);
+    artbox_kernel_thread thread;
+    CHECK(vm && artbox_kernel_thread_init(&thread, vm, &system, 10000, 10000) == 0);
+    artbox_file_ops native_ops = artbox_native_files_ops(native);
+    caller_fs = artbox_vfs_create(&native_ops, 32); caller_thread = &thread; CHECK(caller_fs);
+    int64_t mapping_cases = artbox_file_mapping_check(memory.page_size);
+    if (mapping_cases != 43) std::fprintf(stderr, "mapping caller: %lld\n", static_cast<long long>(mapping_cases));
+    CHECK(mapping_cases == 43 && artbox_vm_reserved_bytes(vm) == 0);
+    CHECK(artbox_vfs_destroy(caller_fs) == 0 && artbox_vm_destroy(vm) == 0);
     CHECK(artbox_native_files_close(native) == 0);
 #endif
     std::puts("Rooted VFS: mixed descriptors, paths, file flags, stat, partial I/O and 512 concurrent appends passed");

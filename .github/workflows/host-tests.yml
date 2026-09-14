@@ -87,6 +87,7 @@ jobs:
             artifacts/m2-bionic-startup.json
             build/m2/bionic-startup/futex-check.o
             build/m2/bionic-startup/file-check.o
+            build/m2/bionic-startup/mapping-check.o
             build/m2/dynamic-wrapper/libartbox_bionic_slice.so
             build/m2/dynamic-wrapper/vm-check.o
             build/m2/dynamic-wrapper/system-check.o

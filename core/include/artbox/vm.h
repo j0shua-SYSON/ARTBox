@@ -18,14 +18,32 @@ typedef struct artbox_vm_ops {
     int (*release)(void *address, size_t length);
 } artbox_vm_ops;
 
+/* A mapping owns an acquired file reference until its last reservation is
+ * released. map replaces only mapper-owned storage with a native non-executable
+ * file view; sharing is Linux MAP_SHARED=1 or MAP_PRIVATE=2. Callbacks run under
+ * the mapping lock and must not reenter the mapper. Errors are Linux errno. */
+typedef struct artbox_vm_file_ops {
+    int (*acquire)(void *file, void **reference);
+    void (*release)(void *reference);
+    int (*map)(void *reference, void *address, size_t length, unsigned protection,
+               unsigned sharing, uint64_t offset);
+    int (*sync)(void *reference, void *address, size_t length, unsigned flags);
+} artbox_vm_file_ops;
+
 artbox_vm *artbox_vm_create(const artbox_vm_ops *ops, uint64_t reservation_limit, size_t region_limit);
 /* The caller must stop guest access before destroying the address space. */
 int artbox_vm_destroy(artbox_vm *space);
 int64_t artbox_vm_mmap(artbox_vm *space, uint64_t address, uint64_t length,
                       uint64_t protection, uint64_t flags, int64_t fd, uint64_t offset);
+/* File mappings currently select their own address; MAP_FIXED is unsupported.
+ * maximum_protection is 1 for read-only shared mappings and 3 otherwise. */
+int64_t artbox_vm_map_file(artbox_vm *space, uint64_t address, uint64_t length,
+    uint64_t protection, uint64_t flags, uint64_t offset, void *file,
+    const artbox_vm_file_ops *ops, unsigned maximum_protection);
 int artbox_vm_mprotect(artbox_vm *space, uint64_t address, uint64_t length, uint64_t protection);
 int artbox_vm_munmap(artbox_vm *space, uint64_t address, uint64_t length);
 int artbox_vm_madvise(artbox_vm *space, uint64_t address, uint64_t length, int advice);
+int artbox_vm_msync(artbox_vm *space, uint64_t address, uint64_t length, uint64_t flags);
 /* AArch64 Linux memory syscall dispatcher, suitable for a native binding.
  * Other numbers return -ENOSYS; no syscall is forwarded to the host by number. */
 int64_t artbox_vm_syscall(void *space, uint64_t number, uint64_t a0, uint64_t a1,
