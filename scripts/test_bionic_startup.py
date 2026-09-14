@@ -93,6 +93,13 @@ def main():
             "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
             "-c", mapping_source, "-o", mapping_object)
     version_object, version_client_object = build / "versions.o", build / "version-client.o"
+    vm_object, timeout_object = build / "vm-check.o", build / "timeout-check.o"
+    proc_object = build / "proc-check.o"
+    for source_name, target in (("fixtures/bionic-vm/check.c", vm_object), ("fixtures/bionic-startup/timeouts.c", timeout_object),
+                                ("fixtures/bionic-files/proc.c", proc_object)):
+        command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
+                "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
+                "-c", ROOT / source_name, "-o", target)
     for source_name, target in (("versions.c", version_object), ("version_client.c", version_client_object)):
         command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
                 "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
@@ -143,12 +150,18 @@ def main():
     versions = build / "libartbox_versions.so"
     command("ld.lld", *link, "-soname", versions.name, "--version-script=" + str(ROOT / "fixtures/dynamic/versions.map"), version_object, "-o", versions)
     command("ld.lld", *tls_link, "-soname", app.name, client, futex_object, thread_object, file_object, mapping_object,
-            version_client_object, tls_access, tls_abi, "--no-as-needed", libc, versions, tls_library, "-o", app)
+            version_client_object, tls_access, tls_abi, vm_object, timeout_object,
+            "--no-as-needed", libc, versions, tls_library, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator through a manifest load group; not full M2",
               "project_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
               "source_commit": report["source_commit"], "partial_object_sha256": digest(partial),
               "bootstrap_source_sha256": digest(ROOT / "fixtures/bionic-startup/bootstrap.cpp"),
               "client_source_sha256": digest(ROOT / "fixtures/bionic-startup/check.c"), "images": {}, "tls": tls_metadata,
+              "anonymous_memory": {"cases": 35, "source_sha256": digest(ROOT / "fixtures/bionic-vm/check.c"),
+                                   "object_sha256": digest(vm_object)},
+              "timeouts": {"cases": 18, "source_sha256": digest(ROOT / "fixtures/bionic-startup/timeouts.c"),
+                           "object_sha256": digest(timeout_object)},
+              "proc": {"cases": 22, "source_sha256": digest(ROOT / "fixtures/bionic-files/proc.c"), "object_sha256": digest(proc_object)},
               "threads": {"source_sha256": digest(thread_source), "object_sha256": digest(thread_object),
                           "joined": 4, "detached": 2, "iterations_per_thread": 32},
               "versions": {"result": 46, "provider_source_sha256": digest(ROOT / "fixtures/dynamic/versions.c"),
@@ -204,6 +217,8 @@ def main():
                 raise RuntimeError("Versioned dependency calls did not complete")
             if result[key]["file_cases"] != 41 or result[key]["mapping_cases"] != 43:
                 raise RuntimeError("NDK regular-file client did not complete")
+            if result[key]["vm_cases"] != 35 or result[key]["timeout_cases"] != 18:
+                raise RuntimeError("NDK anonymous memory or pthread timeout client did not complete")
             if result[key]["pthread_result"] != 0 or result[key]["threads_reaped"] != 6:
                 raise RuntimeError("NDK pthread client did not complete")
             if result[key]["tls_modules"] != 2 or result[key]["tls_threads"] != 7 or result[key]["tls_result"] != 0:

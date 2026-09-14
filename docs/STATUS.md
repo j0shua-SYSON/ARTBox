@@ -42,10 +42,14 @@ The iOS regression IPA still runs M1. Integration now moves the exact M2 runner
 into the shared Apple platform layer and embeds its four tested libraries and
 ELF resources in an iOS 15 app. The new CI job waits for host and Linux success,
 checks the source revision and every signed payload, then builds the M2 IPA.
-That integrated build is pending.
+That integrated build passes at `545f8b6` in [CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34826492425). The downloaded IPA is verified: all seven Mach-O images, four ELF resources,
+notices, the manifest and merge provenance agree. Its SHA-256 is
+`b1ef0c659037cc1de71b14bdb0c21096d52dda373ec9855eab05fe697ac59f90`
+(795,303 bytes). Physical execution remains unverified.
 
-Publish the fixed NDK acceptance denominator and close the remaining required
-thread/proc fixture cases. The suite must pass at least 90%, including mandatory
+The integration denominator is frozen at 328 expectations. The full suite now
+adds the existing 35-case anonymous-memory caller and 18 pthread timeout cases;
+CI is pending. The 22-case proc contract is written before its implementation. The suite must pass at least 90%, including mandatory
 thread/file/memory behavior. General dlopen scope growth, preinit/finalization,
 signal delivery and additional syscall families remain unsupported. M2 is not
 tagged or complete; M3-M7 remain unimplemented.

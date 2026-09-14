@@ -22,6 +22,11 @@ int64_t artbox_file_syscall(uint64_t n, uint64_t a0, uint64_t a1, uint64_t a2,
     return syscall((long)n, a0, a1, a2, a3, a4, a5);
 }
 int *artbox_file_errno(void) { return &errno; }
+int64_t artbox_stub_syscall(uint64_t n, uint64_t a0, uint64_t a1, uint64_t a2,
+                           uint64_t a3, uint64_t a4, uint64_t a5) {
+    return syscall((long)n, a0, a1, a2, a3, a4, a5);
+}
+int *artbox_stub___errno(void) { return &errno; }
 
 int artbox_startup_check(void) {
     int cases = 0;
