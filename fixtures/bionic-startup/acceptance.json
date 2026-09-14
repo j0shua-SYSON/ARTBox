@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "minimum_percent": 90,
+  "cases": [
+    {"id": "allocator_devices", "count": 146, "mandatory": true},
+    {"id": "futex", "count": 19, "mandatory": true},
+    {"id": "regular_files", "count": 41, "mandatory": true},
+    {"id": "file_mappings", "count": 43, "mandatory": true},
+    {"id": "anonymous_memory", "count": 35, "mandatory": true},
+    {"id": "pthread_timeouts", "count": 18, "mandatory": true},
+    {"id": "proc_commandline", "count": 22, "mandatory": true},
+    {"id": "pthread_workload", "count": 1, "mandatory": true},
+    {"id": "elf_tls", "count": 1, "mandatory": true},
+    {"id": "symbol_versions", "count": 1, "mandatory": true},
+    {"id": "startup_constructors", "count": 1, "mandatory": true}
+  ],
+  "total": 328
+}

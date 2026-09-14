@@ -1,37 +1,57 @@
 # ARTBox status
 
-M0 is merged and tagged `m0`: a portable startup contract and an iOS 15+ UIKit
-log console. Host tests verify exactly `ARTBox ready` and exit code 0. Python
-automation passes Windows, macOS, Linux and iOS CI; see [M0 acceptance](acceptance/m0.md).
+M0-M2 automated acceptance passes. The project targets ordinary signed arm64
+**iOS 15+** apps. Physical checks are waived as milestone gates; physical iPhone
+execution remains unverified. Runtime milestones take priority over launcher UI.
 
-M1 meets its automated acceptance: the same static, libc-free NDK ARM64 ELF
-runs natively on macOS through both signed Mach-O conversion and linker-wrapper
-frameworks. Each passes 100 hello/exit invocations and five syscall counts.
-Native ARM64 Linux runs the original ELF unchanged. The iOS 15 device build
-embeds both signed frameworks and verifies the IPA; its console uses the same
-entry tested on the Mac. See [M1 evidence](acceptance/m1.md) and
-[PR #2](https://github.com/j0shua-SYSON/ARTBox/pull/2).
+## What runs
 
-Physical-device checks are waived for all milestones by the project owner.
-Physical iPhone execution and lifecycle behavior remain unverified. Automated
-acceptance, CI and artifact checks remain required.
+- M0: the portable startup path and independent iOS console print `ARTBox ready`.
+- M1: an original static NDK ARM64 hello runs natively on macOS through both
+  signed packaging prototypes, with five translated syscalls and exit zero.
+- M2: real pinned AOSP Bionic starts with Scudo and GWP-ASan. A dynamically linked
+  NDK suite passes **328/328 expectations (100%)** in both normal and forced
+  sampling processes. The manifest loader links four signed libraries, resolves
+  versions, relocates data atomically, and runs three constructors.
+- Six real Bionic pthreads exercise concurrent allocation, files, mutexes,
+  conditions, timed waits, errno/key isolation, return/exit and cleanup. Two ELF
+  TLS templates preserve initialized, zero-filled and aligned storage across
+  seven threads through Bionic's DTV and a precompiled TLSDESC bridge.
+- Rooted regular files, anonymous/file mappings, virtual devices and initial
+  `/proc/self/cmdline` work within their documented Linux-compatible subsets.
+  Original NDK callers and Bionic syscall entries have native Linux comparisons.
+- All 20 portable CTest contracts pass on Windows, macOS and Linux. The integrated
+  M2 iOS 15 IPA embeds the same diagnostic runner and four tested libraries,
+  alongside the M1 fixtures. Its seven Mach-O images, original ELF resources,
+  signatures, notices and source provenance are verified.
 
-The Apple-linker wrapper is selected for M2 based on the measured M1 experiment;
-the direct converter remains a comparison prototype. The [loader design](loader-design.md)
-was recorded before implementation. Dynamic Bionic, ART, Binder, graphics and
-APK execution remain future work.
+See [M2 acceptance](acceptance/m2.md) for exact revisions, CI links, artifact
+hashes, counts and limitations. One traced Mac process takes 17.503 ms for
+startup and clients, including 2.898 ms for the threaded workload. Forced GWP
+sampling takes 19.755 ms and observes all 192 worker mallocs. Peak process RSS
+is 6,717,440 / 6,488,064 bytes. These are correctness observations including
+timed waits, not steady-state performance or iPhone measurements.
 
-## Next milestone: dynamic Bionic
+## What does not run
 
-M2 must load real Bionic dynamically and run an NDK suite with threads, files
-and mmap. The current parser and packer accept only the controlled M1 static
-fixture. They do not yet support general ELF dependencies, RELA/RELR, GNU hash,
-TLS or constructors.
+ART, DEX, Binder/services, Android Activities and APKs are not implemented.
+The M2 runner is diagnostic and single-use; unexpected contract failures can
+terminate its process. General dlopen scope growth, unloading/finalization,
+other ELF TLS models, signal delivery, broader proc files, mutable directories
+and additional syscall families remain unsupported. The Windows native file
+provider is not implemented; portable VFS tests use an injected provider there.
 
-## Three largest M2 risks
+## Next: M3 ART bring-up
 
-1. Preserving dynamic ELF addressing, relocations and dependencies in signed
-   Mach-O containers without runtime text fixups.
-2. Bionic TLS, reserved registers and Android/Apple calling-convention bridges.
-3. Linux-compatible threads, futexes, files and mapping behavior sufficient for
-   the dynamically linked NDK suite's 90% acceptance target.
+Pin and review only the ART sources and dependencies required to execute a
+hello-world DEX with the AOSP interpreter. Establish a host reference and build
+contract before adapting native entry, thread, memory and code-loading paths.
+Keep all generated native code in build-time signed artifacts; document the
+cost of the interpreter and each disabled runtime optimization. M4-M7 follow
+after M3 acceptance is green.
+
+The three largest M3 risks are ART's dependency/build footprint, its assumptions
+about signals/thread suspension and executable mappings, and ordinary iOS memory
+limits. The current Scudo reservation is about 8.25 GiB of virtual address space;
+Mac RSS does not establish an iPhone memory budget. ART's managed ABI and stack
+walking also need explicit validation across signed native boundaries.

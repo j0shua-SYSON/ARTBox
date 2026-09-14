@@ -1,0 +1,205 @@
+{
+  "bionic": {
+    "repository": "aosp-mirror/platform_bionic",
+    "upstream": "https://android.googlesource.com/platform/bionic",
+    "tag": "android-15.0.0_r1",
+    "commit": "361ba86734fb2821a6adcfdf775db8abd04e0de0",
+    "archive": "bionic-android-15.0.0_r1.tar.gz",
+    "archive_bytes": 6214925,
+    "archive_sha256": "bc1ddf365bec62f30ee5fc057d87ed54e11558f4d4187e90966d0c0e22bd159e",
+    "notice": "libc/NOTICE",
+    "notice_sha256": "75b5d593f1f741cd94dc88d18ba39d7c33d6b716e6985d7cabe308539f46b264",
+    "exclude": [
+      ".clang-format",
+      "libfdtrack/.clang-format",
+      "libc/versioner-dependencies",
+      "libc/kernel/uapi/linux/netfilter",
+      "libc/kernel/uapi/linux/netfilter_ipv4",
+      "libc/kernel/uapi/linux/netfilter_ipv6",
+      "tools/versioner"
+    ]
+  },
+  "libcutils-headers": {
+    "repository": "aosp-mirror/platform_system_core",
+    "tag": "android-15.0.0_r1",
+    "commit": "fc7bc8c4bfb4c6095e34ea784509dae56f25b486",
+    "files": [
+      {
+        "path": "libcutils/include/cutils/trace.h",
+        "sha256": "118278d32f4301d05e67223f03004025d143dc78a2c7c14d41f1914d495d80ac",
+        "bytes": 11901
+      },
+      {
+        "path": "libcutils/NOTICE",
+        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+        "bytes": 10695
+      },
+      {
+        "path": "libcutils/include/cutils/compiler.h",
+        "sha256": "b544a1f41e0ec7592773af661cd21ba53c3e1165dd4a67c32d6cd9d79cf2abd6",
+        "bytes": 1359
+      }
+    ],
+    "upstream": "https://android.googlesource.com/platform/system/core",
+    "notice": "libcutils/NOTICE",
+    "notice_sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+  },
+  "scudo": {
+    "upstream": "https://android.googlesource.com/platform/external/scudo",
+    "tag": "android-15.0.0_r1",
+    "commit": "67dd481e24c770b9f416f61844c2d015f125c134",
+    "archive": "scudo-android-15.0.0_r1.tar.gz",
+    "archive_bytes": 179923,
+    "archive_sha256": "ebfcc39ca44937c68e5e424c0e016e613f476972cdbc23c1fd8fbb107efb2c8f",
+    "notice": "LICENSE.TXT",
+    "notice_sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+    "exclude": [
+      ".clang-format"
+    ],
+    "repository": "aosp-mirror-neo/platform_external_scudo"
+  },
+  "gwp_asan": {
+    "upstream": "https://android.googlesource.com/platform/external/gwp_asan",
+    "tag": "android-15.0.0_r1",
+    "commit": "df96c8131b0e2cb91e7668a537bda7f18bc25635",
+    "archive": "gwp_asan-android-15.0.0_r1.tar.gz",
+    "archive_bytes": 51656,
+    "archive_sha256": "f3481a502b0e3d48659207c486f2c2ee16e3b19519c41244efdd50d1e40ada52",
+    "notice": "LICENSE.TXT",
+    "notice_sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+    "exclude": [
+      ".clang-format"
+    ],
+    "repository": "aosp-mirror-neo/platform_external_gwp_asan"
+  },
+  "arm-routines": {
+    "repository": "aosp-mirror-neo/platform_external_arm-optimized-routines",
+    "upstream": "https://android.googlesource.com/platform/external/arm-optimized-routines",
+    "tag": "android-15.0.0_r1",
+    "commit": "514df029da8aa4146726f6a020ddc69cf34a007d",
+    "files": [
+      {
+        "path": "LICENSE",
+        "bytes": 13491,
+        "sha256": "650afbf29f214451e02241adc42534e82c9d6ae2b38e2444b92b5a1ffcaf9346"
+      },
+      {
+        "path": "Android.bp",
+        "bytes": 7389,
+        "sha256": "f11bf4f9656b2850aa2996d684bcbb5d00ed6eb2e3785fbc923e18fbfd83a0e7"
+      },
+      {
+        "path": "string/aarch64/memchr-mte.S",
+        "bytes": 2337,
+        "sha256": "4c3be96e77af0d0f8689986e9393852505dcb4846cce11a027629bb9bd152623"
+      },
+      {
+        "path": "string/aarch64/memcmp.S",
+        "bytes": 3626,
+        "sha256": "39c262acede9d21e943e43039caee21723f271620b4f038b7ff7420e35e54113"
+      },
+      {
+        "path": "string/aarch64/memcpy.S",
+        "bytes": 5540,
+        "sha256": "4827fc216b524db80aad010f70b7be7c7db6374856086c4335cd1e27d497d037"
+      },
+      {
+        "path": "string/aarch64/memrchr.S",
+        "bytes": 2315,
+        "sha256": "990aef4de7ba92c155e4c7044bc636cd94ee7606fd6466a71a611076f5328f58"
+      },
+      {
+        "path": "string/aarch64/memset.S",
+        "bytes": 2180,
+        "sha256": "fef2e83bd94799f0f950f8d775e52724a20d60a401f401f8877cb9ab500e2f7c"
+      },
+      {
+        "path": "string/aarch64/stpcpy.S",
+        "bytes": 209,
+        "sha256": "7bd4e0624f03d4aa6bf84360e92c9df64128b5bbee66193e2c565b3bbed54b9d"
+      },
+      {
+        "path": "string/aarch64/strchr-mte.S",
+        "bytes": 2421,
+        "sha256": "3c8d0e4a48b2dbd78cb1c436e34e9a71e8aadb7f6632206283e8e51648bd2f45"
+      },
+      {
+        "path": "string/aarch64/strchrnul-mte.S",
+        "bytes": 1940,
+        "sha256": "805b1d0218c8ee6ccf7cd0a96861ab96862d80208e6853bf5599b931ed96e9cc"
+      },
+      {
+        "path": "string/aarch64/strcmp.S",
+        "bytes": 4155,
+        "sha256": "96fa2c79d8fc7a9e401c689505b9804f226b148fd9ac8144ded79f907175ff34"
+      },
+      {
+        "path": "string/aarch64/strcpy.S",
+        "bytes": 3127,
+        "sha256": "3c20d2344e69b7372a91ada84b2f38b4b21f6fed88d7f9daf795c736237574b8"
+      },
+      {
+        "path": "string/aarch64/strlen-mte.S",
+        "bytes": 1546,
+        "sha256": "c1c50d0e50df89660a0d6492936d865851a9af6d4435d6a1fa9e08f6f873607e"
+      },
+      {
+        "path": "string/aarch64/strrchr-mte.S",
+        "bytes": 3263,
+        "sha256": "5fbf0b30212c54fe2af588170a4ff9e098f0364d640b5a3936e35a6d406134bf"
+      },
+      {
+        "path": "string/aarch64/strncmp.S",
+        "bytes": 9023,
+        "sha256": "a0d7cbd3a8a2fcfe8474d45ba25093c9d3923196da49cc630d31a391e9e3cb22"
+      },
+      {
+        "path": "string/aarch64/strnlen.S",
+        "bytes": 2050,
+        "sha256": "f20ac62c4b20170d08f76a23af3ca030bf10598e95b44f61dfc361ebcf615702"
+      },
+      {
+        "path": "string/aarch64/asmdefs.h",
+        "bytes": 2020,
+        "sha256": "46c2a031ddf311b9622b2f8785e2c2985269e7d5cdbae219651e7b798f3822de"
+      }
+    ],
+    "notice": "LICENSE",
+    "notice_sha256": "650afbf29f214451e02241adc42534e82c9d6ae2b38e2444b92b5a1ffcaf9346"
+  },
+  "property-info": {
+    "repository": "aosp-mirror/platform_system_core",
+    "upstream": "https://android.googlesource.com/platform/system/core",
+    "tag": "android-15.0.0_r1",
+    "commit": "fc7bc8c4bfb4c6095e34ea784509dae56f25b486",
+    "notice": "libcutils/NOTICE",
+    "notice_sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+    "files": [
+      {
+        "path": "property_service/libpropertyinfoparser/Android.bp",
+        "bytes": 711,
+        "sha256": "f2cd9039e4968babb54a81fa59ed6c273bc7a5f3e459adfdb4123d55933ef2fe"
+      },
+      {
+        "path": "property_service/libpropertyinfoparser/property_info_parser.cpp",
+        "bytes": 7942,
+        "sha256": "cd340fdd555b42d056d01fb489d619a26782886d577cc8b2837eebfad63ad54c"
+      },
+      {
+        "path": "property_service/libpropertyinfoparser/include/property_info_parser/property_info_parser.h",
+        "bytes": 8235,
+        "sha256": "3054e6fc677e76006f62b8c8d70c73cfe3f1f33b20b8f6cdad0db5a4f2f530d8"
+      },
+      {
+        "path": "libcutils/include/private/android_filesystem_config.h",
+        "bytes": 12874,
+        "sha256": "e73226d7a3139e8a4a7d679f800e02a5d31460862231fded2edd88ea93df404c"
+      },
+      {
+        "path": "libcutils/NOTICE",
+        "bytes": 10695,
+        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+      }
+    ]
+  }
+}
