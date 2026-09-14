@@ -149,9 +149,8 @@ Its POSIX provider runs on macOS/Linux; the portable contract also runs with an
 injected provider on Windows. Openat, read/write, lseek, fstat/newfstatat,
 faccessat and close pass the supported flags/path/offset cases, including partial
 I/O and 512 concurrent appends. `/system` is read-only and parent/symlink traversal
-is rejected. Guest stat ownership is UID/GID 10000. This provider does not yet
-supply file-backed mappings, mutable directories or multiple guest users.
-The 41-case NDK caller and actual Bionic per-thread file client are awaiting CI.
+is rejected. Guest stat ownership is UID/GID 10000. File-backed data mappings and the 41-case NDK caller pass paired CI below;
+mutable directories and multiple guest users remain unsupported.
 
 ### File-backed data mapping extension (native CI green at b1a94c5)
 
@@ -166,3 +165,11 @@ The 41-case NDK caller and actual Bionic per-thread file client are awaiting CI.
 `openat` flags use the ARM64 UAPI layout, checked at NDK compile time. The first
 real Linux ARM64 file oracle exposed the initial generic-layout error; the
 correction passes at `ce6c6eb` without removing any file tests.
+
+### Initial proc snapshot
+
+Openat/read/fstat/newfstatat/lseek/close now route `/proc/self/cmdline` through
+an owned initial-argv snapshot, with zero inode size and independent offsets.
+The 22-case original NDK caller passes Linux at `2125b46`; portable snapshot
+ownership and fault tests pass, while signed Bionic integration is pending.
+See [the proc scope](files.md#initial-process-command-line) for explicit limits.

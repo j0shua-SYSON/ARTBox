@@ -1,4 +1,4 @@
-"""Establish the original Linux proc baseline before virtual proc integration."""
+"""Compare virtual proc in signed Bionic with the original NDK caller on Linux."""
 import sys
 sys.dont_write_bytecode = True
 import argparse
@@ -24,6 +24,8 @@ def main():
     evidence = args.evidence_root.resolve()
     r = json.loads((evidence / 'artifacts/m2-bionic-startup.json').read_text(encoding='utf-8'))
     metadata = r['proc']
+    if any(r[mode]['proc_cases'] != 22 for mode in ('native', 'sampled_native')):
+        raise RuntimeError('Signed Bionic did not complete the proc contract')
     obj = evidence / 'build/m2/bionic-startup/proc-check.o'
     if digest(obj) != metadata['object_sha256'] or digest(ROOT / 'fixtures/bionic-files/proc.c') != metadata['source_sha256']:
         raise RuntimeError('Proc caller provenance mismatch')
@@ -43,7 +45,7 @@ def main():
         records[profile] = json.loads(process.stdout)
         if records[profile] != {'proc_cases': 22}: raise RuntimeError('Proc baseline mismatch')
     (Path(os.environ['ARTBOX_ARTIFACTS_DIR']) / 'm2-proc-linux.json').write_text(json.dumps({
-        'scope': 'Native Linux baseline; virtual proc acceptance is still pending',
+        'scope': 'Identical NDK proc caller passes signed Bionic and both original Linux profiles',
         'proc': metadata, 'profiles': records}, indent=2) + '\n', encoding='utf-8')
 
 
