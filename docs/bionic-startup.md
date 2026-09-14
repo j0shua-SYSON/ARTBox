@@ -124,3 +124,11 @@ process, including the harness/libraries) and a separate pthread-client interval
 through complete reaping. It also counts guarded malloc results per worker and
 requires at least one in every worker in the forced-sampling process. These are
 correctness-run measurements, not isolated allocator or iPhone performance.
+
+Measurement implementation `f761947` passes [host/Linux](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34817498281)
+and [iOS](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34817498344). Both signed
+framework pairs, notices, source/object hashes and the regression IPA are downloaded
+and verified. The normal six-thread interval is 607,000 ns with 6,144,000 bytes
+process peak RSS; forced sampling is 6,378,000 ns with 5,783,552 bytes peak RSS.
+The forced run observes all 192 worker malloc results in the GWP pool. These single
+process observations do not establish comparative memory use or stable throughput.

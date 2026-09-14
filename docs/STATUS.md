@@ -40,16 +40,22 @@ all clients and reaping; forced GWP sampling measures 13.748 ms. These include a
 futex timeout, scheduling and trace output. Scudo reserves about 8.25 GiB of
 virtual address space; resident memory and iOS headroom are not yet measured.
 
-At `cc6b074`, signal-mask inheritance/isolation and the expanded 53-case startup
+At `f761947`, signal-mask inheritance/isolation and the expanded 53-case startup
 syscall caller pass signed macOS and both Linux profiles; the iOS build is green.
-This does not implement signal delivery or modify host signal masks. The next
-measurement records process peak RSS and thread-client elapsed time, and confirms
-that forced GWP sampling reaches each of the six workers.
+All six workers perform guarded allocations in the forced-sampling process:
+192 observed malloc results. The pthread client including reaping/tracing takes
+0.607 ms normally and 6.378 ms with forced sampling. Entire-process peak RSS is
+6,144,000 and 5,783,552 bytes respectively (single correctness runs). These are
+macOS measurements, not iPhone budgets. Downloaded inputs and the IPA are verified.
+
+The new [rooted file table](files.md) passes all 17 local contracts. It combines
+regular files and devices, preserves directory-relative handles, rejects root
+escapes and checks partial I/O/file offsets. Native macOS/Linux provider execution
+and signed Bionic regular-file integration are pending.
 
 ## Next work and remaining acceptance
 
-Add rooted regular-file operations and
-file-backed mappings. General dependency namespaces, symbol-version rules,
+Verify and integrate rooted regular-file operations, then add file-backed mappings. General dependency namespaces, symbol-version rules,
 cycles, constructor lifecycle and guest ELF TLS templates remain incomplete;
 the current executed load group is deliberately fixed. The [M2 contract](m2-contract.md)
 requires a published multithreaded NDK denominator with at least 90% passing,
