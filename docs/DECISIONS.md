@@ -450,6 +450,25 @@ not a successful delivery stub. sigaction, alternate signal stacks, pending
 queues, interruptible futex waits and signal frames remain unimplemented. The
 mask path uses no executable allocation or runtime code generation.
 
+## 0023 - Share rooted file and device descriptors
+
+Status: local VFS contracts pass; native file-provider CI pending.
+
+Extend the portable descriptor table so devices and backing files cannot collide.
+Use a borrowed preopened filesystem root and opaque file handles behind a small
+interface. Resolve one component at a time; disallow symlinks and parent traversal
+for the initial confined profile. This deliberately excludes symlink compatibility
+until a bounded resolver can preserve the same root. POSIX uses public openat
+and NOFOLLOW; the Windows provider remains ENOTSUP rather than presenting path
+string checks as equivalent to descriptor-relative confinement.
+
+Keep Linux stat encoding and flag/error policy in the core. Serialize file offsets
+and hold VM access validation across I/O so errors do not consume bytes from an
+invalid guest destination. This can block mapping changes during disk I/O and
+limits parallel file throughput; correctness comes before finer-grained locks.
+Test partial copies and the no-copy EOF case before adding adaptations. No file
+mapping or executable-memory support is implied by this descriptor stage.
+
 ## No-JIT cost ledger
 
 | Constraint | Consequence / evidence |
