@@ -150,6 +150,7 @@ jobs:
       - name: Compare signed Bionic file operations with both original Linux paths
         run: python3 -B scripts/test_bionic_files.py --evidence-root build/oracle
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
         with:
           name: linux-arm64-oracle
           path: |
@@ -162,5 +163,6 @@ jobs:
             artifacts/m2-binary128-linux.json
             artifacts/m2-futex-linux.json
             artifacts/m2-files-linux.json
+            build/m2/files-oracle/*.log
           if-no-files-found: error
           retention-days: 7
