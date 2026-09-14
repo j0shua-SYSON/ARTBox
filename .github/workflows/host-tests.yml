@@ -37,6 +37,7 @@ jobs:
           ${{ matrix.python }} -B tests/test_bionic_adapt.py
           ${{ matrix.python }} -B tests/test_bionic_syscalls.py
           ${{ matrix.python }} -B tests/test_dynamic_pack.py
+          ${{ matrix.python }} -B tests/test_tls_adapt.py
           ${{ matrix.python }} -B scripts/build.py host
       - name: Build the pinned NDK ELF and test both packaging inputs
         if: matrix.os == 'macos-15'
@@ -95,6 +96,13 @@ jobs:
             build/m2/bionic-startup/mapping-check.o
             build/m2/bionic-startup/libartbox_versions.so
             build/m2/bionic-startup/version-client.o
+            build/m2/bionic-startup/libartbox_tls.so
+            build/m2/bionic-startup/libtls_client_linux.so
+            build/m2/bionic-startup/tls-original.s
+            build/m2/bionic-startup/tls-adapted.s
+            build/m2/bionic-startup/tls-original.o
+            build/m2/bionic-startup/tls-access.o
+            build/m2/bionic-startup/tls-abi.o
             build/m2/dynamic-wrapper/libartbox_bionic_slice.so
             build/m2/dynamic-wrapper/vm-check.o
             build/m2/dynamic-wrapper/system-check.o
@@ -157,6 +165,8 @@ jobs:
         run: python3 -B scripts/test_bionic_futex.py --evidence-root build/oracle
       - name: Compare signed Bionic versioned imports with native Linux
         run: python3 -B scripts/test_versioned_call.py --evidence-root build/oracle
+      - name: Compare signed Bionic ELF TLS with original native Linux access
+        run: python3 -B scripts/test_elf_tls.py --evidence-root build/oracle
       - name: Compare signed Bionic file operations with both original Linux paths
         run: python3 -B scripts/test_bionic_files.py --evidence-root build/oracle
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -174,6 +184,8 @@ jobs:
             artifacts/m2-futex-linux.json
             artifacts/m2-files-linux.json
             artifacts/m2-versioned-linux.json
+            artifacts/m2-elf-tls-linux.json
+            build/m2/elf-tls/native.log
             build/m2/versioned-call/native.log
             build/m2/files-oracle/*.log
           if-no-files-found: error

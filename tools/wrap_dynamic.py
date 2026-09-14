@@ -39,8 +39,8 @@ def pack_layout(data):
     require(ident[:7] == b"\x7fELF\x02\x01\x01" and ident[7] in (0, 3), "Expected little-endian ELF64")
     require((kind, machine, version, flags, ehsize, phsize) == (3, 183, 1, 0, 64, 56), "Expected AArch64 ET_DYN")
     require(phoff >= 64 and 2 <= phnum <= 16, "Invalid program header table")
-    loads, dynamic = [], []
-    allowed = {1, 2, 4, 6, 0x6474e550, 0x6474e551, 0x6474e552}
+    loads, dynamic, tls = [], [], []
+    allowed = {1, 2, 4, 6, 7, 0x6474e550, 0x6474e551, 0x6474e552}
     for index in range(phnum):
         ptype, perms, offset, address, _, size, memory, alignment = read(data, "<II6Q", phoff + index * 56)
         require(ptype in allowed and perms & ~7 == 0, "Unsupported program header")
@@ -54,6 +54,8 @@ def pack_layout(data):
             loads.append(segment)
         elif ptype == 2:
             dynamic.append(segment)
+        elif ptype == 7:
+            tls.append(segment)
         elif ptype == 0x6474e551:
             require(perms & 1 == 0, "Executable guest stack is unsupported")
     require(len(loads) == 2 and len(dynamic) == 1, "Wrapper requires exactly RX/RW loads and a dynamic table")
@@ -69,6 +71,15 @@ def pack_layout(data):
     require(code["memory_size"] <= split and 0 < size <= LIMIT and split + size <= LIMIT,
             "Overlapping or excessive ELF virtual image")
     require(writable["offset"] >= code["file_size"], "Overlapping ELF file segments")
+    require(len(tls) <= 1, "Duplicate TLS template")
+    for template in tls:
+        relative = template["address"] - split
+        require(template["flags"] & 1 == 0 and 0 <= relative <= size and
+                0 < template["memory_size"] <= size - relative and
+                template["alignment"] <= 1024 * 1024, "TLS template escapes writable load")
+        require(not template["file_size"] or
+                (relative <= writable["file_size"] and template["file_size"] <= writable["file_size"] - relative and
+                 template["offset"] == writable["offset"] + relative), "TLS initializer is not mapped data")
     table = dynamic[0]
     relative = table["address"] - split
     require(table["flags"] == 6 and 0 <= relative <= writable["file_size"] - table["file_size"] and

@@ -13,6 +13,7 @@
 #define ASSERT(c) do { if (!(c)) return (void *)(intptr_t)-__LINE__; } while (0)
 #define CHECK(c) do { if (!(c)) return -__LINE__; } while (0)
 extern uint64_t artbox_bootstrap_is_guarded(const void *);
+extern int artbox_tls_check(unsigned, unsigned);
 enum { JOINED = 4, DETACHED = 2, ITERATIONS = 32 };
 static pthread_mutex_t lock;
 static pthread_cond_t changed;
@@ -32,6 +33,7 @@ static void destroy_value(void *value) {
 }
 static void *worker(void *value) {
     struct argument *a = value;
+    ASSERT(artbox_tls_check(a->index, 0) == 0);
     a->tid = gettid(); a->self = (void *)pthread_self(); a->errno_address = &errno;
     ASSERT(a->tid > 10000 && getpid() == 10000 && a->self != NULL);
     ASSERT(pthread_setspecific(key, a) == 0 && pthread_getspecific(key) == a);
@@ -81,11 +83,13 @@ static void *worker(void *value) {
         ASSERT(read(fd, &record, sizeof(record)) == sizeof(record) && record == a->index * 1000 + i);
     }
     ASSERT(close(fd) == 0);
+    ASSERT(artbox_tls_check(a->index, 1) == 0);
     void *result = (void *)(uintptr_t)(a->index + 1);
     if (a->index & 1) pthread_exit(result);
     return result;
 }
 int artbox_pthread_check(unsigned require_guarded) {
+    CHECK(artbox_tls_check(77, 0) == 0);
     pthread_t handles[JOINED];
     sigset_t previous_mask, mask;
     CHECK(sigemptyset(&mask) == 0 && sigaddset(&mask, SIGUSR1) == 0);
@@ -132,6 +136,7 @@ int artbox_pthread_check(unsigned require_guarded) {
     CHECK(pthread_sigmask(SIG_SETMASK, NULL, &mask) == 0 && sigismember(&mask, SIGUSR1) == 1 && sigismember(&mask, SIGUSR2) == 0);
     CHECK(pthread_sigmask(SIG_SETMASK, &previous_mask, NULL) == 0);
     CHECK(pthread_key_delete(key) == 0 && pthread_cond_destroy(&changed) == 0 && pthread_mutex_destroy(&lock) == 0);
+    CHECK(artbox_tls_check(77, 1) == 0);
     return 0;
 }
 

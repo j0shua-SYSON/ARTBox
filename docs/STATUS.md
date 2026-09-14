@@ -88,5 +88,6 @@ libraries. M2 is not tagged or complete. M3-M7 remain unimplemented.
    packaging the integrated suite into the device build.
 
 ELF TLS work now adds bounded templates and transactional sixteen-byte TLSDESC
-relocation to the portable load group. Native Bionic template/access integration
-is in progress; it is not yet included in the verified execution above.
+relocation to the portable load group. Native integration now builds four wrappers with two ELF TLS modules and a
+register-preservation fixture. Its CI execution is pending; it is not yet
+included in the verified execution above.

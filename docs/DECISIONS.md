@@ -571,7 +571,7 @@ than relying only on per-image metadata assertions. Both signed Bionic profiles 
 
 ## ADR 0027 - Guest ELF TLS through Bionic and precompiled TLSDESC access
 
-Status: portable relocation/template tests pass; native integration in progress.
+Status: portable relocation/template tests pass in CI at `9f07f30`; native integration added, awaiting CI.
 
 Register PT_TLS templates with module IDs in dependency-scope order, then let
 Bionic reserve and initialize their static storage in each native guest thread.
@@ -600,3 +600,14 @@ before destruction. It validates the precompiled resolver against signed RX
 ranges. Templates use relocated writable initialization bytes where present.
 Ordinary address lookup rejects TLS symbols. Preinit, later dlopen TLS modules,
 TLS unloading and other ELF TLS relocation models remain future work.
+
+The native fixture now has TLS in two shared images: initialized and 32-byte
+aligned zero storage in a provider, and a 64-byte aligned local template in the
+client. Main plus six real Bionic pthreads check initial values, zero fill,
+alignment and persistent per-thread mutations. Original compiler output runs
+under Linux's linker with six concurrent pthreads. A shared assembly acceptance
+function checks x2-x17 and all 32 full SIMD registers across two resolver calls,
+covering initial DTV allocation and a subsequent access. The signed resolver
+also preserves x1, LR and NZCV. No code or third-party implementation was copied
+for these fixtures. Dynamic DTV allocation uses Bionic's existing allocator;
+static TLS lifetime follows Bionic thread mappings and the native reaper.
