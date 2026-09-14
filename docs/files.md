@@ -38,5 +38,16 @@ The local contract covers mixed descriptor allocation, create/exclusive/truncate
 relative directory paths, read-only system files, symlink/traversal rejection,
 seek/stat, EOF, inaccessible-buffer offsets, partial I/O and 512 concurrent
 appends. It also checks that a symlink target outside the guest root remains
-unchanged. All 17 local CTest contracts pass; native macOS/Linux filesystem
-execution and signed Bionic regular-file integration are pending.
+unchanged. At `9cf76a1`, all 17 contracts pass on Windows, macOS and Linux;
+macOS/Linux use the actual rooted POSIX provider as well as the injected provider.
+The Linux branch also compares real syscall behavior at EOF and EFAULT. The
+[host/Linux run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34818958455) and
+[iOS build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34818958365) are green.
+
+The next signed integration adds an identical 41-case NDK file caller paired
+with the original/adapted Bionic syscall entries on Linux ARM64. Its portable
+execution passes locally. The real Bionic pthread client also creates one regular
+file per worker, writes 32 records, checks fstat/seek, reads each record back and
+closes it. The signed process now owns a rooted file provider; each normal/sampled
+process receives a fresh root retained with its diagnostic artifacts. This new
+signed execution still awaits CI.

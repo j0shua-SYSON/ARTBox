@@ -143,3 +143,12 @@ before changing state, then the previous mask is copied out; EFAULT during that
 copy does not roll back the change. Host masks are untouched. The 17-case original
 NDK caller and pthread inheritance checks pass paired CI at `cc6b074`. This is mask state,
 not signal delivery, alternate-stack or signal-handler support.
+
+The [rooted VFS](files.md) now shares regular-file and virtual-device descriptors.
+Its POSIX provider runs on macOS/Linux; the portable contract also runs with an
+injected provider on Windows. Openat, read/write, lseek, fstat/newfstatat,
+faccessat and close pass the supported flags/path/offset cases, including partial
+I/O and 512 concurrent appends. `/system` is read-only and parent/symlink traversal
+is rejected. Guest stat ownership is UID/GID 10000. This provider does not yet
+supply file-backed mappings, mutable directories or multiple guest users.
+The 41-case NDK caller and actual Bionic per-thread file client are awaiting CI.

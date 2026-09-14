@@ -452,7 +452,7 @@ mask path uses no executable allocation or runtime code generation.
 
 ## 0023 - Share rooted file and device descriptors
 
-Status: local VFS contracts pass; native file-provider CI pending.
+Status: portable and native POSIX VFS contracts pass in CI at `9cf76a1`; signed Bionic integration pending.
 
 Extend the portable descriptor table so devices and backing files cannot collide.
 Use a borrowed preopened filesystem root and opaque file handles behind a small
