@@ -19,8 +19,10 @@ the caller must apply the corresponding runtime semantics. It is not a host
 function pointer. No dependency graph, IFUNC invocation, TLS allocation or
 constructor execution is implemented by this metadata API.
 
-The initial implementation explicitly rejects symbol versions, REL and
-Android packed REL/RELA, text relocations, and AArch64 variant-PCS symbols.
+Version definitions/requirements and symbol assignments are validated through
+DT_VERDEF, DT_VERNEED and DT_VERSYM. Named lookup handles hidden/default versions
+and AOSP-compatible unversioned interposition. REL, Android packed REL/RELA,
+text relocations and AArch64 variant-PCS symbols remain unsupported.
 Standard RELR and the earlier Android RELR tag aliases share the same table
 format.
 
@@ -29,13 +31,16 @@ to caller-owned writable PT_LOAD views. It decodes RELR bitmaps, resolves symbol
 references, and prepares every write before changing any destination. Errors
 leave the data and output statistics unchanged. Text targets, source-buffer
 aliases, missing mappings and out-of-range targets fail. Overlapping/composed
-relocations, TLS, IFUNC, COPY and instruction relocations remain unsupported.
+relocations, IFUNC, COPY and instruction relocations remain unsupported. The
+extended `artbox_relocate_tls` API also prepares sixteen-byte TLSDESC records
+through an explicit precompiled-resolver binding callback. Other ELF TLS
+relocation models are unsupported.
 
 Local, hidden, internal and protected definitions bind within the image.
 Default-visible definitions are offered to the caller's resolver for
 interposition; undefined weak references become zero, while unresolved strong
-references fail. The callback supplies the lookup scope; a process namespace
-and dependency graph are still required. PLT slots resolve eagerly. Byte stores
+references fail. The callback supplies lookup scope; the portable load-group
+engine provides a manifest-backed dependency graph and one BFS scope. PLT slots resolve eagerly. Byte stores
 support unaligned targets, and 64-bit address arithmetic retains the low 64
 bits as prescribed by the Arm ABI. A call expects fresh data: applying RELR
 twice would add the bias twice.
@@ -72,3 +77,24 @@ ABI](https://github.com/ARM-software/abi-aa/blob/main/aaelf64/aaelf64.rst).
 RELR decoding follows the [generic ELF relocation
 format](https://gabi.xinuos.com/elf/06-reloc.html).
 The implementation is original ARTBox code; no reference loader was imported.
+
+## Manifest groups and native TLS integration
+
+`artbox_load_group` resolves a root's DT_NEEDED closure from up to 64 explicit
+bundle entries, supports cycles and DT_SYMBOLIC, and stages the entire group's
+writable relocations before publishing any. Validate all constructor pointers
+against reachable RX ranges, then initialize dependencies once before parents.
+A failed callback poisons initialization; owner-driven group destruction requires
+all guest threads to have stopped. Host symbols require explicit bridge exports.
+
+PT_TLS templates get one-based module IDs in BFS order, preserve alignment/skew,
+and use relocated initialization data. The group owns stable descriptor arguments
+and rejects ordinary address lookup of TLS symbols. The signed Bionic bootstrap
+registers these templates with Bionic's own static layout and per-thread DTV.
+Controlled global-dynamic compiler output replaces TP reads before signing;
+its precompiled resolver returns an absolute guest address. No host thread-pointer
+register is changed. Original NDK TLS access also runs through native Linux.
+
+Native evidence is in [the status](STATUS.md), [Bionic integration](bionic-startup.md)
+and the M2 acceptance artifact. General dlopen scope growth, unloading/finalization,
+preinit arrays and TLS models beyond the selected TLSDESC path remain unsupported.

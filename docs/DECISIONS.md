@@ -657,8 +657,8 @@ No kernel source is copied.
 
 ## ADR 0030 - Owned initial-argv proc snapshot and explicit acceptance scoring
 
-Status: Linux proc baseline and timeout/anonymous-memory integration pass at
-`2125b46`; virtual proc and final scoring added, awaiting native CI.
+Status: both Bionic profiles pass 328/328 at `e50ec7f`; host, Linux and integrated
+iOS CI are green and the downloaded IPA is verified. See [M2 acceptance](acceptance/m2.md).
 
 Use the existing portable VFS descriptor table for proc data. Copy the initial
 argv bytes once (maximum 64 KiB), assign a separate cursor per open, and keep

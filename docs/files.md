@@ -102,6 +102,7 @@ rejected. The snapshot reports the fixed guest UID/GID 10000.
 
 The 22-case NDK caller passed both original Linux paths at `2125b46` before the
 virtual implementation. Portable tests cover owned initialization bytes, separate
-FD offsets, partial faults, EOF and seek. Signed Bionic integration is pending.
+FD offsets, partial faults, EOF and seek. Both signed Bionic profiles and their
+Linux comparisons pass all 22 cases at `e50ec7f`; see [M2 acceptance](acceptance/m2.md).
 Live argv mutations/setproctitle, readlink/lstat of `/proc/self`, SEEK_DATA/HOLE,
 other process IDs and additional proc files are outside this initial contract.
