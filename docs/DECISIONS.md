@@ -731,7 +731,10 @@ reference success test.
 
 ## ADR 0032 - Validate real ART reference storage before widening the runtime build
 
-Status: original NDK header contract compiles; signed/native comparison in progress.
+Status: at `2586a50`, 38 signed Mac cases and 38 original Linux cases pass,
+including stored representations and real acquire/release instructions.
+Both iOS framework profiles pass signature/layout checks; see
+[reference evidence](m3-references.md).
 
 Use the pinned Android 15 reference types themselves before adapting the full
 interpreter. Select their 12-file ART header closure, five libbase headers and
