@@ -4,6 +4,7 @@ import sys
 sys.dont_write_bytecode = True
 
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -158,6 +159,8 @@ def obtain_files(name, spec, cache):
         key = raw.casefold()
         if key in selected or entry["bytes"] < 0 or not re.fullmatch(r"[0-9a-f]{64}", entry["sha256"]):
             raise RuntimeError("Duplicate or invalid pinned source file")
+        if "git_blob" in entry and not re.fullmatch(r"[0-9a-f]{40}", entry["git_blob"]):
+            raise RuntimeError("Invalid pinned Git blob")
         selected[key] = entry
     if not selected:
         raise RuntimeError("Empty pinned source selection")
@@ -197,6 +200,21 @@ def obtain_files(name, spec, cache):
                 for entry in selected.values():
                     path = stage / entry["path"]
                     path.parent.mkdir(parents=True, exist_ok=True)
+                    if "git_blob" in entry:
+                        endpoint = f"repos/{spec['repository']}/git/blobs/{entry['git_blob']}"
+                        blob = json.loads(subprocess.check_output(["gh", "api", endpoint]))
+                        if blob.get("encoding") != "base64" or blob.get("size") != entry["bytes"] or \
+                                blob.get("sha") != entry["git_blob"]:
+                            raise RuntimeError("Git blob metadata differs from the pin")
+                        try:
+                            data = base64.b64decode("".join(blob["content"].split()), validate=True)
+                        except ValueError as error:
+                            raise RuntimeError("Invalid Git blob encoding") from error
+                        identity = hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
+                        if len(data) != entry["bytes"] or identity != entry["git_blob"]:
+                            raise RuntimeError("Git blob content differs from the pin")
+                        path.write_bytes(data)
+                        continue
                     endpoint = f"repos/{spec['repository']}/contents/{quote(entry['path'], safe='/')}?ref={spec['commit']}"
                     with path.open("wb") as output:
                         subprocess.run(["gh", "api", endpoint, "-H", "Accept: application/vnd.github.raw+json"],

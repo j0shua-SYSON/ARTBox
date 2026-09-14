@@ -81,6 +81,8 @@ A source pin can combine an archive hash with an explicit file list. This
 downloads the archive once and extracts only the pinned regular files, checking
 each file before installing the source tree. Cached selections are revalidated
 on reuse. This mode is useful for larger class-library source selections.
+Pinned binary tools can instead name an exact Git blob. The fetcher decodes its
+base64 payload and verifies both its Git identity and file SHA-256 before use.
 
 ## Paths and environment
 

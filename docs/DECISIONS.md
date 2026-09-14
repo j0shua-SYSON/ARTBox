@@ -839,3 +839,9 @@ for one download per component. Unselected files and aliases are not installed.
 Tests cover selection, cache corruption, archive corruption, traversal, missing
 files, duplicate/case-conflicting entries and selected aliases. Existing small
 selections continue to support individual-file downloads.
+
+Reviewed binary build tools can specify a Git blob identifier alongside their
+file hash. Fetch and decode the API's base64 representation to preserve arbitrary
+bytes through CLI output, then check the Git identity and SHA-256. A binary
+fixture containing invalid UTF-8 and zero bytes tests this path and rejects
+corrupted content before installation.
