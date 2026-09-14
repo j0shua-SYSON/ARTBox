@@ -4,7 +4,6 @@ sys.dont_write_bytecode = True
 
 import json
 import hashlib
-from pathlib import Path
 import plistlib
 import time
 
@@ -60,11 +59,14 @@ def prepare(packed, directory, platform, notice, notice_sha256, extra_notices=No
         notice_hashes[name] = expected
     command("codesign", "--force", "--sign", "-", "--timestamp=none", framework)
     command("codesign", "--verify", "--strict", "--verbose=2", framework)
+    entitlements = command("codesign", "--display", "--entitlements", ":-", framework, capture=True)
+    if entitlements and plistlib.loads(entitlements) != {}:
+        raise RuntimeError("Signed dynamic framework contains unexpected entitlements")
     after = verify_macho(binary.read_bytes(), layout)
     if any(before[key] != after[key] for key in ("load_bias", "rx_address", "rw_address")):
         raise RuntimeError("Signing changed the verified guest address layout")
     (directory / "load-commands.txt").write_bytes(command("xcrun", "otool", "-l", binary, capture=True))
     return binary, {"platform": platform, "target": target, "layout": after, "notice_sha256": notice_sha256,
-                    "notices": notice_hashes,
+                    "notices": notice_hashes, "entitlements": {}, "signature_verified": True,
                     "unsigned_bytes": unsigned_size,
                     "signed_bytes": binary.stat().st_size, "link_verify_sign_ns": time.perf_counter_ns() - started}

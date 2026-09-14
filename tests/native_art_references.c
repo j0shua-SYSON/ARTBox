@@ -45,7 +45,8 @@ static artbox_elf_result reject_constructor(void *context, uint64_t address) {
 }
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "ART reference host check failed at %d\n", __LINE__); return 1; } } while (0)
 int main(int argc, char **argv) {
-    if (argc != 3) return 2;
+    if (argc != 4 || (strcmp(argv[3], "plain") && strcmp(argv[3], "poisoned"))) return 2;
+    int poison = !strcmp(argv[3], "poisoned");
     FILE *input = fopen(argv[2], "rb");
     CHECK(input && !fseek(input, 0, SEEK_END));
     long length = ftell(input);
@@ -87,13 +88,17 @@ int main(int argc, char **argv) {
     CHECK(!artbox_reference_window_init(&window, (uintptr_t)base, span, ops.page_size));
     unsigned char *first = (unsigned char *)base + ops.page_size, *second = first + ops.page_size;
     CHECK(!ops.protect(first, ops.page_size * 2, 3));
+    uint32_t observations[4] = {0}, first_bits = (uint32_t)ops.page_size, second_bits = first_bits * 2;
     int32_t result = (int32_t)artbox_call7((void *)(uintptr_t)entry, (uintptr_t)first, (uintptr_t)second,
-                                         ops.page_size, ops.page_size * 2, 0, 0, 0);
+                                         first_bits, second_bits, (uintptr_t)observations, (uintptr_t)(first + 16), 0);
     if (result != 19) { fprintf(stderr, "Adapted ART reference case: %d\n", result); return 1; }
     CHECK(*(uint64_t *)first == UINT64_C(0x123456789abcdef0) && *(uint64_t *)second == UINT64_C(0xfedcba9876543210));
+    CHECK(observations[0] == (uint32_t)poison && observations[1] == (poison ? 0u-first_bits : first_bits) &&
+          observations[2] == (poison ? 0u-second_bits : second_bits) && observations[3] == second_bits);
     artbox_load_group_destroy(group);
     CHECK(!dlclose(library) && !ops.release(base, span));
     free(original);
-    printf("{\"cases\":19,\"native_base\":%" PRIu64 ",\"encoding\":\"heap-relative\",\"cleanup\":true}\n", window.base);
+    printf("{\"cases\":19,\"native_base\":%" PRIu64 ",\"encoding\":\"heap-relative\",\"cleanup\":true,"
+           "\"observations\":[%u,%u,%u,%u]}\n", window.base, observations[0], observations[1], observations[2], observations[3]);
     return 0;
 }

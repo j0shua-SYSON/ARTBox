@@ -760,3 +760,12 @@ other headers, GC/root/JNI access, read barriers, class layout, quick/nterp and
 AOT code remain outside this test. Each needs consistent encoding and actual
 runtime tests before claiming ART support. iOS framework compilation and
 signature/layout checks are separate from device execution.
+
+The first native comparison at `89aa2b7` passed, but artifact inspection showed
+that optimization folded away most local storage and both poisoning profiles
+had identical machine code. Strengthen the test before relying on its volatile
+coverage: construct the actual HeapReference in caller-provided aligned storage,
+read representations through volatile bytes, and return four storage observations
+for independent host checks. Require real ARM64 `ldar` and `stlr` instructions
+in both original and adapted objects. This changes the diagnostic fixture, not
+AOSP's atomic implementation or the selected compression adaptation.
