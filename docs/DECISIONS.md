@@ -720,3 +720,11 @@ An add/subtract and validation branches per reference are accepted initial
 costs. ART's stack references, JNI roots, read barriers, image relocation and
 future AOT output require a consistent adaptation; no compatibility with
 unmodified ART native reference accesses is implied.
+
+
+The negative launch harness calls public `posix_spawn` directly after checking
+Mach-O layout and the ordinary signature. CTest initially reported EBADMACHO;
+Python's subprocess wrapper instead observed a killed child, including with an
+explicit pre-exec callback. A generic signal is not accepted as proof of this
+loader restriction. Keep the exact errno check and the independent high-address
+reference success test.

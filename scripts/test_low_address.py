@@ -54,7 +54,7 @@ def macho(path, target, guard):
     if len(platforms) != 1 or platforms[0][0] != target or (target == 2 and platforms[0][1] != 15 << 16):
         raise RuntimeError('Unexpected probe platform or deployment target')
     entitlements = run('codesign', '-d', '--entitlements', ':-', path)
-    if plistlib.loads(entitlements) != {}:
+    if entitlements and plistlib.loads(entitlements) != {}:
         raise RuntimeError('Probe contains entitlements')
     run('codesign', '--verify', '--strict', path)
     return {'sha256': hashlib.sha256(data).hexdigest(), 'bytes': len(data),
@@ -74,17 +74,17 @@ def observe(executable, available):
 def expect_rejected(executable):
     if sys.platform != 'darwin' or platform.machine().lower() not in ('arm64', 'aarch64'):
         raise RuntimeError('The hard-page-zero rejection contract requires native Apple ARM64')
+    macho(executable, 1, 1 << 16)
     try:
-        # Python's posix_spawn path can report an asynchronous SIGKILL for a
-        # rejected Mach-O. Force fork/exec in this single-threaded test so the
-        # parent receives execve's specific errno; a generic signal is not proof.
-        result = subprocess.run([str(executable), 'available'], capture_output=True,
-                                timeout=30, preexec_fn=os.getpid)
+        # Ask posix_spawn directly. Python's fork/exec wrapper can observe a
+        # killed child instead of returning the kernel's synchronous load error.
+        child = os.posix_spawn(str(executable), [str(executable), 'available'], os.environ)
     except OSError as error:
         if error.errno != 88:  # Darwin EBADMACHO, not a generic execution failure.
             raise
         return {'launch_rejected': True, 'errno': error.errno, 'reason': 'Darwin EBADMACHO'}
-    raise RuntimeError(f'Reduced-guard ARM64 executable unexpectedly started: exit {result.returncode}')
+    _, status = os.waitpid(child, 0)
+    raise RuntimeError(f'Reduced-guard ARM64 executable unexpectedly spawned: wait status {status}')
 
 
 def main():
