@@ -93,6 +93,8 @@ jobs:
             build/m2/bionic-startup/futex-check.o
             build/m2/bionic-startup/file-check.o
             build/m2/bionic-startup/mapping-check.o
+            build/m2/bionic-startup/libartbox_versions.so
+            build/m2/bionic-startup/version-client.o
             build/m2/dynamic-wrapper/libartbox_bionic_slice.so
             build/m2/dynamic-wrapper/vm-check.o
             build/m2/dynamic-wrapper/system-check.o
@@ -153,6 +155,8 @@ jobs:
         run: python3 -B scripts/test_bionic_binary128.py --evidence-root build/oracle
       - name: Compare the signed Bionic futex caller with both original Linux paths
         run: python3 -B scripts/test_bionic_futex.py --evidence-root build/oracle
+      - name: Compare signed Bionic versioned imports with native Linux
+        run: python3 -B scripts/test_versioned_call.py --evidence-root build/oracle
       - name: Compare signed Bionic file operations with both original Linux paths
         run: python3 -B scripts/test_bionic_files.py --evidence-root build/oracle
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -169,6 +173,8 @@ jobs:
             artifacts/m2-binary128-linux.json
             artifacts/m2-futex-linux.json
             artifacts/m2-files-linux.json
+            artifacts/m2-versioned-linux.json
+            build/m2/versioned-call/native.log
             build/m2/files-oracle/*.log
           if-no-files-found: error
           retention-days: 7

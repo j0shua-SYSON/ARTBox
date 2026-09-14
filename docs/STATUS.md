@@ -61,14 +61,18 @@ scope order, handles cycles and DT_SYMBOLIC, stages all data relocations before
 committing any module, and validates all constructor addresses before running
 exactly-once dependency initialization. All 19 local contracts pass, including a
 late unresolved import leaving the entire group unchanged. The signed Bionic
-harness now uses this engine instead of its fixed lookup loop; native CI is pending.
+harness uses this engine instead of its fixed lookup loop. [Host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34823142507)
+and [iOS CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34823142517) pass at `2ef7198`.
 Guest ELF TLS, preinit arrays, unloading and multiple dlopen groups remain open.
 
 ## Next work and remaining acceptance
 
 Complete general dependency namespaces, version-aware scope resolution, cycles,
 constructor lifecycle and guest ELF TLS templates.
-The executed load group is currently fixed. The [M2 contract](m2-contract.md)
+The signed fixture's current extension adds a third library exporting hidden and
+default versions of the same function. Its NDK caller imports both; the expected
+result distinguishes either incorrectly duplicated binding. The NDK build and
+instruction/layout checks pass; signed and paired Linux execution await CI. The [M2 contract](m2-contract.md)
 requires a published NDK denominator with at least 90% passing, mandatory
 thread/file/memory success, and an iOS build containing that same suite and
 libraries. M2 is not tagged or complete. M3-M7 remain unimplemented.
