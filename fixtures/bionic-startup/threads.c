@@ -72,6 +72,7 @@ int artbox_pthread_check(void) {
     for (unsigned i = 0; i < JOINED; ++i) {
         void *result = NULL;
         CHECK(pthread_join(handles[i], &result) == 0);
+        if ((intptr_t)result < 0) return (int)(intptr_t)result; // Preserve the worker's failing source line.
         CHECK(result == (void *)(uintptr_t)(i + 1));
         for (unsigned j = 0; j < i; ++j) CHECK(arguments[i].tid != arguments[j].tid);
     }
