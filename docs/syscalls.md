@@ -65,8 +65,8 @@ the syscall translation and Linux byte layout remain in portable C.
 
 | Number | Implemented subset | Limits / differences |
 | --- | --- | --- |
-| `getpid` (172), `gettid` (178) | IDs in the guest process namespace, common PID and distinct thread descriptors | The owner assigns unique IDs; this does not create native guest threads. |
-| `set_tid_address` (96) | Store the exit-clear pointer without dereferencing it, return guest TID; NULL clears registration | Clear/wake on thread exit is not integrated. Registration alone is not full syscall lifecycle support. |
+| `getpid` (172), `gettid` (178) | IDs in the guest process namespace, common PID and distinct thread descriptors | The pthread bridge assigns distinct monotonic IDs to native guest workers. General process creation remains unsupported. |
+| `set_tid_address` (96) | Store the exit-clear pointer without dereferencing it, return guest TID; NULL clears registration | The native reaper clears and wakes after join; detached Bionic exit disables clearing before deferred unmap. |
 | `clock_gettime` (113) | Realtime and monotonic clocks; explicit little-endian 64-bit seconds/nanoseconds, including unaligned output | CPU, boot-time and dynamic clocks return EINVAL; coarse realtime/monotonic use the corresponding precise clocks. |
 | `getrandom` (278) | Initialized host CSPRNG; valid Linux flags, zero length, EFAULT and partial progress on a later inaccessible range | No pre-initialization entropy state or guest signal interruption. Insecure requests receive secure bytes. Large transfers use 256-byte staging chunks and the Linux page-rounded signed-32-bit transfer cap. |
 
@@ -104,8 +104,8 @@ ENOSYS; it is never forwarded to Darwin using the Linux syscall number.
 The native page size comes from the host (supported contract: power of two,
 4 KiB through 64 KiB). The fixture requests 16 KiB and both packaging routes
 use 16 KiB Mach-O alignment. Memory allocated for the guest never requests
-execute permission. File-backed mappings, the general virtual filesystem, guest threads,
-signals, epoll, eventfd, pipes and sockets remain future work. The initial
+execute permission. File-backed mappings, the general virtual filesystem, broader
+thread operations, signal delivery, epoll, eventfd, pipes and sockets remain future work. The initial
 [futex implementation](futex.md) provides WAIT/WAKE and BITSET variants with
 timeout, race and error tests; its 19-case signed Bionic/Linux comparison passes at `7b62337`.
 
@@ -128,3 +128,18 @@ errno helper: 8,280 capture cases and five real syscall smoke cases per profile.
 The signal comparison uses the actual original/adapted header with a Linux test
 backend. Neither test implements Darwin signals or counts toward M2's dynamic
 runtime suite. Transporting a syscall number does not implement that syscall.
+
+The initial pthread clone bridge implements Bionic's exact CLONE_VM/FS/FILES/
+SIGHAND/THREAD/SYSVSEM/SETTLS/PARENT_SETTID/CHILD_CLEARTID flag set. Original
+Bionic code owns its TCB, stack, handshake and public pthread operations. Other
+clone/fork/vfork forms remain unsupported. Native creation errors leave the parent
+TID word unchanged; clear-TID and detached unmap occur only after native join.
+The signed six-worker test passes at `e828dad` in both allocator sampling modes.
+
+The pending rt_sigprocmask (135) implementation stores an independent guest
+64-bit mask per thread and inherits it at clone. Size must be eight bytes; how
+is checked only with a new mask. SIGKILL/SIGSTOP cannot be blocked. Input is read
+before changing state, then the previous mask is copied out; EFAULT during that
+copy does not roll back the change. Host masks are untouched. The 17-case original
+NDK caller and pthread inheritance checks await paired CI. This is mask state,
+not signal delivery, alternate-stack or signal-handler support.

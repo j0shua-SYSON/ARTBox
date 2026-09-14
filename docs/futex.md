@@ -17,10 +17,10 @@ involved. Queue scan and native condition-variable overhead are not benchmarked.
 Private and shared opcode keys are distinct. Shared operations currently support
 the same address in one guest process; shared file aliases and multiple processes
 are not implemented. A private wake does not need a currently mapped word.
-Read-only words support atomic loads. A future native thread reaper must call the
-release-store/clear-TID helper only after the child stops using its stack and TCB;
-the helper then wakes one shared waiter. Thread creation/reaping is not claimed
-by the primitive alone.
+Read-only words support atomic loads. The native thread reaper calls the
+release-store/clear-TID helper after native join confirms the child stopped using
+its stack and TCB; the helper then wakes one shared waiter. Real Bionic pthread
+join/exit now passes in the signed six-worker fixture at `e828dad`.
 
 The behavior reference is Linux v6.12's [syscall dispatch](https://github.com/torvalds/linux/blob/v6.12/kernel/futex/syscalls.c)
 and [wait/wake implementation](https://github.com/torvalds/linux/blob/v6.12/kernel/futex/waitwake.c).
