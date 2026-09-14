@@ -684,8 +684,8 @@ artifact. No physical-device result is inferred from a signed build.
 ## ADR 0031 - Validate ART's low-address heap before adapting its references
 
 Status: the reduced guard was rejected before entry on native ARM64 macOS at
-`87b036f` (EBADMACHO). Heap-relative codec and negative launch contract added;
-full signed comparison and native codec CI pending.
+`87b036f` (EBADMACHO). At `0f1aed8`, the signed native comparison and
+high-address codec pass CI; both iOS 15 layouts/signatures are verified.
 
 ART at Android 15 stores managed references as 32-bit addresses in
 `runtime/mirror/object_reference.h`. Our current app's 4 GiB `__PAGEZERO`
@@ -728,3 +728,35 @@ Python's subprocess wrapper instead observed a killed child, including with an
 explicit pre-exec callback. A generic signal is not accepted as proof of this
 loader restriction. Keep the exact errno check and the independent high-address
 reference success test.
+
+## ADR 0032 - Validate real ART reference storage before widening the runtime build
+
+Status: original NDK header contract compiles; signed/native comparison in progress.
+
+Use the pinned Android 15 reference types themselves before adapting the full
+interpreter. Select their 12-file ART header closure, five libbase headers and
+seven fmtlib headers, with each component's complete reviewed notices. The
+original ARTBox contract was compiled against unmodified AOSP headers before
+the compression overlay was added. Compare those original NDK objects on native
+Linux with adapted NDK objects packaged by the existing signed ELF wrapper.
+
+Change only the raw-pointer `PtrCompression` entry points. Retain AOSP's null,
+copy, four-byte storage, stack-vreg, volatile access and negation-based poison
+semantics. Test heap poisoning both off and on. Keep the source cache immutable;
+reject a changed upstream hash or repeated adaptation. Preserve the Apache
+notice and label the change in the generated overlay. Every packaged object
+must have no SVC, TPIDR, reserved-register or unknown instruction references;
+only the two fixed-width reference bridges may remain as native imports.
+
+The diagnostic bridge calls the checked portable codec for every access, which
+adds native calls as well as range/alignment validation. This is an accepted
+initial cost, not an optimized production reference ABI. It uses one stable
+window and aborts on invalid input. Storage used by this fixture is opaque
+aligned memory, not constructed ART Objects. The fixture verifies decoded
+reads/writes but establishes neither object liveness nor collector correctness.
+
+`ObjPtr` debug encoding, its reference overloads, CAS operations defined in
+other headers, GC/root/JNI access, read barriers, class layout, quick/nterp and
+AOT code remain outside this test. Each needs consistent encoding and actual
+runtime tests before claiming ART support. iOS framework compilation and
+signature/layout checks are separate from device execution.

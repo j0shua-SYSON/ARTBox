@@ -201,5 +201,168 @@
         "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
       }
     ]
+  },
+  "art-references": {
+    "repository": "aosp-mirror-neo/platform_art",
+    "upstream": "https://android.googlesource.com/platform/art",
+    "tag": "android-15.0.0_r1",
+    "commit": "bebbc3cc49f2d9d5420197df0a336fbc3fcbea40",
+    "files": [
+      {
+        "path": "NOTICE",
+        "bytes": 10695,
+        "sha256": "613c3a67424d8f9f32da434d1b98a610f98a7df6c2350c3429d9da975f0405fd"
+      },
+      {
+        "path": "libartbase/base/atomic.h",
+        "bytes": 6235,
+        "sha256": "7c9698ced291471b2371bdfc254902f88bf153487922f02ac951bdda2b922d44"
+      },
+      {
+        "path": "libartbase/base/bit_utils.h",
+        "bytes": 18601,
+        "sha256": "d7c9a4fa39c93a8e137c5ad23b8e102a18e74c50f490131c215a4816cab8d281"
+      },
+      {
+        "path": "libartbase/base/casts.h",
+        "bytes": 7904,
+        "sha256": "57bec5b602b2f2e953c93602f3b0dd1a8c6b62c4aa01722196648f0c23eec254"
+      },
+      {
+        "path": "libartbase/base/globals.h",
+        "bytes": 5929,
+        "sha256": "25df006bee00012ac78e69e9bffceefcf092fcc64ce6a0d29feac96c4c92db64"
+      },
+      {
+        "path": "libartbase/base/macros.h",
+        "bytes": 5404,
+        "sha256": "26f3c272fe2381b10be4383f105138eae3ad18c3e997ecb09e69b07ef7d38940"
+      },
+      {
+        "path": "libartbase/base/stl_util_identity.h",
+        "bytes": 1472,
+        "sha256": "5c7da973d8a241f965a72171a172a7b447471f3c6bc26b0eb424f9430d9e8939"
+      },
+      {
+        "path": "runtime/base/locks.h",
+        "bytes": 17479,
+        "sha256": "56816f57863727a7e2e91436c01df8459869f125bb1695d350190a55b403585e"
+      },
+      {
+        "path": "runtime/heap_poisoning.h",
+        "bytes": 1168,
+        "sha256": "6a3ee1ae747f8c38f96fae80d11d58389cd86744bfbe706a814dd758dba3acd7"
+      },
+      {
+        "path": "runtime/mirror/object_reference.h",
+        "bytes": 8825,
+        "sha256": "cb97ef1a4c0ffab7ab4cf6ba1185e26bb757e06abdcf7998baf291e7f34e5bae"
+      },
+      {
+        "path": "runtime/obj_ptr.h",
+        "bytes": 7570,
+        "sha256": "a265e2c09dddaa7a645ecc8cd229c4d85187db826285ab8f948e8c2b52d6eb58"
+      },
+      {
+        "path": "runtime/runtime_globals.h",
+        "bytes": 6315,
+        "sha256": "d40404dbf2958cc0377e634363059430f7fa82ed05b7cc58b8f5eb82e65379e1"
+      }
+    ],
+    "notice": "NOTICE",
+    "notice_sha256": "613c3a67424d8f9f32da434d1b98a610f98a7df6c2350c3429d9da975f0405fd"
+  },
+  "libbase-references": {
+    "repository": "aosp-mirror-neo/platform_system_libbase",
+    "tag": "android-15.0.0_r1",
+    "commit": "68f963c62f7fddc70c34df141d943ae0f7631020",
+    "files": [
+      {
+        "path": "NOTICE",
+        "bytes": 12840,
+        "sha256": "e0afbb47be661ce2076d21a1d4dc02caa58b7c215ab7ff9d151b6724be341f77"
+      },
+      {
+        "path": "include/android-base/errno_restorer.h",
+        "bytes": 1087,
+        "sha256": "bc8ea768464dab76980399911027d82499e6438872a96a85e9d1f872e72e38d6"
+      },
+      {
+        "path": "include/android-base/format.h",
+        "bytes": 1063,
+        "sha256": "3535ed09a7a295bf10b0a3bd95daa21009b5973a74c8d6754616ad9d4a4cc66c"
+      },
+      {
+        "path": "include/android-base/logging.h",
+        "bytes": 20537,
+        "sha256": "677853d6d32da28d6bed7572fab6f02851dc0e3a440a304de88bb05ba287fcec"
+      },
+      {
+        "path": "include/android-base/macros.h",
+        "bytes": 5716,
+        "sha256": "9e5fa1f156269bae41e19a6b217563904e41d7de5b8429874fd6cbadaf919171"
+      },
+      {
+        "path": "include/android-base/thread_annotations.h",
+        "bytes": 4566,
+        "sha256": "1f7e5a90d436f6eecb9e5702b498f9ad3bb3154694690a25ccdcdc6c1d3a0554"
+      }
+    ],
+    "notice": "NOTICE",
+    "notice_sha256": "e0afbb47be661ce2076d21a1d4dc02caa58b7c215ab7ff9d151b6724be341f77"
+  },
+  "fmtlib-references": {
+    "repository": "aosp-mirror-neo/platform_external_fmtlib",
+    "tag": "android-15.0.0_r1",
+    "commit": "360e74bb8ec766ee05e5c4e8956c811391e3e9e5",
+    "files": [
+      {
+        "path": "LICENSE",
+        "bytes": 1431,
+        "sha256": "07580f2a3b35709ce703d523f447b242f6dfec7582a8c0df102c7fa2849375f8"
+      },
+      {
+        "path": "NOTICE",
+        "bytes": 1310,
+        "sha256": "560d39617dfb4b4e4088597291a070ed6c3a8d67668114ed475c673430c3e49a"
+      },
+      {
+        "path": "include/fmt/chrono.h",
+        "bytes": 74011,
+        "sha256": "a38d6c02f64e2af3684369ad4df6ab88be203a0d4bdfbf51fde542f83546eac9"
+      },
+      {
+        "path": "include/fmt/core.h",
+        "bytes": 99931,
+        "sha256": "8c75a764b48d5630810f98b60f78c19f91b59a05902fc606a28c956236a4865c"
+      },
+      {
+        "path": "include/fmt/format-inl.h",
+        "bytes": 73452,
+        "sha256": "3d854231e2b5bf5f4e0a3a5e7e20533e7c332a2d3d7ccbe6ec598537b2cab829"
+      },
+      {
+        "path": "include/fmt/format.h",
+        "bytes": 164524,
+        "sha256": "8ec36700be7648ab3f58c3ed8c1d8bd3178d943f4b99302883b1ba3057190e6f"
+      },
+      {
+        "path": "include/fmt/ostream.h",
+        "bytes": 7305,
+        "sha256": "f839f36281b36ac9e514e4c6d944f6f6699a2101bb36e9d4809aade4bd25ff61"
+      },
+      {
+        "path": "include/fmt/printf.h",
+        "bytes": 20837,
+        "sha256": "d121c2b5b48f68de396ca3ac5fa32b7c7dd77dd8d8e9684e8604a88756e680e5"
+      },
+      {
+        "path": "include/fmt/std.h",
+        "bytes": 16239,
+        "sha256": "06467b405f40291f40f26c6e46c15d756254581c397413a77c02b2b7d62dcb41"
+      }
+    ],
+    "notice": "LICENSE",
+    "notice_sha256": "07580f2a3b35709ce703d523f447b242f6dfec7582a8c0df102c7fa2849375f8"
   }
 }
