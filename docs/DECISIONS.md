@@ -384,7 +384,7 @@ failure before the fix and compare clock contracts with native Linux.
 
 ## 0020 - Serialize futex admission with native wait queues
 
-Status: implemented; local contracts pass, signed/Linux caller comparison pending.
+Status: implemented; local and signed Bionic/Linux comparisons pass at `7b62337`.
 
 Use a process-owned queue mutex and native condition variables. Holding the queue
 mutex across the atomic word comparison and waiter insertion prevents missed
@@ -401,6 +401,35 @@ controls deadlines, including relative versus absolute timeout differences.
 Keep the exit-clear operation separate from native thread ownership: clearing a
 TID before its native child stops using the stack would permit a premature join
 and unmap. See the tests and references in [futex semantics](futex.md).
+
+## 0021 - Reap native threads before releasing Bionic stacks
+
+Status: portable lifecycle tests pass; signed Bionic pthread integration pending.
+
+Retain AOSP pthread allocation, handshake, join state, key destructors and teardown.
+A small adapter compiled against the pinned private headers describes the usable
+stack and TLS through fixed-width fields. The host supports Bionic's pthread clone
+flag set; other clone forms remain ENOSYS. Public POSIX pthread attributes select
+a supplied non-executable guest stack. Round its upper bound down to a native
+page, leaving the guest TCB and up to one page outside the host's usable stack.
+Windows has no matching public supplied-stack thread API and returns ENOTSUP;
+portable lifecycle tests use an injected std::thread backend there.
+
+A process-owned reaper joins each native worker before clear-TID/wake or detached
+unmap. Publishing the parent TID holds the VM word lock across native creation:
+a failed creation leaves the word unchanged and cannot return a still-running
+worker to a caller that would free its stack. Test a delayed native tail after
+the guest callback returns, creation failures, 130 reaps and actual POSIX stacks.
+TIDs are monotonic within this bounded process; general clone/process creation,
+scheduling, cancellation and robust mutex cleanup remain unimplemented.
+
+Final guest thread exit crosses a C setjmp boundary after Bionic runs its own
+cleanup. The native worker then returns normally so host thread-local teardown
+finishes before the reaper proceeds. Using pthread_exit directly would require
+host forced unwinding through Android frames that are not registered Apple
+unwind metadata. The selected approach adds a host root frame and reaper queue;
+it generates no code and requests no entitlement. Each guest root frame owns its
+GWP-ASan state using the real AOSP definition and binds it to the guest TLS slot.
 
 ## No-JIT cost ledger
 
