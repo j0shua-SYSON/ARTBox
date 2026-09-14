@@ -12,12 +12,18 @@ python -B scripts/test_dex_loader.py --classlib-root build/m3/classlib
 ```
 
 Both commands configure their temporary and cache paths through
-`scripts/environment.py`. All paths are configurable; no JDK is installed by
-the builder. `ARTBOX_JAVA_HOME` can replace `--java-home`, followed by the
+`scripts/environment.py`. All paths are configurable. `ARTBOX_JAVA_HOME` can replace `--java-home`, followed by the
 runner's JDK 17 environment variables and `JAVA_HOME`. Use `--build-dir` for
 the output directory, `--jobs` for D8 concurrency and `--java-heap-mb` /
 `--dex-heap-mb` for the two compiler heaps. Defaults are two jobs and 768/1024 MB.
 The C++ compiler builds only Conscrypt's original constants generator.
+
+Use `--fetch-jdk` instead of `--java-home` to download the pinned portable
+Temurin 17 distribution into the configured cache. The installer verifies its
+release size and SHA-256 before extraction and checks installed file hashes
+before reuse. Complete distribution licenses remain with the tool. This option
+supports macOS/Linux ARM64 and x64, plus Windows x64; other hosts can supply an
+existing JDK. CI selects this option because its default JDK may change.
 
 The verifier command executes on native macOS and Linux. macOS also builds
 and ordinarily signs an iOS 15 framework containing the same format checks.
@@ -52,7 +58,7 @@ license notices and `corresponding-source.zip`. The latter contains all selected
 source, original build declarations, ARTBox build commands/configuration and
 generated inputs. Extract it to inspect the exact sources used; the embedded
 `artbox` directory contains the portable command and pin manifest for rebuilding
-with a separately supplied JDK/compiler. R8 is fetched by its recorded hash.
+with a supplied compiler and either a supplied or pinned portable JDK. R8 is fetched by its recorded hash.
 JDK and R8 tool binaries are not included in the output. Preserve the source
 bundle and notices when redistributing the implementation DEX.
 

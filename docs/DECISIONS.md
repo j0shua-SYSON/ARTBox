@@ -872,3 +872,11 @@ including corrupt input and duplicate/missing DEX cases, and compile the same
 inspection entry for an ordinarily signed iOS 15 framework. Interpreter-only
 runtime integration is the next contract; no runtime code generation is used
 to prepare or inspect these DEX data files.
+
+The first class-library CI run selected JDK 21 from the runner environment
+instead of JDK 17. Keep the JDK 17 build contract and add an explicit
+`--fetch-jdk` option for a checksum-pinned portable distribution. Download and
+extract it inside the configured cache; retain its complete licenses and
+revalidate installed file hashes. CI opts in, while interactive builds can
+continue to select an existing JDK. Archive tests cover binary preservation,
+executable permissions, internal aliases, traversal and duplicate entries.

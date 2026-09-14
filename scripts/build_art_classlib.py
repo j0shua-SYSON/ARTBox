@@ -81,6 +81,10 @@ def build(args):
     # Preserve previous results and failed compiler diagnostics; never mix stale classes.
     attempt = Path(tempfile.mkdtemp(prefix='attempt-', dir=directory))
     java_home = args.java_home
+    jdk_distribution = None
+    if args.fetch_jdk:
+        from jdk import obtain as obtain_jdk
+        java_home, jdk_distribution = obtain_jdk()
     if java_home is None:
         java_home = next((Path(os.environ[key]) for key in
                           ('ARTBOX_JAVA_HOME', 'JAVA_HOME_17_ARM64', 'JAVA_HOME_17_X64', 'JAVA_HOME')
@@ -165,8 +169,8 @@ def build(args):
     source_files = {f'upstream/{name}/{entry["path"]}': sources[name] / entry['path']
                     for name in sources for entry in specs[name]['files'] if entry['path'] != 'r8.jar'}
     project_inputs = ('LICENSE', 'THIRD_PARTY.md', 'docs/m3-classlib.md', 'scripts/build_art_classlib.py',
-                      'scripts/environment.py', 'scripts/sources.py', 'third_party/sources.json',
-                      'third_party/art/classlib.json')
+                      'scripts/environment.py', 'scripts/sources.py', 'scripts/jdk.py', 'third_party/jdk.json',
+                      'third_party/sources.json', 'third_party/art/classlib.json')
     for name in project_inputs:
         source_files['artbox/' + name] = ROOT / name
     source_files.update({'generated/' + p.relative_to(generated).as_posix(): p for p in (constants, flags)})
@@ -187,6 +191,7 @@ def build(args):
     record = {'scope': config['scope'], 'runtime_executed': False, 'aosp_verifier_executed': False,
               'project_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
               'jdk': compiler_version, 'native_compiler': native_version, 'd8': version,
+              'jdk_distribution': jdk_distribution,
               'java_inputs': len(java_inputs), 'class_files': len(class_files), 'dex_files': dex_files,
               'min_android_api': config['android_min_api'], 'javac_seconds': javac_seconds, 'd8_seconds': d8_seconds,
               'configuration_sha256': digest(config_path), 'sources': {name: specs[name] for name in sources},
@@ -207,7 +212,9 @@ def build(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build-dir', type=Path)
-    parser.add_argument('--java-home', type=Path)
+    jdk = parser.add_mutually_exclusive_group()
+    jdk.add_argument('--java-home', type=Path)
+    jdk.add_argument('--fetch-jdk', action='store_true', help='Download the pinned portable JDK into the build cache')
     parser.add_argument('--cxx', help='GCC or Clang C++ compiler executable')
     parser.add_argument('--jobs', type=int, default=2)
     parser.add_argument('--java-heap-mb', type=int, default=768)
