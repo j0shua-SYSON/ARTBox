@@ -382,6 +382,26 @@ versus Linux's cached coarse value; it avoids uninitialized timestamp data and
 adds no runtime-generated code. Portable tests reproduce the missing-clock
 failure before the fix and compare clock contracts with native Linux.
 
+## 0020 - Serialize futex admission with native wait queues
+
+Status: implemented; local contracts pass, signed/Linux caller comparison pending.
+
+Use a process-owned queue mutex and native condition variables. Holding the queue
+mutex across the atomic word comparison and waiter insertion prevents missed
+wakes; the VM mutex covers only the actual word access. Keep private/shared keys
+distinct. Introduce precompiled atomic callbacks to avoid casting guest storage
+to a host C++ atomic object's layout or performing a write during a read-only
+futex load. Microsoft ordering is an explicit compiler option for its platform
+source; Clang/GCC use their atomic intrinsics.
+
+This is slower than an uncontended kernel-assisted fast wake and cannot yet
+model signal interruption, shared aliases or priority inheritance. It does not
+require an iOS entitlement or instruction patch. The same runtime clock provider
+controls deadlines, including relative versus absolute timeout differences.
+Keep the exit-clear operation separate from native thread ownership: clearing a
+TID before its native child stops using the stack would permit a premature join
+and unmap. See the tests and references in [futex semantics](futex.md).
+
 ## No-JIT cost ledger
 
 | Constraint | Consequence / evidence |

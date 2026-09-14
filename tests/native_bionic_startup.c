@@ -7,6 +7,8 @@
 #include "artbox/native_vm.h"
 #include "artbox/native_system.h"
 #include "artbox/devices.h"
+#include "artbox/futex.h"
+#include "artbox/native_atomic.h"
 #include <dlfcn.h>
 #include <inttypes.h>
 #include <pthread.h>
@@ -27,12 +29,14 @@ typedef struct module {
 static module images[2];
 static artbox_vm *vm;
 static artbox_devices *devices;
+static artbox_futex *futex;
 static artbox_kernel_thread thread;
 static unsigned calls, absent_netd, constructors;
 static unsigned unsupported[512];
 static int64_t result;
 static unsigned force_sampling;
 static uint64_t gwp_enabled, guarded_samples;
+static int64_t futex_cases;
 static const char *loader_error;
 
 static _Noreturn void fail(const char *message) {
@@ -137,6 +141,7 @@ static void load(module *m, const char *framework, const char *file) {
 static int64_t dispatch(void *context, uint64_t n, uint64_t a0, uint64_t a1, uint64_t a2,
                         uint64_t a3, uint64_t a4, uint64_t a5) {
     int64_t value = artbox_kernel_call(context, n, a0, a1, a2, a3, a4, a5);
+    if (n == 98) value = artbox_futex_call(futex, a0, a1, a2, a3, a4, a5);
     if (value == -38) value = artbox_devices_call(devices, context, n, a0, a1, a2, a3);
     if (n == 66 && a0 == 2 && a2 <= 16) {
         // Observe Bionic's fatal diagnostics without pretending writev is
@@ -210,6 +215,11 @@ static void *run(void *context) {
     construct(&images[1]);
     fprintf(stderr, "NDK allocator client entry\n");
     result = (int32_t)artbox_call7(entry(&images[1], "artbox_startup_check"), 0, 0, 0, 0, 0, 0, 0);
+    int64_t scratch = artbox_vm_mmap(vm, 0, artbox_vm_page_size(vm), 3, 0x22, -1, 0);
+    if (scratch < 0) fail("futex fixture storage");
+    futex_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_futex_check"), (uint64_t)scratch, 0, 0, 0, 0, 0, 0);
+    if (artbox_vm_munmap(vm, (uint64_t)scratch, artbox_vm_page_size(vm))) fail("futex fixture cleanup");
+    if (futex_cases != 19) { fprintf(stderr, "futex caller: %" PRId64 "\n", futex_cases); fail("futex caller"); }
     gwp_enabled = artbox_call7(entry(&images[0], "artbox_bootstrap_gwp_enabled"), 0, 0, 0, 0, 0, 0, 0);
     guarded_samples = artbox_call7(entry(&images[0], "artbox_bootstrap_guarded_samples"), 0, 0, 0, 0, 0, 0, 0);
     if (force_sampling && (!gwp_enabled || !guarded_samples)) fail("GWP-ASan sampling did not run");
@@ -231,7 +241,9 @@ int main(int argc, char **argv) {
     artbox_system_ops system = artbox_native_system();
     vm = artbox_vm_create(&ops, UINT64_C(32) << 30, 4096);
     devices = artbox_devices_create(256);
-    if (!vm || !devices || artbox_kernel_thread_init(&thread, vm, &system, 10000, 10000)) fail("kernel context");
+    artbox_atomic_u32_ops atomic = artbox_native_atomic_u32();
+    futex = artbox_futex_create(vm, &atomic, &system, 4096);
+    if (!vm || !devices || !futex || artbox_kernel_thread_init(&thread, vm, &system, 10000, 10000)) fail("kernel context");
     uint64_t start = now();
     load(&images[0], argv[1], argv[2]); load(&images[1], argv[3], argv[4]);
     if (images[0].dynamic.needed_count || images[1].dynamic.needed_count != 1 ||
@@ -255,11 +267,12 @@ int main(int argc, char **argv) {
         fail("allocator acceptance");
     }
     artbox_devices_destroy(devices);
+    if (artbox_futex_destroy(futex)) fail("futex cleanup");
     if (artbox_vm_destroy(vm)) fail("release reservations");
     printf("{\"cases\":146,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
            ",\"startup_client_ns\":%" PRIu64 ",\"reserved_bytes\":%" PRIu64 ",\"gwp_enabled\":%" PRIu64
-           ",\"guarded_samples\":%" PRIu64 ",\"unsupported_syscalls\":{",
-           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples);
+           ",\"guarded_samples\":%" PRIu64 ",\"futex_cases\":%" PRId64 ",\"unsupported_syscalls\":{",
+           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases);
     unsigned printed = 0;
     for (unsigned i = 0; i < 512; ++i) if (unsupported[i]) printf("%s\"%u\":%u", printed++ ? "," : "", i, unsupported[i]);
     puts("}}");
