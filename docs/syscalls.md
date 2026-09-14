@@ -136,10 +136,10 @@ clone/fork/vfork forms remain unsupported. Native creation errors leave the pare
 TID word unchanged; clear-TID and detached unmap occur only after native join.
 The signed six-worker test passes at `e828dad` in both allocator sampling modes.
 
-The pending rt_sigprocmask (135) implementation stores an independent guest
+The rt_sigprocmask (135) implementation stores an independent guest
 64-bit mask per thread and inherits it at clone. Size must be eight bytes; how
 is checked only with a new mask. SIGKILL/SIGSTOP cannot be blocked. Input is read
 before changing state, then the previous mask is copied out; EFAULT during that
 copy does not roll back the change. Host masks are untouched. The 17-case original
-NDK caller and pthread inheritance checks await paired CI. This is mask state,
+NDK caller and pthread inheritance checks pass paired CI at `cc6b074`. This is mask state,
 not signal delivery, alternate-stack or signal-handler support.

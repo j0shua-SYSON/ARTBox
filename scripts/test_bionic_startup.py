@@ -101,6 +101,7 @@ def main():
               "client_source_sha256": digest(ROOT / "fixtures/bionic-startup/check.c"), "images": {},
               "threads": {"source_sha256": digest(thread_source), "object_sha256": digest(thread_object),
                           "joined": 4, "detached": 2, "iterations_per_thread": 32},
+              "rss_method": "Darwin getrusage RUSAGE_SELF ru_maxrss, bytes for the entire host process",
               "futex": {"cases": 19, "source_sha256": digest(futex_source), "object_sha256": digest(futex_object)}}
     notices = {name.upper() + "-NOTICE.txt": (inputs / (name.upper() + "-NOTICE.txt"), data["sha256"])
                for name, data in report["component_notices"].items()}
@@ -139,6 +140,10 @@ def main():
                 raise RuntimeError("NDK allocator client did not complete")
             if result[key]["pthread_result"] != 0 or result[key]["threads_reaped"] != 6:
                 raise RuntimeError("NDK pthread client did not complete")
+            if key == "sampled_native" and result[key]["thread_guarded_samples"] < 6:
+                raise RuntimeError("GWP-ASan sampling did not reach every guest worker")
+            if result[key]["process_peak_rss_bytes"] <= 0 or result[key]["pthread_client_ns"] <= 0:
+                raise RuntimeError("Missing native thread or memory measurement")
     (artifacts / "m2-bionic-startup.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print("Bionic startup fixture built" + (" and executed through signed macOS wrappers" if sys.platform == "darwin" else "; Apple execution required"))
 

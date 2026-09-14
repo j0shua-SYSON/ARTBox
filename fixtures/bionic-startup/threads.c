@@ -9,13 +9,14 @@
 #include <unistd.h>
 #define ASSERT(c) do { if (!(c)) return (void *)(intptr_t)-__LINE__; } while (0)
 #define CHECK(c) do { if (!(c)) return -__LINE__; } while (0)
+extern uint64_t artbox_bootstrap_is_guarded(const void *);
 enum { JOINED = 4, DETACHED = 2, ITERATIONS = 32 };
 static pthread_mutex_t lock;
 static pthread_cond_t changed;
 static pthread_key_t key;
 static unsigned ready, go, destructors, counter;
 static _Atomic unsigned destructor_errors;
-struct argument { unsigned index; pid_t tid; void *self; int *errno_address; };
+struct argument { unsigned index, guarded; pid_t tid; void *self; int *errno_address; };
 static struct argument arguments[JOINED + DETACHED];
 static void destroy_value(void *value) {
     struct argument *a = value;
@@ -48,6 +49,7 @@ static void *worker(void *value) {
         size_t size = (i + 1) * 37;
         unsigned char *p = malloc(size);
         ASSERT(p != NULL);
+        a->guarded += (unsigned)artbox_bootstrap_is_guarded(p);
         memset(p, (int)a->index, size);
         unsigned char *q = realloc(p, size * 2);
         ASSERT(q != NULL);
@@ -66,7 +68,7 @@ static void *worker(void *value) {
     if (a->index & 1) pthread_exit(result);
     return result;
 }
-int artbox_pthread_check(void) {
+int artbox_pthread_check(unsigned require_guarded) {
     pthread_t handles[JOINED];
     sigset_t previous_mask, mask;
     CHECK(sigemptyset(&mask) == 0 && sigaddset(&mask, SIGUSR1) == 0);
@@ -106,6 +108,7 @@ int artbox_pthread_check(void) {
     CHECK(pthread_attr_destroy(&attr) == 0 && pthread_mutex_lock(&lock) == 0);
     while (destructors != JOINED + DETACHED) CHECK(pthread_cond_wait(&changed, &lock) == 0);
     CHECK(counter == (JOINED + DETACHED) * ITERATIONS);
+    if (require_guarded) for (unsigned i = 0; i < JOINED + DETACHED; ++i) CHECK(arguments[i].guarded > 0);
     CHECK(pthread_mutex_unlock(&lock) == 0);
     CHECK(atomic_load_explicit(&destructor_errors, memory_order_relaxed) == 0);
     CHECK(errno == 123 && pthread_getspecific(key) == &ready);
@@ -113,4 +116,10 @@ int artbox_pthread_check(void) {
     CHECK(pthread_sigmask(SIG_SETMASK, &previous_mask, NULL) == 0);
     CHECK(pthread_key_delete(key) == 0 && pthread_cond_destroy(&changed) == 0 && pthread_mutex_destroy(&lock) == 0);
     return 0;
+}
+
+uint64_t artbox_pthread_guarded_samples(void) {
+    uint64_t count = 0;
+    for (unsigned i = 0; i < JOINED + DETACHED; ++i) count += arguments[i].guarded;
+    return count;
 }
