@@ -20,7 +20,7 @@ execution remains unverified. Runtime milestones take priority over launcher UI.
 - Rooted regular files, anonymous/file mappings, virtual devices and initial
   `/proc/self/cmdline` work within their documented Linux-compatible subsets.
   Original NDK callers and Bionic syscall entries have native Linux comparisons.
-- All 20 portable CTest contracts pass on Windows, macOS and Linux. The integrated
+- Portable CTest contracts pass on Windows, macOS and Linux. The integrated
   M2 iOS 15 IPA embeds the same diagnostic runner and four tested libraries,
   alongside the M1 fixtures. Its seven Mach-O images, original ELF resources,
   signatures, notices and source provenance are verified.
@@ -34,7 +34,7 @@ timed waits, not steady-state performance or iPhone measurements.
 
 ## What does not run
 
-ART, DEX, Binder/services, Android Activities and APKs are not implemented.
+ART/DEX execution, Binder/services, Android Activities and APKs are not implemented.
 The M2 runner is diagnostic and single-use; unexpected contract failures can
 terminate its process. General dlopen scope growth, unloading/finalization,
 other ELF TLS models, signal delivery, broader proc files, mutable directories
@@ -63,10 +63,14 @@ the signed Mac wrapper uses heap-relative high addresses. At `2586a50`, all
 38 cases pass on each native OS, with independently checked stored bit patterns
 and retained acquire/release instructions. Four Mac/iOS frameworks pass layout,
 signature and notice checks. See [reference evidence](m3-references.md).
-This does not yet boot ART, collect objects or execute DEX. AOSP DEX loading and
-verification are the next dependency bring-up step: the selected Android units
-and original caller compile, and native validation of the hello fixture and
-malformed metadata is being established alongside an iOS 15 library build.
+This does not yet boot ART, collect objects or execute DEX.
+
+At `28b13ff`, AOSP's DEX loader accepts the original hello fixture and rejects
+five malformed variants on both native Mac and Linux ARM64. The same selected
+sources link into an ordinarily signed iOS 15 framework. The 448-byte DEX,
+component/source pins, compiled objects, notices and signed binaries are checked
+against downloaded evidence. Windows compiles 31 Android source units. See
+[DEX loading evidence](m3-dex.md); inspecting instructions is not execution.
 
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build

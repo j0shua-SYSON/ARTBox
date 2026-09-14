@@ -775,8 +775,9 @@ AOSP's atomic implementation or the selected compression adaptation.
 
 ## ADR 0033 - Establish an upstream DEX loading baseline before runtime adaptation
 
-Status: Android ART units and a loader caller compile; native format checks and
-the signed iOS library build are being established.
+Status: at `28b13ff`, the six native format cases pass on Mac and Linux ARM64,
+and the iOS 15 library links and passes signature/layout checks. See
+[DEX loading evidence](m3-dex.md). ART/DEX execution remains unimplemented.
 
 Use AOSP's normal `DexFileLoader` API with structural and checksum verification
 enabled. An original Python generator emits a fixed 448-byte DEX with one
