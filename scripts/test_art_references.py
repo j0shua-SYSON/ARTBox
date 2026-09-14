@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import subprocess
 from environment import ROOT, environment
 from ndk import obtain as obtain_ndk, REVISION
@@ -114,9 +115,13 @@ def build_reference(build, artifacts, args):
             boundary = inventory(disassembly)
             if not boundary['instruction_count'] or any(v for k, v in boundary.items() if k != 'instruction_count'):
                 raise RuntimeError('ART reference fixture violates the native instruction boundary')
+            atomics = {op: len(re.findall(r'\b' + op + r'\s+w', disassembly)) for op in ('ldar', 'stlr')}
+            if not all(atomics.values()):
+                raise RuntimeError('ART volatile heap loads/stores were removed from the fixture')
             (directory / (mode + '.disassembly.txt')).write_text(disassembly, encoding='utf-8')
             modes[mode] = {'object_sha256': digest(obj), 'elf_sha256': digest(elf),
-                           'elf_bytes': elf.stat().st_size, 'imports': sorted(imports), 'inventory': boundary}
+                           'elf_bytes': elf.stat().st_size, 'imports': sorted(imports), 'inventory': boundary,
+                           'atomic_instructions': atomics}
         run(sys.executable, '-B', ROOT / 'tools/wrap_dynamic.py', directory / 'adapted.so', directory / 'pack')
         if sys.platform == 'darwin':
             if platform.machine().lower() not in ('arm64', 'aarch64'):
@@ -131,7 +136,7 @@ def build_reference(build, artifacts, args):
                 modes['frameworks'][target_platform] = metadata
                 if target_platform == 'macos':
                     runner = Path(os.environ['ARTBOX_BUILD_DIR']) / 'host/artbox_native_art_references'
-                    native = checked_execution(runner, [binary, directory / 'adapted.so'], directory / 'native.log')
+                    native = checked_execution(runner, [binary, directory / 'adapted.so', profile], directory / 'native.log')
                     if native['cases'] != 19 or native['native_base'] < 2**32 or not native['cleanup'] or native['encoding'] != 'heap-relative':
                         raise RuntimeError('Signed ART reference fixture did not meet its high-address contract')
                     modes['native'] = native
@@ -164,7 +169,7 @@ def linux_reference(build, artifacts, args):
             for extension, key in (('.so', 'elf_sha256'), ('.o', 'object_sha256')):
                 if digest(inputs / profile / (mode + extension)) != source[mode][key]:
                     raise RuntimeError('Reference input hash mismatch: ' + profile + '/' + mode)
-        native = checked_execution(runner, [inputs / profile / 'original.so'], build / (profile + '.log'))
+        native = checked_execution(runner, [inputs / profile / 'original.so', profile], build / (profile + '.log'))
         if native['cases'] != 19 or native['cases'] != source['native']['cases'] or not native['cleanup'] or \
                 native['encoding'] != 'absolute' or not 0 < native['native_base'] < 2**32:
             raise RuntimeError('Original and signed ART reference results disagree')
