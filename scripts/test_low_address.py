@@ -75,7 +75,11 @@ def expect_rejected(executable):
     if sys.platform != 'darwin' or platform.machine().lower() not in ('arm64', 'aarch64'):
         raise RuntimeError('The hard-page-zero rejection contract requires native Apple ARM64')
     try:
-        result = subprocess.run([str(executable), 'available'], capture_output=True, timeout=30)
+        # Python's posix_spawn path can report an asynchronous SIGKILL for a
+        # rejected Mach-O. Force fork/exec in this single-threaded test so the
+        # parent receives execve's specific errno; a generic signal is not proof.
+        result = subprocess.run([str(executable), 'available'], capture_output=True,
+                                timeout=30, preexec_fn=os.getpid)
     except OSError as error:
         if error.errno != 88:  # Darwin EBADMACHO, not a generic execution failure.
             raise
