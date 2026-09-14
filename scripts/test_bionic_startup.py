@@ -145,6 +145,7 @@ def main():
     command("ld.lld", *tls_link, "-soname", app.name, client, futex_object, thread_object, file_object, mapping_object,
             version_client_object, tls_access, tls_abi, "--no-as-needed", libc, versions, tls_library, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator through a manifest load group; not full M2",
+              "project_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
               "source_commit": report["source_commit"], "partial_object_sha256": digest(partial),
               "bootstrap_source_sha256": digest(ROOT / "fixtures/bionic-startup/bootstrap.cpp"),
               "client_source_sha256": digest(ROOT / "fixtures/bionic-startup/check.c"), "images": {}, "tls": tls_metadata,

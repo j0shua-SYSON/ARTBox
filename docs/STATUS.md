@@ -1,93 +1,60 @@
 # ARTBox status
 
-M0 and M1 are merged and tagged. The iOS 15+ target has the ARTBox console;
-the static NDK ARM64 hello runs through both signed packaging routes on macOS
-and unchanged on Linux ARM64. See [M0](acceptance/m0.md), [M1](acceptance/m1.md)
-and the [loader decision](loader-design.md). The wrapper is selected for M2.
+M0 and M1 are merged and tagged. The project targets ordinary signed arm64
+**iOS 15+** apps. Physical checks are waived as milestone gates; physical iPhone
+execution remains unverified. Runtime milestones take priority over launcher UI.
 
-Physical checks are waived as milestone gates. Physical iPhone execution remains
-unverified. Launcher development is deferred; runtime milestones take priority.
+## M2: dynamic Bionic, threads, files, mappings and ELF TLS run
 
-## M2: real Bionic threads and rooted files run; acceptance is incomplete
+At `32121e5`, [host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34825715581)
+and the [iOS regression build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34825715580)
+pass. Downloaded original ELF inputs, eight signed Mac/iOS framework layouts,
+notices, TLS assembly/objects and the Linux TLS report match their manifests.
 
-At `5c8274d`, [host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34823445890)
-and the [iOS regression build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34823445855)
-pass. Downloaded inputs, signed framework layouts, notices and IPA match their
-reports. Bionic frameworks are separate artifacts; the regression IPA still
-embeds M1, so the integrated M2 device build remains outstanding.
+- Real pinned AOSP Bionic starts with Scudo and GWP-ASan. The selected build
+  contains 221 sources plus two pinned compiler-rt members; notices are complete.
+- The portable manifest loader relocates four signed libraries, resolves
+  dependencies and symbol versions, handles cycles, and runs three constructors.
+  Hidden/default version calls return 46 in signed Bionic and native Linux.
+- Both normal and forced-sampling processes pass 146 allocator/device checks,
+  19 futex checks, 41 regular-file checks and 43 file-mapping checks.
+- Four joinable and two detached Bionic workers each run 32 allocation/file
+  iterations with mutex/condition synchronization, errno and key isolation,
+  signal-mask inheritance, return/exit handling and destructor cleanup. The
+  native reaper waits for actual thread termination before releasing stacks.
+- Two standard ELF TLS templates provide initialized, zero-filled and aligned
+  storage for main plus six workers. A precompiled TLSDESC bridge uses Bionic's
+  DTV/accessor. Original NDK ELF code passes the paired Linux test; x2-x17 and
+  all full SIMD registers survive the initial and subsequent resolver calls.
+- All 19 portable contracts pass on Windows, macOS and Linux. Additional paired
+  NDK/Linux oracles cover memory/startup syscalls, strings and binary128 math.
 
-- A pinned 221-source selection builds real AOSP Bionic with Scudo, GWP-ASan,
-  Arm string routines, property parsing and two pinned compiler-rt members.
-  Source provenance, adaptation inventories and complete notices are retained.
-- Signed ARM64 macOS code initializes real Bionic TLS, relocates data, runs
-  three constructors and passes 146 allocator/device checks and 19 futex checks.
-- Four joinable and two detached Bionic workers each perform 32 allocation
-  iterations, mutex/condition synchronization, errno isolation, signal-mask
-  inheritance, key destructors, and regular-file write/stat/seek/read round trips.
-  A native reaper waits for actual worker termination before releasing stacks.
-- The same 41-case NDK file caller passes signed macOS and both native Linux
-  ARM64 profiles. The oracle caught and corrected an ARM64 open-flag mismatch.
-  Rooted paths reject traversal and symlinks; directory-relative handles remain
-  pinned. See [files](files.md) and [startup evidence](bionic-startup.md).
-- The manifest loader executes three signed libraries, including hidden/default
-  symbol-version calls (result 46), also verified with the exact NDK ELF/object
-  on Linux ARM64. The 43 file-mapping cases pass in both environments.
-- All 19 portable contracts pass on Windows, macOS and Linux. Paired NDK/Linux
-  oracles also cover 35 memory, 53 startup-service, 19 futex, 35,908 string and
-  123 binary128 cases, plus syscall and TLS boundaries.
+One traced Mac process takes 14.566 ms for startup and all clients, including
+3.768 ms for the threaded workload and 0.796 ms for files/mappings. Forced GWP
+sampling takes 22.664 ms overall and observes all 192 worker mallocs. Peak process
+RSS is 6,635,520 / 6,324,224 bytes. These are correctness-run observations, not
+steady-state performance or iPhone measurements. ELF TLS access currently saves
+full SIMD state around Bionic's accessor; its isolated cost is not yet measured.
 
-One correctness run takes 14.816 ms for startup and all clients, including
-4.320 ms for the pthread/file workload and 1.446 ms for files and file mappings.
-Forced GWP sampling takes 24.523 ms overall and observes all 192 worker mallocs.
-Peak process RSS is 6,651,904 / 6,373,376 bytes respectively. These are traced
-macOS process measurements, not iPhone or steady-state performance.
+## Remaining M2 acceptance
 
-At `b1a94c5`, [mapping host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34821237500)
-and the [iOS build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34821237477)
-pass. All 18 portable contracts and the identical 43-case NDK mapping caller
-pass, including signed Bionic in both normal and forced-sampling processes.
-Downloaded signed layouts, notices, objects, Linux reports and regression IPA
-are verified. Files plus mappings take 2.072 ms normally and 1.317 ms sampled;
-entire-process peak RSS is 6,160,384 and 5,996,544 bytes, respectively.
+The iOS regression IPA still runs M1. Integration now moves the exact M2 runner
+into the shared Apple platform layer and embeds its four tested libraries and
+ELF resources in an iOS 15 app. The new CI job waits for host and Linux success,
+checks the source revision and every signed payload, then builds the M2 IPA.
+That integrated build is pending.
 
-Version metadata and per-image named lookups now pass local malformed-input
-contracts and 12 real NDK/LLVM comparisons using GNU, SysV and dual hash tables,
-with and without section tables. Hidden/default versions and provider names are
-validated. [Host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34822171575)
-and [iOS CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34822171579) pass at
-`0184ec4`; guest execution of the version fixture is still outstanding.
-
-The new portable manifest load-group engine resolves DT_NEEDED in breadth-first
-scope order, handles cycles and DT_SYMBOLIC, stages all data relocations before
-committing any module, and validates all constructor addresses before running
-exactly-once dependency initialization. All 19 local contracts pass, including a
-late unresolved import leaving the entire group unchanged. The signed Bionic
-harness uses this engine instead of its fixed lookup loop. [Host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34823142507)
-and [iOS CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34823142517) pass at `2ef7198`.
-Guest ELF TLS, preinit arrays, unloading and multiple dlopen groups remain open.
-
-## Next work and remaining acceptance
-
-Complete general dependency namespaces, version-aware scope resolution, cycles,
-constructor lifecycle and guest ELF TLS templates.
-The signed fixture's current extension adds a third library exporting hidden and
-default versions of the same function. Its NDK caller imports both; the expected
-result distinguishes either incorrectly duplicated binding. The NDK build and
-instruction/layout checks pass; signed and paired Linux execution await CI. The [M2 contract](m2-contract.md)
-requires a published NDK denominator with at least 90% passing, mandatory
-thread/file/memory success, and an iOS build containing that same suite and
-libraries. M2 is not tagged or complete. M3-M7 remain unimplemented.
+Publish the fixed NDK acceptance denominator and close the remaining required
+thread/proc fixture cases. The suite must pass at least 90%, including mandatory
+thread/file/memory behavior. General dlopen scope growth, preinit/finalization,
+signal delivery and additional syscall families remain unsupported. M2 is not
+tagged or complete; M3-M7 remain unimplemented.
 
 ## Three largest M2 risks
 
-1. Completing dependency, version and ELF TLS behavior while preserving signed
-   executable bytes and Android/Apple ABI boundaries.
-2. Matching Linux mapping and broader thread semantics; signal delivery and
-   several syscall families remain unsupported.
-3. Fitting Bionic/Scudo and future ART within ordinary iOS memory limits, then
-   packaging the integrated suite into the device build.
-
-ELF TLS work now adds bounded templates and transactional sixteen-byte TLSDESC
-relocation to the portable load group. Native integration now builds four wrappers with two ELF TLS modules and a
-register-preservation fixture. Its CI execution is pending; it is not yet
-included in the verified execution above.
+1. Finishing the integrated iOS target while preserving the tested guest ABI
+   and signed executable layout.
+2. Closing the remaining NDK acceptance cases without hiding unsupported Linux
+   behavior behind the passing allocator/file workload.
+3. Bionic/Scudo and future ART memory use on ordinary iOS devices; host process
+   RSS and virtual reservations do not establish an iPhone memory budget.
