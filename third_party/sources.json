@@ -364,5 +364,1046 @@
     ],
     "notice": "LICENSE",
     "notice_sha256": "07580f2a3b35709ce703d523f447b242f6dfec7582a8c0df102c7fa2849375f8"
+  },
+  "art-dex": {
+    "repository": "aosp-mirror-neo/platform_art",
+    "upstream": "https://android.googlesource.com/platform/art",
+    "tag": "android-15.0.0_r1",
+    "commit": "bebbc3cc49f2d9d5420197df0a336fbc3fcbea40",
+    "notice": "NOTICE",
+    "notice_sha256": "613c3a67424d8f9f32da434d1b98a610f98a7df6c2350c3429d9da975f0405fd",
+    "files": [
+      {
+        "path": "libartbase/Android.bp",
+        "bytes": 11044,
+        "sha256": "770cf56c375675b5a455e6c8520bafe89c0902266a34587b2065d2140050c26f"
+      },
+      {
+        "path": "libartbase/base/aborting.h",
+        "bytes": 1067,
+        "sha256": "4a4750a1042065ad068e9c621b4996c3a565b0c19bf81faa0c3e1628c26ed342"
+      },
+      {
+        "path": "libartbase/base/allocator.cc",
+        "bytes": 2593,
+        "sha256": "0c6afa5adffe632427ac07977f8de6b2899f49b8a12dad05729912ac80f50c59"
+      },
+      {
+        "path": "libartbase/base/allocator.h",
+        "bytes": 4811,
+        "sha256": "a0dd15096d09f7a9b8eb56fecee4f03f2e25fba9ee3ba5e0b933521ceed6704c"
+      },
+      {
+        "path": "libartbase/base/array_ref.h",
+        "bytes": 6121,
+        "sha256": "85514afad62004cc816d59325bcdd2bd12f42408333078b193be92829c8e8125"
+      },
+      {
+        "path": "libartbase/base/atomic.h",
+        "bytes": 6235,
+        "sha256": "7c9698ced291471b2371bdfc254902f88bf153487922f02ac951bdda2b922d44"
+      },
+      {
+        "path": "libartbase/base/bit_utils.h",
+        "bytes": 18601,
+        "sha256": "d7c9a4fa39c93a8e137c5ad23b8e102a18e74c50f490131c215a4816cab8d281"
+      },
+      {
+        "path": "libartbase/base/casts.h",
+        "bytes": 7904,
+        "sha256": "57bec5b602b2f2e953c93602f3b0dd1a8c6b62c4aa01722196648f0c23eec254"
+      },
+      {
+        "path": "libartbase/base/data_hash.h",
+        "bytes": 6163,
+        "sha256": "f362b027ff7ad03b1a7196edefc46dd3bae088af938f1ebc713a4530164c0722"
+      },
+      {
+        "path": "libartbase/base/dumpable.h",
+        "bytes": 1414,
+        "sha256": "98822314f016eb0b5f6a7d7565e34402d4e95ceeb43f0cd46432b0bab27539bf"
+      },
+      {
+        "path": "libartbase/base/file_magic.cc",
+        "bytes": 2065,
+        "sha256": "7a91fa9e4aec4be1bca9fc777c7d3b133b04926f260b2acfdf2c3a3df8d2ec60"
+      },
+      {
+        "path": "libartbase/base/file_magic.h",
+        "bytes": 1187,
+        "sha256": "ddbf429e9be7497cb0dc5d21733764fae20352f6281f2bbcb8833b36ca677793"
+      },
+      {
+        "path": "libartbase/base/globals.h",
+        "bytes": 5929,
+        "sha256": "25df006bee00012ac78e69e9bffceefcf092fcc64ce6a0d29feac96c4c92db64"
+      },
+      {
+        "path": "libartbase/base/globals_unix.cc",
+        "bytes": 3087,
+        "sha256": "ce9852f64bf4919cf92b71f82d675dc727f842bbc0b82b921f1b9c21f8bfb14e"
+      },
+      {
+        "path": "libartbase/base/hash_map.h",
+        "bytes": 3228,
+        "sha256": "b7d07b8675be47c92016e6829f281b8ac2c93a10b63a68afa9222ed27a0776cb"
+      },
+      {
+        "path": "libartbase/base/hash_set.h",
+        "bytes": 29761,
+        "sha256": "0846772debecfd1400434a1795a5d5feb22eba29e05fe9fa26fca9e636c58fee"
+      },
+      {
+        "path": "libartbase/base/hiddenapi_domain.h",
+        "bytes": 1388,
+        "sha256": "83d10fa599513842f1f307fd4074d0ee260f3851e57eb6b5c14b8a6cb56ffce4"
+      },
+      {
+        "path": "libartbase/base/hiddenapi_flags.h",
+        "bytes": 13606,
+        "sha256": "679281ae5576912b035218c832e0b589fd7a81723e7d31ef9147a6f687120469"
+      },
+      {
+        "path": "libartbase/base/hiddenapi_stubs.h",
+        "bytes": 2063,
+        "sha256": "1910c03dd951ac698433d23f912354f7c41cf07bb45164916f40f3f86dd60658"
+      },
+      {
+        "path": "libartbase/base/iteration_range.h",
+        "bytes": 2633,
+        "sha256": "eafe29d7cd9d61751f7addf8e63d9e2e57cceb0bf49a9dcd2d1ffa6c3c3d2b51"
+      },
+      {
+        "path": "libartbase/base/leb128.h",
+        "bytes": 8870,
+        "sha256": "54cc4c55331cc5f274a45799cd554a4d119d05cb796322ed72317b2d58060a7e"
+      },
+      {
+        "path": "libartbase/base/logging.cc",
+        "bytes": 8038,
+        "sha256": "a0c27be78340d82feec91743a212257834eab1cc6adeb55ce6d513da870ed38d"
+      },
+      {
+        "path": "libartbase/base/logging.h",
+        "bytes": 6217,
+        "sha256": "1db4b9a18433892b91aa5c0fb1b0460fda2ac0bbf8c656863977ccde0a481330"
+      },
+      {
+        "path": "libartbase/base/macros.h",
+        "bytes": 5404,
+        "sha256": "26f3c272fe2381b10be4383f105138eae3ad18c3e997ecb09e69b07ef7d38940"
+      },
+      {
+        "path": "libartbase/base/mem_map.cc",
+        "bytes": 49619,
+        "sha256": "3431835509f725a01f3e1fe45ec82d1b717a0755c197574d4a89327c0963707b"
+      },
+      {
+        "path": "libartbase/base/mem_map.h",
+        "bytes": 17367,
+        "sha256": "c82057588d866946e5273131145c75c8bac51272560b494ad6c7e7b5998bb81e"
+      },
+      {
+        "path": "libartbase/base/mem_map_unix.cc",
+        "bytes": 988,
+        "sha256": "88c555d74c0996c84f6571b750cc312f2f1652f8412e0a17fd9fb37107508633"
+      },
+      {
+        "path": "libartbase/base/memory_region.cc",
+        "bytes": 1042,
+        "sha256": "171783cc19c14eec8df268a48a2e49a6658c1cb352332cc30e2406a4e8630d1a"
+      },
+      {
+        "path": "libartbase/base/memory_region.h",
+        "bytes": 5835,
+        "sha256": "98a2f5c77fbc58c2339c8a357d5383dc73fae0e734276e666f2ffc7dc17310a2"
+      },
+      {
+        "path": "libartbase/base/memory_tool.h",
+        "bytes": 3059,
+        "sha256": "85def375eaf9c7233a7f3494016d77caa64a1b8be744a96a25b7d8a3e6ffd478"
+      },
+      {
+        "path": "libartbase/base/mman.h",
+        "bytes": 1083,
+        "sha256": "a8de8b6d3da62d8b82c7c31e04f9e7a5005ef9ae43ccdadfd5b2b87e68e8959b"
+      },
+      {
+        "path": "libartbase/base/os.h",
+        "bytes": 2070,
+        "sha256": "4829fc157f610a5d23cf28f45796523c573f9e7b0f1e1306f562ac832d20e199"
+      },
+      {
+        "path": "libartbase/base/os_linux.cc",
+        "bytes": 2886,
+        "sha256": "2bea9f086e7d957c389a003ff70e55841482a7e5ed58ef39791cf65786fc1cab"
+      },
+      {
+        "path": "libartbase/base/pointer_size.h",
+        "bytes": 1203,
+        "sha256": "edf75a42327245c0d886afe4690d35f92dd374dcbdfe649e30a93ba024964ace"
+      },
+      {
+        "path": "libartbase/base/safe_map.h",
+        "bytes": 7608,
+        "sha256": "4d7a17199fa8a31ab6e82e248fa5c21a61877b79d8f56f2d4c4ef3c12ced0d95"
+      },
+      {
+        "path": "libartbase/base/sdk_version.h",
+        "bytes": 1849,
+        "sha256": "a855e79c4088a3a5cf273c8777a3b129b13fb0b5d8bc6301510b32d1b871b520"
+      },
+      {
+        "path": "libartbase/base/stl_util.h",
+        "bytes": 13306,
+        "sha256": "15c0f947f1778aa0f82adf260a54d9965908526ba275a6d8e66c3f03a9d00ec4"
+      },
+      {
+        "path": "libartbase/base/stl_util_identity.h",
+        "bytes": 1472,
+        "sha256": "5c7da973d8a241f965a72171a172a7b447471f3c6bc26b0eb424f9430d9e8939"
+      },
+      {
+        "path": "libartbase/base/systrace.h",
+        "bytes": 2425,
+        "sha256": "4afb7f5f04395aff4d6943bcc871cda63b861d9c7fca56a0cf72201478b5abbe"
+      },
+      {
+        "path": "libartbase/base/time_utils.cc",
+        "bytes": 7389,
+        "sha256": "b847b3b46fd799c0f8f75d02c6d2ee8a7daa8e7203825dcc0b2d6d65dba1fab8"
+      },
+      {
+        "path": "libartbase/base/time_utils.h",
+        "bytes": 4062,
+        "sha256": "4bf300cf549f74692d215fc25d5c508f3fac9c51711674a22d6bc92648d0f48a"
+      },
+      {
+        "path": "libartbase/base/unix_file/fd_file.cc",
+        "bytes": 24119,
+        "sha256": "a777bc8979b4bdaa621a2cbb732c90c0b1a91d9551a198b67b63400384a1c33e"
+      },
+      {
+        "path": "libartbase/base/unix_file/fd_file.h",
+        "bytes": 9307,
+        "sha256": "8d1cf26f7181b7939e794d7eb8993a25af3134905e6d2d85d76019ac99393c92"
+      },
+      {
+        "path": "libartbase/base/unix_file/random_access_file.h",
+        "bytes": 2600,
+        "sha256": "4d0a5aca0fadcf5099d78a64d314227d1c5313d576a60371760a1dff56173256"
+      },
+      {
+        "path": "libartbase/base/unix_file/random_access_file_utils.cc",
+        "bytes": 1220,
+        "sha256": "7265522f4daa96336afbd6373ec3f15eb71fae1e31250a52cbbc4d22c6e11330"
+      },
+      {
+        "path": "libartbase/base/unix_file/random_access_file_utils.h",
+        "bytes": 1101,
+        "sha256": "1ae634ae74e445365adb6060859bd441abaff49b47b4425141b04e0ab7c8f2e0"
+      },
+      {
+        "path": "libartbase/base/utils.cc",
+        "bytes": 13620,
+        "sha256": "bf3eb896884bed55f253ded4fef430d6993bc72180137a3fbc8d6b9e4556bee0"
+      },
+      {
+        "path": "libartbase/base/utils.h",
+        "bytes": 5415,
+        "sha256": "5a74041068ff62730904441d19da90081568fbf8105df8c1aad32dfcbdad955a"
+      },
+      {
+        "path": "libartbase/base/value_object.h",
+        "bytes": 875,
+        "sha256": "611344a0b2ed72694d193a729d3e845b2889236a63cc6fad3c7e6546bec40399"
+      },
+      {
+        "path": "libartbase/base/zip_archive.cc",
+        "bytes": 9546,
+        "sha256": "e538608559e6dd81113e4e45588237ec02b37a814da674d794fe498c7e540242"
+      },
+      {
+        "path": "libartbase/base/zip_archive.h",
+        "bytes": 4032,
+        "sha256": "bb69d7faf46cca46aae44a0571698626bc0ac8ba9a75903df8089ad6fc874c72"
+      },
+      {
+        "path": "libartpalette/include/palette/palette.h",
+        "bytes": 1653,
+        "sha256": "398c9cd6fd0ff214484e20aeef7b32e6d40ab061d72fb848add658bce3e01efa"
+      },
+      {
+        "path": "libartpalette/include/palette/palette_method_list.h",
+        "bytes": 7533,
+        "sha256": "c63366bd1ae6667d170fb9e4378a9259e2a3dfa7c62acacaf24ead25ee04303f"
+      },
+      {
+        "path": "libartpalette/include/palette/palette_types.h",
+        "bytes": 1853,
+        "sha256": "2309ceea80b55b0160706e4bbe2207085de661c39d60cf99c9a45ba575a7cb11"
+      },
+      {
+        "path": "libdexfile/Android.bp",
+        "bytes": 17737,
+        "sha256": "b782feb9a45610ab23762ea0f947412796b267a7fed9b3a22a301e9b45b9bc24"
+      },
+      {
+        "path": "libdexfile/dex/class_accessor-inl.h",
+        "bytes": 9784,
+        "sha256": "05e3bd8cbe3b7dd72db933eeb5120d653f3db92133b2b2c2ea8b819576ae3bd1"
+      },
+      {
+        "path": "libdexfile/dex/class_accessor.h",
+        "bytes": 11706,
+        "sha256": "d07ca9d3717064e629891c47e453f715530eaa3b48af2f3c29c1c1ac549ec324"
+      },
+      {
+        "path": "libdexfile/dex/class_iterator.h",
+        "bytes": 2724,
+        "sha256": "f655285ec5dede587838018b15781337aa3b0de6cff0ffbb147d4cf9a9a72348"
+      },
+      {
+        "path": "libdexfile/dex/code_item_accessors-inl.h",
+        "bytes": 9329,
+        "sha256": "516f8b42af780767a70034e10c9e9054121d08e4d6b37dc38100d3eade307639"
+      },
+      {
+        "path": "libdexfile/dex/code_item_accessors.h",
+        "bytes": 5718,
+        "sha256": "98168342fe1d04b4780ffc5d66165dee5b55e28eb5a3c82710adf37a0c6caf6d"
+      },
+      {
+        "path": "libdexfile/dex/compact_dex_file.cc",
+        "bytes": 3702,
+        "sha256": "df86adad164b0ea5cdbd149510c7f7466c8e461721b576c693de4100b37bb15a"
+      },
+      {
+        "path": "libdexfile/dex/compact_dex_file.h",
+        "bytes": 12234,
+        "sha256": "f681a762690bf745f7acab10653b7a868ae2cbc3eee63ba87cce4fc1245e1171"
+      },
+      {
+        "path": "libdexfile/dex/compact_dex_utils.h",
+        "bytes": 1197,
+        "sha256": "90d79f47ef48d2744ef9a077f029492557f6e11996c2042d15b2a0e5ea78ce76"
+      },
+      {
+        "path": "libdexfile/dex/compact_offset_table.cc",
+        "bytes": 4870,
+        "sha256": "2e8129f9c6cf3505616c25744f02048dce48fb810d19d8b382b39f0273a4ae54"
+      },
+      {
+        "path": "libdexfile/dex/compact_offset_table.h",
+        "bytes": 2430,
+        "sha256": "ec1ab33aa890e607eb44315eed368731c627fab1c99766773834ca2db82c927c"
+      },
+      {
+        "path": "libdexfile/dex/descriptors_names.cc",
+        "bytes": 14050,
+        "sha256": "1700f1e49da4fa87b42c680e8723375dc46425047b14f1b7ecafdb910577a8be"
+      },
+      {
+        "path": "libdexfile/dex/descriptors_names.h",
+        "bytes": 2741,
+        "sha256": "7253735c73458b07ea52ccbb4ab71a670348efcdc0a40f9539ac0b71d5f38353"
+      },
+      {
+        "path": "libdexfile/dex/dex_file-inl.h",
+        "bytes": 22438,
+        "sha256": "a9aede1b9e48ea3f07f4507fb0d3023ea024c01145fccdb6c4060a4e1c2c139b"
+      },
+      {
+        "path": "libdexfile/dex/dex_file.cc",
+        "bytes": 27908,
+        "sha256": "3e7d0fa3fda589e5959d83e469f943eb92b70239b4002d512eb72982dbabd314"
+      },
+      {
+        "path": "libdexfile/dex/dex_file.h",
+        "bytes": 44899,
+        "sha256": "8aa5c02946a645fea7c79caf454af57aa5771e27dc1da645d35c4052071d35b7"
+      },
+      {
+        "path": "libdexfile/dex/dex_file_exception_helpers.cc",
+        "bytes": 3027,
+        "sha256": "f5431f4ff55975ebb4e11a3f9f7912b77cccd7a19c0d38fbe606b692d90424c1"
+      },
+      {
+        "path": "libdexfile/dex/dex_file_exception_helpers.h",
+        "bytes": 2297,
+        "sha256": "29e20341c53b9faa1250772b432cc847d7735d0b46d4ab586f98d4098b60a4fa"
+      },
+      {
+        "path": "libdexfile/dex/dex_file_layout.cc",
+        "bytes": 1416,
+        "sha256": "e881f7a2466cea8087728e7ba8e4fdf3402b2a09daa53ed0ac45c297526f5961"
+      },
+      {
+        "path": "libdexfile/dex/dex_file_layout.h",
+        "bytes": 3721,
+        "sha256": "7d89fed593521dc560a00725d7314aa6984a0ec74c819757c59a4561f2d5560b"
+      },
+      {
+        "path": "libdexfile/dex/dex_file_loader.cc",
+        "bytes": 25550,
+        "sha256": "ca4fe8f3b4fb5f0e599c733ca8bfa96654213117c0ebdcbfdf842f1e7fc9e87b"
+      },
+      {
+        "path": "libdexfile/dex/dex_file_loader.h",
+        "bytes": 15315,
+        "sha256": "5ab56a433d1cf6197334a884e1fc6427b4092b43cca9fa5e0662edea81e64fa8"
+      },
+      {
+        "path": "libdexfile/dex/dex_file_reference.h",
+        "bytes": 2083,
+        "sha256": "9f2dfbd792eff68cf2c853df9b5ff8585e05fa801178e6416d33d911ed67e6a8"
+      },
+      {
+        "path": "libdexfile/dex/dex_file_structs.h",
+        "bytes": 7970,
+        "sha256": "a569c10ed7ca13340839abc84a99a03cc25cfcc304a2ec9dd3ac30d35a7862c4"
+      },
+      {
+        "path": "libdexfile/dex/dex_file_tracking_registrar.cc",
+        "bytes": 10104,
+        "sha256": "0f0b8e64fe1c0a73f4a2b078933e13603f40a355272adb7cbc8f54b8f8aff13d"
+      },
+      {
+        "path": "libdexfile/dex/dex_file_tracking_registrar.h",
+        "bytes": 2787,
+        "sha256": "3f89d56a7a438c21e75bd33103b7bc05d4d75c7fa5726233ae4a20c64282708c"
+      },
+      {
+        "path": "libdexfile/dex/dex_file_types.h",
+        "bytes": 3491,
+        "sha256": "e0f85a07e21db27a791f2744ce78a6ce46be103a874e07d94a38caa02640fe24"
+      },
+      {
+        "path": "libdexfile/dex/dex_file_verifier.cc",
+        "bytes": 143651,
+        "sha256": "4f6359ddf54052ef3030d42d8f914afd2903f3d6c7ece910fda5b6b4df3541cb"
+      },
+      {
+        "path": "libdexfile/dex/dex_file_verifier.h",
+        "bytes": 1045,
+        "sha256": "f7cb472ba6d26638a435d440c226987e480cc25ccee77004f7c5754f01c7ba77"
+      },
+      {
+        "path": "libdexfile/dex/dex_instruction-inl.h",
+        "bytes": 17280,
+        "sha256": "c24a037b8dc50dd17ba7145fa29475eee3af864c182f502d724960aab2c75e83"
+      },
+      {
+        "path": "libdexfile/dex/dex_instruction.cc",
+        "bytes": 19290,
+        "sha256": "cfb95bd86a056ca88530daeb6e4e664eb0ff20f1ef872a0301f3466bd9b16244"
+      },
+      {
+        "path": "libdexfile/dex/dex_instruction.h",
+        "bytes": 25157,
+        "sha256": "28cfb6c8dfd59cd408a5eeec50492a5b5deabb2c7ea3eb1d56a206914f561326"
+      },
+      {
+        "path": "libdexfile/dex/dex_instruction_iterator.h",
+        "bytes": 7101,
+        "sha256": "44e95a34f22e465f535a86cc2594eee578ebfd33ae9e2286aed6e795e0e9acb9"
+      },
+      {
+        "path": "libdexfile/dex/dex_instruction_list.h",
+        "bytes": 31067,
+        "sha256": "0c04b5e270e5bbfadd257bfceb969c6c41bc1430cddb7e82d489c81e589b0084"
+      },
+      {
+        "path": "libdexfile/dex/dex_instruction_utils.h",
+        "bytes": 7089,
+        "sha256": "bed2147ca79c52d445aacc44051a77de54c4209162ee216a2de4873baa72137a"
+      },
+      {
+        "path": "libdexfile/dex/invoke_type.h",
+        "bytes": 1154,
+        "sha256": "854251efdd371442a6feadc617eb28aa36e2b862f4f256d27b3d281edb6048c6"
+      },
+      {
+        "path": "libdexfile/dex/method_reference.h",
+        "bytes": 2856,
+        "sha256": "20a3c815775a65ec3eb94af6c49b88e94bc3a53b088c2a9f7ddab29e1197554d"
+      },
+      {
+        "path": "libdexfile/dex/modifiers.cc",
+        "bytes": 1550,
+        "sha256": "c64801d54a1da3bf4708c829510e9c893eed5c4bcb4b6d5671a51bd8db1deb99"
+      },
+      {
+        "path": "libdexfile/dex/modifiers.h",
+        "bytes": 9649,
+        "sha256": "1a9d05c11caf808f117fff391f2d279b7a73fcf53a02edc6fc314351c06bd908"
+      },
+      {
+        "path": "libdexfile/dex/primitive.cc",
+        "bytes": 2101,
+        "sha256": "b4480e6eeb991c12733e6dd256254cb7a700a0727ecfb21d1b9b84f0e48d8b08"
+      },
+      {
+        "path": "libdexfile/dex/primitive.h",
+        "bytes": 6705,
+        "sha256": "690639d04b673d097ce98d81ad8b117b6548d9494c770cb6e6b722d6247b63d2"
+      },
+      {
+        "path": "libdexfile/dex/proto_reference.h",
+        "bytes": 3140,
+        "sha256": "bf97b156e25696c4d379cec64c1cec6704f8d683ef0b446c586d03cf254723f3"
+      },
+      {
+        "path": "libdexfile/dex/signature-inl.h",
+        "bytes": 5511,
+        "sha256": "37a73f1266fb3fa809fae36573f2723108a62da785942abeecfd772dbbe474c9"
+      },
+      {
+        "path": "libdexfile/dex/signature.cc",
+        "bytes": 2556,
+        "sha256": "e7d6dc730a658c5507ad1a1f54bc67c48c04804eafa9c534579f61cd94dcf64a"
+      },
+      {
+        "path": "libdexfile/dex/signature.h",
+        "bytes": 2011,
+        "sha256": "0efcfd9c6329733c11dae8c5e4b5cf3ac5ca8d8ea16734a886106e785c578cc9"
+      },
+      {
+        "path": "libdexfile/dex/standard_dex_file.cc",
+        "bytes": 3030,
+        "sha256": "2092ed8ffede359607e742810d3c84a91bd5edcb844144da154bb80df9def280"
+      },
+      {
+        "path": "libdexfile/dex/standard_dex_file.h",
+        "bytes": 5427,
+        "sha256": "9e3ec812452c557edb90183d9c6ff1885d0c5748b712de7fe3caa76b22e2b749"
+      },
+      {
+        "path": "libdexfile/dex/type_lookup_table.cc",
+        "bytes": 7676,
+        "sha256": "d1e0b57b0eefe3758d530ed970108f5d438816dd2bf375b8416910e1fa7df9d0"
+      },
+      {
+        "path": "libdexfile/dex/type_lookup_table.h",
+        "bytes": 6403,
+        "sha256": "811c540a173148adccf4360051786193db67ffe4de96e3922f7b0dbd4d280ea6"
+      },
+      {
+        "path": "libdexfile/dex/utf-inl.h",
+        "bytes": 5210,
+        "sha256": "399409117b9931c65bace006ab87ba4bdb42593e960db10f58fd346541a38361"
+      },
+      {
+        "path": "libdexfile/dex/utf.cc",
+        "bytes": 8078,
+        "sha256": "4e1e39deacf5cd1d7ca01775af799325ae69b15fba4e769d537847d42104efdd"
+      },
+      {
+        "path": "libdexfile/dex/utf.h",
+        "bytes": 6877,
+        "sha256": "6744cc110842d7a39fee2edc8951c2d35d453231b262348321824f1a41f80424"
+      },
+      {
+        "path": "NOTICE",
+        "bytes": 10695,
+        "sha256": "613c3a67424d8f9f32da434d1b98a610f98a7df6c2350c3429d9da975f0405fd"
+      },
+      {
+        "path": "tools/generate_operator_out.py",
+        "bytes": 8348,
+        "sha256": "ea13bd12b99a6dee5d50d1a7c8151f7ab0332a8a1e58c25647df9aeb0fd7c871"
+      }
+    ]
+  },
+  "libbase-dex": {
+    "repository": "aosp-mirror-neo/platform_system_libbase",
+    "tag": "android-15.0.0_r1",
+    "commit": "68f963c62f7fddc70c34df141d943ae0f7631020",
+    "files": [
+      {
+        "path": "Android.bp",
+        "bytes": 7567,
+        "sha256": "d5cbac6e92de6a741e069e2b014d19e497547f03b4523b778e908ba0b4fd9831"
+      },
+      {
+        "path": "NOTICE",
+        "bytes": 12840,
+        "sha256": "e0afbb47be661ce2076d21a1d4dc02caa58b7c215ab7ff9d151b6724be341f77"
+      },
+      {
+        "path": "errors_unix.cpp",
+        "bytes": 866,
+        "sha256": "6b46cbbfcc6a47bb554a139e6814148674de70d0724e0cc49502ac2cbf98e6f0"
+      },
+      {
+        "path": "file.cpp",
+        "bytes": 20162,
+        "sha256": "2b6cf39d94b6e3ddfa3539a5f0e86d2f3c0a28767ccda488ed0a68601f13be16"
+      },
+      {
+        "path": "include/android-base/chrono_utils.h",
+        "bytes": 1399,
+        "sha256": "a94c5bba7cab60541a20dabaf6ba567cf93ae25a04d9e39a8689f37d1f59e4fe"
+      },
+      {
+        "path": "include/android-base/cmsg.h",
+        "bytes": 4167,
+        "sha256": "bda962099863acfb058aeef0363a1591a936a24a008596a20744d576b1a8b92f"
+      },
+      {
+        "path": "include/android-base/collections.h",
+        "bytes": 2024,
+        "sha256": "53a01e225da54e4951318138d74d61818a2041964715dbb014e130d72bebc2f3"
+      },
+      {
+        "path": "include/android-base/endian.h",
+        "bytes": 2626,
+        "sha256": "6ffaa4f6c6353e2becc9b9d2e9b08684bc28439dd7ba1e09835126ee8309d1b7"
+      },
+      {
+        "path": "include/android-base/errno_restorer.h",
+        "bytes": 1087,
+        "sha256": "bc8ea768464dab76980399911027d82499e6438872a96a85e9d1f872e72e38d6"
+      },
+      {
+        "path": "include/android-base/errors.h",
+        "bytes": 6471,
+        "sha256": "86a60ec27536d66fb81bd59bb45d9d9963dcf5622e318855763f9ba2812d3115"
+      },
+      {
+        "path": "include/android-base/expected.h",
+        "bytes": 27496,
+        "sha256": "5672b12523318ece30b20e9baca2616616288998a39051e0fe98f53ce39d6832"
+      },
+      {
+        "path": "include/android-base/file.h",
+        "bytes": 4033,
+        "sha256": "b271cdfb7d03c83e5e725b5b45285b4104acc58d4c453f946408f44eea5be455"
+      },
+      {
+        "path": "include/android-base/format.h",
+        "bytes": 1063,
+        "sha256": "3535ed09a7a295bf10b0a3bd95daa21009b5973a74c8d6754616ad9d4a4cc66c"
+      },
+      {
+        "path": "include/android-base/function_ref.h",
+        "bytes": 5347,
+        "sha256": "be5afcfbe673d994f80a4d8c62cccb935ef70c9549b22da183981f1faaa413a1"
+      },
+      {
+        "path": "include/android-base/hex.h",
+        "bytes": 944,
+        "sha256": "313780964bf3e695efe8e7095ded644d26658020849c65e5c6580cb2eba350f6"
+      },
+      {
+        "path": "include/android-base/logging.h",
+        "bytes": 20537,
+        "sha256": "677853d6d32da28d6bed7572fab6f02851dc0e3a440a304de88bb05ba287fcec"
+      },
+      {
+        "path": "include/android-base/macros.h",
+        "bytes": 5716,
+        "sha256": "9e5fa1f156269bae41e19a6b217563904e41d7de5b8429874fd6cbadaf919171"
+      },
+      {
+        "path": "include/android-base/mapped_file.h",
+        "bytes": 2534,
+        "sha256": "bc210c43466003838d7c71d32c1fb29765c7d767b736ae1aed08545e26bbcf19"
+      },
+      {
+        "path": "include/android-base/memory.h",
+        "bytes": 1178,
+        "sha256": "6a295b3128252ec85f3316f343fc85e78ef46421c063d56345c62800bc63bca0"
+      },
+      {
+        "path": "include/android-base/no_destructor.h",
+        "bytes": 3168,
+        "sha256": "b0eba0b6ec9864d3d637c26081c2bbbe355728ab4364dfa70d4661a69fdce7e6"
+      },
+      {
+        "path": "include/android-base/off64_t.h",
+        "bytes": 761,
+        "sha256": "0a9a2d66fea5f064f3138a9208e8939cc38cfb3a9a60564f5888eb9e3d05d1ae"
+      },
+      {
+        "path": "include/android-base/parsebool.h",
+        "bytes": 1315,
+        "sha256": "0d0a398710ba98d51aab56b7a111ae5d4c8bb9db663af487e0fc4a946684d1b4"
+      },
+      {
+        "path": "include/android-base/parsedouble.h",
+        "bytes": 3036,
+        "sha256": "c9989100c69a44f3997ab8399fedef21513886b8bcdf1024820d0bd596645403"
+      },
+      {
+        "path": "include/android-base/parseint.h",
+        "bytes": 4622,
+        "sha256": "34fef602ce7bdb19841234811fb5746268992c8a383a0b6b1e3e0c1614c56faa"
+      },
+      {
+        "path": "include/android-base/parsenetaddress.h",
+        "bytes": 1180,
+        "sha256": "9f511e7e6e32f7b68bfc27d06f101abf18f8a56e184406f81d38595f9165e62f"
+      },
+      {
+        "path": "include/android-base/process.h",
+        "bytes": 1651,
+        "sha256": "e5c44e53814cbb34ac79dc5d93cabd4d15e34ebb4df2b70d838da68a6fb117da"
+      },
+      {
+        "path": "include/android-base/properties.h",
+        "bytes": 6597,
+        "sha256": "3e325f9b7859fe387686af9ce54efa3626408e8323ae889db6b2a86842d086df"
+      },
+      {
+        "path": "include/android-base/result-gmock.h",
+        "bytes": 2818,
+        "sha256": "ff4c696aa592f454a8b30038fd0ef6e8740a0d7091d48aa6f5d1910d16a2a4f4"
+      },
+      {
+        "path": "include/android-base/result.h",
+        "bytes": 16823,
+        "sha256": "e79e36c0482dab1465034f84b8c8d27634320b897b743852fcf90197a2c6f391"
+      },
+      {
+        "path": "include/android-base/scopeguard.h",
+        "bytes": 1794,
+        "sha256": "2c9643b3273a112de5aa160bf15f3306d672973bb9bbb74e5439563d08581fbe"
+      },
+      {
+        "path": "include/android-base/silent_death_test.h",
+        "bytes": 3898,
+        "sha256": "ce978153191bebff111a469bd218dac94d8676d524528f8bb6cb94f5792c151b"
+      },
+      {
+        "path": "include/android-base/stringprintf.h",
+        "bytes": 1434,
+        "sha256": "127525d36c8546925f09a3c2299a744080400b7ee73b64a1e9f8a6b9d27f2917"
+      },
+      {
+        "path": "include/android-base/strings.h",
+        "bytes": 5449,
+        "sha256": "a421b52264b7917a01ef0330426cdbaa8c72f454219a933e4c3f522d6615bc5f"
+      },
+      {
+        "path": "include/android-base/test_utils.h",
+        "bytes": 3854,
+        "sha256": "9f3c58264f3f530e2b5450eaa5b19883c82448877977f77b7618286eabc90aed"
+      },
+      {
+        "path": "include/android-base/thread_annotations.h",
+        "bytes": 4566,
+        "sha256": "1f7e5a90d436f6eecb9e5702b498f9ad3bb3154694690a25ccdcdc6c1d3a0554"
+      },
+      {
+        "path": "include/android-base/threads.h",
+        "bytes": 921,
+        "sha256": "1e44eb939f0884b90e3abaa814905aab4de580761e6c5fb218cb0321e2663e26"
+      },
+      {
+        "path": "include/android-base/unique_fd.h",
+        "bytes": 10662,
+        "sha256": "670ee4419c5f8768121fc8dbcffa88b861e05a5a6e5adfb96dec0746e8c5db84"
+      },
+      {
+        "path": "include/android-base/utf8.h",
+        "bytes": 3841,
+        "sha256": "e1a30360ae48a55e130d7bc90cea217c91d49167524a9805623021c104135632"
+      },
+      {
+        "path": "logging.cpp",
+        "bytes": 17340,
+        "sha256": "21fdec2fc8eae4a0b126a5b768bd74bee4082a0b827b5eae0eb652ef9fe8b493"
+      },
+      {
+        "path": "logging_splitters.h",
+        "bytes": 7321,
+        "sha256": "0c8d411c9047614ab0078c8bbc90eaca625b46f8ddcee2252481c72cfe63e2c5"
+      },
+      {
+        "path": "mapped_file.cpp",
+        "bytes": 3986,
+        "sha256": "50daaa1826752ca1d5c2fcde166a597e38b624348f549d1914ac2149ff2dcd05"
+      },
+      {
+        "path": "parsebool.cpp",
+        "bytes": 1069,
+        "sha256": "c67cbf09b096a9c759298782211c71ac5991adabd2ea75b4b2b15f541a38cab8"
+      },
+      {
+        "path": "posix_strerror_r.cpp",
+        "bytes": 1032,
+        "sha256": "cdf44156debb328bb25af8f5df40f3b9703ff5797f5da25e5f6fcb8503e01eff"
+      },
+      {
+        "path": "properties.cpp",
+        "bytes": 11644,
+        "sha256": "71406b79e5bfc0776ac72a744e5d4f17bed498e35065dca1ae63624a1d08ecb3"
+      },
+      {
+        "path": "stringprintf.cpp",
+        "bytes": 2262,
+        "sha256": "0ac350c5e3223eb714aa6a2a165541710bfd08f018c15e01fe5bbccb72d198ea"
+      },
+      {
+        "path": "strings.cpp",
+        "bytes": 4642,
+        "sha256": "e9dc38ebb69de488aef4812951d42ba7496d6c80f69a6dfd15539127a319d3ac"
+      },
+      {
+        "path": "threads.cpp",
+        "bytes": 1401,
+        "sha256": "9b3aa047f143265aa185cfb70937dc69c472f532f24405baebcbdd265eecdcf5"
+      }
+    ],
+    "notice": "NOTICE",
+    "notice_sha256": "e0afbb47be661ce2076d21a1d4dc02caa58b7c215ab7ff9d151b6724be341f77"
+  },
+  "ziparchive-dex": {
+    "repository": "aosp-mirror-neo/platform_system_libziparchive",
+    "tag": "android-15.0.0_r1",
+    "commit": "13b815f485784ed356869746796bb405ec86a7d4",
+    "files": [
+      {
+        "path": "Android.bp",
+        "bytes": 7423,
+        "sha256": "ac133ab44630ef2bf1d10cbcb0bd4ed614dd0e8f7acd5f0c12148dd67be13bea"
+      },
+      {
+        "path": "entry_name_utils-inl.h",
+        "bytes": 2008,
+        "sha256": "be1d397d8c86e582bea45f67b34b4d16d59bdb5cbbc41039a3f6471b3fa362d4"
+      },
+      {
+        "path": "incfs_support/include/incfs_support/access.h",
+        "bytes": 3200,
+        "sha256": "bca792664b358020a72feb3ec790eb9a18467dc2e54a038be012060f8a70f2c7"
+      },
+      {
+        "path": "incfs_support/include/incfs_support/signal_handling.h",
+        "bytes": 6892,
+        "sha256": "31df330c2ebd97027995067bf360f21bc0a871fe7f5cc7a4734c76ba65bc56d8"
+      },
+      {
+        "path": "incfs_support/include/incfs_support/util.h",
+        "bytes": 1358,
+        "sha256": "eb670a44fecfa8c9797292567045779195b444d834d0e09c7726d381ee59987f"
+      },
+      {
+        "path": "include/ziparchive/zip_archive.h",
+        "bytes": 15172,
+        "sha256": "a0c8e9542e225ad2db4fdeedb9ece053ec88574d4a4f27c10765cb4dde2b32e6"
+      },
+      {
+        "path": "include/ziparchive/zip_archive_stream_entry.h",
+        "bytes": 1324,
+        "sha256": "072b048247262a7f121a1b416fe7038f439643c0f993c0fb1e7a3fc58f3e0b2e"
+      },
+      {
+        "path": "zip_archive.cc",
+        "bytes": 71402,
+        "sha256": "e9993dba3740719681e4d11a5472ae8c6684c137fe1a0c0b2df0198a835cfeb6"
+      },
+      {
+        "path": "zip_archive_common.h",
+        "bytes": 10766,
+        "sha256": "ecf4a9ca347bf91c8784f41d3e416ecbf38848466d68166777641a12316b3cc1"
+      },
+      {
+        "path": "zip_archive_private.h",
+        "bytes": 3146,
+        "sha256": "e080aa1c4f2669dfe36c8f1a39f32f7baa26df0029edf07c201d94d975a9deb7"
+      },
+      {
+        "path": "zip_archive_stream_entry.cc",
+        "bytes": 9511,
+        "sha256": "6ab4189e78ee72292f640ba3765a12c75021544da1c05c93d43b0e0631c343d1"
+      },
+      {
+        "path": "zip_cd_entry_map.cc",
+        "bytes": 5041,
+        "sha256": "bc28ec01e88f8d0eba2ef7c6e5102e5542787b4fb20853206850159ab1d564ac"
+      },
+      {
+        "path": "zip_cd_entry_map.h",
+        "bytes": 6110,
+        "sha256": "e340c92fdb676c2d0ac867475ba6360914fd3c025809e1d0df386943d66bd0cb"
+      },
+      {
+        "path": "zip_error.cpp",
+        "bytes": 1514,
+        "sha256": "299762859b4bc2feeab1dbe6788dfaede6342728d780267c2d03517129548849"
+      },
+      {
+        "path": "zip_error.h",
+        "bytes": 2251,
+        "sha256": "e7bb05a10afb39f96ff5a0db66f59041edbf48988d3a8c6ffaf2273af4eb2dba"
+      }
+    ],
+    "notice": "zip_archive.cc",
+    "notice_sha256": "e9993dba3740719681e4d11a5472ae8c6684c137fe1a0c0b2df0198a835cfeb6"
+  },
+  "liblog-dex": {
+    "repository": "aosp-mirror-neo/platform_system_logging",
+    "tag": "android-15.0.0_r1",
+    "commit": "54d3fa266d2123c0b076c646fae60d049311052a",
+    "files": [
+      {
+        "path": "liblog/Android.bp",
+        "bytes": 6544,
+        "sha256": "f50170e2e0394d5929ccb7917d89d766f98de73e39b1237847078f6e23d29c8b"
+      },
+      {
+        "path": "liblog/NOTICE",
+        "bytes": 10695,
+        "sha256": "f09747e3bc87e0ec3bdea983b37e18eeda223e01e678f76418a8a731ed8f590f"
+      },
+      {
+        "path": "liblog/include/android/log.h",
+        "bytes": 14230,
+        "sha256": "ec7e66a6a6b7342c08ffa7459c15929da0c42e871f0ca5a003cbf1d024c5f597"
+      },
+      {
+        "path": "liblog/include/android/log_macros.h",
+        "bytes": 1505,
+        "sha256": "cbfd844fee816e71da866f09325c902861429fb53e0930ae4135bb5d7e037d44"
+      },
+      {
+        "path": "liblog/include/log/event_tag_map.h",
+        "bytes": 1662,
+        "sha256": "b06fe9fdd8ca2cbd436c9052c9416d2b84c8d47c0647bc8122736816f7a31c03"
+      },
+      {
+        "path": "liblog/include/log/log.h",
+        "bytes": 4697,
+        "sha256": "a88a797a352663075686bc6e3bf76675e1606367eaf12efd70f75706b84a595c"
+      },
+      {
+        "path": "liblog/include/log/log_event_list.h",
+        "bytes": 7561,
+        "sha256": "e601c400840d9813f9dd9179026077750f0c11500c85cf6ed25cfd899de757ce"
+      },
+      {
+        "path": "liblog/include/log/log_id.h",
+        "bytes": 869,
+        "sha256": "c905e4e217e2bc389c0ae2d9a489ead7fbe9aef649f7d036bb8688be1ea9dd5d"
+      },
+      {
+        "path": "liblog/include/log/log_main.h",
+        "bytes": 11033,
+        "sha256": "e402f10ca5457d85d231c831ca0daca6ab0dd22b2564dad924c2194e1132fb5c"
+      },
+      {
+        "path": "liblog/include/log/log_properties.h",
+        "bytes": 800,
+        "sha256": "257bc47a353820a54bde02bc5a208bc80a6a6703891ba75677fbe23cef27a80e"
+      },
+      {
+        "path": "liblog/include/log/log_radio.h",
+        "bytes": 4782,
+        "sha256": "b84f5357c3d5cacdd034b28c67a7a3d69ee9d3dae39be9175660ed44afc5edf5"
+      },
+      {
+        "path": "liblog/include/log/log_read.h",
+        "bytes": 4781,
+        "sha256": "9ccb638882c8abc6f30d1e7dd3bcf4eae9c6a904fe7e24e6181b86391058bb5d"
+      },
+      {
+        "path": "liblog/include/log/log_safetynet.h",
+        "bytes": 1099,
+        "sha256": "3381a2b153f0542a47202e0230daf9d30b68b04e970690c2947940dc05312cfa"
+      },
+      {
+        "path": "liblog/include/log/log_system.h",
+        "bytes": 4738,
+        "sha256": "35e31b751960fd45760546baa1e6b1ae5cc0f3c25d5b292c50e1487dd36670f0"
+      },
+      {
+        "path": "liblog/include/log/log_time.h",
+        "bytes": 4593,
+        "sha256": "ba916f8fa49be1db30aeb6cbff4f7323164e0e327cfdecf7e1dc95b7f9491d9c"
+      },
+      {
+        "path": "liblog/include/log/logprint.h",
+        "bytes": 4714,
+        "sha256": "954b30b863747b15eccbbc24a8df30c69bbfd42702763cf04010579b95cd6ec6"
+      },
+      {
+        "path": "liblog/include/private/android_logger.h",
+        "bytes": 4707,
+        "sha256": "db48ce224fae3c3094c96ca4e95e35f4eff95e8326028d493e640058005ee322"
+      },
+      {
+        "path": "liblog/logd_reader.h",
+        "bytes": 916,
+        "sha256": "eefe6e5d99fb24d2cecb7fa01d6b9fba23fd0331e529d962ae69246a1af03942"
+      },
+      {
+        "path": "liblog/logd_writer.h",
+        "bytes": 782,
+        "sha256": "99e915752741904705615fa027a0bbdacfb842728c91f6669a4cb2cbeaba491e"
+      },
+      {
+        "path": "liblog/logger.h",
+        "bytes": 1353,
+        "sha256": "7f6629b44b49b1be2dd4aeda90f46063f1d806f176fe86f70a5006e067b1872f"
+      },
+      {
+        "path": "liblog/logger_name.cpp",
+        "bytes": 1963,
+        "sha256": "fd32ca57372ad4e76d8301260433ecfee60e247522a94a5ce1a9a03e4a64a555"
+      },
+      {
+        "path": "liblog/logger_write.cpp",
+        "bytes": 16901,
+        "sha256": "fb68804baf8fffeed61b05fb59841cc504023cb7be192b1f8a0144ee2efe7ec0"
+      },
+      {
+        "path": "liblog/logger_write.h",
+        "bytes": 684,
+        "sha256": "45579d9ebf8eb2fb9a9acb33439498f7d9f94a38b73f91217551c1d9bbfabb8e"
+      },
+      {
+        "path": "liblog/pmsg_reader.h",
+        "bytes": 851,
+        "sha256": "9bc061bc8e9971eee81c2621e926c587a9f29dd4852440ed59a646e54151a81d"
+      },
+      {
+        "path": "liblog/pmsg_writer.h",
+        "bytes": 782,
+        "sha256": "50ac10ed0218284ecfebea703f246abef9d1c3a9528822fcd46072883ac71ff0"
+      },
+      {
+        "path": "liblog/properties.cpp",
+        "bytes": 8931,
+        "sha256": "03354aeb21d2b71a844c7792fadbeb196a27ccdf6abb9116638ca9dbb73caf2f"
+      },
+      {
+        "path": "liblog/uio.h",
+        "bytes": 763,
+        "sha256": "b9bb2ab8b0301521009384f4351605bd0508b74a5e30d99363133a45a31306af"
+      }
+    ],
+    "notice": "liblog/NOTICE",
+    "notice_sha256": "f09747e3bc87e0ec3bdea983b37e18eeda223e01e678f76418a8a731ed8f590f"
+  },
+  "jni-dex": {
+    "repository": "aosp-mirror-neo/platform_libnativehelper",
+    "tag": "android-15.0.0_r1",
+    "commit": "3ca43dfe2bf4613852df0303531fa8ecf4b7063c",
+    "notice": "NOTICE",
+    "notice_sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+    "files": [
+      {
+        "path": "NOTICE",
+        "bytes": 10695,
+        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+      },
+      {
+        "path": "include_jni/jni.h",
+        "bytes": 52276,
+        "sha256": "c88ce2cb6ce10378cd4c706a3a2ad017794aedb9314ddcc341e39b470cdb601a"
+      }
+    ]
   }
 }

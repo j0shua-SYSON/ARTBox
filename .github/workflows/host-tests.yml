@@ -73,6 +73,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 -B scripts/test_art_references.py
+      - name: Load and verify an original DEX with pinned AOSP code
+        if: matrix.os == 'macos-15'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_dex_loader.py
+      - name: Preserve DEX loader build diagnostics
+        if: always() && matrix.os == 'macos-15'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dex-loader-diagnostics
+          path: |
+            artifacts/m3-dex-loader.json
+            build/m3/dex-loader/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Preserve Bionic startup diagnostics
         if: always() && matrix.os == 'macos-15'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -94,6 +109,8 @@ jobs:
             build/m3/low-address/
             artifacts/m3-art-references.json
             build/m3/art-references/
+            artifacts/m3-dex-loader.json
+            build/m3/dex-loader/*.dex
             artifacts/m1-native.json
             artifacts/m2-metadata.json
             artifacts/m2-versions.json
@@ -190,6 +207,10 @@ jobs:
         run: python3 -B scripts/test_bionic_files.py --evidence-root build/oracle
       - name: Compare original AOSP reference types with the signed adaptation
         run: python3 -B scripts/test_art_references.py --evidence-root build/oracle
+      - name: Compare AOSP DEX validation on native Linux
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_dex_loader.py --evidence-root build/oracle
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -210,6 +231,8 @@ jobs:
             artifacts/m2-proc-linux.json
             artifacts/m3-art-references-linux.json
             build/m3/art-references/*.log
+            artifacts/m3-dex-loader-linux.json
+            build/m3/dex-loader/linux/*.log
             build/m2/proc/*.log
             build/m2/timeouts/native.log
             build/m2/elf-tls/native.log

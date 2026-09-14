@@ -20,11 +20,13 @@ def run(*args):
     return result.stdout
 
 
-def macho(path, target, guard):
+def macho(path, target, guard, kind=2):
     data = path.read_bytes()
-    magic, cpu, _, kind, count, size, flags, _ = struct.unpack_from('<8I', data)
-    if magic != 0xfeedfacf or kind != 2 or not flags & 0x200000:
-        raise RuntimeError('Expected a 64-bit PIE Mach-O executable')
+    magic, cpu, _, actual_kind, count, size, flags, _ = struct.unpack_from('<8I', data)
+    if kind not in (2, 6) or magic != 0xfeedfacf or actual_kind != kind or (kind == 2 and not flags & 0x200000):
+        raise RuntimeError('Unexpected Mach-O binary kind or executable PIE flag')
+    if (kind == 2) != (guard is not None):
+        raise RuntimeError('Executables require a guard; dylibs must not have one')
     if cpu not in (0x100000c, 0x1000007) or (target == 2 and cpu != 0x100000c):
         raise RuntimeError('Unexpected probe CPU')
     cursor, segments, platforms, signatures = 32, [], [], []
@@ -47,9 +49,9 @@ def macho(path, target, guard):
             signatures.append(start)
         cursor += length
     zero = [s for s in segments if s['name'] == '__PAGEZERO']
-    if cursor != 32 + size or len(zero) != 1 or len(signatures) != 1:
+    if cursor != 32 + size or len(zero) != int(guard is not None) or len(signatures) != 1:
         raise RuntimeError('Missing guard or signature')
-    if zero[0] != {'name': '__PAGEZERO', 'address': 0, 'bytes': guard, 'maximum': 0, 'initial': 0}:
+    if guard is not None and zero[0] != {'name': '__PAGEZERO', 'address': 0, 'bytes': guard, 'maximum': 0, 'initial': 0}:
         raise RuntimeError('Linker did not preserve the requested null guard')
     if len(platforms) != 1 or platforms[0][0] != target or (target == 2 and platforms[0][1] != 15 << 16):
         raise RuntimeError('Unexpected probe platform or deployment target')
