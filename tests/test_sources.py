@@ -131,6 +131,67 @@ class Sources(unittest.TestCase):
                     obtain_files("fixture", spec, self.root)
                 fetch.assert_not_called()
 
+    def archive_file_spec(self, records=None):
+        spec, contents = self.file_spec()
+        self.bundle(records if records is not None else
+                    [("src/" + name, tarfile.REGTYPE, data) for name, data in contents.items()] +
+                    [("src/unselected/data", tarfile.REGTYPE, b"not part of the build"),
+                     ("src/unselected/alias", tarfile.SYMTYPE, "../../elsewhere")])
+        spec.update(archive="fixture.tar.gz", archive_bytes=self.archive.stat().st_size,
+                    archive_sha256=hashlib.sha256(self.archive.read_bytes()).hexdigest())
+        return spec, contents
+
+    def test_archive_selection_fetches_once_and_only_installs_pinned_files(self):
+        spec, contents = self.archive_file_spec()
+        def download(command, stdout, check):
+            self.assertEqual(command[2], "repos/example/source/tarball/" + spec["commit"])
+            stdout.write(self.archive.read_bytes())
+        with patch("sources.subprocess.run", side_effect=download) as fetch:
+            result = obtain_files("archive-fixture", spec, self.root)
+            self.assertEqual(fetch.call_count, 1)
+            self.assertEqual({p.relative_to(result).as_posix() for p in result.rglob("*") if p.is_file()},
+                             {*contents, ".artbox-source.json"})
+            for name, data in contents.items():
+                self.assertEqual((result / name).read_bytes(), data)
+            self.assertEqual(obtain_files("archive-fixture", spec, self.root), result)
+            self.assertEqual(fetch.call_count, 1)
+            (result / "NOTICE").write_bytes(b"x" * len(contents["NOTICE"]))
+            with self.assertRaisesRegex(RuntimeError, "SHA-256"):
+                obtain_files("archive-fixture", spec, self.root)
+
+    def test_bad_archive_selection_is_never_installed(self):
+        _, contents = self.file_spec()
+        good = [("src/" + name, tarfile.REGTYPE, data) for name, data in contents.items()]
+        variants = [good[:-1], good + [good[0]],
+                    good + [("src/notice", tarfile.REGTYPE, contents["NOTICE"])],
+                    [good[0], ("src/NOTICE", tarfile.SYMTYPE, "include/header.h")],
+                    [good[0], ("src/NOTICE", tarfile.REGTYPE, b"x" * len(contents["NOTICE"]))],
+                    good + [("src/../escape", tarfile.REGTYPE, b"bad")]]
+        for index, records in enumerate(variants):
+            spec, _ = self.archive_file_spec(records)
+            # A different download leaf prevents a prior fixture from masking this input.
+            spec["archive"] = f"fixture-{index}.tar.gz"
+            def download(command, stdout, check):
+                stdout.write(self.archive.read_bytes())
+            with self.subTest(index=index), patch("sources.subprocess.run", side_effect=download):
+                with self.assertRaises(RuntimeError):
+                    obtain_files("bad-archive", spec, self.root)
+                self.assertFalse((self.root / "sources/bad-archive-aaaaaaaaaaaa").exists())
+                self.assertFalse((self.root / "escape").exists())
+
+    def test_archive_selection_checks_archive_pin_and_download_path(self):
+        spec, _ = self.archive_file_spec()
+        spec["archive_sha256"] = "0" * 64
+        with patch("sources.subprocess.run", side_effect=lambda command, stdout, check:
+                   stdout.write(self.archive.read_bytes())):
+            with self.assertRaisesRegex(RuntimeError, "SHA-256"):
+                obtain_files("bad-archive", spec, self.root)
+        spec["archive"] = "../escape.tar.gz"
+        with patch("sources.subprocess.run") as fetch:
+            with self.assertRaises(RuntimeError):
+                obtain_files("bad-archive", spec, self.root)
+            fetch.assert_not_called()
+
 
 if __name__ == "__main__":
     os.environ.update(environment())
