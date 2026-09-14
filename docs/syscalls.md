@@ -107,7 +107,7 @@ use 16 KiB Mach-O alignment. Memory allocated for the guest never requests
 execute permission. File-backed mappings, the general virtual filesystem, guest threads,
 signals, epoll, eventfd, pipes and sockets remain future work. The initial
 [futex implementation](futex.md) provides WAIT/WAKE and BITSET variants with
-local timeout, race and error tests; its signed Bionic/Linux comparison is pending.
+timeout, race and error tests; its 19-case signed Bionic/Linux comparison passes at `7b62337`.
 
 The M2 source profile routes all 216 generated Bionic syscall entries, 13 aliases,
 the generic entry and inline queued signals through

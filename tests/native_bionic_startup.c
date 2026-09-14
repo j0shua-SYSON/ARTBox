@@ -9,6 +9,9 @@
 #include "artbox/devices.h"
 #include "artbox/futex.h"
 #include "artbox/native_atomic.h"
+#include "artbox/native_thread.h"
+#include <setjmp.h>
+#include <stdatomic.h>
 #include <dlfcn.h>
 #include <inttypes.h>
 #include <pthread.h>
@@ -30,9 +33,15 @@ static module images[2];
 static artbox_vm *vm;
 static artbox_devices *devices;
 static artbox_futex *futex;
+static artbox_threads *threads;
+static _Thread_local jmp_buf *exit_boundary;
+static _Thread_local artbox_thread_finish *thread_finish;
+static int32_t pthread_result;
+static uint64_t reaped;
 static artbox_kernel_thread thread;
-static unsigned calls, absent_netd, constructors;
-static unsigned unsupported[512];
+static _Atomic unsigned calls;
+static unsigned absent_netd, constructors;
+static _Atomic unsigned unsupported[512];
 static int64_t result;
 static unsigned force_sampling;
 static uint64_t gwp_enabled, guarded_samples;
@@ -70,6 +79,24 @@ static const char *guest_dlerror(void) {
     return error;
 }
 
+static int64_t host_pthread_clone(const artbox_thread_start *guest_start) {
+    artbox_thread_start start;
+    if (artbox_vm_read(vm, (uintptr_t)guest_start, &start, sizeof(start))) return -14;
+    uint64_t rx = (uintptr_t)images[0].rx;
+    if (start.entry < rx || start.entry - rx >= images[0].elf.segments[0].file_size || start.entry % 4)
+        return -22;
+    return artbox_threads_start(threads, &start);
+}
+static _Noreturn void finish_thread(uint64_t base, uint64_t size, int error) {
+    if (!exit_boundary || !thread_finish) fail("exit outside a guest child thread");
+    thread_finish->unmap_address = base;
+    thread_finish->unmap_size = size;
+    thread_finish->error = error;
+    longjmp(*exit_boundary, 1);
+}
+static _Noreturn void exit_with_stack_teardown(void *base, size_t size) {
+    finish_thread((uintptr_t)base, size, 0);
+}
 static artbox_elf_result resolve(void *context, const artbox_dynamic *dynamic, uint32_t index, uint64_t *address) {
     artbox_elf_symbol symbol;
     (void)context;
@@ -92,10 +119,9 @@ static artbox_elf_result resolve(void *context, const artbox_dynamic *dynamic, u
     HOST("android_get_application_target_sdk_version", target_sdk)
     HOST("dlopen", missing_netd)
     HOST("dlerror", guest_dlerror)
-    // These bindings deliberately fail the test if called. They do not claim
-    // clone, namespace APIs or native thread exit are implemented.
-    HOST("__bionic_clone", unexpected)
-    HOST("_exit_with_stack_teardown", unexpected)
+    HOST("artbox_host_pthread_clone", host_pthread_clone)
+    HOST("_exit_with_stack_teardown", exit_with_stack_teardown)
+    // Unsupported loader/process interfaces still fail the controlled test.
     HOST("vfork", unexpected)
     HOST("android_dlopen_ext", unexpected)
     HOST("android_get_exported_namespace", unexpected)
@@ -140,6 +166,7 @@ static void load(module *m, const char *framework, const char *file) {
 }
 static int64_t dispatch(void *context, uint64_t n, uint64_t a0, uint64_t a1, uint64_t a2,
                         uint64_t a3, uint64_t a4, uint64_t a5) {
+    if (n == 93 && exit_boundary) finish_thread(0, 0, a0 ? -5 : 0);
     int64_t value = artbox_kernel_call(context, n, a0, a1, a2, a3, a4, a5);
     if (n == 98) value = artbox_futex_call(futex, a0, a1, a2, a3, a4, a5);
     if (value == -38) value = artbox_devices_call(devices, context, n, a0, a1, a2, a3);
@@ -165,6 +192,23 @@ static int64_t dispatch(void *context, uint64_t n, uint64_t a0, uint64_t a1, uin
     if (++calls <= 128 || value < 0) fprintf(stderr, "syscall %" PRIu64 "(%" PRIx64 ",%" PRIx64 ",%" PRIx64 ",%" PRIx64 ") = %" PRId64 "\n", n,a0,a1,a2,a3,value);
     if (n == 93 || n == 94) fail("Bionic requested process exit");
     return value;
+}
+static void run_child(void *context, artbox_kernel_thread *kernel, const artbox_thread_start *start,
+                      artbox_thread_finish *finish) {
+    (void)context;
+    const artbox_syscall_binding binding = {dispatch, kernel};
+    const artbox_syscall_binding *previous = artbox_native_syscall_swap(&binding);
+    void **old_tls = artbox_native_tls_swap((void **)(uintptr_t)start->tls);
+    jmp_buf boundary;
+    exit_boundary = &boundary; thread_finish = finish;
+    if (!setjmp(boundary)) {
+        artbox_call7(entry(&images[0], "artbox_bootstrap_thread"), start->entry, start->argument, 0, 0, 0, 0, 0);
+        finish->error = -5; // Bionic __pthread_start must end through guest exit.
+    }
+    exit_boundary = NULL; thread_finish = NULL;
+    artbox_native_tls_swap(old_tls);
+    artbox_native_syscall_swap(previous);
+    // Return normally; the portable reaper joins before clear-TID or unmap.
 }
 static void construct(module *m) {
     artbox_elf_table *table = &m->dynamic.init_array;
@@ -220,6 +264,12 @@ static void *run(void *context) {
     futex_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_futex_check"), (uint64_t)scratch, 0, 0, 0, 0, 0, 0);
     if (artbox_vm_munmap(vm, (uint64_t)scratch, artbox_vm_page_size(vm))) fail("futex fixture cleanup");
     if (futex_cases != 19) { fprintf(stderr, "futex caller: %" PRId64 "\n", futex_cases); fail("futex caller"); }
+    fprintf(stderr, "NDK pthread client entry\n");
+    pthread_result = (int32_t)artbox_call7(entry(&images[1], "artbox_pthread_check"), 0, 0, 0, 0, 0, 0, 0);
+    if (pthread_result) { fprintf(stderr, "pthread client: %d\n", pthread_result); fail("pthread acceptance"); }
+    if (artbox_threads_drain(threads, 5000)) fail("child thread reaper");
+    reaped = artbox_threads_reaped(threads);
+    if (reaped != 6) fail("child thread count");
     gwp_enabled = artbox_call7(entry(&images[0], "artbox_bootstrap_gwp_enabled"), 0, 0, 0, 0, 0, 0, 0);
     guarded_samples = artbox_call7(entry(&images[0], "artbox_bootstrap_guarded_samples"), 0, 0, 0, 0, 0, 0, 0);
     if (force_sampling && (!gwp_enabled || !guarded_samples)) fail("GWP-ASan sampling did not run");
@@ -244,6 +294,9 @@ int main(int argc, char **argv) {
     artbox_atomic_u32_ops atomic = artbox_native_atomic_u32();
     futex = artbox_futex_create(vm, &atomic, &system, 4096);
     if (!vm || !devices || !futex || artbox_kernel_thread_init(&thread, vm, &system, 10000, 10000)) fail("kernel context");
+    artbox_thread_ops native_threads = artbox_native_threads();
+    threads = artbox_threads_create(vm, futex, &atomic, &system, &native_threads, 10000, 10001, 64, run_child, NULL);
+    if (!threads) fail("native thread manager");
     uint64_t start = now();
     load(&images[0], argv[1], argv[2]); load(&images[1], argv[3], argv[4]);
     if (images[0].dynamic.needed_count || images[1].dynamic.needed_count != 1 ||
@@ -266,13 +319,15 @@ int main(int argc, char **argv) {
         fprintf(stderr, "client result: %" PRId64 ", absent netd: %u, constructors: %u\n", result, absent_netd, constructors);
         fail("allocator acceptance");
     }
+    if (artbox_threads_destroy(threads)) fail("thread manager cleanup");
     artbox_devices_destroy(devices);
     if (artbox_futex_destroy(futex)) fail("futex cleanup");
     if (artbox_vm_destroy(vm)) fail("release reservations");
     printf("{\"cases\":146,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
            ",\"startup_client_ns\":%" PRIu64 ",\"reserved_bytes\":%" PRIu64 ",\"gwp_enabled\":%" PRIu64
-           ",\"guarded_samples\":%" PRIu64 ",\"futex_cases\":%" PRId64 ",\"unsupported_syscalls\":{",
-           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases);
+           ",\"guarded_samples\":%" PRIu64 ",\"futex_cases\":%" PRId64
+           ",\"pthread_result\":%d,\"threads_reaped\":%" PRIu64 ",\"unsupported_syscalls\":{",
+           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped);
     unsigned printed = 0;
     for (unsigned i = 0; i < 512; ++i) if (unsupported[i]) printf("%s\"%u\":%u", printed++ ? "," : "", i, unsupported[i]);
     puts("}}");
