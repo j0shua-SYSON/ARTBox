@@ -28,10 +28,12 @@ static int inspect_dynamic(const artbox_elf *image) {
     /* Check lookup before emitting output, including every named export. */
     for (i = 1; i < d.symbol_count; ++i) {
         artbox_elf_symbol symbol, found;
+        artbox_elf_version version;
         if (artbox_dynamic_symbol(&d, i, &symbol) != ARTBOX_ELF_OK) return 1;
+        if (artbox_dynamic_version(&d, i, &version) != ARTBOX_ELF_OK) return 1;
         if (symbol.section && (symbol.binding == 1 || symbol.binding == 2 || symbol.binding == 10) &&
             (symbol.visibility == 0 || symbol.visibility == 3) &&
-            (artbox_dynamic_lookup(&d, symbol.name, &found) != ARTBOX_ELF_OK || found.value != symbol.value))
+            (artbox_dynamic_lookup_version(&d, symbol.name, version.name, &found) != ARTBOX_ELF_OK || found.value != symbol.value))
             return 1;
     }
     printf("{\"needed\":[");
@@ -52,6 +54,37 @@ static int inspect_dynamic(const artbox_elf *image) {
     return 0;
 }
 
+static int inspect_versions(const artbox_elf *image) {
+    artbox_dynamic d;
+    artbox_elf_result result = artbox_dynamic_open(image, &d);
+    if (result != ARTBOX_ELF_OK) { fprintf(stderr, "%s\n", artbox_elf_result_string(result)); return 1; }
+    for (uint32_t i = 1; i < d.symbol_count; ++i) {
+        artbox_elf_symbol symbol, found; artbox_elf_version version;
+        if (artbox_dynamic_symbol(&d, i, &symbol) != ARTBOX_ELF_OK ||
+            artbox_dynamic_version(&d, i, &version) != ARTBOX_ELF_OK) return 1;
+        if (symbol.section && (symbol.binding == 1 || symbol.binding == 2) &&
+            (symbol.visibility == 0 || symbol.visibility == 3) &&
+            (artbox_dynamic_lookup_version(&d, symbol.name, version.name, &found) != ARTBOX_ELF_OK ||
+             found.value != symbol.value)) return 1;
+    }
+    printf("{\"records\":[");
+    for (unsigned i = 0; i < d.version_count; ++i) {
+        const artbox_elf_version *v = &d.versions[i];
+        printf("%s{\"index\":%u,\"flags\":%u,\"hash\":%u,\"name\":", i ? "," : "", (unsigned)v->index, (unsigned)v->flags, v->hash);
+        quoted(v->name); printf(",\"file\":"); quoted(v->file); putchar('}');
+    }
+    printf("],\"symbols\":[");
+    for (uint32_t i = 0; i < d.symbol_count; ++i) {
+        artbox_elf_symbol s; artbox_elf_version v;
+        if (artbox_dynamic_symbol(&d, i, &s) != ARTBOX_ELF_OK ||
+            artbox_dynamic_version(&d, i, &v) != ARTBOX_ELF_OK) return 1;
+        printf("%s{\"name\":", i ? "," : ""); quoted(s.name);
+        printf(",\"index\":%u,\"hidden\":%u,\"version\":", (unsigned)v.index, v.hidden);
+        quoted(v.name); printf(",\"file\":"); quoted(v.file); putchar('}');
+    }
+    printf("]}\n"); return 0;
+}
+
 int main(int argc, char **argv) {
     FILE *input;
     unsigned char *bytes;
@@ -59,7 +92,7 @@ int main(int argc, char **argv) {
     artbox_elf image;
     artbox_elf_result result;
     unsigned i;
-    if (argc != 2 && (argc != 3 || strcmp(argv[2], "--dynamic") != 0)) return 2;
+    if (argc != 2 && (argc != 3 || (strcmp(argv[2], "--dynamic") && strcmp(argv[2], "--versions")))) return 2;
 #if defined(_MSC_VER)
     if (fopen_s(&input, argv[1], "rb") != 0) return 2;
 #else
@@ -78,7 +111,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "%s\n", artbox_elf_result_string(result)); free(bytes); return 1;
     }
     if (argc == 3) {
-        int status = inspect_dynamic(&image);
+        int status = !strcmp(argv[2], "--versions") ? inspect_versions(&image) : inspect_dynamic(&image);
         free(bytes); return status;
     }
     printf("{\"type\":%u,\"entry\":%" PRIu64 ",\"phnum\":%u,\"dynamic\":%u,\"tls\":%u,\"relro\":%u,\"loads\":[",

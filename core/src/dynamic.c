@@ -5,7 +5,9 @@
 enum key { STR, STRSZ, SYM, SYMENT, HASH, GNU_HASH, RELA, RELASZ, RELAENT,
            RELR, RELRSZ, RELRENT, JMPREL, PLTRELSZ, PLTREL, INIT, FINI,
            INIT_ARRAY, INIT_ARRAYSZ, FINI_ARRAY, FINI_ARRAYSZ, PREINIT_ARRAY,
-           PREINIT_ARRAYSZ, SONAME, FLAGS, FLAGS_1, RPATH, RUNPATH, PLTGOT, KEY_COUNT };
+           PREINIT_ARRAYSZ, SONAME, FLAGS, FLAGS_1, RPATH, RUNPATH, PLTGOT,
+           VERSYM, VERDEF, VERDEFNUM, VERNEED, VERNEEDNUM, KEY_COUNT };
+static uint16_t u16(const unsigned char *p) { return (uint16_t)(p[0] | (uint16_t)p[1] << 8); }
 static uint32_t u32(const unsigned char *p) {
     return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
 }
@@ -60,8 +62,107 @@ static int tag_key(uint64_t tag) {
     case 32: return PREINIT_ARRAY; case 33: return PREINIT_ARRAYSZ;
     case 14: return SONAME; case 30: return FLAGS; case 0x6ffffffb: return FLAGS_1;
     case 15: return RPATH; case 29: return RUNPATH; case 3: return PLTGOT;
+    case 0x6ffffff0: return VERSYM; case 0x6ffffffc: return VERDEF; case 0x6ffffffd: return VERDEFNUM;
+    case 0x6ffffffe: return VERNEED; case 0x6fffffff: return VERNEEDNUM;
     default: return -1;
     }
+}
+
+static const artbox_elf_version *version_index(const artbox_dynamic *d, unsigned index) {
+    for (unsigned i = 0; i < d->version_count; ++i)
+        if (d->versions[i].index == index) return &d->versions[i];
+    return NULL;
+}
+static artbox_elf_result add_version(artbox_dynamic *d, uint16_t index, uint16_t flags,
+                                    uint32_t hash, const char *name, const char *file) {
+    artbox_elf_version record = {0};
+    if (!name || !*name || !index || index > 0x7fff || (file && index < 2) ||
+        (flags & ~(file ? 2u : 3u)) || (!file && ((flags & 1) != (index == 1))) ||
+        sysv_hash(name) != hash || version_index(d, index)) return ARTBOX_ELF_INVALID;
+    if (d->version_count == ARTBOX_ELF_MAX_VERSIONS) return ARTBOX_ELF_UNSUPPORTED;
+    record.index = index; record.flags = flags; record.hash = hash; record.name = name; record.file = file;
+    d->versions[d->version_count++] = record;
+    return ARTBOX_ELF_OK;
+}
+static artbox_elf_result versions_open(artbox_dynamic *d, const uint64_t *values, const unsigned char *seen) {
+    if (seen[VERDEF] != seen[VERDEFNUM] || seen[VERNEED] != seen[VERNEEDNUM] ||
+        ((seen[VERDEF] || seen[VERNEED]) && !seen[VERSYM])) return ARTBOX_ELF_INVALID;
+    if (!seen[VERSYM]) return ARTBOX_ELF_OK;
+    d->versym = view(d->image, values[VERSYM], (uint64_t)d->symbol_count * 2);
+    if (!d->versym || u16(d->versym)) return ARTBOX_ELF_INVALID;
+    for (unsigned kind = 0; kind < 2; ++kind) {
+        int key = kind ? VERNEED : VERDEF, count_key = kind ? VERNEEDNUM : VERDEFNUM;
+        if (!seen[key]) continue;
+        uint64_t address = values[key], count = values[count_key];
+        unsigned header_size = kind ? 16 : 20, aux_size = kind ? 16 : 8;
+        if (!count) return ARTBOX_ELF_INVALID;
+        if (count > ARTBOX_ELF_MAX_VERSIONS) return ARTBOX_ELF_UNSUPPORTED;
+        for (uint64_t i = 0; i < count; ++i) {
+            uint64_t capacity = available(d->image, address);
+            const unsigned char *header = view(d->image, address, header_size);
+            if (!header) return ARTBOX_ELF_INVALID;
+            if (u16(header) != 1) return ARTBOX_ELF_UNSUPPORTED;
+            uint32_t next = u32(header + (kind ? 12 : 16));
+            if ((i + 1 == count) != (next == 0) || (next && (next < header_size || next > capacity || next % 4)))
+                return ARTBOX_ELF_INVALID;
+            if (next) capacity = next;
+            unsigned aux_count = u16(header + (kind ? 2 : 6));
+            uint64_t aux = u32(header + (kind ? 8 : 12));
+            if (!aux_count) return ARTBOX_ELF_INVALID;
+            if (aux_count > ARTBOX_ELF_MAX_VERSIONS) return ARTBOX_ELF_UNSUPPORTED;
+            const char *file = NULL;
+            if (kind) {
+                file = string_at(d, u32(header + 4));
+                int found = 0;
+                for (unsigned n = 0; file && n < d->needed_count; ++n)
+                    if (!strcmp(file, d->needed[n])) found = 1;
+                if (!found) return ARTBOX_ELF_INVALID;
+            }
+            for (unsigned j = 0; j < aux_count; ++j) {
+                if (aux < header_size || aux % 4 || aux > capacity || aux_size > capacity - aux)
+                    return ARTBOX_ELF_INVALID;
+                const unsigned char *item = view(d->image, address + aux, aux_size);
+                if (!item) return ARTBOX_ELF_INVALID;
+                const char *name = string_at(d, u32(item + (kind ? 8 : 0)));
+                if (!name || !*name) return ARTBOX_ELF_INVALID;
+                if (kind || !j) {
+                    artbox_elf_result error = add_version(d, u16(kind ? item + 6 : header + 4),
+                        u16(kind ? item + 4 : header + 2), u32(kind ? item : header + 8), name, file);
+                    if (error != ARTBOX_ELF_OK) return error;
+                }
+                uint32_t aux_next = u32(item + (kind ? 12 : 4));
+                if ((j + 1 == aux_count) != (aux_next == 0) ||
+                    (aux_next && (aux_next < aux_size || aux_next > capacity - aux))) return ARTBOX_ELF_INVALID;
+                aux += aux_next;
+            }
+            if (next > UINT64_MAX - address) return ARTBOX_ELF_INVALID;
+            address += next;
+        }
+    }
+    for (uint32_t i = 1; i < d->symbol_count; ++i) {
+        unsigned index = u16(d->versym + (size_t)i * 2) & 0x7fff;
+        if (index > 1) {
+            const artbox_elf_version *version = version_index(d, index);
+            artbox_elf_symbol symbol;
+            if (!version || artbox_dynamic_symbol(d, i, &symbol) != ARTBOX_ELF_OK ||
+                (!!symbol.section == !!version->file)) return ARTBOX_ELF_INVALID;
+        }
+    }
+    return ARTBOX_ELF_OK;
+}
+
+artbox_elf_result artbox_dynamic_version(const artbox_dynamic *d, uint32_t index, artbox_elf_version *out) {
+    artbox_elf_version version = {0};
+    if (!d || !out) return ARTBOX_ELF_INVALID;
+    if (index >= d->symbol_count) return ARTBOX_ELF_NOT_FOUND;
+    unsigned raw = d->versym ? u16(d->versym + (size_t)index * 2) : index ? 1u : 0u;
+    if ((raw & 0x7fff) > 1) {
+        const artbox_elf_version *record = version_index(d, raw & 0x7fff);
+        if (!record) return ARTBOX_ELF_INVALID;
+        version = *record;
+    }
+    version.index = (uint16_t)(raw & 0x7fff); version.hidden = !!(raw & 0x8000);
+    *out = version; return ARTBOX_ELF_OK;
 }
 
 artbox_elf_result artbox_dynamic_symbol(const artbox_dynamic *d, uint32_t index, artbox_elf_symbol *out) {
@@ -201,8 +302,7 @@ artbox_elf_result artbox_dynamic_open(const artbox_elf *image, artbox_dynamic *o
             continue;
         }
         if (tag == 22 || tag == 17 || tag == 18 || tag == 19 ||
-            (tag >= 0x6000000f && tag <= 0x60000012) || tag == 0x6ffffff0 ||
-            (tag >= 0x6ffffffc && tag <= 0x6fffffff)) return ARTBOX_ELF_UNSUPPORTED;
+            (tag >= 0x6000000f && tag <= 0x60000012)) return ARTBOX_ELF_UNSUPPORTED;
         if (tag == 16) { d.flags |= 2; continue; }
         if (tag == 24) { d.flags |= 8; continue; }
         key = tag_key(tag);
@@ -250,6 +350,8 @@ artbox_elf_result artbox_dynamic_open(const artbox_elf *image, artbox_dynamic *o
     for (i = 0; i < 24; ++i) if (d.symbols[i]) return ARTBOX_ELF_INVALID;
     error = validate_hashes(&d);
     if (error != ARTBOX_ELF_OK) return error;
+    error = versions_open(&d, values, seen);
+    if (error != ARTBOX_ELF_OK) return error;
     tables[0] = (struct table_rule){RELA, RELASZ, RELAENT, 24, &d.rela};
     tables[1] = (struct table_rule){RELR, RELRSZ, RELRENT, 8, &d.relr};
     tables[2] = (struct table_rule){JMPREL, PLTRELSZ, -1, 24, &d.plt_rela};
@@ -281,10 +383,16 @@ static int exported(const artbox_elf_symbol *symbol) {
            (symbol->visibility == 0 || symbol->visibility == 3);
 }
 
-artbox_elf_result artbox_dynamic_lookup(const artbox_dynamic *d, const char *name, artbox_elf_symbol *out) {
+artbox_elf_result artbox_dynamic_lookup_version(const artbox_dynamic *d, const char *name,
+    const char *version, artbox_elf_symbol *out) {
     uint32_t index, hash, steps = 0;
     artbox_elf_symbol symbol, weak = {0};
     if (!d || !name || !out || !d->symbols || !d->strings || !d->symbol_count) return ARTBOX_ELF_INVALID;
+    unsigned wanted = 1;
+    if (version) {
+        for (unsigned i = 0; i < d->version_count; ++i)
+            if (!d->versions[i].file && !strcmp(d->versions[i].name, version)) wanted = d->versions[i].index;
+    }
     if (d->gnu_bucket_count) {
         uint64_t mask, word;
         hash = gnu_hash(name); mask = bloom_bits(hash, d->gnu_shift);
@@ -302,7 +410,9 @@ artbox_elf_result artbox_dynamic_lookup(const artbox_dynamic *d, const char *nam
             if (index < d->gnu_symbol_offset) return ARTBOX_ELF_INVALID;
             chain = u32(d->gnu_chains + (size_t)(index - d->gnu_symbol_offset) * 4);
         }
-        if ((!d->gnu_bucket_count || (chain & ~1u) == (hash & ~1u)) &&
+        unsigned raw_version = d->versym ? u16(d->versym + (size_t)index * 2) : 1u;
+        int version_match = !d->versym || (version ? wanted == (raw_version & 0x7fff) : !(raw_version & 0x8000));
+        if (version_match && (!d->gnu_bucket_count || (chain & ~1u) == (hash & ~1u)) &&
             artbox_dynamic_symbol(d, index, &symbol) == ARTBOX_ELF_OK && exported(&symbol) &&
             strcmp(symbol.name, name) == 0) {
             if (symbol.binding != 2) { *out = symbol; return ARTBOX_ELF_OK; }
@@ -313,4 +423,8 @@ artbox_elf_result artbox_dynamic_lookup(const artbox_dynamic *d, const char *nam
     }
     if (weak.name) { *out = weak; return ARTBOX_ELF_OK; }
     return ARTBOX_ELF_NOT_FOUND;
+}
+
+artbox_elf_result artbox_dynamic_lookup(const artbox_dynamic *d, const char *name, artbox_elf_symbol *out) {
+    return artbox_dynamic_lookup_version(d, name, NULL, out);
 }

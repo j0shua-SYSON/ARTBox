@@ -52,6 +52,61 @@ static artbox_elf_result parse(unsigned char *data, artbox_elf *image, artbox_dy
     return result == ARTBOX_ELF_OK ? artbox_dynamic_open(image, dynamic) : result;
 }
 
+static void version_fixture(unsigned char *p) {
+    fixture(p, 4096);
+    memcpy(p + 0x320, "V1\0V2\0", 6); tag(p, 1, 10, 38);
+    p64(p + 176 + 32, 28 * 16); p64(p + 176 + 40, 28 * 16);
+    tag(p, 22, 0x6ffffff0, 0x14c80);
+    tag(p, 23, 0x6ffffffc, 0x14c00); tag(p, 24, 0x6ffffffd, 1);
+    tag(p, 25, 0x6ffffffe, 0x14c40); tag(p, 26, 0x6fffffff, 1);
+    p16(p + 0xc00, 1); p16(p + 0xc04, 2); p16(p + 0xc06, 1);
+    p32(p + 0xc08, 0x592); p32(p + 0xc0c, 20); p32(p + 0xc14, 35); // V2 definition.
+    p16(p + 0xc40, 1); p16(p + 0xc42, 1); p32(p + 0xc44, 1); p32(p + 0xc48, 16);
+    p32(p + 0xc50, 0x591); p16(p + 0xc56, 3); p32(p + 0xc58, 32); // dep.so / V1 requirement.
+    p16(p + 0xc82, 3); p16(p + 0xc84, 2);
+}
+static int versions(void) {
+    unsigned char bytes[4096]; artbox_elf elf; artbox_dynamic d, saved;
+    artbox_elf_symbol symbol; artbox_elf_version version;
+    version_fixture(bytes);
+    CHECK(parse(bytes, &elf, &d) == ARTBOX_ELF_OK && d.version_count == 2);
+    CHECK(artbox_dynamic_version(&d, 1, &version) == ARTBOX_ELF_OK);
+    CHECK(version.index == 3 && !strcmp(version.name, "V1") && !strcmp(version.file, "dep.so"));
+    CHECK(artbox_dynamic_version(&d, 2, &version) == ARTBOX_ELF_OK);
+    CHECK(version.index == 2 && !version.file && !strcmp(version.name, "V2"));
+    CHECK(artbox_dynamic_lookup_version(&d, "value", "V2", &symbol) == ARTBOX_ELF_OK);
+    CHECK(artbox_dynamic_lookup_version(&d, "value", "V1", &symbol) == ARTBOX_ELF_NOT_FOUND);
+    CHECK(artbox_dynamic_lookup(&d, "value", &symbol) == ARTBOX_ELF_OK);
+    p16(bytes + 0xc84, 0x8002);
+    CHECK(parse(bytes, &elf, &d) == ARTBOX_ELF_OK);
+    CHECK(artbox_dynamic_lookup(&d, "value", &symbol) == ARTBOX_ELF_NOT_FOUND);
+    CHECK(artbox_dynamic_lookup_version(&d, "value", "V2", &symbol) == ARTBOX_ELF_OK);
+    saved = d; p16(bytes + 0xc84, 9);
+    CHECK(parse(bytes, &elf, &d) == ARTBOX_ELF_INVALID && !memcmp(&d, &saved, sizeof(d)));
+    version_fixture(bytes); p16(bytes + 0xc00, 2);
+    CHECK(parse(bytes, &elf, &d) == ARTBOX_ELF_UNSUPPORTED);
+    version_fixture(bytes); p32(bytes + 0xc0c, UINT32_MAX);
+    CHECK(parse(bytes, &elf, &d) == ARTBOX_ELF_INVALID);
+    version_fixture(bytes); p32(bytes + 0xc10, 4);
+    CHECK(parse(bytes, &elf, &d) == ARTBOX_ELF_INVALID);
+    version_fixture(bytes); p32(bytes + 0xc14, 4096);
+    CHECK(parse(bytes, &elf, &d) == ARTBOX_ELF_INVALID);
+    version_fixture(bytes); p32(bytes + 0xc08, 0);
+    CHECK(parse(bytes, &elf, &d) == ARTBOX_ELF_INVALID);
+    version_fixture(bytes); p16(bytes + 0xc56, 2);
+    CHECK(parse(bytes, &elf, &d) == ARTBOX_ELF_INVALID);
+    version_fixture(bytes); p32(bytes + 0xc44, 8); // Requirement names a non-dependency.
+    CHECK(parse(bytes, &elf, &d) == ARTBOX_ELF_INVALID);
+    version_fixture(bytes); p32(bytes + 0xc5c, 16); // Last auxiliary entry must terminate.
+    CHECK(parse(bytes, &elf, &d) == ARTBOX_ELF_INVALID);
+    version_fixture(bytes); p16(bytes + 0xc82, 2); // Undefined symbol cannot use this image's definition.
+    CHECK(parse(bytes, &elf, &d) == ARTBOX_ELF_INVALID);
+    fixture(bytes, sizeof(bytes)); CHECK(parse(bytes, &elf, &d) == ARTBOX_ELF_OK);
+    // AOSP permits an unversioned interposer to satisfy a versioned lookup.
+    CHECK(artbox_dynamic_lookup_version(&d, "value", "V2", &symbol) == ARTBOX_ELF_OK);
+    return 0;
+}
+
 int main(void) {
     unsigned char data[4096];
     artbox_elf image;
@@ -107,8 +162,8 @@ int main(void) {
     CHECK(parse(data, &image, &dynamic) == ARTBOX_ELF_UNSUPPORTED);
     fixture(data, sizeof(data)); tag(data, 20, 0x60000011, 0x10600);
     CHECK(parse(data, &image, &dynamic) == ARTBOX_ELF_UNSUPPORTED);
-    fixture(data, sizeof(data)); tag(data, 20, 0x6ffffff0, 0x10700);
-    CHECK(parse(data, &image, &dynamic) == ARTBOX_ELF_UNSUPPORTED);
+    fixture(data, sizeof(data)); tag(data, 20, 0x6ffffff0, UINT64_MAX);
+    CHECK(parse(data, &image, &dynamic) == ARTBOX_ELF_INVALID);
     fixture(data, sizeof(data)); p32(data + 0x430, 4096);
     CHECK(parse(data, &image, &dynamic) == ARTBOX_ELF_INVALID);
     fixture(data, sizeof(data)); data[0x435] = 0x80; /* AArch64 variant PCS. */
@@ -120,6 +175,7 @@ int main(void) {
     for (i = 0; i < 23; ++i) tag(data, i, 0x60000100, 1);
     CHECK(parse(data, &image, &dynamic) == ARTBOX_ELF_INVALID);
     CHECK(memcmp(&dynamic, &saved, sizeof(saved)) == 0);
+    CHECK(versions() == 0);
     printf("Dynamic tables, GNU/SysV lookup and rejected formats: %u checks PASS\n", checks);
     return 0;
 }

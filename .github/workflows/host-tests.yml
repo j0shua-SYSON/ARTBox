@@ -47,6 +47,9 @@ jobs:
       - name: Compare dynamic ELF program headers with LLVM
         if: matrix.os == 'macos-15'
         run: python3 -B scripts/test_dynamic.py
+      - name: Compare NDK symbol versions and named lookups with LLVM
+        if: matrix.os == 'macos-15'
+        run: python3 -B scripts/test_versions.py
       - name: Relocate NDK data and compare every writable byte with LLVM
         if: matrix.os == 'macos-15'
         run: python3 -B scripts/test_relocation.py
@@ -79,6 +82,8 @@ jobs:
             artifacts/host-metrics.json
             artifacts/m1-native.json
             artifacts/m2-metadata.json
+            artifacts/m2-versions.json
+            build/m2/versions/
             artifacts/m2-relocations.json
             artifacts/m2-bionic-upstream.json
             artifacts/m2-bionic-native.json

@@ -1,0 +1,2 @@
+ARTBOX_1 { global: versioned; local: *; };
+ARTBOX_2 { global: versioned; } ARTBOX_1;
