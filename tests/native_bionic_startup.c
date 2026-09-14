@@ -31,7 +31,7 @@ typedef struct module {
     artbox_dynamic dynamic;
     artbox_relocation_stats relocations;
 } module;
-enum { IMAGE_COUNT = 3 };
+enum { IMAGE_COUNT = 4 };
 static module images[IMAGE_COUNT];
 static artbox_load_group *load_group;
 static artbox_vm *vm;
@@ -247,13 +247,21 @@ static void *run(void *context) {
     const artbox_syscall_binding *previous = artbox_native_syscall_swap(&binding);
     void **old_tls = artbox_native_tls_swap(NULL);
     fprintf(stderr, "bootstrap entry\n");
-    if (artbox_call7(entry(&images[0], "artbox_bootstrap_main"), (uintptr_t)args, 0, 0, 0, 0, 0, 0)) fail("bootstrap return");
+    artbox_tls_template templates[64];
+    unsigned tls_count = artbox_load_group_tls_count(load_group);
+    if (tls_count != 2) fail("ELF TLS template count");
+    for (unsigned i = 0; i < tls_count; ++i)
+        if (artbox_load_group_tls_template(load_group, i, &templates[i]) != ARTBOX_ELF_OK) fail("ELF TLS template");
+    if (artbox_call7(entry(&images[0], "artbox_bootstrap_main"), (uintptr_t)args,
+                    (uintptr_t)templates, tls_count, 0, 0, 0, 0)) fail("bootstrap return");
     if (!artbox_bionic_get_tls()) fail("no real Bionic TCB");
     fprintf(stderr, "bootstrap complete; running real libc constructors\n");
     if (artbox_load_group_initialize(load_group, construct, NULL) != ARTBOX_ELF_OK) fail("load-group constructors");
     unsigned initialized = constructors;
     if (artbox_load_group_initialize(load_group, construct, NULL) != ARTBOX_ELF_OK || constructors != initialized)
         fail("constructor idempotence");
+    for (unsigned i = 0; i < 2; ++i)
+        if (artbox_call7(entry(&images[1], "artbox_tls_abi_check"), 0, 0, 0, 0, 0, 0, 0)) fail("TLSDESC register preservation");
     version_result = (int64_t)artbox_call7(entry(&images[1], "version_client"), 0, 0, 0, 0, 0, 0, 0);
     if (version_result != 46) fail("versioned dependency execution");
     fprintf(stderr, "NDK allocator client entry\n");
@@ -290,8 +298,8 @@ static void *run(void *context) {
     return NULL;
 }
 int main(int argc, char **argv) {
-    if (argc != 8 && (argc != 9 || strcmp(argv[8], "--sampled"))) return 2;
-    force_sampling = argc == 9;
+    if (argc != 10 && (argc != 11 || strcmp(argv[10], "--sampled"))) return 2;
+    force_sampling = argc == 11;
     for (unsigned i = 0; i < 4; ++i) {
         const int signals[] = {SIGSEGV, SIGBUS, SIGILL, SIGABRT};
         struct sigaction action;
@@ -302,7 +310,7 @@ int main(int argc, char **argv) {
     artbox_vm_ops ops = artbox_native_vm();
     artbox_system_ops system = artbox_native_system();
     vm = artbox_vm_create(&ops, UINT64_C(32) << 30, 4096);
-    if (artbox_native_files_open(argv[7], &backing_files)) fail("rooted filesystem");
+    if (artbox_native_files_open(argv[9], &backing_files)) fail("rooted filesystem");
     artbox_file_ops files = artbox_native_files_ops(backing_files);
     filesystem = artbox_vfs_create(&files, 256);
     artbox_atomic_u32_ops atomic = artbox_native_atomic_u32();
@@ -319,6 +327,7 @@ int main(int argc, char **argv) {
         modules[i] = (artbox_link_module){images[i].dynamic.soname, &images[i].dynamic, (uintptr_t)images[i].rx, &memory[i], 1};
     }
     artbox_elf_result linked = artbox_load_group_create(modules, IMAGE_COUNT, "libstartup_client.so", resolve, NULL, &load_group);
+    if (linked == ARTBOX_ELF_OK) linked = artbox_load_group_tls_resolver(load_group, (uintptr_t)entry(&images[0], "artbox_tlsdesc_absolute"));
     if (linked == ARTBOX_ELF_OK) linked = artbox_load_group_relocate(load_group);
     if (linked != ARTBOX_ELF_OK) { fprintf(stderr, "load group result %d\n", linked); fail("manifest load group"); }
     for (unsigned i = 0; i < IMAGE_COUNT; ++i)
@@ -349,7 +358,7 @@ int main(int argc, char **argv) {
            ",\"guarded_samples\":%" PRIu64 ",\"futex_cases\":%" PRId64
            ",\"pthread_result\":%d,\"threads_reaped\":%" PRIu64 ",\"pthread_client_ns\":%" PRIu64
            ",\"thread_guarded_samples\":%" PRIu64 ",\"process_peak_rss_bytes\":%ld,"
-           "\"linked_images\":3,\"version_result\":%" PRId64 ",\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64 ",\"unsupported_syscalls\":{",
+           "\"linked_images\":4,\"tls_modules\":2,\"tls_threads\":7,\"tls_result\":0,\"version_result\":%" PRId64 ",\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64 ",\"unsupported_syscalls\":{",
            constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, version_result, mapping_cases, file_cases, file_ns);
     unsigned printed = 0;
     for (unsigned i = 0; i < 512; ++i) if (unsupported[i]) printf("%s\"%u\":%u", printed++ ? "," : "", i, unsupported[i]);

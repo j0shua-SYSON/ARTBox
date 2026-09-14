@@ -41,6 +41,17 @@ def macho(rx, rw):
 
 
 class DynamicPack(unittest.TestCase):
+    def test_tls_template_is_alias_of_writable_initializer_and_zero_fill(self):
+        data = fixture()
+        struct.pack_into('<H', data, 56, 4)
+        struct.pack_into('<II6Q', data, 232, 7, 4, PAGE+32, PAGE+32, PAGE+32, 8, 64, 32)
+        rx, rw, _ = pack_layout(data)
+        self.assertEqual(rw[32:40], data[PAGE+32:PAGE+40])
+        for position, value in ((248, 0), (272, 512), (264, 120), (236, 5)):
+            bad = bytearray(data)
+            struct.pack_into('<I' if position == 236 else '<Q', bad, position, value)
+            with self.assertRaises(ValueError): pack_layout(bad)
+
     def test_layout_preserves_virtual_offsets_and_zero_fills_data_bss(self):
         data = fixture()
         rx, rw, layout = pack_layout(data)

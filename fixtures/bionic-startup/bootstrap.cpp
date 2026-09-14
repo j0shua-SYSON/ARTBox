@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include "pthread_internal.h"
 #include "artbox/threads.h"
+#include "artbox/linker.h"
 #include "private/bionic_globals.h"
 #include "private/bionic_tls.h"
 #include "private/KernelArgumentBlock.h"
@@ -18,6 +19,7 @@ static unsigned char gwp_storage[sizeof(gwp_asan::ThreadLocalPackedVariables)];
 extern "C" uint64_t artbox_bootstrap_stage;
 uint64_t artbox_bootstrap_stage;
 static uint64_t guarded_samples;
+alignas(TlsModule) static unsigned char tls_storage[64 * sizeof(TlsModule)];
 
 extern "C" libc_shared_globals* __loader_shared_globals() { return &shared; }
 extern "C" uint64_t artbox_bootstrap_gwp_enabled() { return shared.gwp_asan_state != nullptr; }
@@ -30,8 +32,8 @@ extern "C" void artbox_bootstrap_note_allocation(const void* p) {
 }
 
 // No stack protector: Bionic reseeds its guard while this frame is active.
-// No guest ELF TLS templates exist in this deliberately bounded fixture.
-extern "C" int artbox_bootstrap_main(void* raw_args) {
+extern "C" int artbox_bootstrap_main(void* raw_args, const artbox_tls_template* templates, uint64_t count) {
+  if (count > 64 || (count && !templates)) return -22;
   if (artbox_bootstrap_stage) return -114;
   artbox_bootstrap_stage = 1;
   KernelArgumentBlock args(raw_args);
@@ -43,6 +45,20 @@ extern "C" int artbox_bootstrap_main(void* raw_args) {
   artbox_bootstrap_stage = 2;
   shared.static_tls_layout.reserve_exe_segment_and_tcb(nullptr, args.argv[0]);
   shared.static_tls_layout.reserve_bionic_tls();
+  auto* modules = reinterpret_cast<TlsModule*>(tls_storage);
+  for (uint64_t i = 0; i < count; ++i) {
+    const auto& t = templates[i];
+    if (t.module_id != i + 1 || !t.alignment || (t.alignment & (t.alignment - 1)) ||
+        t.skew >= t.alignment || t.init_size > t.memory_size || (t.init_size && !t.init_data)) return -22;
+    auto* m = new (&modules[i]) TlsModule;
+    m->segment.aligned_size = {t.memory_size, {t.alignment, t.skew}};
+    if (t.init_size) m->segment.init_ptr = reinterpret_cast<const void*>(t.init_data);
+    m->segment.init_size = t.init_size;
+    m->static_offset = shared.static_tls_layout.reserve_solib_segment(m->segment);
+    m->first_generation = kTlsGenerationFirst;
+  }
+  shared.tls_modules.module_table = modules;
+  shared.tls_modules.module_count = shared.tls_modules.static_module_count = count;
   shared.static_tls_layout.finish_layout();
   artbox_bootstrap_stage = 3;
   __libc_init_main_thread_late();
