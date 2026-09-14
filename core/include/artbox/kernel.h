@@ -22,6 +22,9 @@ typedef struct artbox_kernel_thread {
     artbox_system_ops system;
     int32_t pid, tid;
     uint64_t clear_tid_address;
+    /* Owned by this thread; clone inherits it. This is guest state only:
+     * signal delivery/handlers are not implemented and host masks are untouched. */
+    uint64_t blocked_signals;
 } artbox_kernel_thread;
 
 int artbox_kernel_thread_init(artbox_kernel_thread *thread, artbox_vm *vm,

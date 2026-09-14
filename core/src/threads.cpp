@@ -107,8 +107,8 @@ static int start_native(void *context) {
     return w->owner->native.start(reinterpret_cast<void*>(w->start.stack_base),
         static_cast<size_t>(w->start.stack_size), worker_entry, w, &w->handle);
 }
-extern "C" int64_t artbox_threads_start(artbox_threads *t, const artbox_thread_start *start) {
-    if (!t || !start) return -22;
+extern "C" int64_t artbox_threads_start(artbox_threads *t, const artbox_kernel_thread *parent, const artbox_thread_start *start) {
+    if (!t || !parent || !start || parent->vm != t->vm || parent->pid != t->pid) return -22;
     const artbox_thread_start s = *start;
     if (s.flags != ARTBOX_PTHREAD_CLONE_FLAGS) return -38;
     const uint64_t page = artbox_vm_page_size(t->vm);
@@ -125,6 +125,7 @@ extern "C" int64_t artbox_threads_start(artbox_threads *t, const artbox_thread_s
         w->owner = t; w->start = s;
         artbox_kernel_thread_init(&w->kernel, t->vm, &t->system, t->pid, static_cast<int32_t>(t->next_tid++));
         w->kernel.clear_tid_address = s.child_tid;
+        w->kernel.blocked_signals = parent->blocked_signals;
         int error = artbox_vm_prepare_store_u32(t->vm, s.parent_tid, &t->atomic,
             static_cast<uint32_t>(w->kernel.tid), start_native, w);
         if (error) { delete w; return error; }

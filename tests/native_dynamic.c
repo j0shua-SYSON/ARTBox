@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
         int64_t system_result = (int64_t)artbox_call7(system_probe, memory.page_size, 10000, 10000, 0, 0, 0, 0);
         system_finished = now();
         artbox_native_syscall_swap(saved);
-        if (result != 35 || system_result != 36 || errno != EDOM || artbox_vm_reserved_bytes(vm) || artbox_vm_destroy(vm)) {
+        if (result != 35 || system_result != 53 || errno != EDOM || artbox_vm_reserved_bytes(vm) || artbox_vm_destroy(vm)) {
             fprintf(stderr, "VM/system checks: %" PRId64 "/%" PRId64 " (negative source line on failure)\n", result, system_result);
             return 1;
         }
@@ -202,7 +202,7 @@ int main(int argc, char** argv) {
            "\"relocate_and_construct_ns\":%" PRIu64 ",\"string_cases\":35908,\"string_page_size\":%zu,\"strings_ns\":%" PRIu64 ","
            "\"vm_cases\":35,\"vm_ns\":%" PRIu64 ","
            "\"binary128_cases\":123,\"binary128_ns\":%" PRIu64 ","
-           "\"system_cases\":36,\"system_ns\":%" PRIu64 ","
+           "\"system_cases\":53,\"system_ns\":%" PRIu64 ","
            "\"guest_setup_ns\":%" PRIu64 ",\"iterations_ns\":%" PRIu64 "}\n",
            stats.rela_count, stats.plt_count, stats.relr_count, loaded - started, relocated - loaded,
            memory.page_size, strings_finished - relocated, vm_finished - quad_finished, quad_finished - strings_finished,

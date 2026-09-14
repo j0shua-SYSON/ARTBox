@@ -3,7 +3,7 @@
 int artbox_kernel_thread_init(artbox_kernel_thread *thread, artbox_vm *vm,
                               const artbox_system_ops *system, int32_t pid, int32_t tid) {
     if (!thread || !vm || !system || !system->clock || !system->random || pid <= 0 || tid <= 0) return -22;
-    *thread = (artbox_kernel_thread){vm, *system, pid, tid, 0};
+    *thread = (artbox_kernel_thread){vm, *system, pid, tid, 0, 0};
     return 0;
 }
 
@@ -23,6 +23,29 @@ int64_t artbox_kernel_call(void *context, uint64_t number, uint64_t a0, uint64_t
              * The thread-exit path must later clear/wake it when accessible. */
             thread->clear_tid_address = a0;
             return thread->tid;
+        case 135: {
+            if (a3 != 8) return -22;
+            uint64_t previous = thread->blocked_signals;
+            unsigned char bytes[8];
+            if (a1) {
+                int error = artbox_vm_read(thread->vm, a1, bytes, sizeof(bytes));
+                if (error) return error;
+                uint64_t requested = 0;
+                for (unsigned i = 0; i < 8; ++i) requested |= (uint64_t)bytes[i] << (8 * i);
+                requested &= ~UINT64_C(0x40100); // Linux SIGKILL (9) and SIGSTOP (19).
+                switch ((uint32_t)a0) {
+                    case 0: thread->blocked_signals |= requested; break;
+                    case 1: thread->blocked_signals &= ~requested; break;
+                    case 2: thread->blocked_signals = requested; break;
+                    default: return -22;
+                }
+            }
+            // Linux changes the mask before copying out the old one. A bad
+            // output address reports EFAULT but does not roll back that change.
+            if (!a2) return 0;
+            put64(bytes, previous);
+            return artbox_vm_write(thread->vm, a2, bytes, sizeof(bytes));
+        }
         case 113: {
             unsigned id = (uint32_t)a0;
             // A precise clock is a valid, potentially slower implementation of

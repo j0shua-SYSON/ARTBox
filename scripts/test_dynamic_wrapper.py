@@ -81,7 +81,7 @@ def main():
               "binary128": report["binary128"],
               "vm": {"cases": 35, "object_sha256": hashlib.sha256(vm_object.read_bytes()).hexdigest(),
                      "source_sha256": hashlib.sha256(vm_source.read_bytes()).hexdigest()},
-              "system": {"cases": 36, "object_sha256": hashlib.sha256(system_object.read_bytes()).hexdigest(),
+              "system": {"cases": 53, "object_sha256": hashlib.sha256(system_object.read_bytes()).hexdigest(),
                          "source_sha256": hashlib.sha256(system_source.read_bytes()).hexdigest()},
               "elf_sha256": hashlib.sha256(elf.read_bytes()).hexdigest(), "layout": layout, "inventory": boundary}
     if sys.platform == "darwin":
@@ -99,7 +99,7 @@ def main():
                 native = json.loads(output)
                 if any(native[key] != value for key, value in
                        {"iterations": 100, "writes": 200, "exit_status": 0, "constructor_runs": 1,
-                        "string_cases": 35908, "vm_cases": 35, "binary128_cases": 123, "system_cases": 36}.items()):
+                        "string_cases": 35908, "vm_cases": 35, "binary128_cases": 123, "system_cases": 53}.items()):
                     raise RuntimeError("Signed dynamic Bionic slice did not complete its native contract")
                 framework["native"] = native
             result["frameworks"][target] = framework

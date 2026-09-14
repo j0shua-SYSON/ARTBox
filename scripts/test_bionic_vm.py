@@ -33,7 +33,7 @@ def main():
     system = manifest["system"]
     system_obj = args.evidence_root / "build/m2/dynamic-wrapper/system-check.o"
     system_source = ROOT / "fixtures/bionic-vm/system.c"
-    if system["cases"] != 36 or hashlib.sha256(system_obj.read_bytes()).hexdigest() != system["object_sha256"] or \
+    if system["cases"] != 53 or hashlib.sha256(system_obj.read_bytes()).hexdigest() != system["object_sha256"] or \
             hashlib.sha256(system_source.read_bytes()).hexdigest() != system["source_sha256"]:
         raise RuntimeError("Startup service oracle differs from the NDK signed-wrapper caller")
     records = {}
@@ -50,7 +50,7 @@ def main():
         (build / f"{profile}.log").write_text(result.stdout + result.stderr, encoding="utf-8")
         result.check_returncode()
         record = json.loads(result.stdout)
-        if record["cases"] != 35 or record["system_cases"] != 36 or record["page_size"] < 4096 or \
+        if record["cases"] != 35 or record["system_cases"] != 53 or record["page_size"] < 4096 or \
                 record["elapsed_ns"] <= 0 or record["system_elapsed_ns"] <= 0:
             raise RuntimeError("VM oracle did not complete its memory/errno contract")
         records[profile] = {**record, "syscall_object_sha256": report["syscall_stubs"]["test_object_sha256"]}
@@ -59,7 +59,7 @@ def main():
     (artifacts / "m2-vm-linux.json").write_text(json.dumps({
         "scope": "Identical NDK memory caller through original/adapted Bionic stubs on Linux; no complete libc startup",
         "vm": metadata, "system": system, "profiles": records}, indent=2) + "\n", encoding="utf-8")
-    print("Both Bionic paths pass 35 memory and 36 startup-service cases with identical NDK callers")
+    print("Both Bionic paths pass 35 memory and 53 startup-service cases with identical NDK callers")
 
 
 if __name__ == "__main__":

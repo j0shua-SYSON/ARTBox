@@ -40,8 +40,8 @@ int main() {
     CHECK(artbox_kernel_thread_init(&b, vm, &system, 100, 101) == 0);
     fixture_thread = &a;
     int64_t fixture = artbox_system_check(memory.page_size, 100, 100);
-    if (fixture != 36) std::fprintf(stderr, "Startup fixture: %lld\n", static_cast<long long>(fixture));
-    CHECK(fixture == 36);
+    if (fixture != 53) std::fprintf(stderr, "Startup fixture: %lld\n", static_cast<long long>(fixture));
+    CHECK(fixture == 53);
     CHECK(call(a, 172) == call(b, 172) && call(a, 178) == 100 && call(b, 178) == 101);
     CHECK(call(a, 96, UINT64_MAX) == 100 && a.clear_tid_address == UINT64_MAX);
     CHECK(call(a, 96, 0) == 100 && a.clear_tid_address == 0 && b.clear_tid_address == 0);
