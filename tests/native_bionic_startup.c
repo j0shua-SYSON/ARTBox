@@ -34,6 +34,7 @@ static artbox_vm *vm;
 static artbox_devices *devices;
 static artbox_futex *futex;
 static artbox_threads *threads;
+static _Thread_local artbox_kernel_thread *current_kernel;
 static _Thread_local jmp_buf *exit_boundary;
 static _Thread_local artbox_thread_finish *thread_finish;
 static int32_t pthread_result;
@@ -85,7 +86,7 @@ static int64_t host_pthread_clone(const artbox_thread_start *guest_start) {
     uint64_t rx = (uintptr_t)images[0].rx;
     if (start.entry < rx || start.entry - rx >= images[0].elf.segments[0].file_size || start.entry % 4)
         return -22;
-    return artbox_threads_start(threads, &start);
+    return artbox_threads_start(threads, current_kernel, &start);
 }
 static _Noreturn void finish_thread(uint64_t base, uint64_t size, int error) {
     if (!exit_boundary || !thread_finish) fail("exit outside a guest child thread");
@@ -196,6 +197,7 @@ static int64_t dispatch(void *context, uint64_t n, uint64_t a0, uint64_t a1, uin
 static void run_child(void *context, artbox_kernel_thread *kernel, const artbox_thread_start *start,
                       artbox_thread_finish *finish) {
     (void)context;
+    current_kernel = kernel;
     const artbox_syscall_binding binding = {dispatch, kernel};
     const artbox_syscall_binding *previous = artbox_native_syscall_swap(&binding);
     void **old_tls = artbox_native_tls_swap((void **)(uintptr_t)start->tls);
@@ -205,7 +207,7 @@ static void run_child(void *context, artbox_kernel_thread *kernel, const artbox_
         artbox_call7(entry(&images[0], "artbox_bootstrap_thread"), start->entry, start->argument, 0, 0, 0, 0, 0);
         finish->error = -5; // Bionic __pthread_start must end through guest exit.
     }
-    exit_boundary = NULL; thread_finish = NULL;
+    exit_boundary = NULL; thread_finish = NULL; current_kernel = NULL;
     artbox_native_tls_swap(old_tls);
     artbox_native_syscall_swap(previous);
     // Return normally; the portable reaper joins before clear-TID or unmap.
@@ -248,6 +250,7 @@ static void *run(void *context) {
     }
     args[cursor++] = 0;
     memcpy(args + cursor, auxv, sizeof(auxv));
+    current_kernel = &thread;
     const artbox_syscall_binding binding = {dispatch, &thread};
     const artbox_syscall_binding *previous = artbox_native_syscall_swap(&binding);
     void **old_tls = artbox_native_tls_swap(NULL);
@@ -275,6 +278,7 @@ static void *run(void *context) {
     if (force_sampling && (!gwp_enabled || !guarded_samples)) fail("GWP-ASan sampling did not run");
     artbox_native_tls_swap(old_tls);
     artbox_native_syscall_swap(previous);
+    current_kernel = NULL;
     return NULL;
 }
 int main(int argc, char **argv) {

@@ -40,7 +40,8 @@ struct Context {
 static void run(void *context, artbox_kernel_thread *kernel, const artbox_thread_start *start, artbox_thread_finish *finish) {
     auto *c = static_cast<Context*>(context);
     uint32_t tid = 0;
-    CHECK(kernel->pid == 100 && kernel->tid > 100);
+    CHECK(kernel->pid == 100 && kernel->tid > 100 && kernel->blocked_signals == 0xa00);
+    kernel->blocked_signals = 0; // Child changes must not modify the parent.
     CHECK(artbox_vm_load_u32(kernel->vm, start->parent_tid, &c->atomic, &tid) == 0 && tid == static_cast<uint32_t>(kernel->tid));
     CHECK(kernel->clear_tid_address == start->child_tid && start->tls == 123 && start->entry == 456 && start->argument == 789);
     if (c->native_stack) {
@@ -60,6 +61,9 @@ int main() {
     Context context; context.atomic = artbox_native_atomic_u32();
     artbox_vm *vm = artbox_vm_create(&memory, 16 * 1024 * 1024, 16);
     CHECK(vm);
+    artbox_kernel_thread parent;
+    CHECK(artbox_kernel_thread_init(&parent, vm, &system, 100, 100) == 0);
+    parent.blocked_signals = 0xa00;
     artbox_futex *futex = artbox_futex_create(vm, &context.atomic, &system, 8);
     CHECK(futex);
     uint64_t word = static_cast<uint64_t>(artbox_vm_mmap(vm, 0, memory.page_size, 3, 0x22, -1, 0));
@@ -70,21 +74,21 @@ int main() {
     CHECK(threads);
     artbox_thread_start s{ARTBOX_PTHREAD_CLONE_FLAGS, stack, memory.page_size, 123, word, word, 456, 789};
     auto invalid = s; invalid.flags = 0;
-    CHECK(artbox_threads_start(threads, &invalid) == -38);
+    CHECK(artbox_threads_start(threads, &parent, &invalid) == -38);
     invalid = s; invalid.parent_tid = 0;
-    CHECK(artbox_threads_start(threads, &invalid) == -14 && starts == 0);
+    CHECK(artbox_threads_start(threads, &parent, &invalid) == -14 && starts == 0);
     invalid = s; invalid.stack_base += 1;
-    CHECK(artbox_threads_start(threads, &invalid) == -22 && starts == 0);
+    CHECK(artbox_threads_start(threads, &parent, &invalid) == -22 && starts == 0);
     reject_start = true;
     CHECK(artbox_vm_store_u32(vm, word, &context.atomic, 99) == 0);
-    CHECK(artbox_threads_start(threads, &s) == -11 && artbox_threads_active(threads) == 0);
+    CHECK(artbox_threads_start(threads, &parent, &s) == -11 && artbox_threads_active(threads) == 0);
     uint32_t tid;
     CHECK(artbox_vm_load_u32(vm, word, &context.atomic, &tid) == 0 && tid == 99);
     reject_start = false;
-    int64_t first = artbox_threads_start(threads, &s);
+    int64_t first = artbox_threads_start(threads, &parent, &s);
     CHECK(first > 100); await(after_entry);
     CHECK(artbox_threads_destroy(threads) == -16 && artbox_threads_drain(threads, 1) == -110);
-    CHECK(artbox_threads_start(threads, &s) == -11); // Reaping workers count against the limit.
+    CHECK(artbox_threads_start(threads, &parent, &s) == -11); // Reaping workers count against the limit.
     CHECK(artbox_vm_load_u32(vm, word, &context.atomic, &tid) == 0 && tid == first);
     std::atomic<int> waited{99};
     std::thread joiner([&] { waited = static_cast<int>(artbox_futex_call(futex, word, 0, static_cast<uint64_t>(first), 0, 0, 0)); });
@@ -96,17 +100,17 @@ int main() {
     CHECK(artbox_vm_load_u32(vm, word, &context.atomic, &tid) == 0 && tid == 0);
     int64_t previous = first;
     for (unsigned i = 0; i < 128; ++i) {
-        int64_t current = artbox_threads_start(threads, &s);
+        int64_t current = artbox_threads_start(threads, &parent, &s);
         CHECK(current > previous && artbox_threads_drain(threads, 2000) == 0);
         previous = current;
     }
     context.detached = true; after_entry = false; allow_native_return = false;
-    CHECK(artbox_threads_start(threads, &s) > previous); await(after_entry);
+    CHECK(artbox_threads_start(threads, &parent, &s) > previous); await(after_entry);
     CHECK(artbox_vm_access(vm, stack, memory.page_size, 3));
     CHECK(artbox_threads_drain(threads, 1) == -110);
     allow_native_return = true;
     CHECK(artbox_threads_drain(threads, 2000) == 0 && !artbox_vm_access(vm, stack, 1, 1));
-    CHECK(artbox_threads_reaped(threads) == 130 && context.ran == 130);
+    CHECK(artbox_threads_reaped(threads) == 130 && context.ran == 130 && parent.blocked_signals == 0xa00);
     CHECK(artbox_threads_destroy(threads) == 0);
 
     artbox_thread_ops native = artbox_native_threads();
@@ -123,7 +127,7 @@ int main() {
         CHECK(allocation > 0);
         s.stack_base = static_cast<uint64_t>(allocation) + memory.page_size; s.stack_size = 1024 * 1024;
         CHECK(artbox_vm_mprotect(vm, s.stack_base, s.stack_size, 3) == 0);
-        CHECK(artbox_threads_start(threads, &s) >= 1000 && artbox_threads_drain(threads, 2000) == 0);
+        CHECK(artbox_threads_start(threads, &parent, &s) >= 1000 && artbox_threads_drain(threads, 2000) == 0);
         CHECK(!artbox_vm_access(vm, s.stack_base, 1, 1));
         CHECK(artbox_vm_munmap(vm, static_cast<uint64_t>(allocation), 1024 * 1024 + 2 * memory.page_size) == 0);
     }

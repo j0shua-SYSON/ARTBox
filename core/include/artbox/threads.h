@@ -17,7 +17,8 @@ typedef struct artbox_thread_finish {
 } artbox_thread_finish;
 typedef struct artbox_thread_ops {
     /* start returns without waiting for the entry; join waits for actual native
-     * termination, including host TLS cleanup. Errors are negative Linux errno. */
+     * termination, including host TLS cleanup. Errors are negative Linux errno.
+     * A failed start must leave no native worker alive. Callbacks cannot throw. */
     int (*start)(void *stack, size_t size, void (*entry)(void *), void *argument, void **handle);
     int (*join)(void *handle);
 } artbox_thread_ops;
@@ -31,7 +32,9 @@ artbox_threads *artbox_threads_create(artbox_vm *vm, artbox_futex *futex,
 /* The run callback must return normally through its host root frame. Guest
  * final exit may use a C setjmp boundary after Bionic has run its destructors.
  * The owner keeps all interfaces/context alive until successful destruction. */
-int64_t artbox_threads_start(artbox_threads *threads, const artbox_thread_start *start);
+/* Called on the parent guest thread; its PID/VM must belong to this manager. */
+int64_t artbox_threads_start(artbox_threads *threads, const artbox_kernel_thread *parent,
+                            const artbox_thread_start *start);
 /* Stop calling start before drain/destroy. A live manager returns EBUSY from
  * destroy. No detach/kill of host workers and no forced stack release. */
 int artbox_threads_drain(artbox_threads *threads, uint32_t timeout_ms);

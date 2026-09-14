@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <stdatomic.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -30,6 +31,12 @@ static void *worker(void *value) {
     a->tid = gettid(); a->self = (void *)pthread_self(); a->errno_address = &errno;
     ASSERT(a->tid > 10000 && getpid() == 10000 && a->self != NULL);
     ASSERT(pthread_setspecific(key, a) == 0 && pthread_getspecific(key) == a);
+    sigset_t mask, add;
+    ASSERT(pthread_sigmask(SIG_SETMASK, NULL, &mask) == 0);
+    ASSERT(sigismember(&mask, SIGUSR1) == 1 && sigismember(&mask, SIGUSR2) == 0);
+    ASSERT(sigemptyset(&add) == 0 && sigaddset(&add, SIGUSR2) == 0);
+    ASSERT(pthread_sigmask(SIG_BLOCK, &add, NULL) == 0);
+    ASSERT(pthread_sigmask(SIG_SETMASK, NULL, &mask) == 0 && sigismember(&mask, SIGUSR2) == 1);
     errno = (int)(200 + a->index);
     ASSERT(pthread_mutex_lock(&lock) == 0);
     ++ready;
@@ -61,6 +68,9 @@ static void *worker(void *value) {
 }
 int artbox_pthread_check(void) {
     pthread_t handles[JOINED];
+    sigset_t previous_mask, mask;
+    CHECK(sigemptyset(&mask) == 0 && sigaddset(&mask, SIGUSR1) == 0);
+    CHECK(pthread_sigmask(SIG_SETMASK, &mask, &previous_mask) == 0);
     CHECK(pthread_mutex_init(&lock, NULL) == 0);
     CHECK(pthread_cond_init(&changed, NULL) == 0);
     CHECK(pthread_key_create(&key, destroy_value) == 0);
@@ -99,6 +109,8 @@ int artbox_pthread_check(void) {
     CHECK(pthread_mutex_unlock(&lock) == 0);
     CHECK(atomic_load_explicit(&destructor_errors, memory_order_relaxed) == 0);
     CHECK(errno == 123 && pthread_getspecific(key) == &ready);
+    CHECK(pthread_sigmask(SIG_SETMASK, NULL, &mask) == 0 && sigismember(&mask, SIGUSR1) == 1 && sigismember(&mask, SIGUSR2) == 0);
+    CHECK(pthread_sigmask(SIG_SETMASK, &previous_mask, NULL) == 0);
     CHECK(pthread_key_delete(key) == 0 && pthread_cond_destroy(&changed) == 0 && pthread_mutex_destroy(&lock) == 0);
     return 0;
 }
