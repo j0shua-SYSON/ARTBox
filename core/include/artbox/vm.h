@@ -42,6 +42,17 @@ int artbox_vm_register_readonly(artbox_vm *space, const void *address, size_t le
  * and separate from the guest range. These do not synchronize guest data races. */
 int artbox_vm_read(artbox_vm *space, uint64_t address, void *destination, size_t length);
 int artbox_vm_write(artbox_vm *space, uint64_t address, const void *source, size_t length);
+/* Atomic callbacks are precompiled native ABI operations on aligned 32-bit
+ * guest words. They must not reenter the mapper. Validation and access happen
+ * under the mapping lock, including loads from read-only futex words. */
+typedef struct artbox_atomic_u32_ops {
+    uint32_t (*load_acquire)(const void *address);
+    void (*store_release)(void *address, uint32_t value);
+} artbox_atomic_u32_ops;
+int artbox_vm_load_u32(artbox_vm *space, uint64_t address,
+                       const artbox_atomic_u32_ops *ops, uint32_t *value);
+int artbox_vm_store_u32(artbox_vm *space, uint64_t address,
+                        const artbox_atomic_u32_ops *ops, uint32_t value);
 /* A snapshot of metadata, not a pin against another thread changing a map. */
 int artbox_vm_access(artbox_vm *space, uint64_t address, uint64_t length, unsigned required);
 uint64_t artbox_vm_reserved_bytes(artbox_vm *space);
