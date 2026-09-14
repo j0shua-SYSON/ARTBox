@@ -76,5 +76,10 @@ observed allocation must belong to the initialized GWP-ASan pool. Both modes
 pass at `118a0bb`; the sampled run observes 30 guarded allocations. The purpose
 is to cover the otherwise randomly selected startup path. Setting the pool
 capacity explicitly avoids AOSP increasing it inversely with the artificial
-sampling rate; the 32-slot capacity adjustment awaits CI. This does not test
+sampling rate; the 32-slot capacity passes CI at `ea5fd75`, with 30 observed
+guarded allocations and 8,866,004,992 total reserved bytes. This does not test
 recovery from memory faults or claim signal support.
+
+The next test adds a 19-case NDK futex caller to both startup modes and compares
+its identical object with Bionic's original/adapted syscall entries on Linux.
+It uses the real Bionic errno path and the process's native wait domain.

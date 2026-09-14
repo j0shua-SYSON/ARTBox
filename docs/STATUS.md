@@ -108,6 +108,12 @@ system libc and a Linux test endpoint; it is not Bionic or Darwin signal executi
 The [M2 contract](m2-contract.md) fixes the acceptance areas before compatibility
 work; complete Bionic linkage, guest TLS, broader mappings and threads are next. Current metadata and relocation fixtures execute no Android code.
 
+The new [futex domain](futex.md) passes local primitive tests, including 512
+enqueue/wake races and read-only atomic loads. Its 19-case NDK caller is integrated
+with the real Bionic startup client and paired Linux runs; native CI is pending.
+This supplies the wait/wake and exit-clear primitives for guest thread creation,
+but the native child/reaper lifecycle is still the next integration step.
+
 ## Three largest M2 risks
 
 1. Preserving dynamic ELF addressing, relocations and dependencies in signed

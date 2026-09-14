@@ -67,7 +67,7 @@ the syscall translation and Linux byte layout remain in portable C.
 | --- | --- | --- |
 | `getpid` (172), `gettid` (178) | IDs in the guest process namespace, common PID and distinct thread descriptors | The owner assigns unique IDs; this does not create native guest threads. |
 | `set_tid_address` (96) | Store the exit-clear pointer without dereferencing it, return guest TID; NULL clears registration | Clear/wake on thread exit is not integrated. Registration alone is not full syscall lifecycle support. |
-| `clock_gettime` (113) | Realtime and monotonic clocks; explicit little-endian 64-bit seconds/nanoseconds, including unaligned output | CPU, boot-time, coarse and dynamic clocks are unsupported. The current subset returns EINVAL for those IDs. |
+| `clock_gettime` (113) | Realtime and monotonic clocks; explicit little-endian 64-bit seconds/nanoseconds, including unaligned output | CPU, boot-time and dynamic clocks return EINVAL; coarse realtime/monotonic use the corresponding precise clocks. |
 | `getrandom` (278) | Initialized host CSPRNG; valid Linux flags, zero length, EFAULT and partial progress on a later inaccessible range | No pre-initialization entropy state or guest signal interruption. Insecure requests receive secure bytes. Large transfers use 256-byte staging chunks and the Linux page-rounded signed-32-bit transfer cap. |
 
 Windows uses BCryptGenRandom, the precise system clock and performance counter;
@@ -104,8 +104,10 @@ ENOSYS; it is never forwarded to Darwin using the Linux syscall number.
 The native page size comes from the host (supported contract: power of two,
 4 KiB through 64 KiB). The fixture requests 16 KiB and both packaging routes
 use 16 KiB Mach-O alignment. Memory allocated for the guest never requests
-execute permission. File-backed mappings, virtual filesystem, futexes, guest threads,
-signals, epoll, eventfd, pipes and sockets remain future work.
+execute permission. File-backed mappings, the general virtual filesystem, guest threads,
+signals, epoll, eventfd, pipes and sockets remain future work. The initial
+[futex implementation](futex.md) provides WAIT/WAKE and BITSET variants with
+local timeout, race and error tests; its signed Bionic/Linux comparison is pending.
 
 The M2 source profile routes all 216 generated Bionic syscall entries, 13 aliases,
 the generic entry and inline queued signals through

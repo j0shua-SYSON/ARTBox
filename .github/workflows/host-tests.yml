@@ -84,6 +84,8 @@ jobs:
             artifacts/m2-bionic-native.json
             artifacts/m2-bionic-profile-check.json
             artifacts/m2-dynamic-wrapper.json
+            artifacts/m2-bionic-startup.json
+            build/m2/bionic-startup/futex-check.o
             build/m2/dynamic-wrapper/libartbox_bionic_slice.so
             build/m2/dynamic-wrapper/vm-check.o
             build/m2/dynamic-wrapper/system-check.o
@@ -142,6 +144,8 @@ jobs:
         run: python3 -B scripts/test_bionic_vm.py --evidence-root build/oracle
       - name: Check Android binary128 arithmetic without crossing the host floating ABI
         run: python3 -B scripts/test_bionic_binary128.py --evidence-root build/oracle
+      - name: Compare the signed Bionic futex caller with both original Linux paths
+        run: python3 -B scripts/test_bionic_futex.py --evidence-root build/oracle
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: linux-arm64-oracle
@@ -153,5 +157,6 @@ jobs:
             artifacts/m2-strings-linux.json
             artifacts/m2-vm-linux.json
             artifacts/m2-binary128-linux.json
+            artifacts/m2-futex-linux.json
           if-no-files-found: error
           retention-days: 7

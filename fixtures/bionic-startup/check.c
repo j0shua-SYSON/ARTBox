@@ -11,6 +11,11 @@
 
 #define CHECK(condition) do { if (!(condition)) return -__LINE__; ++cases; } while (0)
 extern void artbox_bootstrap_note_allocation(const void* p);
+int64_t artbox_futex_syscall(uint64_t n, uint64_t a0, uint64_t a1, uint64_t a2,
+                            uint64_t a3, uint64_t a4, uint64_t a5) {
+    return syscall((long)n, a0, a1, a2, a3, a4, a5);
+}
+int *artbox_futex_errno(void) { return &errno; }
 
 int artbox_startup_check(void) {
     int cases = 0;
