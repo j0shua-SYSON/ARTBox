@@ -93,3 +93,13 @@ condition variables, mutexes, errno and key destructors in four joinable and two
 detached workers. Each worker performs 32 malloc/realloc/free iterations. A native
 reaper must complete all six workers, including deferred detached-stack teardown.
 Portable lifetime tests pass; this new guest integration still awaits CI.
+
+The first pthread runs (`e191021`, `b21d1c3`) created real guest workers, exercised
+condition wakeups and joined them, then reported the worker's post-allocation
+errno assertion. That assertion incorrectly required successful allocation to
+preserve errno; Scudo's internal unsupported VMA-name call can change it. The
+[errno contract](https://pubs.opengroup.org/onlinepubs/9699919799/functions/errno.html)
+does not promise preservation after arbitrary successful library calls. The
+fixture now tests distinct errno values across pthread contention and distinct
+errno addresses across live workers, while retaining every allocation check.
+VMA naming remains unsupported and continues to return ENOSYS.
