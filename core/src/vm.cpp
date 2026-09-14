@@ -323,6 +323,18 @@ int artbox_vm_store_u32(artbox_vm *space, uint64_t address,
     return 0;
 }
 
+int artbox_vm_prepare_store_u32(artbox_vm *space, uint64_t address,
+    const artbox_atomic_u32_ops *ops, uint32_t value, int (*prepare)(void *), void *context) {
+    if (!space || !ops || !ops->store_release || !prepare || (address & 3)) return -22;
+    std::lock_guard<std::mutex> guard(space->lock);
+    if (space->poisoned) return -5;
+    if (!space->accessible(address, 4, 2)) return -14;
+    int error = prepare(context);
+    if (error) return error < 0 ? error : -5;
+    ops->store_release(reinterpret_cast<void*>(address), value);
+    return 0;
+}
+
 size_t artbox_vm_page_size(const artbox_vm *space) {
     return space ? space->ops.page_size : 0;
 }
