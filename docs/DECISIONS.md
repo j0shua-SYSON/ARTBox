@@ -772,3 +772,36 @@ read representations through volatile bytes, and return four storage observation
 for independent host checks. Require real ARM64 `ldar` and `stlr` instructions
 in both original and adapted objects. This changes the diagnostic fixture, not
 AOSP's atomic implementation or the selected compression adaptation.
+
+## ADR 0033 - Establish an upstream DEX loading baseline before runtime adaptation
+
+Status: Android ART units and a loader caller compile; native format checks and
+the signed iOS library build are being established.
+
+Use AOSP's normal `DexFileLoader` API with structural and checksum verification
+enabled. An original Python generator emits a fixed 448-byte DEX with one
+static string-returning method. The independent AOSP verifier and accessors
+check its tables, method and instruction data. Mutated checksums, map entries,
+method-name indices, code sizes and truncation must return ordinary failures.
+Merely observing a string constant does not count as method execution.
+
+Build the portable upstream library with each host's C++ ABI for this format
+baseline. Keep C++ types inside that build and expose only a fixed C entry.
+The same source selection must also link and sign for iOS 15, which surfaces
+SDK restrictions early. Separately compile its Android ARM64 units on Windows;
+that result provides source/build evidence and does not claim native loading.
+The full ART/Bionic runtime and its Android C++ dependencies remain subsequent
+integration work. This baseline does not substitute host C++ symbols into an
+Android ELF or change the native guest ABI.
+
+Select 108 ART files, the needed libbase and ZIP reader support, three host
+liblog units, the existing filesystem-ID header, fmt headers and the AOSP JNI
+type header. Reuse AOSP's enum-printer generator. Android 15's file support
+requires declarations hidden at the exploratory API 28 target; use Android API
+35 for its compile check, preserving fdsan calls. The Apple deployment target
+remains iOS 15. No fdsan runtime behavior is established by this compile check.
+
+The host baseline uses the upstream options disabling the ZIP callback API and
+IncFS signal support. It reads complete fixture files; kernel incremental-file
+semantics are outside its scope. Managed-heap allocation, class libraries,
+runtime signals and JIT/AOT paths are not part of the DEX format result.

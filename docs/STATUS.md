@@ -64,7 +64,9 @@ the signed Mac wrapper uses heap-relative high addresses. At `2586a50`, all
 and retained acquire/release instructions. Four Mac/iOS frameworks pass layout,
 signature and notice checks. See [reference evidence](m3-references.md).
 This does not yet boot ART, collect objects or execute DEX. AOSP DEX loading and
-verification are the next dependency bring-up step.
+verification are the next dependency bring-up step: the selected Android units
+and original caller compile, and native validation of the hello fixture and
+malformed metadata is being established alongside an iOS 15 library build.
 
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build

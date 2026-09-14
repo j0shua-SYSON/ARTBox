@@ -208,3 +208,38 @@ broader runtime dependencies still need separate review and selection.
 Apple's APSL-2.0 `bsd/kern/mach_loader.c` was consulted to explain the native
 ARM64 reduced-pagezero rejection. No kernel code is imported or executed by
 ARTBox; the retained negative test and heap-relative codec are original code.
+
+## M3 DEX loader source selection
+
+`art-dex` selects 108 files (987,451 bytes) from the same reviewed ART commit:
+16 libdexfile implementation units, 13 libartbase support units, their header
+closure, the enum-printer generator, build definitions and complete NOTICE.
+The original ARTBox generator emits a fixed DEX data fixture; its caller uses
+AOSP's normal loader and verifier API. Neither is a replacement interpreter.
+This selection excludes the runtime, compiler and class libraries.
+
+`libbase-dex` extends the same libbase commit above with the selected source
+and headers required by the loader. Its complete NOTICE retains both Apache-2.0
+and BSD terms. `liblog-dex` selects the host logging implementation and headers
+from [system/logging](https://android.googlesource.com/platform/system/logging/+/54d3fa266d2123c0b076c646fae60d049311052a),
+commit `54d3fa266d2123c0b076c646fae60d049311052a`, retaining liblog's complete
+Apache-2.0 NOTICE. The filesystem-ID header comes from the existing reviewed
+`property-info` selection; its libcutils NOTICE is retained as well.
+
+`ziparchive-dex` selects the ZIP reader and support headers from
+[system/libziparchive](https://android.googlesource.com/platform/system/libziparchive/+/13b815f485784ed356869746796bb405ec86a7d4),
+commit `13b815f485784ed356869746796bb405ec86a7d4`. This tree declares the AOSP
+Apache-2.0 license in Android.bp and supplies notices in the source headers
+rather than a standalone NOTICE. The pin uses `zip_archive.cc` as its notice
+input, retaining its full text alongside the complete Apache-2.0 terms from
+ART's NOTICE. ZIP writing and its gtest dependency are not selected.
+
+`jni-dex` contains only `include_jni/jni.h` and NOTICE from
+[libnativehelper](https://android.googlesource.com/platform/libnativehelper/+/3ca43dfe2bf4613852df0303531fa8ecf4b7063c),
+commit `3ca43dfe2bf4613852df0303531fa8ecf4b7063c`. Both are Apache-2.0; this
+provides the types used by libdexfile without importing a Java runtime.
+All selections are at the named `android-15.0.0_r1` tag. The existing fmtlib
+headers and their two license files are reused. Native host/platform standard
+libraries remain platform dependencies; Android object artifacts retain the
+pinned NDK toolchain notice. No DEX execution or ART startup is claimed by
+compiling these components.
