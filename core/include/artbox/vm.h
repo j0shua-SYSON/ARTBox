@@ -59,6 +59,12 @@ int artbox_vm_store_u32(artbox_vm *space, uint64_t address,
  * prevents clone failure from returning with a worker on a freed guest stack. */
 int artbox_vm_prepare_store_u32(artbox_vm *space, uint64_t address,
     const artbox_atomic_u32_ops *ops, uint32_t value, int (*prepare)(void *), void *context);
+/* Validated I/O while the mapping lock is held. access is 1 for a source or
+ * 2 for a destination. The callback sees only valid host memory, returns its
+ * byte count/negative Linux errno, and must not reenter VM. This prevents a bad
+ * guest read buffer from advancing a backing file's offset before EFAULT. */
+int64_t artbox_vm_transfer(artbox_vm *space, uint64_t address, size_t length, unsigned access,
+    int64_t (*transfer)(void *context, void *buffer, size_t length), void *context);
 /* A snapshot of metadata, not a pin against another thread changing a map. */
 int artbox_vm_access(artbox_vm *space, uint64_t address, uint64_t length, unsigned required);
 uint64_t artbox_vm_reserved_bytes(artbox_vm *space);
