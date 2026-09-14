@@ -1,0 +1,108 @@
+# Rooted files and virtual devices
+
+The portable VFS owns one guest descriptor table for both regular files and
+virtual devices. Host descriptors are opaque provider handles. The older
+device-only interface is a facade over this table and retains its tests.
+The initial cwd is `/`; absolute paths ignore dirfd, and relative paths use a
+pinned directory handle. Parent components are rejected as a confinement policy.
+`/system` is read-only. Other paths resolve below the provider's preopened root.
+
+A small POSIX provider opens each path component relative to an already-open
+directory, with NOFOLLOW at every step. It supports regular files and directories;
+symlinks and other inode kinds are unsupported. Guest paths never become native
+absolute paths. Open uses NONBLOCK internally so an unsupported FIFO cannot hang
+before type inspection. This flag has no effect on regular-file I/O. Windows has
+no provider yet and returns ENOTSUP; all portable table contracts run there using
+an injected memory filesystem. macOS/Linux CI also run the same contract against
+real disk files rooted in disposable fixtures.
+
+The implemented calls are openat, read, write, lseek (SET/CUR/END), fstat,
+newfstatat, faccessat and close. Supported flags include read/write access,
+create/exclusive/truncate/append, directory and close-on-exec. Unknown flags fail
+explicitly. Metadata is encoded into Linux ARM64's 128-byte stat layout; exposed
+backing files belong to guest UID/GID 10000, retaining their permission bits.
+The native process umask also constrains newly created file permissions. Access
+checks evaluate the exposed owner bits; multiple guest users are not modeled.
+
+A table mutex serializes descriptor changes and shared file offsets. The mapper
+validates each page-sized I/O fragment and holds its lock while the provider
+reads/writes that range. A bad read destination therefore cannot consume file
+bytes before EFAULT. Later inaccessible pages yield partial progress. EOF copies
+no bytes; an unmapped destination at EOF returns zero after a non-mutating
+position/size check. The same edge case is checked through real Linux syscalls.
+Zero-length regular-file I/O does not inspect its buffer. General pipes/sockets, dup/fcntl, directory enumeration and mutable directory
+operations remain unimplemented. File mappings are described below.
+
+The local contract covers mixed descriptor allocation, create/exclusive/truncate,
+relative directory paths, read-only system files, symlink/traversal rejection,
+seek/stat, EOF, inaccessible-buffer offsets, partial I/O and 512 concurrent
+appends. It also checks that a symlink target outside the guest root remains
+unchanged. At `9cf76a1`, all 17 contracts pass on Windows, macOS and Linux;
+macOS/Linux use the actual rooted POSIX provider as well as the injected provider.
+The Linux branch also compares real syscall behavior at EOF and EFAULT. The
+[host/Linux run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34818958455) and
+[iOS build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34818958365) are green.
+
+The signed integration passes at `ce6c6eb`: an identical 41-case NDK file caller
+is paired with original/adapted Bionic syscall entries on Linux ARM64. The real
+Bionic pthread client creates one regular file per worker, writes 32 records,
+checks fstat/seek, reads each record back and closes it. Each normal/sampled
+process owns a fresh root retained with its diagnostic artifacts.
+
+The first ARM64 Linux file oracle rejected directory opens: the initial table
+used the generic Linux flag layout. ARM64 uses `O_DIRECTORY=0x4000`,
+`O_NOFOLLOW=0x8000`, `O_DIRECT=0x10000`, and `O_LARGEFILE=0x20000`.
+The core and native provider now use these guest values; the NDK caller asserts
+them against its target headers. Direct I/O remains explicitly unsupported.
+
+## Native data mappings
+
+`artbox_vfs_mmap` acquires an independent reference to a regular file under the
+descriptor lock. The VM owns that reference through partial unmap and until its
+reservation is released. POSIX uses a duplicated close-on-exec descriptor and
+native `MAP_PRIVATE`/`MAP_SHARED` views inside mapper-owned reservations.
+Closing the guest descriptor does not invalidate those views. No mapping may
+become executable. Private writable maps may use a read-only descriptor;
+shared read-only maps retain a write-protection ceiling across `mprotect`.
+
+`MADV_DONTNEED` remaps file pages from the retained file, dropping private copies
+and preserving shared file data. Anonymous replacements inside a file reservation
+are tracked separately and still discard to zero. `msync(MS_SYNC)` writes back
+shared pages only. ASYNC and flags=0 perform validation without writeback, matching
+[Linux's implementation](https://github.com/torvalds/linux/blob/v6.12/mm/msync.c).
+Guest memory locking is unsupported, so INVALIDATE has no locked-range behavior.
+
+Limits: file `MAP_FIXED`, huge pages, device mappings, cross-reservation sync,
+and partial sync across holes remain unsupported. Native EOF/truncation faults
+are not translated into recoverable guest signals. The Windows native file
+provider remains unsupported; portable ownership tests use an injected backing.
+The 43-case NDK mapping caller is paired with actual Linux ARM64 and the signed
+Bionic client. At `b1a94c5`, both signed Mac processes and both Linux profiles
+pass all 43 cases, and all 18 portable contracts pass across CI hosts. Files plus
+mappings take 2.072 ms normally and 1.317 ms sampled in traced correctness runs.
+The [host/Linux run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34821237500)
+and [iOS regression build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34821237477)
+are green; downloaded artifacts match their input/layout/hash reports.
+
+At `ce6c6eb` the original 41-case file caller and six Bionic workers' file round
+trips pass signed macOS and both Linux profiles. The raw caller takes 0.457 ms
+normally and 0.377 ms under forced sampling in single traced correctness runs.
+
+## Initial process command line
+
+The virtual `/proc/self/cmdline` node serves an owned, immutable snapshot of
+initial NUL-separated argv bytes (up to 64 KiB). Configure it once before guest
+execution; no host `/proc` contents or host arguments are exposed. Each open has
+an independent offset. Reads preserve offset on faults and return completed
+page spans for partial faults; EOF touches no destination bytes. Stat size is
+zero, and SEEK_END uses that size, independently of the readable byte count.
+Virtual `/proc` and the followed `/proc/self` alias support directory-relative
+opens. Unknown proc paths fail with ENOENT; command-line writes and mappings are
+rejected. The snapshot reports the fixed guest UID/GID 10000.
+
+The 22-case NDK caller passed both original Linux paths at `2125b46` before the
+virtual implementation. Portable tests cover owned initialization bytes, separate
+FD offsets, partial faults, EOF and seek. Both signed Bionic profiles and their
+Linux comparisons pass all 22 cases at `e50ec7f`; see [M2 acceptance](acceptance/m2.md).
+Live argv mutations/setproctitle, readlink/lstat of `/proc/self`, SEEK_DATA/HOLE,
+other process IDs and additional proc files are outside this initial contract.

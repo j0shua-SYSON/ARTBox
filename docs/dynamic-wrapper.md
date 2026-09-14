@@ -1,0 +1,133 @@
+# Controlled dynamic wrapper
+
+This M2 prototype links the actual NDK-built Bionic syscall entries and errno
+setter into a shared ELF. The prefixed object is identical to the Linux syscall
+oracle input. An original probe adds a constructor, a relocated constant pointer
+and zero-filled state. It does not include complete libc startup, Bionic's errno
+storage, pthreads or the allocators; it cannot satisfy M2 acceptance by itself.
+
+The link script produces one RX load beginning at ELF address zero and one
+16 KiB-aligned RW load. `tools/wrap_dynamic.py` copies immutable bytes and gap
+padding into `__TEXT,__artbox`, and writable bytes plus zero-filled BSS into
+`__DATA,__artbox`. Apple tools link the assembly wrapper. The verifier checks
+both byte hashes, section bounds, permissions and the exact distance between
+the mapped sections before and after signing. A shifted RW section is an error;
+no instruction is rewritten to compensate. Materialized BSS and page padding
+increase file size. This controlled layout is not an arbitrary ELF converter.
+
+The macOS test opens the signed framework, compares mapped initial bytes with
+the original ELF and verifies one load bias. The existing portable relocation
+engine binds two explicit host imports and applies RELA/RELR writes only to
+the RW section. A bounded constructor-array entry is called through a precompiled
+seven-word register bridge. The probe checks its relocated pointer, zero-filled
+state and exactly one constructor invocation.
+
+The Bionic generic syscall entry then reaches the existing five-syscall
+translator. The test checks write from signed constants and mapped memory,
+mmap/protection/unmap, guest exit, unsupported calls, and Bionic's real errno
+conversion against separate test errno storage. It requires 100 iterations and
+200 successful writes and compares immutable bytes again afterward. This is a
+fixture harness, not a complete dynamic-library namespace or thread runtime.
+
+The expanded fixture also links the pinned AOSP baseline memory/string objects
+and their independent scalar oracle. It must pass 35,908 cases in host-created
+guarded mappings through the same precompiled seven-word bridge. The same NDK
+object runs on native Linux. This checks actual signed guest string code;
+host mappings isolate overreads/writes, and no host libc function supplies the
+expected results. The report times these checks separately from syscall loops.
+The framework retains the complete Arm routines license before signing.
+
+The same wrapper is also built and signature-verified for arm64 iOS 15. Each
+framework includes Bionic's complete reviewed notice. The framework is a separate
+CI artifact; it is not yet embedded in the app's M1 IPA. Apple linking and native
+execution pass for this implementation. Windows checks the
+controlled ELF, malformed layouts and synthetic final Mach-O failures.
+
+At implementation `9e4f0490581a388dcdd2661cd9cb1bd4764b0066`, the
+[host run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34752207898)
+passed native macOS execution: 100 iterations, 200 writes, one constructor,
+two PLT bindings and two RELR writes. Both linked/signed wrappers preserve
+49,152 RX bytes followed by 1,392 RW bytes, including 1,032 zero-filled BSS bytes.
+Their checked Mach-O addresses are 16,384 and 65,536 before the ASLR slide.
+The mapped immutable ELF bytes also match before and after execution.
+
+In this single run, loading plus byte validation took 1.405 ms, relocation plus
+the probe constructor took 12 microseconds, and guest setup plus all 100
+iterations took 0.496 ms. The original `iterations_ns` field includes guest
+setup; subsequent reports time setup separately. These are fixture measurements,
+not complete Bionic startup or per-syscall benchmarks. The signed Mach-O binaries
+are 101,040 bytes on macOS and 101,056 bytes for iOS; the framework also carries
+the 268,209-byte Bionic notice and bundle/signature metadata.
+
+The downloaded iOS framework binary has SHA-256
+`1a8941fc28447b1bd99990e5a1faf1014064417ff2a1325460a5230d91131189`.
+Its layout, bytes and notice were rechecked against the downloaded ELF and
+report. The [M1 iOS regression run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34752207900)
+also passed; its IPA at `artifacts/m2-9e4f049/ios/ARTBox.ipa` has SHA-256
+`53082e5c0416beda4c838375a486872c96cbb5bd90041ea487cdde5e40b8288d`.
+The tested merge `8fffebf0382c642b06955be7df1ac6ed99a1cdff` includes the
+implementation commit. That IPA still runs the M1 app, not this dynamic fixture.
+
+The expanded string fixture at `3f69405083b12e386bd7ea9d5b9fb9eb9b9ac65c`
+passes [native CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34753272777).
+It preserves 65,536 RX bytes followed by 1,632 RW bytes, binds 32 PLT entries
+and applies two RELR writes. All 35,908 string cases pass with 16 KiB guarded
+pages on macOS and 4 KiB pages on Linux. The macOS checks take 429.852 ms,
+including the scalar oracle and repeated buffer initialization; this is not
+a libc throughput benchmark. Separately, loading/validation takes 2.546 ms,
+relocation/constructor 40 microseconds, guest setup 14 microseconds and the
+100 syscall loops 387 microseconds in that run. Hardware, page sizes and test
+overhead prevent treating the Linux/Mac elapsed times as a platform speed ratio.
+
+The iOS fixture binary is 117,568 bytes, SHA-256
+`04070bc6414181ca7f22f8b9f0418b3498324f2b3e638bb4c694e919912238fc`.
+Downloaded bytes, load layout and both notices match the report. The M1 IPA
+at `artifacts/m2-3f69405/ios/ARTBox.ipa` has SHA-256
+`50acee974d1e99d1e68c6aa172faba9d20726e4961ab96fd7a417c5a84ae25b5`;
+tested merge `b351157fbf407eb8da0b8fd03fe588f9ed400287` includes the implementation.
+The dynamic fixture remains separate from that IPA.
+
+The memory fixture at `2415969b06c35d4fc3e712621993e39a55efa8e2` passes
+[host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34755282319)
+and the [iOS regression](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34755282311).
+It adds 35 NDK-compiled memory/errno cases through the actual Bionic generic entry
+and `artbox_vm_syscall`, including reserved ranges, fixed commits, partial unmaps,
+read-only discards and write-implies-read. The exact caller object has SHA-256
+`3f2a22167ec212c75846a1efd95daf5ee8b28c6ec66a255e299aa2aaaf94a2fa`;
+both original and adapted Bionic paths pass it on native Linux ARM64.
+
+The macOS memory check takes 196 microseconds with 16 KiB pages; original/adapted
+Linux checks take 83.883/102.714 microseconds with 4 KiB pages. These include byte
+checks and setup, with different hosts and page sizes; they are not an allocator
+benchmark. Existing string cases and 100 five-syscall loops still pass. The
+wrapper preserves 65,536 RX and 1,640 RW bytes, with 33 PLT and two RELR bindings.
+Downloaded ELF, caller, source objects, notices and iOS Mach-O layout match their
+reports. The iOS framework binary SHA-256 is
+`fd1a20b99bebc53c04e8cc8d5e88683b11d9e12cf93bc9c6d826600e26f40a7f`.
+The M1 IPA at `artifacts/m2-2415969/ios/ARTBox.ipa` has SHA-256
+`24429b0c56deb7f6dc2183bd3712d48c9939939459629753c8c268c66540a574`;
+tested merge `07ca2b7a5caa127cb2273aad056f619cc1603d64` includes the implementation.
+
+The binary128 fixture at `726d75825b858b9e648bcf23ee1f2d43717f4ced` passes
+[native CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34755905118):
+all 123 arithmetic/comparison cases in the signed Mac wrapper and with the
+identical NDK object on Linux. The test returns only an integer across the host
+boundary, preserving Android's binary128 ABI for every helper call. Both pinned
+compiler-rt members and their complete LLVM notice are included in the framework.
+The prior string/memory checks and 100 five-syscall loops still pass.
+
+The downloaded iOS wrapper SHA-256 is
+`6a992b3aa89e149dd6c9a86189c6a32964597d893222e5807bf702e6e0528218`.
+It retains 65,536 RX and 1,640 RW bytes with 33 PLT and two RELR bindings; all
+three notices match their reports. The M1 regression IPA at
+`artifacts/m2-726d758/ios/ARTBox.ipa` has SHA-256
+`193d99ba63f8d15b78ecff2bb22e1e3ed061bc410469c4573b7e216246ee05a7`.
+Its tested merge `3c8e84fed179a8e5a6ec615174bb81749f5890e6` includes the implementation.
+
+The later [two-image startup fixture](bionic-startup.md) initializes real Bionic
+TLS and constructors and runs its allocator. This earlier slice remains a
+separate, narrower regression test. Still required for M2: general load groups,
+guest-created threads and their TLS ownership,
+symbol versions/dependencies, general constructor ordering, RELRO protection,
+broader Linux semantics and integration in the iOS app. No physical iPhone
+execution is claimed.

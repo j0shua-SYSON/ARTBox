@@ -68,17 +68,24 @@ def ios(args, build, artifacts):
     target = args.deployment_target
     bundles = None
     guest_info = None
+    bionic_info, bionic_bundles = None, None
     if args.with_guest:
         from guest_bundle import prepare
         fixture_build = build / "guest/fixture"
         run(sys.executable, "-B", ROOT / "scripts/test_pack.py", "--build-dir", fixture_build)
         bundles = build / "guest/ios"
         guest_info = prepare(fixture_build / "hello.elf", bundles, "ios")
+    if args.m2_evidence:
+        from bionic_bundle import prepare as prepare_bionic
+        bionic_bundles = build / "bionic/ios"
+        bionic_info = prepare_bionic(args.m2_evidence, bionic_bundles,
+                                    run("git", "rev-parse", "HEAD", capture=True).decode().strip())
     run("cmake", "-S", ROOT, "-B", build, "-G", "Xcode",
         "-DCMAKE_SYSTEM_NAME=iOS", "-DCMAKE_OSX_SYSROOT=iphoneos",
         "-DCMAKE_OSX_ARCHITECTURES=arm64", f"-DCMAKE_OSX_DEPLOYMENT_TARGET={target}",
         f"-DARTBOX_BUNDLE_ID={args.bundle_id}",
         f"-DARTBOX_GUEST_BUNDLES={bundles or ''}",
+        f"-DARTBOX_BIONIC_BUNDLES={bionic_bundles or ''}",
         "-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY",
         "-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO", *args.cmake_arg)
     app = build / f"{args.config}-iphoneos/ARTBox.app"
@@ -117,6 +124,26 @@ def ios(args, build, artifacts):
                 raise RuntimeError("Guest framework is not built for the iOS 15 device platform")
             details["binary"] = name
         save_json(artifacts / "guest-bundles.json", guest_info)
+    if bionic_info:
+        for details in bionic_info['images'].values():
+            name = details['framework']
+            embedded = app / 'Frameworks' / (name + '.framework')
+            run('codesign', '--verify', '--strict', '--verbose=2', embedded)
+            from wrap_dynamic import verify_macho
+            if verify_macho((embedded / name).read_bytes(), details['layout']) != details['frameworks']['ios']['layout']:
+                raise RuntimeError('Embedded M2 library differs from the tested signed input')
+            for notice, sha in details['frameworks']['ios']['notices'].items():
+                if hashlib.sha256((embedded / notice).read_bytes()).hexdigest() != sha:
+                    raise RuntimeError('Missing embedded M2 license')
+            elf = app / 'ARTBoxM2' / details['elf']
+            if hashlib.sha256(elf.read_bytes()).hexdigest() != details['elf_sha256']:
+                raise RuntimeError('Embedded M2 ELF differs from its signed wrapper')
+            commands = run('xcrun', 'vtool', '-show-build', embedded / name, capture=True).decode()
+            if not re.search(r'platform\s+IOS\s', commands) or not re.search(r'minos\s+15\.0\s', commands):
+                raise RuntimeError('M2 framework is not built for iOS 15')
+        if (app / 'ARTBoxM2/manifest.json').read_bytes() != (bionic_bundles / 'ELF/manifest.json').read_bytes():
+            raise RuntimeError('Embedded M2 manifest changed')
+        save_json(artifacts / 'm2-bundles.json', bionic_info)
     reports = {
         "embedded-entitlements.plist": ("codesign", "--display", "--entitlements", ":-", app),
         "macho-build.txt": ("xcrun", "vtool", "-show-build", binary),
@@ -148,6 +175,8 @@ def ios(args, build, artifacts):
         raise RuntimeError("Portable startup entry was not linked into the app")
     if guest_info and not re.search(r"\b_artbox_run_native_hello$", output["macho-symbols.txt"].decode(), re.MULTILINE):
         raise RuntimeError("Native guest console entry was not linked into the app")
+    if bionic_info and not re.search(r"\b_artbox_run_native_bionic$", output['macho-symbols.txt'].decode(), re.MULTILINE):
+        raise RuntimeError('The shared M2 runner was not linked into the device app')
     ipa = artifacts / "ARTBox.ipa"
     with tempfile.TemporaryDirectory(prefix="ipa-", dir=os.environ["ARTBOX_TEMP_DIR"]) as scratch:
         staged_ipa = Path(scratch) / ipa.name
@@ -166,6 +195,7 @@ def ios(args, build, artifacts):
         "device_launch_verified": False, "ipa_sha256": hashlib.sha256(ipa.read_bytes()).hexdigest(),
         "ipa_bytes": ipa.stat().st_size, "executable_bytes": binary.stat().st_size,
         "native_hello_included": bool(guest_info),
+        "bionic_suite_included": bool(bionic_info),
     }
     save_json(artifacts / "build-info.json", provenance)
     print(json.dumps(provenance, indent=2))
@@ -184,6 +214,7 @@ def main():
     parser.add_argument("--deployment-target", default="15.0")
     parser.add_argument("--bundle-id", default="com.j0shua.ARTBox")
     parser.add_argument("--with-guest", action="store_true", help="Include the signed M1 hello fixtures in the iOS app")
+    parser.add_argument("--m2-evidence", type=Path, help="M2 startup artifact for this revision; includes the same suite in the iOS app")
     parser.add_argument("--cmake-arg", action="append", default=[], help="Repeat as --cmake-arg=-DNAME=VALUE")
     args = parser.parse_args()
     for key in ("cache", "temp", "artifacts"):

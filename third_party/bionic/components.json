@@ -1,0 +1,129 @@
+{
+  "description": "Pinned AOSP libraries supporting the partial Bionic source build; not full runtime acceptance",
+  "common_flags": [
+    "-DANDROID",
+    "-D_LIBC=1",
+    "-DUSE_SCUDO",
+    "-O2",
+    "-fno-builtin",
+    "-fno-emulated-tls",
+    "-fstack-protector-strong",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wno-missing-field-initializers",
+    "-Wno-vla-cxx-extension",
+    "-Wno-non-c-typedef-for-linkage"
+  ],
+  "components": {
+    "scudo": {
+      "source_commit": "67dd481e24c770b9f416f61844c2d015f125c134",
+      "includes": [
+        "standalone/include",
+        "config"
+      ],
+      "sources": [
+        "standalone/checksum.cpp",
+        "standalone/common.cpp",
+        "standalone/condition_variable_linux.cpp",
+        "standalone/flags.cpp",
+        "standalone/flags_parser.cpp",
+        "standalone/linux.cpp",
+        "standalone/mem_map.cpp",
+        "standalone/mem_map_linux.cpp",
+        "standalone/release.cpp",
+        "standalone/report.cpp",
+        "standalone/report_linux.cpp",
+        "standalone/string_utils.cpp",
+        "standalone/timing.cpp",
+        "standalone/crc32_hw.cpp",
+        "standalone/wrappers_c_bionic.cpp"
+      ],
+      "flags": [
+        "-O3",
+        "-fno-stack-protector",
+        "-DSCUDO_USE_CUSTOM_CONFIG",
+        "-D_BIONIC=1",
+        "-DSCUDO_HAS_PLATFORM_TLS_SLOT",
+        "-DSCUDO_MIN_ALIGNMENT_LOG=4",
+        "-DHAVE_ANDROID_UNSAFE_FRAME_POINTER_CHASE",
+        "-DSCUDO_DISABLE_TBI",
+        "-DSCUDO_CAN_USE_MTE=0",
+        "-mcrc",
+        "-Wconversion",
+        "-Wno-unused-result"
+      ],
+      "additional_notices": {
+        "config/custom_scudo_config.h": "1053185291d444b15b1ad96244b0e81ae456f12c1990280ae9634e4b8a7220f3"
+      }
+    },
+    "gwp_asan": {
+      "source_commit": "df96c8131b0e2cb91e7668a537bda7f18bc25635",
+      "includes": [
+        "."
+      ],
+      "sources": [
+        "gwp_asan/common.cpp",
+        "gwp_asan/guarded_pool_allocator.cpp",
+        "gwp_asan/crash_handler.cpp",
+        "gwp_asan/stack_trace_compressor.cpp",
+        "gwp_asan/platform_specific/common_posix.cpp",
+        "gwp_asan/platform_specific/guarded_pool_allocator_posix.cpp",
+        "gwp_asan/platform_specific/mutex_posix.cpp",
+        "gwp_asan/platform_specific/utilities_posix.cpp"
+      ],
+      "flags": []
+    },
+    "arm-routines": {
+      "source_commit": "514df029da8aa4146726f6a020ddc69cf34a007d",
+      "includes": [
+        "string/aarch64"
+      ],
+      "sources": [
+        "string/aarch64/memchr-mte.S",
+        "string/aarch64/memcmp.S",
+        "string/aarch64/memcpy.S",
+        "string/aarch64/memrchr.S",
+        "string/aarch64/memset.S",
+        "string/aarch64/stpcpy.S",
+        "string/aarch64/strchr-mte.S",
+        "string/aarch64/strchrnul-mte.S",
+        "string/aarch64/strcmp.S",
+        "string/aarch64/strcpy.S",
+        "string/aarch64/strlen-mte.S",
+        "string/aarch64/strncmp.S",
+        "string/aarch64/strnlen.S",
+        "string/aarch64/strrchr-mte.S"
+      ],
+      "flags": []
+    },
+    "property-info": {
+      "source_commit": "fc7bc8c4bfb4c6095e34ea784509dae56f25b486",
+      "includes": [
+        "property_service/libpropertyinfoparser/include",
+        "libcutils/include"
+      ],
+      "sources": [
+        "property_service/libpropertyinfoparser/property_info_parser.cpp"
+      ],
+      "flags": [],
+      "additional_notices": {
+        "property_service/libpropertyinfoparser/property_info_parser.cpp": "cd340fdd555b42d056d01fb489d619a26782886d577cc8b2837eebfad63ad54c",
+        "property_service/libpropertyinfoparser/include/property_info_parser/property_info_parser.h": "3054e6fc677e76006f62b8c8d70c73cfe3f1f33b20b8f6cdad0db5a4f2f530d8",
+        "libcutils/include/private/android_filesystem_config.h": "e73226d7a3139e8a4a7d679f800e02a5d31460862231fded2edd88ea93df404c"
+      }
+    }
+  },
+  "profile_symbol_differences": {
+    "reason": "GWP platform TLS replaces one initial-exec variable; added TLS calls change Scudo weak template outlining at O3. All other global definitions must match.",
+    "upstream_only": [
+      "_ZN5scudo9AllocatorINS_19AndroidNormalConfigEXadL_Z21scudo_malloc_postinitEEE9setOptionENS_6OptionEl",
+      "_ZZN8gwp_asan15getThreadLocalsEvE6Locals"
+    ],
+    "native_only": [
+      "_ZN5scudo18TSDRegistrySharedTINS_9AllocatorINS_19AndroidNormalConfigEXadL_Z21scudo_malloc_postinitEEEELj8ELj2EE9setOptionENS_6OptionEl",
+      "_ZN5scudo9AllocatorINS_19AndroidNormalConfigEXadL_Z21scudo_malloc_postinitEEE11releaseToOSENS_11ReleaseToOSE",
+      "_ZN5scudo9AllocatorINS_19AndroidNormalConfigEXadL_Z21scudo_malloc_postinitEEE13canReturnNullEv"
+    ]
+  }
+}
