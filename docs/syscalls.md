@@ -171,5 +171,6 @@ correction passes at `ce6c6eb` without removing any file tests.
 Openat/read/fstat/newfstatat/lseek/close now route `/proc/self/cmdline` through
 an owned initial-argv snapshot, with zero inode size and independent offsets.
 The 22-case original NDK caller passes Linux at `2125b46`; portable snapshot
-ownership and fault tests pass, while signed Bionic integration is pending.
+ownership and fault tests pass. Both signed Bionic profiles and Linux comparisons
+pass all 22 cases at `e50ec7f`, completing [M2 acceptance](acceptance/m2.md).
 See [the proc scope](files.md#initial-process-command-line) for explicit limits.

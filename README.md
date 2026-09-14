@@ -5,9 +5,10 @@ C/C++ core. Android ARM64 code is prepared ahead of time and packaged as signed
 native code; ART's bytecode interpreter is the planned fallback for DEX.
 No CPU emulation, guest kernel, JIT, private entitlements, or jailbreak dependency.
 
-**A static NDK ARM64 hello runs natively on macOS through both signed packaging
-prototypes. The iOS 15 app includes both; physical iPhone execution is unverified.
-Android app execution is under development.**
+**Real AOSP Bionic and a dynamically linked NDK suite run natively on macOS,
+passing 328/328 M2 expectations. CI builds an iOS 15 app with the same suite and
+signed libraries; physical iPhone execution is unverified. ART and Android app
+execution are under development.**
 See [status](docs/STATUS.md), [architecture decisions](docs/DECISIONS.md), and the
 [ELF-to-Mach-O versus wrapper design](docs/loader-design.md).
 
@@ -44,7 +45,10 @@ This generates an Xcode project, builds the arm64 iOS 15 device target, checks
 the signature and empty entitlements, and writes `artifacts/ARTBox.ipa` with a
 provenance manifest. `--with-guest` builds the M1 fixture with pinned NDK r28c
 and embeds both signed frameworks. Omit it for the startup console alone.
-GitHub Actions also produces a temporary IPA artifact.
+GitHub Actions also produces a temporary IPA artifact. Its host workflow builds
+the integrated `ARTBox-M2-ipa` after the Bionic suite and Linux comparisons pass.
+To build that app locally, pass `--m2-evidence PATH` pointing to the startup
+artifact from the same revision. See [M2 acceptance](docs/acceptance/m2.md).
 
 The IPA has an ad-hoc transport signature (`codesign -s -`). Installation needs
 ordinary development or Ad Hoc provisioning. See [device checks](docs/device-check.md).

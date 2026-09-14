@@ -1,8 +1,9 @@
 # M2 dynamic Bionic contract
 
-M1 is merged and tagged `m1`; its native host and iOS build checks pass. M2 is
-in progress. This contract precedes Bionic compatibility changes. Physical
-device checks remain optional under ADR 0004.
+M2's [automated acceptance](acceptance/m2.md) passes. The area contract below
+precedes Bionic compatibility changes; the integration denominator's later
+freeze is documented separately. Physical device checks remain optional under
+ADR 0004.
 
 ## Source and native execution
 

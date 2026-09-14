@@ -1,9 +1,9 @@
-# Controlled Bionic startup test
+# Native Bionic integration suite
 
 This test is the integration step after the syscall and string slices. It links
 the complete current Bionic source selection into `libc.so`, then links a separate
-NDK allocator client with a real `DT_NEEDED` dependency on that library. Both
-images use signed Apple wrappers. Runtime writes are limited to their data pages;
+NDK client with real `DT_NEEDED` dependencies on that library, a versioned
+provider and a TLS provider. All four images use signed Apple wrappers. Runtime writes are limited to their data pages;
 guest instructions retain their ELF addresses and are never generated or patched.
 
 The original bootstrap adapter uses the pinned Bionic definitions for shared
@@ -23,10 +23,12 @@ The NDK client checks real pthread identity and errno, then malloc, usable size,
 realloc preservation, calloc zeroing, alignment, overflow and strdup/free over
 sizes from one byte to one MiB, plus device I/O: 146 checks. The thread extension
 creates real Bionic workers and runs their key destructors and exit paths. This
-fixture does not implement a regular filesystem, load arbitrary modules, support
-guest ELF TLS templates, run process exit destructors or satisfy the full M2 suite.
+fixture now also tests rooted regular files, anonymous/file mappings, two guest
+ELF TLS templates, timeouts and a proc command-line snapshot. Arbitrary dlopen
+groups and process-exit destructors remain unsupported. Final M2 acceptance
+is scored against the fixed 328 expectations documented in [the contract](m2-contract.md).
 
-The fixed test load group is libc plus the client. An absent optional
+The four-image fixture uses the portable manifest load-group engine. An absent optional
 `libnetd_client.so` follows AOSP's documented fallback; any other dynamic library
 request fails the test. The Bionic pthread clone and final thread-exit boundaries
 are bridged to native workers; unsupported fork and namespace imports retain
@@ -37,7 +39,13 @@ own libc. These explicit fixture bindings are not a production loader namespace.
 Run `python -B scripts/test_bionic_startup.py` after building the host and both
 Bionic profiles. Windows validates the ELF inputs and instruction boundary;
 macOS builds/signs both iOS 15 and macOS frameworks and executes the signed Mac
-pair. The first signed execution at `203b8b6` completed real TLS setup and entered
+libraries. The shared Apple runner is also linked into the integrated iOS 15
+IPA; its original ELF resources, framework signatures and notices are verified
+after embedding. See [STATUS](STATUS.md) for current run links and acceptance.
+
+## Earlier startup evidence
+
+The first signed execution at `203b8b6` completed real TLS setup and entered
 libc's priority-1 constructor. It then aborted after exhausting AT_RANDOM:
 GWP-ASan requested another byte while `/dev/urandom` was absent. The virtual-device
 implementation makes the normal AOSP entropy path available without modifying
@@ -45,7 +53,7 @@ Bionic's fallback or pretending that an absent file exists. Native completion
 passes with that fix at `5671845`. Diagnostics and source,
 object, framework and notice hashes are retained in the `bionic-startup` artifact.
 
-## Verified execution
+### Initial allocator execution
 
 Implementation `5671845` passes [host and Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34759298382)
 and the [iOS regression build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34759298361).
