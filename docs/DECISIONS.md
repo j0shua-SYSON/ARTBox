@@ -404,7 +404,7 @@ and unmap. See the tests and references in [futex semantics](futex.md).
 
 ## 0021 - Reap native threads before releasing Bionic stacks
 
-Status: portable lifecycle tests pass; signed Bionic pthread integration pending.
+Status: portable and signed Bionic pthread tests pass at `e828dad`.
 
 Retain AOSP pthread allocation, handshake, join state, key destructors and teardown.
 A small adapter compiled against the pinned private headers describes the usable
@@ -430,6 +430,25 @@ host forced unwinding through Android frames that are not registered Apple
 unwind metadata. The selected approach adds a host root frame and reaper queue;
 it generates no code and requests no entitlement. Each guest root frame owns its
 GWP-ASan state using the real AOSP definition and binds it to the guest TLS slot.
+
+## 0022 - Keep guest signal masks in the thread descriptor
+
+Status: local tests pass; the expanded signed/Linux comparison is pending.
+
+Store the Linux 64-bit blocked mask per guest thread and copy it at clone.
+Implement rt_sigprocmask ordering, block/unblock/set, immutable KILL/STOP bits,
+unaligned bytes and old/new aliasing. Mask changes survive a bad old-mask output
+pointer, matching the [Linux syscall contract](https://github.com/torvalds/linux/blob/v6.12/kernel/signal.c).
+The original NDK syscall caller adds 17 cases before this implementation and
+fails on the missing syscall; it is reused by both Linux profiles and the signed
+Mac slice. The real pthread client checks inheritance and child/parent isolation.
+
+Do not translate guest masks to native pthread_sigmask. Host signal numbers and
+host runtime requirements differ, and masking host faults would interfere with
+native diagnostics. This bookkeeping is a prerequisite for future guest delivery,
+not a successful delivery stub. sigaction, alternate signal stacks, pending
+queues, interruptible futex waits and signal frames remain unimplemented. The
+mask path uses no executable allocation or runtime code generation.
 
 ## No-JIT cost ledger
 

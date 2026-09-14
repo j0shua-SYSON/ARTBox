@@ -21,14 +21,16 @@ pages so Bionic's WriteProtected globals can enforce their own read-only state.
 
 The NDK client checks real pthread identity and errno, then malloc, usable size,
 realloc preservation, calloc zeroing, alignment, overflow and strdup/free over
-sizes from one byte to one MiB, plus device I/O: 146 checks. This fixture does not yet create guest
-threads, implement a filesystem, load arbitrary modules, support guest ELF TLS
-templates, run guest exit destructors or satisfy the complete M2 acceptance suite.
+sizes from one byte to one MiB, plus device I/O: 146 checks. The thread extension
+creates real Bionic workers and runs their key destructors and exit paths. This
+fixture does not implement a regular filesystem, load arbitrary modules, support
+guest ELF TLS templates, run process exit destructors or satisfy the full M2 suite.
 
 The fixed test load group is libc plus the client. An absent optional
 `libnetd_client.so` follows AOSP's documented fallback; any other dynamic library
-request fails the test. Unimplemented clone, fork, namespace and teardown imports
-have test-failure endpoints. They never report success. Unimplemented syscalls
+request fails the test. The Bionic pthread clone and final thread-exit boundaries
+are bridged to native workers; unsupported fork and namespace imports retain
+test-failure endpoints. They never report success. Unimplemented syscalls
 return ENOSYS and are recorded. The host never resolves Android symbols from its
 own libc. These explicit fixture bindings are not a production loader namespace.
 
@@ -66,7 +68,7 @@ match their reports. libc ELF SHA-256:
 client ELF SHA-256:
 `21644a7083513fecacd2e4e58153103c842844f700b185fee1e781fa73a5122b`.
 Physical iPhone execution is unverified. This is substantial M2 startup progress;
-the mandatory guest threads, regular files and file-backed mappings remain open.
+the complete thread suite, regular files and file-backed mappings remain open.
 
 The current test also requests a second fresh process with
 `GWP_ASAN_PROCESS_SAMPLING=1`, `GWP_ASAN_SAMPLE_RATE=1` and
@@ -88,11 +90,19 @@ wait, native condition-variable scheduling and trace output, not allocator-only
 throughput. The regression IPA is still the M1 app; the newer Bionic frameworks
 are separate signed artifacts.
 
-The pending pthread extension uses real Bionic pthread_create/join/exit,
+The pthread extension uses real Bionic pthread_create/join/exit,
 condition variables, mutexes, errno and key destructors in four joinable and two
 detached workers. Each worker performs 32 malloc/realloc/free iterations. A native
 reaper must complete all six workers, including deferred detached-stack teardown.
-Portable lifetime tests pass; this new guest integration still awaits CI.
+At `e828dad`, all six real Bionic workers pass in normal and forced GWP-ASan
+processes. All 16 portable contracts pass, including actual supplied POSIX stacks.
+[Host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34816736646) and
+the [iOS regression build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34816736632)
+are green. Downloaded source/object hashes, both signed framework pairs and the
+regression IPA are verified. Native setup/startup/clients/reaping takes 10.571 ms
+in the normal process and 13.748 ms with forced sampling, including tracing and
+timed waits. Reserved VA returns to 8,864,874,496 and 8,866,004,992 bytes respectively
+after all workers are reaped. No physical device execution is claimed.
 
 The first pthread runs (`e191021`, `b21d1c3`) created real guest workers, exercised
 condition wakeups and joined them, then reported the worker's post-allocation
