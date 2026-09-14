@@ -845,3 +845,30 @@ file hash. Fetch and decode the API's base64 representation to preserve arbitrar
 bytes through CLI output, then check the Git identity and SHA-256. A binary
 fixture containing invalid UTF-8 and zero bytes tests this path and rejects
 corrupted content before installation.
+
+## 0035: Build implementation class libraries from selected AOSP Java sources
+
+Status: accepted for the M3 class-library prerequisite; runtime boot pending.
+
+ART needs implementation classes rather than SDK signature stubs. Select the
+libcore implementation source groups and only their required Java dependencies
+from Android 15's named tag. Build them with an explicitly selected JDK 17,
+without its host boot classes or annotation processors. Follow AOSP Soong's
+inline string-concatenation option and libcore's minimum Android API 31 for D8.
+This avoids a full Soong checkout and does not change the iOS 15 target.
+
+Generate Conscrypt's constants with the original upstream generator and pinned
+BoringSSL headers; compare all 50 values. Generate ICU annotation keys from the
+hash-checked aconfig declarations, without introducing runtime flag stubs.
+Keep these generated inputs, corresponding selected source, original notices
+and portable build commands with every class-library binary artifact. Original
+ARTBox files remain MIT; upstream source licenses remain in force.
+
+Use one implementation input jar and allow D8 to emit multiple DEX files. This
+first format baseline does not reproduce the final bootclasspath module split,
+hidden-API metadata, resources or JNI libraries. Do not call it an ART boot.
+Validate the complete class set with AOSP's DEX verifier on native Mac/Linux,
+including corrupt input and duplicate/missing DEX cases, and compile the same
+inspection entry for an ordinarily signed iOS 15 framework. Interpreter-only
+runtime integration is the next contract; no runtime code generation is used
+to prepare or inspect these DEX data files.

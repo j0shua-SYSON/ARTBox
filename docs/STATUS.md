@@ -72,6 +72,13 @@ component/source pins, compiled objects, notices and signed binaries are checked
 against downloaded evidence. Windows compiles 31 Android source units. See
 [DEX loading evidence](m3-dex.md); inspecting instructions is not execution.
 
+The portable [class-library builder](m3-classlib.md) now compiles 3,227 pinned
+AOSP Java inputs into 6,422 classes and two DEX039 files containing 7,309 class
+definitions. The output includes selected corresponding source and notices.
+Local Java/D8 compilation passes; native AOSP class-library verification and
+its iOS 15 library build are being added to CI. Native libraries, resources
+and ART interpreter startup remain incomplete.
+
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build
 contract before adapting native entry, thread, memory and code-loading paths.

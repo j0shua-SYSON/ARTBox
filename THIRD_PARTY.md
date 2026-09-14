@@ -248,3 +248,41 @@ The generated `time_utils.cc` overlay retains its AOSP Apache-2.0 notice and
 labels an include-order fix for libstdc++: `<limits>` and `<algorithm>` precede
 the header that uses their declarations. The pinned source is unchanged; both
 upstream and generated hashes are recorded in the DEX build evidence.
+
+## M3 class-library build inputs
+
+The `*-classlib` selections in `third_party/sources.json` and the build settings
+in `third_party/art/classlib.json` use the named AOSP `android-15.0.0_r1` tag.
+Each archive and selected file has a recorded hash. Original source headers
+remain intact. These inputs build implementation DEX; they do not establish an
+ART boot or supply the missing JNI libraries and runtime resources.
+
+| Selection | Upstream commit | License inputs retained |
+| --- | --- | --- |
+| libcore | `a996d969fdd17c6707b84544e5d1c35e0c25b5cb` | `LICENSE` (GPL-2.0 with the per-file Classpath exception), root `NOTICE`, `ojluni/src/main/NOTICE`, and original Apache/Harmony, MIT/XML and other per-file notices |
+| frameworks/libs/modules-utils annotations | `810bd8c57bb39c232cad66e5aa007839dd4e55e3` | Apache-2.0 source/build notices; complete terms accompany the build |
+| tools/platform-compat annotations | `df531c7caea306b811fec85a638a371c2a2492d1` | Apache-2.0 source/build notices; complete terms accompany the build |
+| ICU Java and libcore bridge | `cf305aeb6df416fa81cfc98bd73d913ee781175d` | Complete root `LICENSE` (Unicode-3.0 and included terms) and original per-file notices |
+| Conscrypt Java | `f8e2d81432416b14fbc8e6f62375d9917b044ef1` | Apache-2.0 `LICENSE`, `NOTICE` and source notices |
+| Repackaged OkHttp/Okio Java | `fdad2b22b00721086808f155529df11a2e4335f3` | Apache-2.0 `LICENSE.txt`, `okio/LICENSE.txt` and source notices |
+| BoringSSL headers for the host constants generator | `23a87e389eb925678c6766f7d0fcd189c2f9303c` | Complete `NOTICE` and `src/LICENSE`, including OpenSSL, SSLeay, ISC and MIT terms |
+| R8/D8 host tool | `535c14aebec54e8b67a8ca2889d34cb7c38a29b4` | `LICENSE`, `NOTICE`, `r8.spdx.json`; BSD-3-Clause R8 plus the dependencies listed there |
+
+Libcore's Java sources retain their own licenses; ARTBox's MIT license applies
+to original ARTBox code. Class-library binary artifacts must accompany the
+selected corresponding source, original notices, build scripts and generated
+inputs. The build's source bundle preserves those materials, including the
+per-file copyright and permission text. It includes the full Apache-2.0 terms
+from Conscrypt's license for selections that supply only source-header notices.
+
+Conscrypt's original C++ generator supplies its 50 native constants using the
+pinned BoringSSL headers. ICU's generated `Flags` class contains only the
+annotation string keys from `icu.aconfig`; it supplies no runtime flag accessor.
+These generated files and their input hashes accompany the artifacts.
+
+D8 and the installed JDK are host build tools. Their binaries are not embedded
+in the app or the class-library output. The R8 jar is fetched as an exact Git
+blob and checked against SHA-256
+`4a84f75723c26d647025204560161bf9e02bdf05700f4014d377393c349f22dc` before execution.
+An existing JDK 17 is selected by the builder; its version is recorded. Any
+separately installed JDK retains its distribution's own licenses.

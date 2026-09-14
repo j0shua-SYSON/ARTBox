@@ -34,6 +34,7 @@ jobs:
         run: |
           ${{ matrix.python }} -B tests/test_environment.py
           ${{ matrix.python }} -B tests/test_sources.py
+          ${{ matrix.python }} -B tests/test_classlib_build.py
           ${{ matrix.python }} -B tests/test_bionic_adapt.py
           ${{ matrix.python }} -B tests/test_bionic_syscalls.py
           ${{ matrix.python }} -B tests/test_dynamic_pack.py
@@ -160,6 +161,43 @@ jobs:
             build/m1/macos/ARTBox*-load-commands.txt
             build/host/Testing/Temporary/LastTest.log
           if-no-files-found: error
+          retention-days: 7
+  class-library:
+    name: AOSP class libraries (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build pinned implementation Java and DEX
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_art_classlib.py
+      - name: Verify class libraries and malformed inputs with AOSP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_dex_loader.py --classlib-root build/m3/classlib
+      - name: Preserve class libraries, corresponding source and diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: class-library-${{ matrix.os }}
+          path: |
+            build/m3/classlib/artbox-classlib.zip
+            build/m3/classlib/result.json
+            build/m3/classlib/attempt-*/*.log
+            build/m3/classlib/attempt-*/*.args
+            build/m3/dex-loader/
+            artifacts/m3-classlib-verifier.json
+            artifacts/m3-dex-loader.json
+          if-no-files-found: warn
           retention-days: 7
   linux-oracle:
     name: unchanged ELF on native Linux ARM64

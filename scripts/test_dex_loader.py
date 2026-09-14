@@ -105,12 +105,17 @@ def main():
     parser.add_argument('--compiler', default=os.environ.get('CXX', 'clang++'))
     parser.add_argument('--jobs', type=int, default=2)
     parser.add_argument('--evidence-root', type=Path)
+    parser.add_argument('--classlib-root', type=Path, help='Validate an existing build_art_classlib.py result')
     args = parser.parse_args()
     if not 1 <= args.jobs <= 8:
         parser.error('--jobs must be between 1 and 8')
     os.environ.update(environment())
     build = Path(os.environ['ARTBOX_BUILD_DIR']) / 'm3/dex-loader'
     build.mkdir(parents=True, exist_ok=True)
+    classlib_cases = None
+    if args.classlib_root:
+        from classlib_check import prepare_inputs, build_target
+        classlib_cases, classlib_record = prepare_inputs(args.classlib_root, build / 'classlib-inputs')
     names = ('art-dex', 'libbase-dex', 'liblog-dex', 'ziparchive-dex', 'jni-dex', 'fmtlib-references', 'property-info')
     sources = {n: obtain(n) for n in names}
     art, base, log, zip_source, jni, fmt, ids = (sources[n] for n in names)
@@ -173,6 +178,9 @@ def main():
         _, metadata = compile_units(compiler, flags, units + [('check', ROOT / 'fixtures/art-dex/check.cpp')],
                                     build / 'android-objects', args.jobs)
         record.update(android_units=metadata, ndk_revision=REVISION)
+        if classlib_cases:
+            _, classlib_record['android_units'] = compile_units(compiler, flags,
+                [('classlib-check', ROOT / 'fixtures/art-classlib/check.cpp')], build / 'android-objects', 1)
         notice = toolchain / 'NOTICE'
         expected = json.loads((ROOT / 'third_party/bionic/builtins.json').read_text(encoding='utf-8'))['notice_sha256']
         if digest(notice) != expected:
@@ -241,8 +249,15 @@ def main():
                 target_record['cases'] = native_cases(executable, directory, inputs)
                 record['native_execution'] = True
             record['targets'][target] = target_record
+            if classlib_cases:
+                classlib_record.setdefault('targets', {})[target] = build_target(
+                    compiler, target_flags + flags, target_flags, objects, target, directory / 'classlib',
+                    notice_dir, classlib_cases, compile_units, macho)
     suffix = '-linux' if args.evidence_root else ''
     save(Path(os.environ['ARTBOX_ARTIFACTS_DIR']) / ('m3-dex-loader' + suffix + '.json'), record)
+    if classlib_cases:
+        record['class_library'] = classlib_record
+        save(Path(os.environ['ARTBOX_ARTIFACTS_DIR']) / ('m3-classlib-verifier' + suffix + '.json'), record)
     print('DEX loader: ' + ('native format checks passed; DEX execution remains false' if record['native_execution']
                             else 'Android source units compiled; native loading/execution not tested'))
 
