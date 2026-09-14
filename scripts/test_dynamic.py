@@ -121,7 +121,7 @@ def main():
                    ("bad-symbol-size", entries[11][0] + 8, 16),
                    ("duplicate-string-table", entries[30][0], 5),
                    ("text-relocations", entries[30][0] + 8, 4),
-                   ("unimplemented-symbol-versions", entries[30][0], 0x6ffffff0),
+                   ("orphan-version-count", entries[30][0], 0x6fffffff),
                    ("unimplemented-packed-relocations", entries[30][0], 0x60000011)]
         for label, offset, value in changes:
             contents = bytearray(original)

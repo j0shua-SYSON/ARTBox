@@ -153,7 +153,7 @@ is rejected. Guest stat ownership is UID/GID 10000. This provider does not yet
 supply file-backed mappings, mutable directories or multiple guest users.
 The 41-case NDK caller and actual Bionic per-thread file client are awaiting CI.
 
-### File-backed data mapping extension (native CI pending)
+### File-backed data mapping extension (native CI green at b1a94c5)
 
 | ARM64 call | Implemented subset | Evidence |
 | --- | --- | --- |

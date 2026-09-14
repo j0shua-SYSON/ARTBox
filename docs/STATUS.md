@@ -41,15 +41,24 @@ in guarded allocations. Entire-process peak RSS is 6,078,464 bytes normally and
 These macOS measurements include tracing and a timed wait, and are not iPhone
 memory or throughput measurements.
 
-The current extension adds native non-executable file mappings and a separate
-43-case NDK caller for shared/private visibility, descriptor lifetime, permission
-ceilings, sync, discard and partial unmap. All 18 local contracts and the NDK
-build/instruction checks pass; native macOS/Linux mapping execution awaits CI.
+At `b1a94c5`, [mapping host/Linux CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34821237500)
+and the [iOS build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34821237477)
+pass. All 18 portable contracts and the identical 43-case NDK mapping caller
+pass, including signed Bionic in both normal and forced-sampling processes.
+Downloaded signed layouts, notices, objects, Linux reports and regression IPA
+are verified. Files plus mappings take 2.072 ms normally and 1.317 ms sampled;
+entire-process peak RSS is 6,160,384 and 5,996,544 bytes, respectively.
+
+Version metadata and per-image named lookups now pass local malformed-input
+contracts and 12 real NDK/LLVM comparisons using GNU, SysV and dual hash tables,
+with and without section tables. Hidden/default versions and provider names are
+validated. CI for this parser extension is pending; it does not yet establish
+dependency-wide version binding or guest execution of the version fixture.
 
 ## Next work and remaining acceptance
 
-Verify file-backed mappings, then complete general dependency namespaces,
-symbol-version rules, cycles, constructor lifecycle and guest ELF TLS templates.
+Complete general dependency namespaces, version-aware scope resolution, cycles,
+constructor lifecycle and guest ELF TLS templates.
 The executed load group is currently fixed. The [M2 contract](m2-contract.md)
 requires a published NDK denominator with at least 90% passing, mandatory
 thread/file/memory success, and an iOS build containing that same suite and

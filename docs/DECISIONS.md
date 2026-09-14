@@ -452,7 +452,7 @@ mask path uses no executable allocation or runtime code generation.
 
 ## 0023 - Share rooted file and device descriptors
 
-Status: portable and native POSIX VFS contracts pass in CI at `9cf76a1`; signed Bionic integration pending.
+Status: portable/native VFS and signed Bionic file integration pass at `ce6c6eb`.
 
 Extend the portable descriptor table so devices and backing files cannot collide.
 Use a borrowed preopened filesystem root and opaque file handles behind a small
@@ -485,7 +485,7 @@ mapping or executable-memory support is implied by this descriptor stage.
 
 ## ADR 0024 - Native non-executable file views with independent lifetime
 
-Status: implemented; native acceptance pending.
+Status: all 43 mapping cases pass signed macOS and both Linux profiles at `b1a94c5`.
 
 M2 needs file-backed data mappings whose shared changes and private copies match
 Linux. Copying file contents into anonymous buffers would lose that behavior.
@@ -502,3 +502,27 @@ no unowned address can be replaced. A 43-case shared NDK caller tests observable
 semantics on signed macOS and native Linux; portable tests inject backing errors
 and verify reference cleanup. Native faults remain an unfinished guest-signal
 boundary. No Linux implementation code is copied.
+
+## ADR 0025 - Validate ELF versions independently of load-group scope
+
+Status: local parser/lookups and NDK/LLVM comparisons pass; CI pending.
+
+Decode DT_VERSYM, DT_VERDEF and DT_VERNEED through bounded file spans without
+requiring section headers. Each image owns its numeric version indices; retain
+names, hashes, provider SONAMEs, flags and hidden bits. Validate forward chains,
+auxiliary entries, counts, strings, hashes, duplicate indices and symbol roles
+before publishing a view. Bound the image to 256 version records.
+
+Named lookup admits a matching hidden version; unqualified lookup selects an
+export without the hidden bit. Like the pinned AOSP linker, an unversioned DSO
+or global symbol may interpose on a versioned request. The future load-group
+owner must separately validate the specifically named dependency's required
+versions, including weak requirements, before relocation. Metadata validation
+alone does not implement that dependency check.
+
+Original NDK fixtures export two versions of one name and import both. Compare
+all records and symbol assignments against LLVM under GNU, SysV and dual hash
+tables and after removing section headers; verify each named export lookup.
+LLVM 19 prints an empty text-only Predecessors field inside its JSON output;
+the test strips only that exact empty field and retains the raw reference.
+AOSP linker sources were studied for behavior; their code was not copied.

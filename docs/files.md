@@ -30,9 +30,8 @@ reads/writes that range. A bad read destination therefore cannot consume file
 bytes before EFAULT. Later inaccessible pages yield partial progress. EOF copies
 no bytes; an unmapped destination at EOF returns zero after a non-mutating
 position/size check. The same edge case is checked through real Linux syscalls.
-Zero-length regular-file I/O does not inspect its buffer. General pipes/sockets,
-file-backed mappings, dup/fcntl, directory enumeration and mutable directory
-operations are not implemented by this stage.
+Zero-length regular-file I/O does not inspect its buffer. General pipes/sockets, dup/fcntl, directory enumeration and mutable directory
+operations remain unimplemented. File mappings are described below.
 
 The local contract covers mixed descriptor allocation, create/exclusive/truncate,
 relative directory paths, read-only system files, symlink/traversal rejection,
@@ -44,13 +43,11 @@ The Linux branch also compares real syscall behavior at EOF and EFAULT. The
 [host/Linux run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34818958455) and
 [iOS build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34818958365) are green.
 
-The next signed integration adds an identical 41-case NDK file caller paired
-with the original/adapted Bionic syscall entries on Linux ARM64. Its portable
-execution passes locally. The real Bionic pthread client also creates one regular
-file per worker, writes 32 records, checks fstat/seek, reads each record back and
-closes it. The signed process now owns a rooted file provider; each normal/sampled
-process receives a fresh root retained with its diagnostic artifacts. This new
-signed execution still awaits CI.
+The signed integration passes at `ce6c6eb`: an identical 41-case NDK file caller
+is paired with original/adapted Bionic syscall entries on Linux ARM64. The real
+Bionic pthread client creates one regular file per worker, writes 32 records,
+checks fstat/seek, reads each record back and closes it. Each normal/sampled
+process owns a fresh root retained with its diagnostic artifacts.
 
 The first ARM64 Linux file oracle rejected directory opens: the initial table
 used the generic Linux flag layout. ARM64 uses `O_DIRECTORY=0x4000`,
@@ -80,7 +77,12 @@ and partial sync across holes remain unsupported. Native EOF/truncation faults
 are not translated into recoverable guest signals. The Windows native file
 provider remains unsupported; portable ownership tests use an injected backing.
 The 43-case NDK mapping caller is paired with actual Linux ARM64 and the signed
-Bionic client. Its first native CI run is pending; local ownership tests pass.
+Bionic client. At `b1a94c5`, both signed Mac processes and both Linux profiles
+pass all 43 cases, and all 18 portable contracts pass across CI hosts. Files plus
+mappings take 2.072 ms normally and 1.317 ms sampled in traced correctness runs.
+The [host/Linux run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34821237500)
+and [iOS regression build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34821237477)
+are green; downloaded artifacts match their input/layout/hash reports.
 
 At `ce6c6eb` the original 41-case file caller and six Bionic workers' file round
 trips pass signed macOS and both Linux profiles. The raw caller takes 0.457 ms
