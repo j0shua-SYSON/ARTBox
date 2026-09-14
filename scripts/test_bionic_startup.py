@@ -21,6 +21,7 @@ from sources import obtain as obtain_source
 from bionic_adapt import inventory
 from dynamic_bundle import prepare
 from tls_adapt import adapt as adapt_tls
+from m2_acceptance import evaluate as evaluate_acceptance
 
 sys.path.insert(0, str(ROOT / "tools"))
 from wrap_dynamic import pack_layout
@@ -150,7 +151,7 @@ def main():
     versions = build / "libartbox_versions.so"
     command("ld.lld", *link, "-soname", versions.name, "--version-script=" + str(ROOT / "fixtures/dynamic/versions.map"), version_object, "-o", versions)
     command("ld.lld", *tls_link, "-soname", app.name, client, futex_object, thread_object, file_object, mapping_object,
-            version_client_object, tls_access, tls_abi, vm_object, timeout_object,
+            version_client_object, tls_access, tls_abi, vm_object, timeout_object, proc_object,
             "--no-as-needed", libc, versions, tls_library, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator through a manifest load group; not full M2",
               "project_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
@@ -219,6 +220,8 @@ def main():
                 raise RuntimeError("NDK regular-file client did not complete")
             if result[key]["vm_cases"] != 35 or result[key]["timeout_cases"] != 18:
                 raise RuntimeError("NDK anonymous memory or pthread timeout client did not complete")
+            if result[key]["proc_cases"] != 22:
+                raise RuntimeError("NDK proc snapshot client did not complete")
             if result[key]["pthread_result"] != 0 or result[key]["threads_reaped"] != 6:
                 raise RuntimeError("NDK pthread client did not complete")
             if result[key]["tls_modules"] != 2 or result[key]["tls_threads"] != 7 or result[key]["tls_result"] != 0:
@@ -227,6 +230,10 @@ def main():
                 raise RuntimeError("GWP-ASan sampling did not reach every guest worker")
             if result[key]["process_peak_rss_bytes"] <= 0 or result[key]["pthread_client_ns"] <= 0:
                 raise RuntimeError("Missing native thread or memory measurement")
+        result['acceptance'] = {mode: evaluate_acceptance(result[mode]) for mode in ('native', 'sampled_native')}
+        (artifacts / 'm2-acceptance.json').write_text(json.dumps(result['acceptance'], indent=2) + '\n', encoding='utf-8')
+        if any(not r['success'] for r in result['acceptance'].values()):
+            raise RuntimeError('M2 acceptance failed; the denominator includes every failed or unexecuted group')
     (artifacts / "m2-bionic-startup.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print("Bionic startup fixture built" + (" and executed through signed macOS wrappers" if sys.platform == "darwin" else "; Apple execution required"))
 

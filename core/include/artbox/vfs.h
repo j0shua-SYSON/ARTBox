@@ -30,6 +30,9 @@ typedef struct artbox_vfs artbox_vfs;
 /* The root/provider outlives this table. A NULL provider gives only virtual
  * devices. One table is shared by the guest process. Initial cwd is '/'. */
 artbox_vfs *artbox_vfs_create(const artbox_file_ops *files, size_t descriptor_limit);
+/* Set the initial argv snapshot once, before guest execution. Bytes include
+ * their final NUL and are copied (maximum 64 KiB); no host proc data is read. */
+int artbox_vfs_set_commandline(artbox_vfs *fs, const void *bytes, size_t length);
 /* Stop guest access before destroy. All descriptors close, even on an error. */
 int artbox_vfs_destroy(artbox_vfs *fs);
 int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread, uint64_t number,

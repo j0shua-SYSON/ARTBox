@@ -654,3 +654,29 @@ read argv through the current file offset and use generic llseek, with stat size
 zero. The first ARTBox path will serve an immutable initial-argv snapshot, with
 live argv mutations, setproctitle and broader proc files explicitly unsupported.
 No kernel source is copied.
+
+## ADR 0030 - Owned initial-argv proc snapshot and explicit acceptance scoring
+
+Status: Linux proc baseline and timeout/anonymous-memory integration pass at
+`2125b46`; virtual proc and final scoring added, awaiting native CI.
+
+Use the existing portable VFS descriptor table for proc data. Copy the initial
+argv bytes once (maximum 64 KiB), assign a separate cursor per open, and keep
+stat size zero even when readable bytes remain. Resolve the followed self alias
+inside the guest namespace; never fall through to host proc paths. Preserve
+partial-copy and EOF semantics. An immutable snapshot costs one bounded copy
+and does not reflect later guest argv mutations; accept that initial limitation.
+
+The exact original NDK proc caller first passed native Linux, including SEEK_END
+at the zero inode size. It now runs through the same real Bionic syscall path as
+other signed fixtures. Portable tests separately exercise ownership and partial
+faults. Unknown proc paths, writable command-line access and file mappings are
+rejected; broader proc features remain explicit gaps.
+
+Score the frozen 328-expectation manifest after both native profiles complete.
+A numbered caller must return its exact count; each whole workload must satisfy
+all required result fields. Missing fields retain unexecuted cases, and extra or
+inflated counts cannot increase the numerator. A mandatory workload failure
+rejects acceptance even above 90 percent. The device packaging step recomputes
+this score and verifies the canonical JSON manifest hash before consuming any
+artifact. No physical-device result is inferred from a signed build.

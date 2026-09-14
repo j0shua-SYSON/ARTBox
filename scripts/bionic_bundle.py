@@ -8,6 +8,7 @@ sys.dont_write_bytecode = True
 from environment import ROOT
 sys.path.insert(0, str(ROOT / 'tools'))
 from wrap_dynamic import pack_layout, verify_macho
+from m2_acceptance import evaluate
 
 IMAGES = [('libc', 'libc.so', 'ARTBoxBionic'), ('client', 'libstartup_client.so', 'ARTBoxStartupClient'),
           ('versions', 'libartbox_versions.so', 'ARTBoxVersions'), ('tls', 'libartbox_tls.so', 'ARTBoxTLS')]
@@ -30,10 +31,14 @@ def prepare(evidence, output, revision):
     for mode in ('native', 'sampled_native'):
         if any(report[mode].get(k) != v for k, v in expected.items()):
             raise RuntimeError('M2 source artifact did not pass the required native suites')
+        scored = evaluate(report[mode])
+        if not scored['success'] or report['acceptance'][mode] != scored:
+            raise RuntimeError('M2 source artifact lacks complete acceptance for the fixed denominator')
     source = evidence / 'build/m2/bionic-startup'
     (output / 'ELF').mkdir(parents=True, exist_ok=True)
     staged = {'project_commit': revision, 'source_report_sha256': digest(report_path), 'images': {},
-              'native': report['native'], 'sampled_native': report['sampled_native'], 'tls': report['tls']}
+              'native': report['native'], 'sampled_native': report['sampled_native'], 'tls': report['tls'],
+              'acceptance': report['acceptance']}
     for key, elf_name, framework_name in IMAGES:
         details = report['images'][key]
         elf = source / elf_name

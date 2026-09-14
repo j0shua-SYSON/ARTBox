@@ -12,11 +12,13 @@ struct descriptor {
     bool directory = false;
     void *handle = nullptr;
     std::string path;
+    uint64_t position = 0;
 };
 struct artbox_vfs {
     std::mutex lock;
     artbox_file_ops files{};
     std::vector<descriptor> descriptors;
+    std::vector<unsigned char> commandline;
 };
 extern "C" artbox_vfs *artbox_vfs_create(const artbox_file_ops *files, size_t limit) {
     if (!limit || limit > 4096 || (files && (!files->open || !files->close || !files->read || !files->write ||
@@ -27,6 +29,18 @@ extern "C" artbox_vfs *artbox_vfs_create(const artbox_file_ops *files, size_t li
     try { fs->descriptors.resize(limit); }
     catch (const std::exception&) { delete fs; return nullptr; }
     return fs;
+}
+extern "C" int artbox_vfs_set_commandline(artbox_vfs *fs, const void *bytes, size_t length) {
+    if (!fs || !bytes || !length) return -22;
+    if (length > 65536) return -7;
+    const auto *data = static_cast<const unsigned char*>(bytes);
+    if (data[length - 1]) return -22;
+    try {
+        std::lock_guard<std::mutex> guard(fs->lock);
+        if (!fs->commandline.empty()) return -114;
+        fs->commandline.assign(data, data + length);
+        return 0;
+    } catch (const std::exception&) { return -12; }
 }
 extern "C" int artbox_vfs_destroy(artbox_vfs *fs) {
     if (!fs) return -22;
@@ -96,8 +110,10 @@ static int path(artbox_vfs *fs, artbox_vm *vm, uint64_t address, int32_t dirfd, 
     return out.canonical.size() >= sizeof(bytes) ? -36 : 0;
 }
 static unsigned device(const std::string &name) {
-    return name == "dev/null" ? 1u : name == "dev/zero" ? 2u : name == "dev/urandom" ? 3u : name == "dev" ? 4u : 0u;
+    return name == "dev/null" ? 1u : name == "dev/zero" ? 2u : name == "dev/urandom" ? 3u : name == "dev" ? 4u :
+           name == "proc/self/cmdline" ? 6u : name == "proc" ? 7u : name == "proc/self" ? 8u : 0u;
 }
+static bool virtual_directory(unsigned kind) { return kind == 4 || kind == 7 || kind == 8; }
 static bool below(const std::string &name, const char *prefix) {
     size_t n = std::strlen(prefix);
     return name.compare(0, n, prefix) == 0 && (name.size() == n || name[n] == '/');
@@ -144,7 +160,9 @@ static int stat_bytes(artbox_vm *vm, uint64_t address, const artbox_file_info &f
 static artbox_file_info device_info(unsigned kind) {
     artbox_file_info f{};
     f.device = 1; f.inode = kind; f.links = 1; f.block_size = 4096;
-    if (kind == 4) { f.mode = 0040555; return f; }
+    if (kind >= 6) { f.uid = f.gid = 10000; f.block_size = 1024; }
+    if (virtual_directory(kind)) { f.mode = 0040555; return f; }
+    if (kind == 6) { f.mode = 0100444; return f; } // Linux proc inode size is zero.
     f.mode = 0020000u | (kind == 3 ? 0444u : 0666u);
     f.rdevice = 0x100u + (kind == 1 ? 3u : kind == 2 ? 5u : 9u);
     return f;
@@ -170,9 +188,14 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
             int error = path(fs, thread->vm, a1, static_cast<int32_t>(a0), p);
             if (error) return error;
             unsigned kind = device(p.canonical);
-            if (!kind && below(p.canonical, "dev")) return -2;
+            if (!kind && (below(p.canonical, "dev") || below(p.canonical, "proc"))) return -2;
+            if (kind == 6 && fs->commandline.empty()) return -2;
             if (!kind && !fs->files.open) return -38;
-            if (kind && kind != 4 && p.trailing) return -20;
+            if (kind && !virtual_directory(kind) && p.trailing) return -20;
+            // /proc/self is a process alias. Following it is supported; exposing
+            // its symlink metadata requires a later readlink/lstat contract.
+            if (kind == 8 && number == 79 && a3 == 0x100) return -95;
+            if (kind == 8 && number == 56 && (flags & 0x8000)) return (flags & 0x4000) ? -20 : -40;
             if (number == 48 || number == 79) {
                 artbox_file_info info{};
                 if (kind) info = device_info(kind);
@@ -190,14 +213,15 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
             if ((flags & 3u) == 3u) return -22;
             if (flags & ~(3u | 0x40u | 0x80u | 0x100u | 0x200u | 0x400u | 0x800u | 0x8000u | 0x4000u | 0x20000u | 0x80000u)) return -95;
             if (kind && (flags & 0xc0) == 0xc0) return -17;
-            if (kind && kind != 4 && (flags & 0x4000)) return -20;
-            if (kind == 4 && ((flags & 3) || (flags & 0x200))) return -21;
-            if (kind == 3 && (flags & 3)) return -13;
+            if (kind && !virtual_directory(kind) && (flags & 0x4000)) return -20;
+            if (virtual_directory(kind) && ((flags & 3) || (flags & 0x200))) return -21;
+            if ((kind == 3 || kind == 6) && (flags & 3)) return -13;
+            if (kind == 6 && (flags & 0x200)) return -13;
             if (below(p.canonical, "system") && ((flags & 3) || (flags & (0x40 | 0x200)))) return -30;
             size_t slot = 0;
             while (slot < fs->descriptors.size() && fs->descriptors[slot].kind) ++slot;
             if (slot == fs->descriptors.size()) return -24;
-            descriptor d; d.kind = kind ? kind : 5; d.flags = flags; d.directory = kind == 4; d.path = p.canonical;
+            descriptor d; d.kind = kind ? kind : 5; d.flags = flags; d.directory = virtual_directory(kind); d.path = p.canonical;
             if (!kind) {
                 Walk walk(fs, p.directory);
                 if ((error = walk.resolve(p.relative))) return error;
@@ -218,6 +242,15 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
             *d = descriptor{}; return error;
         }
         if (number == 62) {
+            if (d->kind == 6) {
+                unsigned origin = static_cast<uint32_t>(a2);
+                if (origin > 4) return -22;
+                if (origin > 2) return -95; // SEEK_DATA/HOLE are outside this snapshot contract.
+                int64_t offset = static_cast<int64_t>(a1), base = origin == 1 ? static_cast<int64_t>(d->position) : 0;
+                if (offset < -base || offset > INT64_MAX - base) return -22;
+                d->position = static_cast<uint64_t>(base + offset);
+                return base + offset;
+            }
             if (d->kind != 5) return static_cast<uint32_t>(a2) <= 4 ? 0 : -22;
             return fs->files.seek(d->handle, static_cast<int64_t>(a1), static_cast<uint32_t>(a2));
         }
@@ -238,12 +271,19 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
         if (d->kind == 1) return 0;
         uint64_t done = 0;
         while (done < count) {
+            if (d->kind == 6 && d->position >= fs->commandline.size()) break;
             if (a1 > UINT64_MAX - done) return done ? static_cast<int64_t>(done) : -14;
             uint64_t address = a1 + done;
             size_t chunk = page - static_cast<size_t>(address % page);
             if (chunk > count - done) chunk = static_cast<size_t>(count - done);
             int64_t result;
-            if (d->kind == 5) {
+            if (d->kind == 6) {
+                size_t remaining = fs->commandline.size() - static_cast<size_t>(d->position);
+                if (chunk > remaining) chunk = remaining;
+                int error = artbox_vm_write(thread->vm, address, fs->commandline.data() + d->position, chunk);
+                if (!error) d->position += chunk;
+                result = error ? error : static_cast<int64_t>(chunk);
+            } else if (d->kind == 5) {
                 Transfer t{fs, d, writing};
                 result = artbox_vm_transfer(thread->vm, address, chunk, writing ? 1 : 2, transfer, &t);
                 if (result == -14 && !writing && address <= static_cast<uint64_t>(INT64_MAX) - chunk) {

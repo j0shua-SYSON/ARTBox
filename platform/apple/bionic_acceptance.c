@@ -40,6 +40,7 @@ static artbox_vfs *filesystem;
 static artbox_native_files *backing_files;
 static int64_t file_cases, mapping_cases, version_result;
 static int64_t vm_cases, timeout_cases;
+static int64_t proc_cases;
 static uint64_t file_ns;
 static artbox_futex *futex;
 static artbox_threads *threads;
@@ -225,6 +226,7 @@ static void *run(void *context) {
     (void)context;
     unsigned char random[16];
     char name[] = "artbox-bionic-startup";
+    if (artbox_vfs_set_commandline(filesystem, name, sizeof(name))) fail("initial argv snapshot");
     char process_sampling[] = "GWP_ASAN_PROCESS_SAMPLING=1";
     char allocation_sampling[] = "GWP_ASAN_SAMPLE_RATE=1";
     char guarded_capacity[] = "GWP_ASAN_MAX_ALLOCS=32";
@@ -280,6 +282,8 @@ static void *run(void *context) {
     }
     timeout_cases = (int32_t)artbox_call7(entry(&images[1], "artbox_timeout_check"), 0, 0, 0, 0, 0, 0, 0);
     if (timeout_cases != 18) { fprintf(stderr, "timeout caller: %" PRId64 "\n", timeout_cases); fail("pthread timeout acceptance"); }
+    proc_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_proc_check"), (uintptr_t)name, sizeof(name), artbox_vm_page_size(vm), 0, 0, 0, 0);
+    if (proc_cases != 22) { fprintf(stderr, "proc caller: %" PRId64 "\n", proc_cases); fail("proc acceptance"); }
     fprintf(stderr, "NDK file client entry\n");
     uint64_t file_start = now();
     file_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_files_check"), artbox_vm_page_size(vm), 0, 0, 0, 0, 0, 0);
@@ -373,8 +377,8 @@ int artbox_run_native_bionic(const artbox_bionic_input *input, const artbox_host
            ",\"pthread_result\":%d,\"threads_reaped\":%" PRIu64 ",\"pthread_client_ns\":%" PRIu64
            ",\"thread_guarded_samples\":%" PRIu64 ",\"process_peak_rss_bytes\":%ld,"
            "\"linked_images\":4,\"tls_modules\":2,\"tls_threads\":7,\"tls_result\":0,\"version_result\":%" PRId64 ",\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64
-           ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"unsupported_syscalls\":{",
-           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases);
+           ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"unsupported_syscalls\":{",
+           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases);
     if (length < 0 || (size_t)length >= sizeof(report)) fail("result formatting");
     size_t used_bytes = (size_t)length;
     unsigned printed = 0;

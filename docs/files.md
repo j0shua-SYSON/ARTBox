@@ -87,3 +87,21 @@ are green; downloaded artifacts match their input/layout/hash reports.
 At `ce6c6eb` the original 41-case file caller and six Bionic workers' file round
 trips pass signed macOS and both Linux profiles. The raw caller takes 0.457 ms
 normally and 0.377 ms under forced sampling in single traced correctness runs.
+
+## Initial process command line
+
+The virtual `/proc/self/cmdline` node serves an owned, immutable snapshot of
+initial NUL-separated argv bytes (up to 64 KiB). Configure it once before guest
+execution; no host `/proc` contents or host arguments are exposed. Each open has
+an independent offset. Reads preserve offset on faults and return completed
+page spans for partial faults; EOF touches no destination bytes. Stat size is
+zero, and SEEK_END uses that size, independently of the readable byte count.
+Virtual `/proc` and the followed `/proc/self` alias support directory-relative
+opens. Unknown proc paths fail with ENOENT; command-line writes and mappings are
+rejected. The snapshot reports the fixed guest UID/GID 10000.
+
+The 22-case NDK caller passed both original Linux paths at `2125b46` before the
+virtual implementation. Portable tests cover owned initialization bytes, separate
+FD offsets, partial faults, EOF and seek. Signed Bionic integration is pending.
+Live argv mutations/setproctitle, readlink/lstat of `/proc/self`, SEEK_DATA/HOLE,
+other process IDs and additional proc files are outside this initial contract.

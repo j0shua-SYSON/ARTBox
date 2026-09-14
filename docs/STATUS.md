@@ -38,8 +38,8 @@ full SIMD state around Bionic's accessor; its isolated cost is not yet measured.
 
 ## Remaining M2 acceptance
 
-The iOS regression IPA still runs M1. Integration now moves the exact M2 runner
-into the shared Apple platform layer and embeds its four tested libraries and
+The separate regression IPA retains M1. The integrated M2 build uses the shared
+Apple platform runner and embeds its four tested libraries and
 ELF resources in an iOS 15 app. The new CI job waits for host and Linux success,
 checks the source revision and every signed payload, then builds the M2 IPA.
 That integrated build passes at `545f8b6` in [CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34826492425). The downloaded IPA is verified: all seven Mach-O images, four ELF resources,
@@ -48,8 +48,11 @@ notices, the manifest and merge provenance agree. Its SHA-256 is
 (795,303 bytes). Physical execution remains unverified.
 
 The integration denominator is frozen at 328 expectations. The full suite now
-adds the existing 35-case anonymous-memory caller and 18 pthread timeout cases;
-CI is pending. The 22-case proc contract is written before its implementation. The suite must pass at least 90%, including mandatory
+passes the existing 35-case anonymous-memory caller and 18 pthread timeout cases
+at `2125b46`; [host, Linux and integrated iOS CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34827598444)
+are green. The 22-case proc caller passes its original Linux baseline. Virtual
+proc now passes the local ownership/fault contract and is wired into signed
+Bionic, Linux comparison and the fixed-denominator scorer; native CI is pending. The suite must pass at least 90%, including mandatory
 thread/file/memory behavior. General dlopen scope growth, preinit/finalization,
 signal delivery and additional syscall families remain unsupported. M2 is not
 tagged or complete; M3-M7 remain unimplemented.
