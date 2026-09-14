@@ -805,3 +805,12 @@ The host baseline uses the upstream options disabling the ZIP callback API and
 IncFS signal support. It reads complete fixture files; kernel incremental-file
 semantics are outside its scope. Managed-heap allocation, class libraries,
 runtime signals and JIT/AOT paths are not part of the DEX format result.
+
+The first Mac format checks and iOS library build pass, but native Linux with
+libstdc++ rejects `time_utils.h`: it uses `std::numeric_limits` before
+`time_utils.cc` includes `<limits>`. Keep the failing Linux compile check and
+apply one hash-checked source overlay, moving that include before the header
+and explicitly including `<algorithm>` for `std::min`. The generated source
+retains its Apache notice and labels the include-order change; the source cache
+is unchanged. Use the same overlay on all targets and compare its hash in the
+Mac/Linux evidence. No time behavior or verifier check changes.

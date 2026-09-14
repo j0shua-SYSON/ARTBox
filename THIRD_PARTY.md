@@ -243,3 +243,8 @@ headers and their two license files are reused. Native host/platform standard
 libraries remain platform dependencies; Android object artifacts retain the
 pinned NDK toolchain notice. No DEX execution or ART startup is claimed by
 compiling these components.
+
+The generated `time_utils.cc` overlay retains its AOSP Apache-2.0 notice and
+labels an include-order fix for libstdc++: `<limits>` and `<algorithm>` precede
+the header that uses their declarations. The pinned source is unchanged; both
+upstream and generated hashes are recorded in the DEX build evidence.
