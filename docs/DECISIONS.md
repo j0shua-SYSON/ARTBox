@@ -814,3 +814,10 @@ and explicitly including `<algorithm>` for `std::min`. The generated source
 retains its Apache notice and labels the include-order change; the source cache
 is unchanged. Use the same overlay on all targets and compare its hash in the
 Mac/Linux evidence. No time behavior or verifier check changes.
+
+The next Linux compile reaches libbase's POSIX `strerror_r` wrapper, which
+intentionally undefines `_GNU_SOURCE`. In strict C++ mode glibc also needs an
+explicit feature level to expose that declaration. Build Linux with
+`_POSIX_C_SOURCE=200809L`, retaining the upstream POSIX return ABI and source.
+Preserve per-unit compiler diagnostics with the Linux artifact for subsequent
+dependency failures.

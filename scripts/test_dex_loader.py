@@ -201,6 +201,9 @@ def main():
                 target_flags = ['-target', triple, '-isysroot', run('xcrun', '--sdk', sdk, '--show-sdk-path').decode().strip()]
             else:
                 compiler = [args.compiler]
+                # libbase deliberately undefines _GNU_SOURCE to request the POSIX
+                # strerror_r ABI. Strict C++ mode still needs this feature level.
+                target_flags = ['-D_POSIX_C_SOURCE=200809L']
             objects, metadata = compile_units(compiler, target_flags + flags, units, directory / 'objects', args.jobs)
             target_record = {'objects': metadata}
             if target == 'ios':
