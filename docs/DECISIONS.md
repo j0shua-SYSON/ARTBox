@@ -530,7 +530,7 @@ AOSP linker sources were studied for behavior; their code was not copied.
 
 ## ADR 0026 - Manifest-scoped linking with atomic group relocation
 
-Status: all 19 local contracts pass; signed integration pending CI.
+Status: all 19 host contracts and signed Bionic integration pass at `2ef7198`.
 
 The platform loads and verifies signed bundle wrappers, then hands immutable ELF
 metadata and writable data views to a portable load-group engine. Only manifest
@@ -562,3 +562,9 @@ relocation rollback, invalid constructor pointers, repeated initialization and
 callback failure. The existing signed Bionic client now uses the same engine.
 ELF TLS, preinit arrays, unloading/finalization and dlopen scope growth are not
 implemented by this initial load-group step.
+
+The next execution fixture adds a versioned third library and calls both the
+hidden old and default new export from the NDK client. The exact provider ELF
+and caller object also run under the native Linux ARM64 linker. This tests
+version-aware scope relocation with distinct per-image version indices, rather
+than relying only on per-image metadata assertions. Initial native CI is pending.

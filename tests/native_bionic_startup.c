@@ -31,12 +31,13 @@ typedef struct module {
     artbox_dynamic dynamic;
     artbox_relocation_stats relocations;
 } module;
-static module images[2];
+enum { IMAGE_COUNT = 3 };
+static module images[IMAGE_COUNT];
 static artbox_load_group *load_group;
 static artbox_vm *vm;
 static artbox_vfs *filesystem;
 static artbox_native_files *backing_files;
-static int64_t file_cases, mapping_cases;
+static int64_t file_cases, mapping_cases, version_result;
 static uint64_t file_ns;
 static artbox_futex *futex;
 static artbox_threads *threads;
@@ -253,6 +254,8 @@ static void *run(void *context) {
     unsigned initialized = constructors;
     if (artbox_load_group_initialize(load_group, construct, NULL) != ARTBOX_ELF_OK || constructors != initialized)
         fail("constructor idempotence");
+    version_result = (int64_t)artbox_call7(entry(&images[1], "version_client"), 0, 0, 0, 0, 0, 0, 0);
+    if (version_result != 46) fail("versioned dependency execution");
     fprintf(stderr, "NDK allocator client entry\n");
     result = (int32_t)artbox_call7(entry(&images[1], "artbox_startup_check"), 0, 0, 0, 0, 0, 0, 0);
     int64_t scratch = artbox_vm_mmap(vm, 0, artbox_vm_page_size(vm), 3, 0x22, -1, 0);
@@ -287,8 +290,8 @@ static void *run(void *context) {
     return NULL;
 }
 int main(int argc, char **argv) {
-    if (argc != 6 && (argc != 7 || strcmp(argv[6], "--sampled"))) return 2;
-    force_sampling = argc == 7;
+    if (argc != 8 && (argc != 9 || strcmp(argv[8], "--sampled"))) return 2;
+    force_sampling = argc == 9;
     for (unsigned i = 0; i < 4; ++i) {
         const int signals[] = {SIGSEGV, SIGBUS, SIGILL, SIGABRT};
         struct sigaction action;
@@ -299,7 +302,7 @@ int main(int argc, char **argv) {
     artbox_vm_ops ops = artbox_native_vm();
     artbox_system_ops system = artbox_native_system();
     vm = artbox_vm_create(&ops, UINT64_C(32) << 30, 4096);
-    if (artbox_native_files_open(argv[5], &backing_files)) fail("rooted filesystem");
+    if (artbox_native_files_open(argv[7], &backing_files)) fail("rooted filesystem");
     artbox_file_ops files = artbox_native_files_ops(backing_files);
     filesystem = artbox_vfs_create(&files, 256);
     artbox_atomic_u32_ops atomic = artbox_native_atomic_u32();
@@ -309,16 +312,16 @@ int main(int argc, char **argv) {
     threads = artbox_threads_create(vm, futex, &atomic, &system, &native_threads, 10000, 10001, 64, run_child, NULL);
     if (!threads) fail("native thread manager");
     uint64_t start = now();
-    load(&images[0], argv[1], argv[2]); load(&images[1], argv[3], argv[4]);
-    artbox_relocation_memory memory[2]; artbox_link_module modules[2];
-    for (unsigned i = 0; i < 2; ++i) {
+    for (unsigned i = 0; i < IMAGE_COUNT; ++i) load(&images[i], argv[1 + 2 * i], argv[2 + 2 * i]);
+    artbox_relocation_memory memory[IMAGE_COUNT]; artbox_link_module modules[IMAGE_COUNT];
+    for (unsigned i = 0; i < IMAGE_COUNT; ++i) {
         memory[i] = (artbox_relocation_memory){1, images[i].rw, (size_t)images[i].elf.segments[1].memory_size};
         modules[i] = (artbox_link_module){images[i].dynamic.soname, &images[i].dynamic, (uintptr_t)images[i].rx, &memory[i], 1};
     }
-    artbox_elf_result linked = artbox_load_group_create(modules, 2, "libstartup_client.so", resolve, NULL, &load_group);
+    artbox_elf_result linked = artbox_load_group_create(modules, IMAGE_COUNT, "libstartup_client.so", resolve, NULL, &load_group);
     if (linked == ARTBOX_ELF_OK) linked = artbox_load_group_relocate(load_group);
     if (linked != ARTBOX_ELF_OK) { fprintf(stderr, "load group result %d\n", linked); fail("manifest load group"); }
-    for (unsigned i = 0; i < 2; ++i)
+    for (unsigned i = 0; i < IMAGE_COUNT; ++i)
         if (artbox_load_group_stats(load_group, modules[i].name, &images[i].relocations) != ARTBOX_ELF_OK) fail("relocation statistics");
     uint64_t loaded = now();
     size_t stack_size = 4 * 1024 * 1024, page = ops.page_size;
@@ -339,18 +342,18 @@ int main(int argc, char **argv) {
     if (artbox_vfs_destroy(filesystem) || artbox_native_files_close(backing_files)) fail("filesystem cleanup");
     if (artbox_futex_destroy(futex)) fail("futex cleanup");
     if (artbox_vm_destroy(vm)) fail("release reservations");
-    if (artbox_load_group_count(load_group) != 2) fail("reachable load-group size");
+    if (artbox_load_group_count(load_group) != IMAGE_COUNT) fail("reachable load-group size");
     artbox_load_group_destroy(load_group);
     printf("{\"cases\":146,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
            ",\"startup_client_ns\":%" PRIu64 ",\"reserved_bytes\":%" PRIu64 ",\"gwp_enabled\":%" PRIu64
            ",\"guarded_samples\":%" PRIu64 ",\"futex_cases\":%" PRId64
            ",\"pthread_result\":%d,\"threads_reaped\":%" PRIu64 ",\"pthread_client_ns\":%" PRIu64
            ",\"thread_guarded_samples\":%" PRIu64 ",\"process_peak_rss_bytes\":%ld,"
-           "\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64 ",\"unsupported_syscalls\":{",
-           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, mapping_cases, file_cases, file_ns);
+           "\"linked_images\":3,\"version_result\":%" PRId64 ",\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64 ",\"unsupported_syscalls\":{",
+           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, version_result, mapping_cases, file_cases, file_ns);
     unsigned printed = 0;
     for (unsigned i = 0; i < 512; ++i) if (unsupported[i]) printf("%s\"%u\":%u", printed++ ? "," : "", i, unsupported[i]);
     puts("}}");
-    for (unsigned i = 0; i < 2; ++i) { dlclose(images[i].handle); free(images[i].original); }
+    for (unsigned i = 0; i < IMAGE_COUNT; ++i) { dlclose(images[i].handle); free(images[i].original); }
     return 0;
 }

@@ -14,6 +14,9 @@ SECTIONS {
     .gnu.hash : { *(.gnu.hash) } :image
     .dynsym : { *(.dynsym) } :image
     .dynstr : { *(.dynstr) } :image
+    .gnu.version : { *(.gnu.version) } :image
+    .gnu.version_d : { *(.gnu.version_d) } :image
+    .gnu.version_r : { *(.gnu.version_r) } :image
     .rela.dyn : { *(.rela.dyn) } :image
     .rela.plt : { *(.rela.plt) } :image
     .relr.dyn : { *(.relr.dyn) } :image
