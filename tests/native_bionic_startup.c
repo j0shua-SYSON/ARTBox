@@ -34,7 +34,7 @@ static module images[2];
 static artbox_vm *vm;
 static artbox_vfs *filesystem;
 static artbox_native_files *backing_files;
-static int64_t file_cases;
+static int64_t file_cases, mapping_cases;
 static uint64_t file_ns;
 static artbox_futex *futex;
 static artbox_threads *threads;
@@ -172,7 +172,8 @@ static void load(module *m, const char *framework, const char *file) {
 static int64_t dispatch(void *context, uint64_t n, uint64_t a0, uint64_t a1, uint64_t a2,
                         uint64_t a3, uint64_t a4, uint64_t a5) {
     if (n == 93 && exit_boundary) finish_thread(0, 0, a0 ? -5 : 0);
-    int64_t value = artbox_kernel_call(context, n, a0, a1, a2, a3, a4, a5);
+    int64_t value = n == 222 ? artbox_vfs_mmap(filesystem, vm, a0, a1, a2, a3, (int64_t)a4, a5) :
+        artbox_kernel_call(context, n, a0, a1, a2, a3, a4, a5);
     if (n == 98) value = artbox_futex_call(futex, a0, a1, a2, a3, a4, a5);
     if (value == -38) value = artbox_vfs_call(filesystem, context, n, a0, a1, a2, a3);
     if (n == 66 && a0 == 2 && a2 <= 16) {
@@ -274,6 +275,10 @@ static void *run(void *context) {
     fprintf(stderr, "NDK file client entry\n");
     uint64_t file_start = now();
     file_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_files_check"), artbox_vm_page_size(vm), 0, 0, 0, 0, 0, 0);
+    uint64_t before_maps = artbox_vm_reserved_bytes(vm);
+    mapping_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_file_mapping_check"), artbox_vm_page_size(vm), 0, 0, 0, 0, 0, 0);
+    if (mapping_cases != 43) { fprintf(stderr, "mapping caller: %" PRId64 "\n", mapping_cases); fail("file mapping acceptance"); }
+    if (artbox_vm_reserved_bytes(vm) != before_maps) fail("file mapping cleanup");
     file_ns = now() - file_start;
     if (file_cases != 41) { fprintf(stderr, "file caller: %" PRId64 "\n", file_cases); fail("file acceptance"); }
     fprintf(stderr, "NDK pthread client entry\n");
@@ -348,8 +353,8 @@ int main(int argc, char **argv) {
            ",\"guarded_samples\":%" PRIu64 ",\"futex_cases\":%" PRId64
            ",\"pthread_result\":%d,\"threads_reaped\":%" PRIu64 ",\"pthread_client_ns\":%" PRIu64
            ",\"thread_guarded_samples\":%" PRIu64 ",\"process_peak_rss_bytes\":%ld,"
-           "\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64 ",\"unsupported_syscalls\":{",
-           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, file_cases, file_ns);
+           "\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64 ",\"unsupported_syscalls\":{",
+           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, mapping_cases, file_cases, file_ns);
     unsigned printed = 0;
     for (unsigned i = 0; i < 512; ++i) if (unsupported[i]) printf("%s\"%u\":%u", printed++ ? "," : "", i, unsupported[i]);
     puts("}}");

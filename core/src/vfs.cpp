@@ -43,6 +43,21 @@ static descriptor *get(artbox_vfs *fs, int32_t fd) {
     descriptor *d = &fs->descriptors[static_cast<size_t>(fd - 3)];
     return d->kind ? d : nullptr;
 }
+extern "C" int64_t artbox_vfs_mmap(artbox_vfs *fs, artbox_vm *vm, uint64_t address,
+    uint64_t length, uint64_t prot, uint64_t flags, int64_t fd, uint64_t offset) {
+    if (!fs || !vm) return -22;
+    if (flags & 0x20) return artbox_vm_mmap(vm, address, length, prot, flags, fd, offset);
+    if (prot & 4) return -1;
+    std::lock_guard<std::mutex> guard(fs->lock);
+    descriptor *d = get(fs, static_cast<int32_t>(fd));
+    if (!d) return -9;
+    if (d->kind != 5 || d->directory) return -19;
+    unsigned access = d->flags & 3;
+    if (access == 1) return -13; // Every file mapping requires readable backing.
+    if (!fs->files.mapping.acquire) return -95;
+    unsigned maximum = (flags & 0xf) == 1 && access == 0 ? 1u : 3u;
+    return artbox_vm_map_file(vm, address, length, prot, flags, offset, d->handle, &fs->files.mapping, maximum);
+}
 struct path_info {
     std::string relative, canonical;
     void *directory = nullptr;

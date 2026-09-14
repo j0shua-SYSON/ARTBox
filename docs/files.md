@@ -57,3 +57,31 @@ used the generic Linux flag layout. ARM64 uses `O_DIRECTORY=0x4000`,
 `O_NOFOLLOW=0x8000`, `O_DIRECT=0x10000`, and `O_LARGEFILE=0x20000`.
 The core and native provider now use these guest values; the NDK caller asserts
 them against its target headers. Direct I/O remains explicitly unsupported.
+
+## Native data mappings
+
+`artbox_vfs_mmap` acquires an independent reference to a regular file under the
+descriptor lock. The VM owns that reference through partial unmap and until its
+reservation is released. POSIX uses a duplicated close-on-exec descriptor and
+native `MAP_PRIVATE`/`MAP_SHARED` views inside mapper-owned reservations.
+Closing the guest descriptor does not invalidate those views. No mapping may
+become executable. Private writable maps may use a read-only descriptor;
+shared read-only maps retain a write-protection ceiling across `mprotect`.
+
+`MADV_DONTNEED` remaps file pages from the retained file, dropping private copies
+and preserving shared file data. Anonymous replacements inside a file reservation
+are tracked separately and still discard to zero. `msync(MS_SYNC)` writes back
+shared pages only. ASYNC and flags=0 perform validation without writeback, matching
+[Linux's implementation](https://github.com/torvalds/linux/blob/v6.12/mm/msync.c).
+Guest memory locking is unsupported, so INVALIDATE has no locked-range behavior.
+
+Limits: file `MAP_FIXED`, huge pages, device mappings, cross-reservation sync,
+and partial sync across holes remain unsupported. Native EOF/truncation faults
+are not translated into recoverable guest signals. The Windows native file
+provider remains unsupported; portable ownership tests use an injected backing.
+The 43-case NDK mapping caller is paired with actual Linux ARM64 and the signed
+Bionic client. Its first native CI run is pending; local ownership tests pass.
+
+At `ce6c6eb` the original 41-case file caller and six Bionic workers' file round
+trips pass signed macOS and both Linux profiles. The raw caller takes 0.457 ms
+normally and 0.377 ms under forced sampling in single traced correctness runs.

@@ -24,6 +24,7 @@ typedef struct artbox_file_ops {
     int64_t (*seek)(void *file, int64_t offset, unsigned origin);
     int (*stat)(void *file, artbox_file_info *info);
     int (*stat_at)(void *context, void *directory, const char *name, artbox_file_info *info);
+    artbox_vm_file_ops mapping; // Optional; a zero table rejects file mappings.
 } artbox_file_ops;
 typedef struct artbox_vfs artbox_vfs;
 /* The root/provider outlives this table. A NULL provider gives only virtual
@@ -33,6 +34,10 @@ artbox_vfs *artbox_vfs_create(const artbox_file_ops *files, size_t descriptor_li
 int artbox_vfs_destroy(artbox_vfs *fs);
 int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread, uint64_t number,
                         uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3);
+/* mmap dispatches anonymous storage to VM, otherwise pins the guest descriptor
+ * while the mapping acquires its independent native backing reference. */
+int64_t artbox_vfs_mmap(artbox_vfs *fs, artbox_vm *vm, uint64_t address,
+    uint64_t length, uint64_t protection, uint64_t flags, int64_t fd, uint64_t offset);
 #ifdef __cplusplus
 }
 #endif

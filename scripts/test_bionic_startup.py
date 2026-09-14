@@ -87,6 +87,10 @@ def main():
     command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
             "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
             "-c", file_source, "-o", file_object)
+    mapping_source, mapping_object = ROOT / "fixtures/bionic-files/mapping.c", build / "mapping-check.o"
+    command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
+            "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
+            "-c", mapping_source, "-o", mapping_object)
     # Bionic's priority-1 initializer must precede ordinary C++ constructors.
     # Pad writable storage to a complete native page for WriteProtected globals.
     script = (ROOT / "fixtures/bionic-dynamic/image.ld").read_text(encoding="utf-8")
@@ -99,7 +103,7 @@ def main():
             "--pack-dyn-relocs=relr", "-T", linker_script]
     libc, app = build / "libc.so", build / "libstartup_client.so"
     command("ld.lld", *link, "-soname", libc.name, partial, bootstrap, "-o", libc)
-    command("ld.lld", *link, "-soname", app.name, client, futex_object, thread_object, file_object, "--no-as-needed", libc, "-o", app)
+    command("ld.lld", *link, "-soname", app.name, client, futex_object, thread_object, file_object, mapping_object, "--no-as-needed", libc, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator in a controlled two-image test; not full M2",
               "source_commit": report["source_commit"], "partial_object_sha256": digest(partial),
               "bootstrap_source_sha256": digest(ROOT / "fixtures/bionic-startup/bootstrap.cpp"),
@@ -108,6 +112,7 @@ def main():
                           "joined": 4, "detached": 2, "iterations_per_thread": 32},
               "rss_method": "Darwin getrusage RUSAGE_SELF ru_maxrss, bytes for the entire host process",
               "futex": {"cases": 19, "source_sha256": digest(futex_source), "object_sha256": digest(futex_object)},
+              "mappings": {"cases": 43, "source_sha256": digest(mapping_source), "object_sha256": digest(mapping_object)},
               "files": {"cases": 41, "source_sha256": digest(file_source), "object_sha256": digest(file_object)}}
     notices = {name.upper() + "-NOTICE.txt": (inputs / (name.upper() + "-NOTICE.txt"), data["sha256"])
                for name, data in report["component_notices"].items()}
@@ -148,7 +153,7 @@ def main():
             result[key] = json.loads(process.stdout)
             if result[key]["cases"] != 146 or result[key]["futex_cases"] != 19:
                 raise RuntimeError("NDK allocator client did not complete")
-            if result[key]["file_cases"] != 41:
+            if result[key]["file_cases"] != 41 or result[key]["mapping_cases"] != 43:
                 raise RuntimeError("NDK regular-file client did not complete")
             if result[key]["pthread_result"] != 0 or result[key]["threads_reaped"] != 6:
                 raise RuntimeError("NDK pthread client did not complete")

@@ -13,6 +13,7 @@ int artbox_native_files_close(artbox_native_files *files) { (void)files; return 
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <unistd.h>
 struct artbox_native_files { int root; };
 typedef struct file_handle { int fd; } file_handle;
@@ -103,6 +104,28 @@ static int stat_at(void *context, void *directory, const char *name, artbox_file
     struct stat s;
     return fstatat(directory_fd(context, directory), name, &s, AT_SYMLINK_NOFOLLOW) ? error() : encode(&s, info);
 }
+static int acquire_mapping(void *handle, void **out) {
+    file_handle *reference = malloc(sizeof(*reference));
+    if (!reference) return -12;
+    reference->fd = fcntl(((file_handle*)handle)->fd, F_DUPFD_CLOEXEC, 0);
+    if (reference->fd < 0) { int result = error(); free(reference); return result; }
+    *out = reference; return 0;
+}
+static void release_mapping(void *reference) { (void)close_file(reference); }
+static int map_file(void *reference, void *address, size_t length, unsigned protection, unsigned sharing, uint64_t offset) {
+    if ((protection & ~3u) || (sharing != 1 && sharing != 2) || offset > INT64_MAX) return -22;
+    int prot = (protection & 1 ? PROT_READ : 0) | (protection & 2 ? PROT_WRITE : 0);
+    int flags = MAP_FIXED | (sharing == 1 ? MAP_SHARED : MAP_PRIVATE);
+    void *result = mmap(address, length, prot, flags, ((file_handle*)reference)->fd, (off_t)offset);
+    return result == MAP_FAILED ? error() : result == address ? 0 : -5;
+}
+static int sync_mapping(void *reference, void *address, size_t length, unsigned flags) {
+    (void)reference;
+    // Linux INVALIDATE does not discard dirty private copies. Do not pass
+    // Darwin MS_INVALIDATE, whose invalidation behavior is different.
+    if (!(flags & 4)) return 0;
+    return msync(address, length, MS_SYNC) ? error() : 0;
+}
 int artbox_native_files_open(const char *root, artbox_native_files **out) {
     if (!root || !out) return -22;
     *out = NULL;
@@ -113,7 +136,8 @@ int artbox_native_files_open(const char *root, artbox_native_files **out) {
     *out = files; return 0;
 }
 artbox_file_ops artbox_native_files_ops(artbox_native_files *files) {
-    const artbox_file_ops ops = {files, open_file, close_file, read_file, write_file, seek_file, stat_file, stat_at};
+    const artbox_file_ops ops = {files, open_file, close_file, read_file, write_file, seek_file, stat_file, stat_at,
+        {acquire_mapping, release_mapping, map_file, sync_mapping}};
     return ops;
 }
 int artbox_native_files_close(artbox_native_files *files) {

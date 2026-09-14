@@ -482,3 +482,23 @@ mapping or executable-memory support is implied by this descriptor stage.
 | Guest TLS must coexist with host TLS | The Bionic source profile uses a precompiled call and host TLS lookup; runtime cost remains unmeasured. |
 | Android register and CPU-runtime assumptions cannot carry over unchanged | The current source profile omits Android SCS, uses a global stack guard and emits baseline atomics; performance and hardening tradeoffs remain to be measured. |
 | Baseline string dispatch avoids IFUNC resolution | AOSP's static ARM64 dispatcher loses CPU-specific selection; guarded-page correctness is tested, and the performance difference remains unmeasured. |
+
+## ADR 0024 - Native non-executable file views with independent lifetime
+
+Status: implemented; native acceptance pending.
+
+M2 needs file-backed data mappings whose shared changes and private copies match
+Linux. Copying file contents into anonymous buffers would lose that behavior.
+Use native POSIX mappings behind portable reference/map/sync callbacks. Duplicate
+the backing descriptor while the VFS holds its lock, then retain it in VM metadata
+until the reservation ends. The guest descriptor may close independently.
+
+Per-page metadata preserves backing kind and write ceilings when protections
+change or anonymous fixed replacements split a file reservation. Discard remaps
+file pages from their original offset; anonymous pages retain demand-zero reset.
+The implementation only maps non-executable data and never targets signed code.
+Initially file MAP_FIXED and mixed-reservation operations return unsupported;
+no unowned address can be replaced. A 43-case shared NDK caller tests observable
+semantics on signed macOS and native Linux; portable tests inject backing errors
+and verify reference cleanup. Native faults remain an unfinished guest-signal
+boundary. No Linux implementation code is copied.
