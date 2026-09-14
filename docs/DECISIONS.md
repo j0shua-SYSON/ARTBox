@@ -680,3 +680,22 @@ inflated counts cannot increase the numerator. A mandatory workload failure
 rejects acceptance even above 90 percent. The device packaging step recomputes
 this score and verifies the canonical JSON manifest hash before consuming any
 artifact. No physical-device result is inferred from a signed build.
+
+## ADR 0031 - Validate ART's low-address heap before adapting its references
+
+Status: host probe added; native Apple and iOS linker evidence pending.
+
+ART at Android 15 stores managed references as 32-bit addresses in
+`runtime/mirror/object_reference.h`. Our current app's 4 GiB `__PAGEZERO`
+occupies that address range. First compare the default guard with a 64 KiB
+guard using the public `-pagezero_size` linker option, before modifying ART's
+object layout or compressed-reference encoding. Keep all mappings non-executable
+and use address hints without fixed replacement. Verify two independent 64 MiB
+reservations, zeroed end pages, reference round trips and release.
+
+The alternatives are a heap-base-relative reference representation (more invasive
+changes to ART, native bridges and future AOT output), wider references (layout
+and memory cost), or accepting a slower managed path with explicitly adapted
+references. No CPU emulator, kernel or entitlement workaround is an option.
+The probe does not select the production layout until its native and signed
+device-build results are known; the current app layout remains the baseline.

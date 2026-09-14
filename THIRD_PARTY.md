@@ -47,14 +47,15 @@ Apple's [Mach-O format header](https://github.com/apple-oss-distributions/cctool
 was consulted for container constants and layouts. Its APSL-2.0 header is not
 vendored or copied into ARTBox; the Python encoder is original implementation.
 
-## M2 source pin (runtime integration in progress)
+## M2 source pin
 
 Bionic is pinned to [android-15.0.0_r1](https://github.com/aosp-mirror/platform_bionic/tree/361ba86734fb2821a6adcfdf775db8abd04e0de0)
 at commit `361ba86734fb2821a6adcfdf775db8abd04e0de0`, from AOSP's GitHub mirror.
 `third_party/sources.json` records the retrieved archive and libc notice hashes.
 The source includes BSD and other permissive notices; libdl has an Apache-2.0
 notice. Preserve component notices and individual source headers. Bionic is not
-relicensed as MIT. No Bionic runtime is shipped by the current M1 app.
+relicensed as MIT. The M1-only app omits Bionic; the integrated M2 app embeds
+the four tested libraries and complete notices described below.
 
 The source fetch step omits editor configuration, header-versioner tooling and
 unused netfilter kernel headers listed in the lock file. Netfilter's
@@ -166,3 +167,18 @@ complete, hash-verified text is preserved as `COMPILER-RT-NOTICE.txt` with objec
 and the signed arithmetic fixture. The original test caller is MIT. Test symbol
 prefixes do not change compiler-rt licensing. The host's floating-point ABI and
 arithmetic library are not substituted for these Android runtime functions.
+
+## M3 ART reference review
+
+Reviewed AOSP ART `android-15.0.0_r1`, commit
+`bebbc3cc49f2d9d5420197df0a336fbc3fcbea40`, through the
+[official source](https://android.googlesource.com/platform/art/+/bebbc3cc49f2d9d5420197df0a336fbc3fcbea40)
+and its `aosp-mirror-neo/platform_art` mirror. Its 10,695-byte Apache-2.0
+`NOTICE` has SHA-256
+`613c3a67424d8f9f32da434d1b98a610f98a7df6c2350c3429d9da975f0405fd`.
+Runtime/interpreter build definitions, startup/JIT paths, thread access,
+managed-reference storage and low-address mapping code were studied for the
+[M3 contract](docs/m3-contract.md). No ART implementation was copied into the
+first native address-space probe, which is original MIT-licensed test code.
+ART and each class-library/build dependency still require explicit source pins
+and retained notices before compilation or redistribution.
