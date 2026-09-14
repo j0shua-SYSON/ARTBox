@@ -40,13 +40,15 @@ all clients and reaping; forced GWP sampling measures 13.748 ms. These include a
 futex timeout, scheduling and trace output. Scudo reserves about 8.25 GiB of
 virtual address space; resident memory and iOS headroom are not yet measured.
 
-Signal-mask work is local and pending CI: rt_sigprocmask has 17 new error/layout
-cases paired with the existing startup caller, and children inherit independent
-guest masks. This does not implement signal delivery or modify host signal masks.
+At `cc6b074`, signal-mask inheritance/isolation and the expanded 53-case startup
+syscall caller pass signed macOS and both Linux profiles; the iOS build is green.
+This does not implement signal delivery or modify host signal masks. The next
+measurement records process peak RSS and thread-client elapsed time, and confirms
+that forced GWP sampling reaches each of the six workers.
 
 ## Next work and remaining acceptance
 
-Finish signal-mask validation, then add rooted regular-file operations and
+Add rooted regular-file operations and
 file-backed mappings. General dependency namespaces, symbol-version rules,
 cycles, constructor lifecycle and guest ELF TLS templates remain incomplete;
 the current executed load group is deliberately fixed. The [M2 contract](m2-contract.md)

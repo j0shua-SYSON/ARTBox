@@ -113,3 +113,14 @@ does not promise preservation after arbitrary successful library calls. The
 fixture now tests distinct errno values across pthread contention and distinct
 errno addresses across live workers, while retaining every allocation check.
 VMA naming remains unsupported and continues to return ENOSYS.
+
+At `cc6b074`, guest signal-mask inheritance and isolation pass in all six workers;
+the separate syscall slice passes its expanded 53-case caller on signed macOS
+and both Linux profiles. [Host/Linux](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34817253683)
+and [iOS](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34817253654) are green.
+
+The next report adds Darwin getrusage process peak RSS (bytes for the entire host
+process, including the harness/libraries) and a separate pthread-client interval
+through complete reaping. It also counts guarded malloc results per worker and
+requires at least one in every worker in the forced-sampling process. These are
+correctness-run measurements, not isolated allocator or iPhone performance.

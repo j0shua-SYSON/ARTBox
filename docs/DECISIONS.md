@@ -433,7 +433,7 @@ GWP-ASan state using the real AOSP definition and binds it to the guest TLS slot
 
 ## 0022 - Keep guest signal masks in the thread descriptor
 
-Status: local tests pass; the expanded signed/Linux comparison is pending.
+Status: local and expanded signed/Linux comparisons pass at `cc6b074`.
 
 Store the Linux 64-bit blocked mask per guest thread and copy it at clone.
 Implement rt_sigprocmask ordering, block/unblock/set, immutable KILL/STOP bits,

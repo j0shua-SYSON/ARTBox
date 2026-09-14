@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/resource.h>
 #include <unistd.h>
 
 typedef struct module {
@@ -38,7 +39,7 @@ static _Thread_local artbox_kernel_thread *current_kernel;
 static _Thread_local jmp_buf *exit_boundary;
 static _Thread_local artbox_thread_finish *thread_finish;
 static int32_t pthread_result;
-static uint64_t reaped;
+static uint64_t reaped, pthread_ns, thread_guarded_samples;
 static artbox_kernel_thread thread;
 static _Atomic unsigned calls;
 static unsigned absent_netd, constructors;
@@ -268,9 +269,12 @@ static void *run(void *context) {
     if (artbox_vm_munmap(vm, (uint64_t)scratch, artbox_vm_page_size(vm))) fail("futex fixture cleanup");
     if (futex_cases != 19) { fprintf(stderr, "futex caller: %" PRId64 "\n", futex_cases); fail("futex caller"); }
     fprintf(stderr, "NDK pthread client entry\n");
-    pthread_result = (int32_t)artbox_call7(entry(&images[1], "artbox_pthread_check"), 0, 0, 0, 0, 0, 0, 0);
+    uint64_t thread_start = now();
+    pthread_result = (int32_t)artbox_call7(entry(&images[1], "artbox_pthread_check"), force_sampling, 0, 0, 0, 0, 0, 0);
     if (pthread_result) { fprintf(stderr, "pthread client: %d\n", pthread_result); fail("pthread acceptance"); }
     if (artbox_threads_drain(threads, 5000)) fail("child thread reaper");
+    pthread_ns = now() - thread_start;
+    thread_guarded_samples = artbox_call7(entry(&images[1], "artbox_pthread_guarded_samples"), 0, 0, 0, 0, 0, 0, 0);
     reaped = artbox_threads_reaped(threads);
     if (reaped != 6) fail("child thread count");
     gwp_enabled = artbox_call7(entry(&images[0], "artbox_bootstrap_gwp_enabled"), 0, 0, 0, 0, 0, 0, 0);
@@ -323,6 +327,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "client result: %" PRId64 ", absent netd: %u, constructors: %u\n", result, absent_netd, constructors);
         fail("allocator acceptance");
     }
+    struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage) || usage.ru_maxrss <= 0) fail("native resident-memory measurement");
     if (artbox_threads_destroy(threads)) fail("thread manager cleanup");
     artbox_devices_destroy(devices);
     if (artbox_futex_destroy(futex)) fail("futex cleanup");
@@ -330,8 +336,9 @@ int main(int argc, char **argv) {
     printf("{\"cases\":146,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
            ",\"startup_client_ns\":%" PRIu64 ",\"reserved_bytes\":%" PRIu64 ",\"gwp_enabled\":%" PRIu64
            ",\"guarded_samples\":%" PRIu64 ",\"futex_cases\":%" PRId64
-           ",\"pthread_result\":%d,\"threads_reaped\":%" PRIu64 ",\"unsupported_syscalls\":{",
-           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped);
+           ",\"pthread_result\":%d,\"threads_reaped\":%" PRIu64 ",\"pthread_client_ns\":%" PRIu64
+           ",\"thread_guarded_samples\":%" PRIu64 ",\"process_peak_rss_bytes\":%ld,\"unsupported_syscalls\":{",
+           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss);
     unsigned printed = 0;
     for (unsigned i = 0; i < 512; ++i) if (unsupported[i]) printf("%s\"%u\":%u", printed++ ? "," : "", i, unsupported[i]);
     puts("}}");
