@@ -50,7 +50,7 @@ def main():
     parser.add_argument('--ndk-root', type=Path)
     parser.add_argument('--cc', default=os.environ.get('CC', 'clang'))
     parser.add_argument('--cxx', default=os.environ.get('CXX', 'clang++'))
-    parser.add_argument('--ar', default=os.environ.get('AR', 'llvm-ar'))
+    parser.add_argument('--ar', default=os.environ.get('AR', 'ar'))
     args = parser.parse_args()
     if args.jobs < 1: parser.error('--jobs must be positive')
     if args.link and (not args.all or args.profile != 'linux'):
@@ -119,6 +119,7 @@ def main():
         suffix = '.exe' if os.name == 'nt' else ''
         cc, cxx, ar = [str(toolchain / 'bin' / (name + suffix)) for name in ['clang', 'clang++', 'llvm-ar']]
         abi = ['--target=aarch64-linux-android35', '-U__ANDROID__']
+    archiver_version = run([ar, '--version'], output / 'archiver-version.log') if args.link else None
     base = [*abi, '-O1', '-DNDEBUG', '-fPIC', '-march=armv8-a', '-mno-outline-atomics',
             '-ffixed-x18', '-ffixed-x27', '-ffixed-x28']
     helper, icu, core = sources['art-nativehelper-runtime'], sources['art-icu-native'], layout / 'libcore'
@@ -219,6 +220,7 @@ def main():
               'source_bundle_sha256': digest(archive), 'source_layout': layout_files,
               'project_sources': {name: digest(ROOT / name) for name in project}, 'sources': catalog,
               'notices': {p.name: digest(p) for p in notices.iterdir()},
+              'archiver_version': archiver_version,
               'compiler_version': run([cxx, '--version'], output / 'compiler-version.log')}
     save(output / 'build-inputs.json', record)
     objects = output / 'objects'
