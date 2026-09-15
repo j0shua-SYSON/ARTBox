@@ -1036,3 +1036,18 @@ the target-OS selection. Retain the implementation libraries' own versioning
 and the original shim between the two APIs. Do not rename exports or alter
 the ICU sources. Exercise the shim directly through the same configured
 headers, including version lookup and malformed UTF-8 substitution.
+
+## 0043: Deny code generation in the native ART startup reference
+
+Status: selected; native execution pending.
+
+Preload the pinned native libraries and then install a Linux syscall filter
+before calling original JNI_CreateJavaVM. Reject executable-memory requests and
+runtime process execution; synchronize existing threads and test inheritance.
+Use the real switch interpreter with both JIT compilation and profiling disabled,
+and assert the actual runtime policy before and after method invocation.
+
+Preserve the same-revision libraries, implementation DEX, logs and mapping
+permissions with each attempt. This catches hidden code-generation dependencies
+while preparing signed Apple integration. The filter is a native reference test
+instrument, not a replacement for iOS signing or a complete app sandbox.

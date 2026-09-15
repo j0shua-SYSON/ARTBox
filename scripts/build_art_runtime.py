@@ -59,11 +59,12 @@ def preserve_sources(output, sources, generated, toolchain=None):
         expected=json.loads((ROOT/'third_party/bionic/builtins.json').read_text(encoding='utf-8'))['notice_sha256']
         if digest(notice)!=expected:raise RuntimeError('NDK runtime notice differs from its reviewed pin')
         (notices/'NDK-NOTICE.txt').write_bytes(notice.read_bytes())
-    project=['LICENSE','THIRD_PARTY.md','docs/DECISIONS.md','docs/m3-runtime-build.md',
+    project=['LICENSE','THIRD_PARTY.md','docs/DECISIONS.md','docs/m3-runtime-build.md','docs/m3-runtime-startup.md',
       'third_party/sources.json','third_party/art/runtime-sources.json','third_party/art/runtime-build.json',
       'third_party/art/adapters/no_jit.cpp','third_party/art/adapters/artbox_host_stack.h',
       'third_party/art/host-build-boundary.json','third_party/bionic/builtins.json',
-      'fixtures/art-runtime/linux_reference.cpp','fixtures/art-runtime/host_strlcpy.cpp']
+      'fixtures/art-runtime/linux_reference.cpp','fixtures/art-runtime/host_strlcpy.cpp',
+      'platform/linux/no_codegen.h','fixtures/art-runtime/codegen_policy.cpp']
     project += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT/'scripts').glob('*.py'))]
     for name in project:files['artbox/'+name]=ROOT/name
     for path in generated:files['generated/'+path.relative_to(output).as_posix()]=path
@@ -268,9 +269,12 @@ def main():
         run([cxx,'-shared','-Wl,-z,defs','-Wl,-soname,libart.so','@'+str(response),
              '-pthread','-ldl','-lm','-o',library],output/'runtime-link.log')
         harness=output/'art-linux-reference'
-        run([cxx,'-std=c++20','-O1','-fno-exceptions','-fno-rtti','-I',sources['jni-dex']/'include_jni',
-             ROOT/'fixtures/art-runtime/linux_reference.cpp',library,'-Wl,-rpath,$ORIGIN','-o',harness],output/'harness-link.log')
+        harness_flags=[flag for flag in runtime_flags if flag!='-DBUILDING_LIBART']
+        harness_command=[cxx,*harness_flags,'-I',ROOT/'platform/linux',
+             ROOT/'fixtures/art-runtime/linux_reference.cpp',library,'-Wl,-rpath,$ORIGIN','-pthread','-ldl','-o',harness]
+        run(harness_command,output/'harness-link.log')
         record['link']={'seconds':time.monotonic()-start,'runtime_executed':False,
+          'harness_command':list(map(str,harness_command)),
           'artifacts':{p.name:{'bytes':p.stat().st_size,'sha256':digest(p)} for p in [library,harness]}}
         save(results_path,record)
         print('Native Linux runtime and harness linked; execution is a separate required check',flush=True)

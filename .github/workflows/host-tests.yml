@@ -231,6 +231,45 @@ jobs:
           path: build/m3/libcore-native/linux/
           if-no-files-found: error
           retention-days: 7
+  runtime-startup:
+    name: Original ART interpreter startup (native Linux ARM64)
+    needs: [runtime-build, class-library, runtime-policy]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: art-runtime-linux-build
+          path: build/m3/runtime-build/linux
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: art-native-libraries-linux
+          path: build/m3/native-libraries/linux
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: art-libcore-native-linux
+          path: build/m3/libcore-native/linux
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: class-library-ubuntu-24.04-arm
+          path: build/m3/startup-inputs/classlib
+      - name: Start original ART with code generation denied and invoke the hello DEX
+        run: >-
+          python3 -B scripts/test_art_startup.py
+          --classlib-dir build/m3/startup-inputs/classlib/build/m3/classlib
+      - name: Preserve startup result, maps, logs, native libraries, DEX and source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-runtime-startup-linux
+          path: build/m3/runtime-startup/
+          if-no-files-found: error
+          retention-days: 7
   class-library:
     name: AOSP class libraries (${{ matrix.os }})
     strategy:
@@ -286,6 +325,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 -B scripts/test_art_runtime_policy.py
+      - name: Deny executable mappings and child execution before ART startup
+        if: runner.os == 'Linux'
+        run: python3 -B scripts/test_runtime_codegen.py
       - name: Preserve native tests and the signed iOS policy framework
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
