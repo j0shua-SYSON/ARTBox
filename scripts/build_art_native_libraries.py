@@ -139,8 +139,11 @@ def main():
               'android_icu4c/include', 'libandroidicuinit/include']]
     common = [*base, '-DFMT_HEADER_ONLY', *[word for p in paths for word in ['-I', str(p)]]]
     units = []
+    # JNIHelp.c uses the XSI int-returning strerror_r on this host profile.
+    # Strict C11 hides that declaration unless POSIX interfaces are requested.
+    helper_features = ['-D_POSIX_C_SOURCE=200809L'] if args.profile == 'linux' else []
     for name in graph['nativehelper']:
-        units.append(('helper-' + name, helper / name, [*common, '-std=c11', '-fvisibility=protected'], cc, 'helper'))
+        units.append(('helper-' + name, helper / name, [*common, *helper_features, '-std=c11', '-fvisibility=protected'], cc, 'helper'))
     for group, names in graph['icu'].items():
         selected = names if args.all or group not in ['common', 'i18n'] else names[:2]
         flags = common + cpp + ['-DUCONFIG_USE_ML_PHRASE_BREAKING=1', '-DU_USING_ICU_NAMESPACE=0',
