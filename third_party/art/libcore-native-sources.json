@@ -2312,5 +2312,59 @@
     "archive_sha256": "97805fc14a9c60719e2959f2833dd79dbe03dcdf4f04b88cd4f5ab05a39c346e",
     "notice": "openjdkjvm/LICENSE",
     "notice_sha256": "b2fdb88151f747b40f4a8b17ceba930136c8c1be873611972b413bce2c2eb587"
+  },
+  "art-libcore-exports": {
+    "repository": "msft-mirror-aosp/platform.libcore",
+    "tag": "android-15.0.0_r1",
+    "commit": "a996d969fdd17c6707b84544e5d1c35e0c25b5cb",
+    "archive": "libcore-android-15.0.0_r1.tar.gz",
+    "archive_bytes": 14723591,
+    "archive_sha256": "a6ce38405c9a1257f0aa915ba245d0abc71cdafe81a3df7828bdc44647a95f8f",
+    "notice": "LICENSE",
+    "notice_sha256": "067d8f7f645efe1131a9df13aa80ec2910d4ff898f9b14d337443a4202d56ab6",
+    "files": [
+      {
+        "path": "LICENSE",
+        "bytes": 19263,
+        "sha256": "067d8f7f645efe1131a9df13aa80ec2910d4ff898f9b14d337443a4202d56ab6"
+      },
+      {
+        "path": "NOTICE",
+        "bytes": 5788,
+        "sha256": "ded3eab76e881c8c18ab9e4ed9e888b1afcac41435913930f88f8188cecb2e8f"
+      },
+      {
+        "path": "NativeCode.bp",
+        "bytes": 6817,
+        "sha256": "43d95ce6a073869d11de542572b731113ee7ee5c5120e46634bd071721275d2d"
+      },
+      {
+        "path": "libjavacore.map",
+        "bytes": 670,
+        "sha256": "52b79e02119d9be7d030fa7eca7db49706aebff79ea0fd76c72a050aeccd1573"
+      }
+    ]
+  },
+  "art-host-capability": {
+    "repository": "aosp-mirror/platform_bionic",
+    "tag": "android-15.0.0_r1",
+    "commit": "361ba86734fb2821a6adcfdf775db8abd04e0de0",
+    "archive": "bionic-android-15.0.0_r1.tar.gz",
+    "archive_bytes": 6214925,
+    "archive_sha256": "bc1ddf365bec62f30ee5fc057d87ed54e11558f4d4187e90966d0c0e22bd159e",
+    "notice": "libc/NOTICE",
+    "notice_sha256": "75b5d593f1f741cd94dc88d18ba39d7c33d6b716e6985d7cabe308539f46b264",
+    "files": [
+      {
+        "path": "libc/NOTICE",
+        "bytes": 268209,
+        "sha256": "75b5d593f1f741cd94dc88d18ba39d7c33d6b716e6985d7cabe308539f46b264"
+      },
+      {
+        "path": "libc/include/sys/capability.h",
+        "bytes": 2117,
+        "sha256": "41c988319f64c4160673bd3fb99fcbb08363e91b6785c00ce5b8ac4b96fdb0ee"
+      }
+    ]
   }
 }
