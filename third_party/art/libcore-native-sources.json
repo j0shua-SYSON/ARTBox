@@ -1,0 +1,2316 @@
+{
+  "art-libcore-native": {
+    "repository": "msft-mirror-aosp/platform.libcore",
+    "tag": "android-15.0.0_r1",
+    "commit": "a996d969fdd17c6707b84544e5d1c35e0c25b5cb",
+    "archive": "libcore-android-15.0.0_r1.tar.gz",
+    "archive_bytes": 14723591,
+    "archive_sha256": "a6ce38405c9a1257f0aa915ba245d0abc71cdafe81a3df7828bdc44647a95f8f",
+    "files": [
+      {
+        "path": "LICENSE",
+        "bytes": 19263,
+        "sha256": "067d8f7f645efe1131a9df13aa80ec2910d4ff898f9b14d337443a4202d56ab6"
+      },
+      {
+        "path": "NOTICE",
+        "bytes": 5788,
+        "sha256": "ded3eab76e881c8c18ab9e4ed9e888b1afcac41435913930f88f8188cecb2e8f"
+      },
+      {
+        "path": "NativeCode.bp",
+        "bytes": 6817,
+        "sha256": "43d95ce6a073869d11de542572b731113ee7ee5c5120e46634bd071721275d2d"
+      },
+      {
+        "path": "luni/src/main/native/Android.bp",
+        "bytes": 1940,
+        "sha256": "4fddad4da3ba88d6eec3a170290989ea0492fd55cb232f87e135a5750c6fa4cb"
+      },
+      {
+        "path": "luni/src/main/native/AsynchronousCloseMonitor.cpp",
+        "bytes": 5117,
+        "sha256": "bb50b6b7b2b84b3a48192597867caf0a5f91dca7a4d20caa57993051cb10c2fd"
+      },
+      {
+        "path": "luni/src/main/native/AsynchronousCloseMonitor.h",
+        "bytes": 2461,
+        "sha256": "f0003b936eb334b7a7a8de4b1241f88b0f5a88ff128a822a4706f33660f6a1ad"
+      },
+      {
+        "path": "luni/src/main/native/ExecStrings.cpp",
+        "bytes": 2177,
+        "sha256": "bddeb1d0c5b6de6ee08e0bb4fd0cbb66f0d48356591062aed2e89fe590b3ee14"
+      },
+      {
+        "path": "luni/src/main/native/ExecStrings.h",
+        "bytes": 948,
+        "sha256": "c1ad26f52a3ec251bfe0a6d4e6bec16215e14fa21fa2b4d83a82e01159759e0a"
+      },
+      {
+        "path": "luni/src/main/native/IcuUtilities.cpp",
+        "bytes": 1512,
+        "sha256": "7c0dcba7e49ef0025c0c7f6ec47e7c790c93832a913998e0076918411df2a6ba"
+      },
+      {
+        "path": "luni/src/main/native/IcuUtilities.h",
+        "bytes": 872,
+        "sha256": "e37d32405081fa104e34eada9399515a6bd7775143a70a0a1b58314b397a6fef"
+      },
+      {
+        "path": "luni/src/main/native/JniConstants.cpp",
+        "bytes": 6622,
+        "sha256": "41bc04b38cddafdb5fef02a313a3ff97090b5200c55d6487a73458872221fe0a"
+      },
+      {
+        "path": "luni/src/main/native/JniConstants.h",
+        "bytes": 2994,
+        "sha256": "2826e1dba1441443c31a42f0cdefc0b85405068a30f9d5bd0529e5f6ff7ba176"
+      },
+      {
+        "path": "luni/src/main/native/JniException.cpp",
+        "bytes": 852,
+        "sha256": "c0e805d3333304b48fbb76eb50b730f667e2fbe38a618e48b67fcddda7ed2021"
+      },
+      {
+        "path": "luni/src/main/native/JniException.h",
+        "bytes": 808,
+        "sha256": "6a88c708e37de3b919e911397249f574ecf07346f1ef47c72557930bc7a37e7e"
+      },
+      {
+        "path": "luni/src/main/native/NetworkUtilities.cpp",
+        "bytes": 21589,
+        "sha256": "fed60052fa6010112b7da8dc7ea07b695b2eb7a4f700e80f4a9dd4589df2f49c"
+      },
+      {
+        "path": "luni/src/main/native/NetworkUtilities.h",
+        "bytes": 2736,
+        "sha256": "bfc0b493fd018f7bacc11ae3dfb3478961e54853424cf51bc96b50cd2a9dfc7f"
+      },
+      {
+        "path": "luni/src/main/native/Portability.h",
+        "bytes": 2103,
+        "sha256": "6a9abf76885930c2906daba3da97beeb0dce1df19ac9ad2d9ae6410e9c17a765"
+      },
+      {
+        "path": "luni/src/main/native/Register.cpp",
+        "bytes": 2450,
+        "sha256": "d436120b3963994418d9b9ed58ad1f7003f1406667f2949adb189f963ef7194a"
+      },
+      {
+        "path": "luni/src/main/native/ScopedByteBufferArray.h",
+        "bytes": 2475,
+        "sha256": "42a7bcf3df9a5591d7d104ef0e44f340bceda1d299f12dbacae77cadf8541c65"
+      },
+      {
+        "path": "luni/src/main/native/ScopedBytes.h",
+        "bytes": 2548,
+        "sha256": "9f33a83591aca0dcbbba0d7dc9eb5d075df1cb9e53d66ac7ba1eb66efd83d8fb"
+      },
+      {
+        "path": "luni/src/main/native/ScopedIcuULoc.h",
+        "bytes": 2436,
+        "sha256": "fc2401976faeae962c62f840b2894b4d55feca56ff3b393710c07d7b914e2f7d"
+      },
+      {
+        "path": "luni/src/main/native/ScopedMsghdr.h",
+        "bytes": 1603,
+        "sha256": "994acede267abc063874d98a9467fc76eaf903de3fea982cca321728bb03e694"
+      },
+      {
+        "path": "luni/src/main/native/ZipUtilities.cpp",
+        "bytes": 2802,
+        "sha256": "4021762a98445fc0440e35dda43f8116cb3e31df3233161b1f940ce64d603a54"
+      },
+      {
+        "path": "luni/src/main/native/ZipUtilities.h",
+        "bytes": 1690,
+        "sha256": "95ece25549871908a8428310c1e0c5e425ff9845636586adb38226f714c26a57"
+      },
+      {
+        "path": "luni/src/main/native/android_system_OsConstants.cpp",
+        "bytes": 34419,
+        "sha256": "a645fec91b3bb7e953fbed72e002e35b5af95fe2713b163a57859f80374e6dfb"
+      },
+      {
+        "path": "luni/src/main/native/cbigint.cpp",
+        "bytes": 18352,
+        "sha256": "55d34fce9936ef9479080f893f46fde371f01a9a66035a988c5bf07420cedae2"
+      },
+      {
+        "path": "luni/src/main/native/cbigint.h",
+        "bytes": 5561,
+        "sha256": "b6df5c65d7cd648c9437513d62d6bf8250d8dab831ccd6e1cf65b3afc18440bb"
+      },
+      {
+        "path": "luni/src/main/native/java_lang_StringToReal.cpp",
+        "bytes": 26184,
+        "sha256": "f885a85937bf81312a087b29957257e83c5fbf0521847deba1474d8fc40f94b1"
+      },
+      {
+        "path": "luni/src/main/native/java_lang_invoke_MethodHandle.cpp",
+        "bytes": 1542,
+        "sha256": "136bba6254f72f8ebcfe364ae83b2931aecb25d3b09ae34043f9bb3a050e2a12"
+      },
+      {
+        "path": "luni/src/main/native/java_lang_invoke_VarHandle.cpp",
+        "bytes": 12037,
+        "sha256": "e6cb5a694edf5851df8e4951513210910e3fec2470c573bca49baadda2ea02e8"
+      },
+      {
+        "path": "luni/src/main/native/libcore_icu_ICU.cpp",
+        "bytes": 4708,
+        "sha256": "d9dd762221935b0f13ee7d046a28d06c799a5ab855a0d6fe6f8aa090d23a0956"
+      },
+      {
+        "path": "luni/src/main/native/libcore_io_AsynchronousCloseMonitor.cpp",
+        "bytes": 1339,
+        "sha256": "b63c6e9f9fab5d0c71e34b3469340b60460b3e055abf2921321910ab11884a13"
+      },
+      {
+        "path": "luni/src/main/native/libcore_io_Linux.cpp",
+        "bytes": 116005,
+        "sha256": "e1b4a1ff048216cb8121001f4126f8925c5e7d0585863e9ad9fe7ad610350810"
+      },
+      {
+        "path": "luni/src/main/native/libcore_io_Memory.cpp",
+        "bytes": 10647,
+        "sha256": "80921e4ef887b9f67b36ee9a5647fa73395e90ddee40fb336669a92e3f4a9ff3"
+      },
+      {
+        "path": "luni/src/main/native/libcore_math_NativeBN.cpp",
+        "bytes": 5689,
+        "sha256": "04cef4774e945972dd02fcc347546cd6f628e32dea3d2a33f66894bcabc3bd82"
+      },
+      {
+        "path": "luni/src/main/native/libcore_util_NativeAllocationRegistry.cpp",
+        "bytes": 1526,
+        "sha256": "c3c8c3dfbcc1ce5589ec86448c3014be6578536e6f7dc2bfb9433eeec7949f27"
+      },
+      {
+        "path": "luni/src/main/native/org_apache_harmony_xml_ExpatParser.cpp",
+        "bytes": 46633,
+        "sha256": "30ecae86ac9439e1e40e07520a39b6b7504b63876b5f595200d74a07bd3629cd"
+      },
+      {
+        "path": "luni/src/main/native/sun_misc_Unsafe.cpp",
+        "bytes": 1075,
+        "sha256": "00ab3d8923f3e2ed11b000c8340a4a082037a37288b92bb09cfdec3c2dded11a"
+      },
+      {
+        "path": "luni/src/main/native/valueOf.cpp",
+        "bytes": 2141,
+        "sha256": "4a43703794a6b21f09f4386ae41c2d93e2f3198a1d6f4301d04e9c466e6d903d"
+      },
+      {
+        "path": "luni/src/main/native/valueOf.h",
+        "bytes": 1216,
+        "sha256": "ad8998c82648a160e6b6c58ba6b21eaad6883d189e8089e254521ab4bd33dc3f"
+      },
+      {
+        "path": "ojluni/src/main/NOTICE",
+        "bytes": 13928,
+        "sha256": "4e1144ff2b1369e7b9e8a1a3fb94ea3deee99d5b327cd94b423d148dfa34d25f"
+      },
+      {
+        "path": "ojluni/src/main/native/Adler32.c",
+        "bytes": 2818,
+        "sha256": "151212a851bd7fba85f5a66b536c841894f87d234fb6f1a6f14a471b252c0d23"
+      },
+      {
+        "path": "ojluni/src/main/native/Android.bp",
+        "bytes": 2670,
+        "sha256": "ea056b178f087f30eed347995c24f20dbd22509a3fcd14daa077da2f9a6c9ae1"
+      },
+      {
+        "path": "ojluni/src/main/native/CRC32.c",
+        "bytes": 2866,
+        "sha256": "9cf45ba639803ed6dd4c4b612de62be0302821a7f8f93d44a6a36a15ddff306c"
+      },
+      {
+        "path": "ojluni/src/main/native/Character.cpp",
+        "bytes": 7136,
+        "sha256": "419ab41a3fc8dcc80d85712a1bb6c8a8b922b9df11fd701a2e1348c9212b2963"
+      },
+      {
+        "path": "ojluni/src/main/native/Console_md.c",
+        "bytes": 2691,
+        "sha256": "8260a23dab972f0032970318de68acb8589ae466540ecb1363f23e24af553849"
+      },
+      {
+        "path": "ojluni/src/main/native/DatagramChannelImpl.c",
+        "bytes": 9702,
+        "sha256": "9df84fac097a4a304a032f7becb609a04a9125d34ee319565c0b8a1f7824cf6a"
+      },
+      {
+        "path": "ojluni/src/main/native/DatagramDispatcher.c",
+        "bytes": 4892,
+        "sha256": "40088aadfa9d052ee223deb7f3d4d07b7f4ab0fa9eb95279a8650cd8394e4d89"
+      },
+      {
+        "path": "ojluni/src/main/native/Deflater.c",
+        "bytes": 11392,
+        "sha256": "ebc2672e63dd46baa0869db66af28337de9dde3d3395c847536422c37152b39b"
+      },
+      {
+        "path": "ojluni/src/main/native/Double.c",
+        "bytes": 2326,
+        "sha256": "7ad81099b1909e344053046592aa20d64bc487aace57bab433b90238e5192eb8"
+      },
+      {
+        "path": "ojluni/src/main/native/EPoll.c",
+        "bytes": 3249,
+        "sha256": "c6f40e54ce75a9fa9f31e4186233f3b6a743ccc82316b99590dbff559056d5cf"
+      },
+      {
+        "path": "ojluni/src/main/native/EPollPort.c",
+        "bytes": 2484,
+        "sha256": "05b9921346bab1903bdab2f9f9e40277ca1b35f6e60636286d4224df5a9af03c"
+      },
+      {
+        "path": "ojluni/src/main/native/FileChannelImpl.c",
+        "bytes": 9086,
+        "sha256": "4395362cb78a47491ab374a74aa19f699b99ca00f00b69b80692b592455c8255"
+      },
+      {
+        "path": "ojluni/src/main/native/FileDescriptor_md.c",
+        "bytes": 3259,
+        "sha256": "5bfc428e55a0757386fad7409e44b3466fdd840fdac94f73a641f72d112a6e02"
+      },
+      {
+        "path": "ojluni/src/main/native/FileDispatcherImpl.c",
+        "bytes": 9803,
+        "sha256": "435d71d47d6a1e675453b08c61305b23590fc53b1530f7dbd1b41607aebcb3d7"
+      },
+      {
+        "path": "ojluni/src/main/native/FileInputStream.c",
+        "bytes": 6121,
+        "sha256": "2368aba19c578b87a5aed82f653e475876612391a521733a629abef4d582cab1"
+      },
+      {
+        "path": "ojluni/src/main/native/FileKey.c",
+        "bytes": 2720,
+        "sha256": "5989be842eba9692e8e8b79819022a58af5e554a7414776a4b68961af1e121f0"
+      },
+      {
+        "path": "ojluni/src/main/native/FileSystemPreferences.c",
+        "bytes": 5029,
+        "sha256": "39f8a9756f7f41127528993d2e954ecc419d4b699741f845ca56eb5c2b3f6df5"
+      },
+      {
+        "path": "ojluni/src/main/native/Float.c",
+        "bytes": 2195,
+        "sha256": "b8970e3448b94a97365454a726cc43ea9a45deaf23ad61c0e63bac4ad8d1c69e"
+      },
+      {
+        "path": "ojluni/src/main/native/IOUtil.c",
+        "bytes": 6619,
+        "sha256": "1e1321480ebd729c7d4e7bb87373778969ee34f676a779583b469f8b7e4ee307"
+      },
+      {
+        "path": "ojluni/src/main/native/Inet4Address.c",
+        "bytes": 1939,
+        "sha256": "1c462650ab696d1d935e169c7e19d65839024533da042099d95be1195d16b764"
+      },
+      {
+        "path": "ojluni/src/main/native/Inet6Address.c",
+        "bytes": 2797,
+        "sha256": "45fca746f3906bad7fda61d604e18921602c85088daa559fb1e4be8dfe3bf747"
+      },
+      {
+        "path": "ojluni/src/main/native/InetAddress.c",
+        "bytes": 2692,
+        "sha256": "bb019ea96c66758e366bd6583be52d03cdd1a8bfd2bc3387b182b0ef99d0a8c7"
+      },
+      {
+        "path": "ojluni/src/main/native/Inflater.c",
+        "bytes": 10946,
+        "sha256": "11866c2b1606dcd4f74614a7c65f40e955b21d53b064007423f35a0ee7673d17"
+      },
+      {
+        "path": "ojluni/src/main/native/JniConstants.cpp",
+        "bytes": 2617,
+        "sha256": "8ab84103c9b5773e7d73d881114a04e056886d83345e6d01f7b70bd01bee7004"
+      },
+      {
+        "path": "ojluni/src/main/native/JniConstants.h",
+        "bytes": 1552,
+        "sha256": "9baa0f40985baebf09c5c74b24be0646c338248005d72a95f4cec2004dc0bffb"
+      },
+      {
+        "path": "ojluni/src/main/native/LinuxNativeDispatcher.c",
+        "bytes": 7403,
+        "sha256": "4ccc999ca68aadfc44531fc8a4deeb503a18e656bd85762d9f4a563dc27a03ea"
+      },
+      {
+        "path": "ojluni/src/main/native/LinuxWatchService.c",
+        "bytes": 4614,
+        "sha256": "28f2fad9f179192c2889ffb7d5016533d155945b364ec46aaf549107e95044cc"
+      },
+      {
+        "path": "ojluni/src/main/native/MappedByteBuffer.c",
+        "bytes": 3944,
+        "sha256": "6e2cbba2d5ba462f3f1d5be034b56f2c8959538cf079568374c80382fb8fb15f"
+      },
+      {
+        "path": "ojluni/src/main/native/Math.c",
+        "bytes": 4043,
+        "sha256": "e38f01b7429ca942c2882ae6e7c2e9b08bbac9939de1976b4790e77304463941"
+      },
+      {
+        "path": "ojluni/src/main/native/NativeThread.c",
+        "bytes": 4126,
+        "sha256": "6bb10ef00a33bce4ab1c11ebf785acb355fc6e5e54a1b58089140ae77a8c1449"
+      },
+      {
+        "path": "ojluni/src/main/native/Net.c",
+        "bytes": 27465,
+        "sha256": "68db1e988451a1cd015d693af53b97a5e48166db7b3a4258f4b932c9baef86af"
+      },
+      {
+        "path": "ojluni/src/main/native/ObjectInputStream.c",
+        "bytes": 6378,
+        "sha256": "e0ff89a77c8d38fe907e6708ddb20dd144b5d03520e4bcb53d676f4d171fb823"
+      },
+      {
+        "path": "ojluni/src/main/native/ObjectOutputStream.c",
+        "bytes": 6584,
+        "sha256": "eedd70085952ad2b0c3e4654c21705d55eebdd31a6d40bc23406c2d350580e5e"
+      },
+      {
+        "path": "ojluni/src/main/native/ObjectStreamClass.c",
+        "bytes": 4750,
+        "sha256": "e8d9e210433563d8339ffcbd122708f254774fcbc611a9aa3f9a1de2547c8287"
+      },
+      {
+        "path": "ojluni/src/main/native/OnLoad.cpp",
+        "bytes": 6963,
+        "sha256": "e0e1440c3576117caf7022a3665a05e287a2c5e2ce0f92dd62fd296e36b8e458"
+      },
+      {
+        "path": "ojluni/src/main/native/PollArrayWrapper.c",
+        "bytes": 3775,
+        "sha256": "2d2b630b384920ea343cd1eb143f3bc62e73f2c38f284a2c84750468eccf860a"
+      },
+      {
+        "path": "ojluni/src/main/native/ProcessEnvironment_md.c",
+        "bytes": 3818,
+        "sha256": "4e2e6a898a0bcaf5876da1cccecafca568828bfd68a504705290883524d96c92"
+      },
+      {
+        "path": "ojluni/src/main/native/Runtime.c",
+        "bytes": 3062,
+        "sha256": "0b79435cc7a8ae9fe744cdf37dc721c8e6c31cdcfad5dc2eca7e850453176ee6"
+      },
+      {
+        "path": "ojluni/src/main/native/ServerSocketChannelImpl.c",
+        "bytes": 4834,
+        "sha256": "383f2cb7a37856649b908024874a526b45fa305ef253396708af3710051a66c8"
+      },
+      {
+        "path": "ojluni/src/main/native/SocketChannelImpl.c",
+        "bytes": 3504,
+        "sha256": "bd30aa02bd432f589617a5d0b88d1a18d5af4dd44cd77667d1ff1863a1d3e409"
+      },
+      {
+        "path": "ojluni/src/main/native/SocketInputStream.c",
+        "bytes": 5428,
+        "sha256": "4958dc4ca74f5e76de05cca19bfae4bdfe300ea6b2a701efd557742f33957e57"
+      },
+      {
+        "path": "ojluni/src/main/native/SocketOutputStream.c",
+        "bytes": 4400,
+        "sha256": "e1f0ee220025aeb528494743ef8d3a56f1d09a13d31498af17ac4f3d529791af"
+      },
+      {
+        "path": "ojluni/src/main/native/StrictMath.c",
+        "bytes": 5259,
+        "sha256": "1bdd4e8e3a26a19d50e1dd6bb5e26e6aabb2220a320ee0c2eb8de66d883a4e0b"
+      },
+      {
+        "path": "ojluni/src/main/native/System.c",
+        "bytes": 9551,
+        "sha256": "d42cc02cafcab7dda072ed1c34c304df76f48c255079c55f08d8769afc7ef059"
+      },
+      {
+        "path": "ojluni/src/main/native/UNIXProcess_md.c",
+        "bytes": 32910,
+        "sha256": "273ad2693f94d75da7869a5c329082b3ca1daa5c8c449ac163f0565d68660425"
+      },
+      {
+        "path": "ojluni/src/main/native/UnixAsynchronousServerSocketChannelImpl.c",
+        "bytes": 1963,
+        "sha256": "6702aa197bddad2f19127e8e57a94c5b2f22d565f47e889641b103b141c1e5df"
+      },
+      {
+        "path": "ojluni/src/main/native/UnixAsynchronousSocketChannelImpl.c",
+        "bytes": 1877,
+        "sha256": "d9077bebe491462c70e5f657db5c7cf924d9842890aa5570a02d4d45c4273bfa"
+      },
+      {
+        "path": "ojluni/src/main/native/UnixCopyFile.c",
+        "bytes": 2688,
+        "sha256": "48abb948c7dcf192e199e804e57ac089485d8c713c5c901ff6c7a66ebd87f6c9"
+      },
+      {
+        "path": "ojluni/src/main/native/UnixDomainSockets.c",
+        "bytes": 5918,
+        "sha256": "bb69ce84233e810420d96b7646a00a09a025e5dfa8165a7530c200f60f328364"
+      },
+      {
+        "path": "ojluni/src/main/native/UnixFileSystem_md.c",
+        "bytes": 18095,
+        "sha256": "534848f6b963ae1c1aa6c888e076e7f516c4263b4795e8da2b7514d8033074e0"
+      },
+      {
+        "path": "ojluni/src/main/native/UnixNativeDispatcher.c",
+        "bytes": 41244,
+        "sha256": "eb16ac84317b1dc6ed9e7aa8f27f28fcf984cb53ce24406d39e2e7a9a750600b"
+      },
+      {
+        "path": "ojluni/src/main/native/ZipFile.c",
+        "bytes": 12374,
+        "sha256": "bf0bcfc2bcc321353b9f2e5f4d4fd03b85de63b667618a83fd91d30c337208b9"
+      },
+      {
+        "path": "ojluni/src/main/native/canonicalize_md.c",
+        "bytes": 12684,
+        "sha256": "78ec1f4cff49e119d598df760b0d1439565775770aeeebbd337b10b40755360b"
+      },
+      {
+        "path": "ojluni/src/main/native/classfile_constants.h",
+        "bytes": 21125,
+        "sha256": "860ab5d3892474de3ecded9eb10deec78993987dce1eb5f6b711f9d031927397"
+      },
+      {
+        "path": "ojluni/src/main/native/io_util.c",
+        "bytes": 6588,
+        "sha256": "0312b518eee47be1d206d055ed85decabaf70de88591e8942d0ef5d3395a5e66"
+      },
+      {
+        "path": "ojluni/src/main/native/io_util.h",
+        "bytes": 5891,
+        "sha256": "4676cd55837c5ffac21cc7f863deaa17064741e8e5c76703695f61ba1900f597"
+      },
+      {
+        "path": "ojluni/src/main/native/io_util_md.c",
+        "bytes": 8018,
+        "sha256": "0a112bac73bb02c9bbae12ffb06847c2c68e65a46062e43fb8444bddb58dfdcb"
+      },
+      {
+        "path": "ojluni/src/main/native/io_util_md.h",
+        "bytes": 3137,
+        "sha256": "cd2f94734f77c345d0fa2fc124440d5926043a9fe5d9102a80847c1d79a4fd4e"
+      },
+      {
+        "path": "ojluni/src/main/native/java_io_FileSystem.h",
+        "bytes": 2718,
+        "sha256": "7fe50338ae2db147f74b78029b56dd53741949ec8c70f629b93e98c31ff33c1a"
+      },
+      {
+        "path": "ojluni/src/main/native/java_io_UnixFileSystem.h",
+        "bytes": 5793,
+        "sha256": "b5303fea15d13510cf7d7ced7ee5c832c4386677cb9c9d2c7b04fed15b0470be"
+      },
+      {
+        "path": "ojluni/src/main/native/java_lang_Integer.h",
+        "bytes": 2092,
+        "sha256": "f8be1dc0cad8f4800a709657a94f65cdb5fd9ebfe5553bf8708bb6abdfb33274"
+      },
+      {
+        "path": "ojluni/src/main/native/java_lang_Long.h",
+        "bytes": 2067,
+        "sha256": "5a2a5930ec157c6e02f9fd23a649afe72886bb2157f4fcb510aab88cf7c0bfd3"
+      },
+      {
+        "path": "ojluni/src/main/native/java_util_zip_ZipFile.h",
+        "bytes": 5162,
+        "sha256": "a71462404603d2ec8ba86a250deb0b08628ebde3863772690bfcafd860343036"
+      },
+      {
+        "path": "ojluni/src/main/native/jdk_internal_misc_VM.cpp",
+        "bytes": 1507,
+        "sha256": "95400ae30129dd2ed65446e1d5186dddb15bedf3267ea419f98695042e48ef7b"
+      },
+      {
+        "path": "ojluni/src/main/native/jlong.h",
+        "bytes": 1275,
+        "sha256": "615acf5c8420f6c8f9a705723f84c766b4c207c4482191546c5b657a88caa712"
+      },
+      {
+        "path": "ojluni/src/main/native/jlong_md.h",
+        "bytes": 3422,
+        "sha256": "0288abc078d459dbdc1087b69c60c517c00d88f3464feea494478a19233edbb2"
+      },
+      {
+        "path": "ojluni/src/main/native/jni_util.c",
+        "bytes": 39501,
+        "sha256": "ba2bce59bf8acebf78d74cdbee89c706d9b669d4fc4e1c95684a0260436daa7a"
+      },
+      {
+        "path": "ojluni/src/main/native/jni_util.h",
+        "bytes": 12070,
+        "sha256": "47650fa575d8dec72c53ff1e7c35225a7b06cd847c15c4ff2f5d79c21c6ffae8"
+      },
+      {
+        "path": "ojluni/src/main/native/jni_util_md.c",
+        "bytes": 2332,
+        "sha256": "7d679fbac7ed2030692f5e1099897978850cd306b3f02c5ece9f1868b42de52a"
+      },
+      {
+        "path": "ojluni/src/main/native/jvm.h",
+        "bytes": 44512,
+        "sha256": "7f4ecd9ba97b79d07ed715c3d131a9c1c14b2f5974286445570ac7b6bf2fe542"
+      },
+      {
+        "path": "ojluni/src/main/native/jvm_md.h",
+        "bytes": 2945,
+        "sha256": "9b5c1f6cb23370a69c2e05d6f9e6a63738afa4cef654e4068d045193eaa604c8"
+      },
+      {
+        "path": "ojluni/src/main/native/linux_close.cpp",
+        "bytes": 7525,
+        "sha256": "9453ede71707bccc328cd78ac8f9ed6bdd927281197fbacb64669a43ff169d6c"
+      },
+      {
+        "path": "ojluni/src/main/native/net_util.c",
+        "bytes": 12413,
+        "sha256": "f59d592a9c4598fb8ae5db7ec05ef05586aa0be8e8a767d53eb30936beb7de49"
+      },
+      {
+        "path": "ojluni/src/main/native/net_util.h",
+        "bytes": 6290,
+        "sha256": "6594fd630bd7a9e8e7e7233947bba76010c202d8766216c2c06737d782ebe644"
+      },
+      {
+        "path": "ojluni/src/main/native/net_util_md.c",
+        "bytes": 41322,
+        "sha256": "5a1a76f68636c8f8e6e1e19201f6399e4e736f35863449dac1672d7a93190d89"
+      },
+      {
+        "path": "ojluni/src/main/native/net_util_md.h",
+        "bytes": 5293,
+        "sha256": "6b19729c371fa05feed6bfa559eae87a7fc73f8c395c4ac1ab1957785b0afa6d"
+      },
+      {
+        "path": "ojluni/src/main/native/nio.h",
+        "bytes": 1618,
+        "sha256": "f5860a3f8b6b2d4e01a2edf4f6f0ec5868664e129d88ab7a96ec1ee7cd6ba7c5"
+      },
+      {
+        "path": "ojluni/src/main/native/nio_util.h",
+        "bytes": 2798,
+        "sha256": "dd2c8a4aaf5c3e073a942be49e855335637516eb296f856ce81fc6e2271748dc"
+      },
+      {
+        "path": "ojluni/src/main/native/socket_tagger_util.cpp",
+        "bytes": 1868,
+        "sha256": "8d754abfe52772259caab0cb209542d43e4587c79fe758f78c7015d65291c0c8"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_ch_EPoll.h",
+        "bytes": 1591,
+        "sha256": "32cbdefb8e5b841662a35be5b7a452c01da5dec92ef9e244b54132d1e7fc6b83"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_ch_EPollPort.h",
+        "bytes": 1429,
+        "sha256": "13ab9c518b7cebfd8982087a088ee43b220a68b5cfc0095a353beda9e85270f9"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_ch_FileChannelImpl.h",
+        "bytes": 3163,
+        "sha256": "d81b521609495192e87d9f5af9fb468bcc215dff4cbaf07b527e658d9dd4d6db"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_ch_FileDispatcherImpl.h",
+        "bytes": 5402,
+        "sha256": "3e1ab5f7d804d53cbe5fe1459c61f8905dd32fa1955c61acfa7e2bb98f1a46ea"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_ch_IOStatus.h",
+        "bytes": 2137,
+        "sha256": "cc066d0744dcf9668c80d69389530132adf754037b58e9d8de29d05886bb92f9"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_ch_Net.h",
+        "bytes": 7789,
+        "sha256": "720988daca0f42d4555298987539cb3789a1bec5634e5a79eea11c8011993518"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_ch_PollArrayWrapper.h",
+        "bytes": 2459,
+        "sha256": "d12a10ecd8e0ec57ca43cac311c2c32bee19c95fb2872156275af4371534c18b"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_ch_ServerSocketChannelImpl.h",
+        "bytes": 2525,
+        "sha256": "9033cbf9225e0be341fec852c0cc81523173f9e8875d6bb56b45f7db34f5af8f"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_ch_UnixAsynchronousServerSocketChannelImpl.h",
+        "bytes": 912,
+        "sha256": "cefb3e3aba3b5aec6b11150c1dabd9d583b6c318a9b7a3fb1c50e2a99f535db3"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_ch_UnixAsynchronousSocketChannelImpl.h",
+        "bytes": 1112,
+        "sha256": "935092b043a705c214cea83f54fdc702ed466121ec022a4396c68224133ab820"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_fs_LinuxNativeDispatcher.h",
+        "bytes": 2357,
+        "sha256": "2bf042947cd1f6ddff5eb243a022e44957740c797b85692c11315a03f907b97d"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_fs_LinuxWatchService.h",
+        "bytes": 1875,
+        "sha256": "15036e26e102fe12ade6f8ecf1224682632e77bdd84e31d36fb5aa143f3da1b2"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_fs_UnixCopyFile.h",
+        "bytes": 469,
+        "sha256": "c05234431dc60e714498582a9e419198f2f0d8f79a1af8c8ae22f0291e644e2f"
+      },
+      {
+        "path": "ojluni/src/main/native/sun_nio_fs_UnixNativeDispatcher.h",
+        "bytes": 9790,
+        "sha256": "8586faebae593526081ee6418333d39a4c484c5678862d9c1ef9d1f7016b8ccc"
+      },
+      {
+        "path": "ojluni/src/main/native/zip_util.c",
+        "bytes": 55020,
+        "sha256": "46904578ae06cb53068368cd5eda139db29660318d577c5df77c7a441e6ebf44"
+      },
+      {
+        "path": "ojluni/src/main/native/zip_util.h",
+        "bytes": 11320,
+        "sha256": "d7c2f49d5616fa344866d9aaaaccd59c9c96dc57000232330c25379d0063aed1"
+      }
+    ],
+    "notice": "LICENSE",
+    "notice_sha256": "067d8f7f645efe1131a9df13aa80ec2910d4ff898f9b14d337443a4202d56ab6"
+  },
+  "art-fdlibm": {
+    "repository": "aosp-mirror-neo/platform_external_fdlibm",
+    "tag": "android-15.0.0_r1",
+    "commit": "1e651e1ef2b613db2c4b29ae59c1de74cf0222ae",
+    "files": [
+      {
+        "path": "Android.bp",
+        "bytes": 3840,
+        "sha256": "bdd52f15615780aca727daffd81129c16034df51e59fc877e8819de12b6ef9db"
+      },
+      {
+        "path": "MODULE_LICENSE_BSD_LIKE",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "NOTICE",
+        "bytes": 245,
+        "sha256": "b010adcefa10bbced885f54291172d9ff42c566670826685e11f65cf0a0cfa8b"
+      },
+      {
+        "path": "e_acos.c",
+        "bytes": 3384,
+        "sha256": "ba264549add79254fada66addf29d4ec1b07ec0024499f38d017d168fc7ca361"
+      },
+      {
+        "path": "e_acosh.c",
+        "bytes": 1654,
+        "sha256": "672005116b6e39f96ff7f05776e30c91765a41a054cc90dbcd922c10b2231bbd"
+      },
+      {
+        "path": "e_asin.c",
+        "bytes": 3595,
+        "sha256": "00a878619a37f2532d2e2f233b9c64d876d473a5d4b100ca6e091307acf5f8ae"
+      },
+      {
+        "path": "e_atan2.c",
+        "bytes": 3836,
+        "sha256": "3ca58ffe63764f72e1e358d0f1ec23a9300e3c8a38bf41e1d8052c6b8af2b063"
+      },
+      {
+        "path": "e_atanh.c",
+        "bytes": 1718,
+        "sha256": "6c2510262c447029f6fff736e12b4e53ef46ea2187828e576645ef0515d7795f"
+      },
+      {
+        "path": "e_cosh.c",
+        "bytes": 2564,
+        "sha256": "fcbe2ef6364ea0c0547bd211664d39a599ee88c03cf50a4f36586340212e946d"
+      },
+      {
+        "path": "e_exp.c",
+        "bytes": 5062,
+        "sha256": "772eeda26041bd2d72d32ab7ff52e245d87e7e2c1e2f71d9e2aab4aa773d08e8"
+      },
+      {
+        "path": "e_fmod.c",
+        "bytes": 3502,
+        "sha256": "fa702952309c5f1bddc432b765b084e073e1c5250d85d28878f8468e8867ac67"
+      },
+      {
+        "path": "e_gamma.c",
+        "bytes": 722,
+        "sha256": "1a175520dc5f0c4845ebd4ad66ddb4c78a06f64dcef69e17120b79200a01174d"
+      },
+      {
+        "path": "e_gamma_r.c",
+        "bytes": 824,
+        "sha256": "18fc4afc104e222eba1b2b9b3e5c10db405ddde056645d037c8a2c4fc2c907f4"
+      },
+      {
+        "path": "e_hypot.c",
+        "bytes": 3040,
+        "sha256": "7d986e9f7581aeae2a71611851959a91510329a7532802f26d458db5689cb883"
+      },
+      {
+        "path": "e_j0.c",
+        "bytes": 16474,
+        "sha256": "92a673079c29578b5652ed23a0bc4f6ad82c8aa93bbc2f17e229ef9dfd14a5fa"
+      },
+      {
+        "path": "e_j1.c",
+        "bytes": 16273,
+        "sha256": "d10a030aaf44eec91e1c4c91fb9a3581aa841e182597caf8056039d42c114b94"
+      },
+      {
+        "path": "e_jn.c",
+        "bytes": 7358,
+        "sha256": "350b00557df447b7600cf8952e1bca9ebacdafef54a850a3f1d3e28b105b2d97"
+      },
+      {
+        "path": "e_lgamma.c",
+        "bytes": 728,
+        "sha256": "2f5b0888ef0f66796b8f891f333a62d4dce6d188c2f1beab5c86330dfad59707"
+      },
+      {
+        "path": "e_lgamma_r.c",
+        "bytes": 11237,
+        "sha256": "7291522b739774f4207a75eef3df8fea6e67f9dcb399aa8756db6cca0594b94d"
+      },
+      {
+        "path": "e_log.c",
+        "bytes": 4506,
+        "sha256": "70dc2521aad47de288a718f61e72966bf74c289ceabbd41cbc6c73a488c8eb04"
+      },
+      {
+        "path": "e_log10.c",
+        "bytes": 2794,
+        "sha256": "44e0990329ebe9846f2947692b8ab3e8e8561fc7e44df5a536c6cd25b270b36a"
+      },
+      {
+        "path": "e_pow.c",
+        "bytes": 9720,
+        "sha256": "eba2468e4bfcf724ce9e291a26a83cd019a006da335982e7ab97512e33ef2ce1"
+      },
+      {
+        "path": "e_rem_pio2.c",
+        "bytes": 5350,
+        "sha256": "aa650528e5115bdf6aa801df1a5f62278ae9fc6d52876f49a97a78ca25654df3"
+      },
+      {
+        "path": "e_remainder.c",
+        "bytes": 1796,
+        "sha256": "9356c06f19b5dbee0f7a77724a968cc6b862507e35a88d9861d5027cbfc260a5"
+      },
+      {
+        "path": "e_scalb.c",
+        "bytes": 1219,
+        "sha256": "20683f48d9e10ab7a3087b665e0c89a483fb5043299b07552d9d83777cd19570"
+      },
+      {
+        "path": "e_sinh.c",
+        "bytes": 2306,
+        "sha256": "071f9c0d777114c9ccec5f85af6f0dc8e52653b54951a8c94a4f15979ef13c30"
+      },
+      {
+        "path": "e_sqrt.c",
+        "bytes": 14666,
+        "sha256": "daf9eac1b076ed2b3a46905d65976bffa9fa841cf1d578406cd89fa7ee9b4c92"
+      },
+      {
+        "path": "fdlibm.h",
+        "bytes": 6691,
+        "sha256": "b5757623bfe10fc70f4b9cd97708b18e20906d345a092c3d2bf9ea474ca366d8"
+      },
+      {
+        "path": "k_cos.c",
+        "bytes": 3054,
+        "sha256": "3e75ea9ee8a0b6eaaeed7dfe9ef9a8c32c686d0e9a7a0539e518b3e8e1007747"
+      },
+      {
+        "path": "k_rem_pio2.c",
+        "bytes": 8510,
+        "sha256": "b133becd9a48a4ce60b05a8a1b34361ab9f9bdaac1e4d0c227e9e32dddb67601"
+      },
+      {
+        "path": "k_sin.c",
+        "bytes": 2427,
+        "sha256": "1621fa8af87851b6a54a09406a26df15fb69db5ebcc0b045ca7ab8004a412f5d"
+      },
+      {
+        "path": "k_standard.c",
+        "bytes": 19212,
+        "sha256": "6df773da6725de8574929de5d19644705d49128b805e520933639703f7bc0503"
+      },
+      {
+        "path": "k_tan.c",
+        "bytes": 4338,
+        "sha256": "9beb718fd794fec83779058a5d0784fe706f72e5a0b2e229a4ce82144bada0b2"
+      },
+      {
+        "path": "s_asinh.c",
+        "bytes": 1666,
+        "sha256": "5d5087f6a92768f7ead950c309c821cd95fd27c69b675e399118977d5bb9944d"
+      },
+      {
+        "path": "s_atan.c",
+        "bytes": 4342,
+        "sha256": "5289a1dbfbd4e7b4ac53e9f3a0aaf51df16beb89e52486c7dab4cd78b7de2837"
+      },
+      {
+        "path": "s_cbrt.c",
+        "bytes": 2128,
+        "sha256": "358b117f2f87fb3e0066b7a8787534aef6f1b96d2242285b77017d30462b2d50"
+      },
+      {
+        "path": "s_ceil.c",
+        "bytes": 1762,
+        "sha256": "81c4a0837c8fa14d64c9c08103d05e33a33c03fc7e58a2a2447313874c009e43"
+      },
+      {
+        "path": "s_copysign.c",
+        "bytes": 766,
+        "sha256": "786b511777fc80fa896abb023d220f4b4891af2feaf63d8589ce49e026e25f05"
+      },
+      {
+        "path": "s_cos.c",
+        "bytes": 2011,
+        "sha256": "f45fba44c1a6e5a33d2d65e5a6c4abbb9c5c0cfcb68a3f4b1b1d40b6016ce37b"
+      },
+      {
+        "path": "s_erf.c",
+        "bytes": 11396,
+        "sha256": "3131ee240471894f6a0bf7c99890487200f359f9a7c09bcd0b190060973d12b6"
+      },
+      {
+        "path": "s_expm1.c",
+        "bytes": 7458,
+        "sha256": "966413bc339ed7610bd2394e511aef4b8e3868007bdedcfc4f22c405102f0924"
+      },
+      {
+        "path": "s_fabs.c",
+        "bytes": 629,
+        "sha256": "0f5d038756e906076c784a30e89e8b6e3831653b2a69ad4de750dee02c51e810"
+      },
+      {
+        "path": "s_finite.c",
+        "bytes": 685,
+        "sha256": "5f849cb099c2da2b5d33a5fb7dc950d05a456c69c8f6b3c2355ce736906c305b"
+      },
+      {
+        "path": "s_floor.c",
+        "bytes": 1772,
+        "sha256": "9b8dd72eb110f090c7dd60f98e88affb7b8d033037f9c4b1c33e2909104fa978"
+      },
+      {
+        "path": "s_frexp.c",
+        "bytes": 1314,
+        "sha256": "948da09c1801d06738e3cef02f95ee9a8b8ba54e807014cecd045ea1ce4cbd7c"
+      },
+      {
+        "path": "s_ilogb.c",
+        "bytes": 1117,
+        "sha256": "00f3257629a2bb811426ccb2f553433ac4968a48ff654cc63e012b9e17ba9943"
+      },
+      {
+        "path": "s_isnan.c",
+        "bytes": 742,
+        "sha256": "a7549c673a4648bdbb6c743439815f1aa09431fd59c28a940fa4f04fce1b0af4"
+      },
+      {
+        "path": "s_ldexp.c",
+        "bytes": 739,
+        "sha256": "82338b9f3f3c5dadc3726a34e21ff80ee5e37814c33dd448f8ba0cacd3595cdc"
+      },
+      {
+        "path": "s_lib_version.c",
+        "bytes": 811,
+        "sha256": "4c17d31a55b6c2fe87fe33549362b3c62a4fee1460feb8f4738aa30d506fde33"
+      },
+      {
+        "path": "s_log1p.c",
+        "bytes": 5398,
+        "sha256": "6e55e4a87878b28d617ddec8736af33abc966b990af579c6c7006f8af374e092"
+      },
+      {
+        "path": "s_logb.c",
+        "bytes": 904,
+        "sha256": "c91f7a2ddbd9c132318d4e8e378452a3c9d79df71414f8a5f1a1c104a66ccb4d"
+      },
+      {
+        "path": "s_matherr.c",
+        "bytes": 608,
+        "sha256": "cc9356ef9c26cd6df67237da6d51e29d02a8f0d6c63c6588dfe7acbe2676617e"
+      },
+      {
+        "path": "s_modf.c",
+        "bytes": 1836,
+        "sha256": "7c1b25c2c4a0ac686b1325415ea8a0cf33b3c23cf0342eb03a513bbf05451331"
+      },
+      {
+        "path": "s_nextafter.c",
+        "bytes": 2003,
+        "sha256": "a0a909cf35a0f1bf8dfc1fda82e006cef3279b90b4f32454d636b98603eafe88"
+      },
+      {
+        "path": "s_rint.c",
+        "bytes": 1932,
+        "sha256": "9fd5b7d6c79f7fe7abc1d67b28fc45dc64fd79b00a209e35517aca191d1d6c45"
+      },
+      {
+        "path": "s_scalbn.c",
+        "bytes": 1886,
+        "sha256": "dd88365fd96ddb7fc2c86ca0486e9b0c7a2dfe6470256af90118e432092d59d3"
+      },
+      {
+        "path": "s_signgam.c",
+        "bytes": 37,
+        "sha256": "c57cc0174c9823b85b1195a0cfc3a62ca8589b31874cc279d977f706c15b1964"
+      },
+      {
+        "path": "s_significand.c",
+        "bytes": 753,
+        "sha256": "0cff33f0f9b3c8febc6d4910df3dab2f968d05d2cd365089023dac09841691ea"
+      },
+      {
+        "path": "s_sin.c",
+        "bytes": 2002,
+        "sha256": "a01fd03833f833ac1c78c07696176d08448d74a6e50d8405c8e08b57cec3847a"
+      },
+      {
+        "path": "s_tan.c",
+        "bytes": 1851,
+        "sha256": "6dd373b8e679692773057f17232a4f404d0eadb6bc8051a7da088bb000f941f1"
+      },
+      {
+        "path": "s_tanh.c",
+        "bytes": 2082,
+        "sha256": "7993fc466b231da6bcbe4f7151875e7a94b47666c3dcc7cc31835e12156ffc99"
+      },
+      {
+        "path": "w_acos.c",
+        "bytes": 856,
+        "sha256": "399b0a1d59e822b873dc6667526db7813b1370fc818fa96ff5ca9be88f5759cd"
+      },
+      {
+        "path": "w_acosh.c",
+        "bytes": 844,
+        "sha256": "aa1cff3a770ff7ae242b94390d1f884609588f12e214f3f74995b79d5a251dad"
+      },
+      {
+        "path": "w_asin.c",
+        "bytes": 869,
+        "sha256": "9023ff9bfc270e72af40570b336fda53f64d08561f8b24058db2e1cff6a14d47"
+      },
+      {
+        "path": "w_atan2.c",
+        "bytes": 909,
+        "sha256": "6104c94a7b7a530f09462192f5f66673f005734d7f07e5b8a0f8e07e4f4af8bd"
+      },
+      {
+        "path": "w_atanh.c",
+        "bytes": 954,
+        "sha256": "5866a013ca50d6225d8ee9840af9b363fc500b563143dbfbfd801d23f8c667fe"
+      },
+      {
+        "path": "w_cosh.c",
+        "bytes": 885,
+        "sha256": "a90831e44365afdd15ae21550573232a61fc8c8aca947a79093a9c533f02144e"
+      },
+      {
+        "path": "w_exp.c",
+        "bytes": 1086,
+        "sha256": "c829766d14788a0869ce2be9a23f3a3096c014ce2f7ab699dd6d4a9714e3d780"
+      },
+      {
+        "path": "w_fmod.c",
+        "bytes": 886,
+        "sha256": "10552614667b3c28095ea994591e2c894f7a7e57b58dd8b89dfe455007f3f64f"
+      },
+      {
+        "path": "w_gamma.c",
+        "bytes": 1140,
+        "sha256": "d0568830d74ad8e20b4bc90801bf1504d6770b41143c70b424557dc50cfc1166"
+      },
+      {
+        "path": "w_gamma_r.c",
+        "bytes": 1178,
+        "sha256": "8b06a5a9be048db31b2d13cfc9002d36ed5b4e19c10ccbeed47a52e7a8df249a"
+      },
+      {
+        "path": "w_hypot.c",
+        "bytes": 895,
+        "sha256": "635df218cad0947ab4281e64566cf4a5ca7b541989c0162dbca6b52f98743e72"
+      },
+      {
+        "path": "w_j0.c",
+        "bytes": 1527,
+        "sha256": "9e8cb1a0de3cf01aef9c7810844ecbb0bbab88baa2ed004f20af4f7308290915"
+      },
+      {
+        "path": "w_j1.c",
+        "bytes": 1508,
+        "sha256": "7ab1307bfb470337a54f14433b8021feb06861e4a290be2f6f973fe613c5e847"
+      },
+      {
+        "path": "w_jn.c",
+        "bytes": 2452,
+        "sha256": "73e622bfe9f9a9a28b3d2a600ef887a1c52428a571b713da532605522d5ad0ac"
+      },
+      {
+        "path": "w_lgamma.c",
+        "bytes": 1159,
+        "sha256": "9c43e9c229d9586e7192216b067e2e63fde3654719babcf2894061e47bd605e3"
+      },
+      {
+        "path": "w_lgamma_r.c",
+        "bytes": 1186,
+        "sha256": "5c74dc940f5351a56f4d03f2e6c59eb302b5ae89c8f14e22054c9ee112179b8c"
+      },
+      {
+        "path": "w_log.c",
+        "bytes": 890,
+        "sha256": "91934d9ede44bf28bbea0f3bb731540b96cdf2b55501591ee3f4916450067a48"
+      },
+      {
+        "path": "w_log10.c",
+        "bytes": 953,
+        "sha256": "7cd7cc618767fae1c750fefbbc59320c3be96f1485791058d8c9b2b9fed11833"
+      },
+      {
+        "path": "w_pow.c",
+        "bytes": 1492,
+        "sha256": "74ed7cc336508cf938eebc2aa39930031351386fb0770d9e9a2bc6bfe83910ec"
+      },
+      {
+        "path": "w_remainder.c",
+        "bytes": 910,
+        "sha256": "a6be70d5afd6e04326196cdc9628f75d0070235f5b37c2c0a46971b9ca5c33e4"
+      },
+      {
+        "path": "w_scalb.c",
+        "bytes": 1336,
+        "sha256": "c7038a2a26a297ffc6dcacb7a298424fe2efdf9d901bf4e880422ebc06c271a4"
+      },
+      {
+        "path": "w_sinh.c",
+        "bytes": 857,
+        "sha256": "0f6294be11a4b049074b84065885c98a0491ce286b799a8ff0666a8e68a152f5"
+      },
+      {
+        "path": "w_sqrt.c",
+        "bytes": 853,
+        "sha256": "9eb018719302115a6c9453b97bf9494c138384909a1873b23481fe8186c3861e"
+      }
+    ],
+    "notice": "NOTICE",
+    "notice_sha256": "b010adcefa10bbced885f54291172d9ff42c566670826685e11f65cf0a0cfa8b"
+  },
+  "art-expat": {
+    "repository": "aosp-mirror-neo/platform_external_expat",
+    "tag": "android-15.0.0_r1",
+    "commit": "8ae3fff00472acf17b96871c7cdeaccfa7430c73",
+    "files": [
+      {
+        "path": "Android.bp",
+        "bytes": 2951,
+        "sha256": "55d2ed687297cccea0edc66d67bda2b033fc519afbcb558bc1ebb74c2759fd55"
+      },
+      {
+        "path": "COPYING",
+        "bytes": 1144,
+        "sha256": "122f2c27000472a201d337b9b31f7eb2b52d091b02857061a8880371612d9534"
+      },
+      {
+        "path": "expat/COPYING",
+        "bytes": 1144,
+        "sha256": "122f2c27000472a201d337b9b31f7eb2b52d091b02857061a8880371612d9534"
+      },
+      {
+        "path": "expat/lib/ascii.h",
+        "bytes": 3682,
+        "sha256": "42f8b392c70366743eacbc60ce021389ccaa333598dd49eef6ee5c93698ca205"
+      },
+      {
+        "path": "expat/lib/asciitab.h",
+        "bytes": 3520,
+        "sha256": "1cc0ae749019fc0e488cd1cf245f6beaa6d4f7c55a1fc797e5aa40a408bc266b"
+      },
+      {
+        "path": "expat/lib/expat.h",
+        "bytes": 44070,
+        "sha256": "1a434bf3d2f9fb8a0b5adb79201a942788d11824c3e5b46a0b9962c0c482016c"
+      },
+      {
+        "path": "expat/lib/expat_external.h",
+        "bytes": 6029,
+        "sha256": "7ca9ed28dd5e08eac425931894fabd4c876db8f4be26f9b9a33c2e4f70a0d6c3"
+      },
+      {
+        "path": "expat/lib/iasciitab.h",
+        "bytes": 3590,
+        "sha256": "ad8b01e9f323cc4208bcd22241df383d7e8641fe3c8b3415aa513de82531f89f"
+      },
+      {
+        "path": "expat/lib/internal.h",
+        "bytes": 6343,
+        "sha256": "f7523357d8009749e7dba94b0bd7d0fa60e011cc254e55c4ebccd6313f031122"
+      },
+      {
+        "path": "expat/lib/latin1tab.h",
+        "bytes": 3573,
+        "sha256": "eab66226da100372e01e42e1cbcd8ac2bbbb5c1b5f95d735289cc85c7a8fc2ba"
+      },
+      {
+        "path": "expat/lib/nametab.h",
+        "bytes": 9044,
+        "sha256": "67dcf415d37a4b692a6a8bb46f990c02d83f2ef3d01a65cd61c8594a084246f2"
+      },
+      {
+        "path": "expat/lib/siphash.h",
+        "bytes": 13071,
+        "sha256": "b5ec29f6560acc183f1ee8ab92bb3aea17b87b4c2120cd2e3f78deba7a12491e"
+      },
+      {
+        "path": "expat/lib/utf8tab.h",
+        "bytes": 3522,
+        "sha256": "8cd26bd461d334d5e1caedb3af4518d401749f2fc66d56208542b29085159c18"
+      },
+      {
+        "path": "expat/lib/winconfig.h",
+        "bytes": 2038,
+        "sha256": "e70948500d34dfcba4e9f0b305319dfe2a937c7cbfb687905128b56e1a6f8b33"
+      },
+      {
+        "path": "expat/lib/xmlparse.c",
+        "bytes": 286193,
+        "sha256": "3dc233eca5fa1bb7387c503f8a12d840707e4374b229e05d5657db9645725040"
+      },
+      {
+        "path": "expat/lib/xmlrole.c",
+        "bytes": 35475,
+        "sha256": "71fb52aa302cf6f56e41943009965804f49ff2210d9bd15b258f70aaf70db772"
+      },
+      {
+        "path": "expat/lib/xmlrole.h",
+        "bytes": 4679,
+        "sha256": "228470eb9181a9a7575b63137edcb61b817ee4e0923faffdbeba29e07c939713"
+      },
+      {
+        "path": "expat/lib/xmltok.c",
+        "bytes": 54346,
+        "sha256": "5b16c671ccc42496374762768e4bf48f614aecfd2025a07925b8d94244aec645"
+      },
+      {
+        "path": "expat/lib/xmltok.h",
+        "bytes": 12894,
+        "sha256": "6b8919dc951606dc6f2b0175f8955a9ced901ce8bd08db47f291b6c04227ae7f"
+      },
+      {
+        "path": "expat/lib/xmltok_impl.c",
+        "bytes": 53720,
+        "sha256": "a3fe18ff32b21fbcb7c190895c68158404e1b9fb449db6431bc08b261dc03938"
+      },
+      {
+        "path": "expat/lib/xmltok_impl.h",
+        "bytes": 3430,
+        "sha256": "f05ad4fe5e98429a7349ff04f57192cac58c324601f2a2e5e697ab0bc05d36d5"
+      },
+      {
+        "path": "expat/lib/xmltok_ns.c",
+        "bytes": 4640,
+        "sha256": "6ce6d03193279078d55280150fe91e7370370b504a6c123a79182f28341f3e90"
+      },
+      {
+        "path": "expat_config.h",
+        "bytes": 4589,
+        "sha256": "b3d3148741c9cbf87b7db6adfcf25bde694f5cb18f525d3c04db4d9ab52410e1"
+      }
+    ],
+    "notice": "COPYING",
+    "notice_sha256": "122f2c27000472a201d337b9b31f7eb2b52d091b02857061a8880371612d9534"
+  },
+  "art-crypto-native": {
+    "repository": "msft-mirror-aosp/platform.external.boringssl",
+    "commit": "23a87e389eb925678c6766f7d0fcd189c2f9303c",
+    "archive_bytes": 33215231,
+    "archive_sha256": "b921d0f883c23a8f4886e4f8b368929f61b9422216b95a44e040c3a5430b04e2",
+    "tag": "android-15.0.0_r1",
+    "archive": "boringssl-classlib-android-15.0.0_r1.tar.gz",
+    "notice": "NOTICE",
+    "notice_sha256": "a78d37138db9a43843736b2973284b61af19cd5384cf3c752e922171b0d4fc56",
+    "files": [
+      {
+        "path": "Android.bp",
+        "sha256": "b17da9078a8a6a5949b24202a2271f21990571966ec8df5c76e621efebe9a3d1",
+        "bytes": 25029
+      },
+      {
+        "path": "NOTICE",
+        "sha256": "a78d37138db9a43843736b2973284b61af19cd5384cf3c752e922171b0d4fc56",
+        "bytes": 12529
+      },
+      {
+        "path": "src/LICENSE",
+        "sha256": "a78d37138db9a43843736b2973284b61af19cd5384cf3c752e922171b0d4fc56",
+        "bytes": 12529
+      },
+      {
+        "path": "src/crypto/asn1/internal.h",
+        "sha256": "59640ef15e36db9c431fa08c0f7368a126311322d280ef4c45c2de639233d099",
+        "bytes": 11724
+      },
+      {
+        "path": "src/crypto/bio/internal.h",
+        "sha256": "b1da6abbc02adc7460ae41836378828006ccf648ac62288bc998e3f49f1431cc",
+        "bytes": 5134
+      },
+      {
+        "path": "src/crypto/bytestring/internal.h",
+        "sha256": "025545421a7e30be34df879f9ac6b65a6faf66f8315b631b931efad23d1cb959",
+        "bytes": 3492
+      },
+      {
+        "path": "src/crypto/chacha/internal.h",
+        "sha256": "1b59a973e7efa03aa149d0c8fa0cd1eb7cd0347ccd75dc05056e35701cf31ab0",
+        "bytes": 3927
+      },
+      {
+        "path": "src/crypto/cipher_extra/internal.h",
+        "sha256": "e4c3514b753bda388b74281aefe75984262a3ccad6c722db3139aff857f1b266",
+        "bytes": 10489
+      },
+      {
+        "path": "src/crypto/conf/conf_def.h",
+        "sha256": "9f2afc794b49b0e11f6352eba8e06f1fa9685061647385d787b73a93b2b19b75",
+        "bytes": 6217
+      },
+      {
+        "path": "src/crypto/conf/internal.h",
+        "sha256": "21c6afb2896d2b9625390b2c88d02a2752fd1bfa978949c45ff0ffef55c44375",
+        "bytes": 1954
+      },
+      {
+        "path": "src/crypto/cpu_aarch64_apple.c",
+        "sha256": "f2b8c5ad274a5c3e76f934c7186397c0761b623c6c221ae9ed22503d00e0c3f6",
+        "bytes": 2962
+      },
+      {
+        "path": "src/crypto/cpu_aarch64_fuchsia.c",
+        "sha256": "81a43ad839bf75222a4f85a7d7944523ca5a6de0befe3bc6d29b659fdff26ddc",
+        "bytes": 1896
+      },
+      {
+        "path": "src/crypto/cpu_aarch64_linux.c",
+        "sha256": "25653fc685eb38c3b71e0fe5285d9d275ae9f49c9072f438962398bcc6270cea",
+        "bytes": 1965
+      },
+      {
+        "path": "src/crypto/cpu_aarch64_openbsd.c",
+        "sha256": "fc8ffad97aeb5ed77229d2c752bb2e7994163a81695e5a9fcd080ec055e9bb44",
+        "bytes": 1890
+      },
+      {
+        "path": "src/crypto/cpu_aarch64_sysreg.c",
+        "sha256": "0386d0a3eaa91658b24d6a117fcea8578689ee9220aa6c5bcb2e9b498bffec45",
+        "bytes": 2950
+      },
+      {
+        "path": "src/crypto/cpu_aarch64_win.c",
+        "sha256": "45a2e8693905ea5d74047222c58cbfeba1bd992b5c4b7705575359120e2e5209",
+        "bytes": 1601
+      },
+      {
+        "path": "src/crypto/cpu_arm_freebsd.c",
+        "sha256": "060e84041c74d7898531bdecb5d97be9c4b0dc769babaa817be31edfd4456f99",
+        "bytes": 1858
+      },
+      {
+        "path": "src/crypto/cpu_arm_linux.c",
+        "sha256": "06deace7e078f033da6b8297dfaa557024a25151785f0f781e0e35dad4b8140c",
+        "bytes": 4164
+      },
+      {
+        "path": "src/crypto/cpu_arm_linux.h",
+        "sha256": "6902852ccf3fa9f6205eee61b07600530a3c00045eb5092fa1468a9b9a9dcbcf",
+        "bytes": 5118
+      },
+      {
+        "path": "src/crypto/cpu_intel.c",
+        "sha256": "eb2aab429847e5f51aca6ad0c24ca913624cad75f47d6f7dc21edca31f85d9f3",
+        "bytes": 10449
+      },
+      {
+        "path": "src/crypto/crypto.c",
+        "sha256": "447ba5dcbac5aad1e20c78f1fee944bcc30e25643317ceec6318ae237034cadf",
+        "bytes": 7542
+      },
+      {
+        "path": "src/crypto/curve25519/curve25519_tables.h",
+        "sha256": "5e594f0a2e08afbc94d6327a7604afbc409f209138b0efbdb95115ba5315faed",
+        "bytes": 199505
+      },
+      {
+        "path": "src/crypto/curve25519/internal.h",
+        "sha256": "c4818ddce3abd72e11897b0ec7e69debf595e963fb4e7acf3a9381a360afbe32",
+        "bytes": 5292
+      },
+      {
+        "path": "src/crypto/des/internal.h",
+        "sha256": "660c23867a02fb6a5014484dcd86d96f033cce10697a110c27da05276fd4d6e7",
+        "bytes": 8932
+      },
+      {
+        "path": "src/crypto/dilithium/internal.h",
+        "sha256": "4740ed159bafcda54d3f0056864cb75ffe881c1d98a4a9e45fc07b3ac54d06e3",
+        "bytes": 2460
+      },
+      {
+        "path": "src/crypto/dsa/internal.h",
+        "sha256": "c4d3e6330162107d6b9d8f0fd6b07fd79333b74543f36227e0c5d86631686b65",
+        "bytes": 1538
+      },
+      {
+        "path": "src/crypto/ec_extra/internal.h",
+        "sha256": "4ed7f8276929d7ea83c680f5afb4645e818cd1f012c8034b5b201dc1ddb3940b",
+        "bytes": 3507
+      },
+      {
+        "path": "src/crypto/err/err.c",
+        "sha256": "646539ab72d84cc2df405a197d3c343970549952a553a47844316956b698c832",
+        "bytes": 28317
+      },
+      {
+        "path": "src/crypto/err/internal.h",
+        "sha256": "1a229b21008adc0c8e93ad7485963f5793d7f25eeb8eaee5057c0827687123dd",
+        "bytes": 1981
+      },
+      {
+        "path": "src/crypto/evp/internal.h",
+        "sha256": "54440711732f72ecf44bb01fde39be62b93bf66f7da26cf0ec3eab9d9898d349",
+        "bytes": 13140
+      },
+      {
+        "path": "src/crypto/fipsmodule/aes/internal.h",
+        "sha256": "67d8eba88d5401d19ad9341030d069408dae349c3a13e50abe532a831768eb2b",
+        "bytes": 8087
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/add.c",
+        "sha256": "fb907202bc9cf099353e901ece801c8c605da9738d5efbb0044cffa896d163fa",
+        "bytes": 7499
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/asm/x86_64-gcc.c",
+        "sha256": "9b0a45d6ed9681dce46b4703edbce634cdd525532fa64d35c2b9d88c04503722",
+        "bytes": 16088
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/bn.c",
+        "sha256": "0ec5fa82e4ebef8d5a08528552695f750d625e1ace2f732526d7938adc3e2737",
+        "bytes": 10912
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/bytes.c",
+        "sha256": "d8e334b48dffd98c1626671c2a42f00a1c7a9403d62327aebe6d1b4476130563",
+        "bytes": 8406
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/cmp.c",
+        "sha256": "967800a0fd6971913d2d26dc90812e23a2509eb3bd3ff6bef4d705f956c32be7",
+        "bytes": 6699
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/ctx.c",
+        "sha256": "dcb42f83fa9945dbd6ba039611200afdc305a4451aa7d4e076df7e91bf5b2506",
+        "bytes": 7204
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/div.c",
+        "sha256": "93cd087c6ddd36362caf845ed68cc9e4450b5f0825f6b446892cd7aa47c3440d",
+        "bytes": 26649
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/div_extra.c",
+        "sha256": "8fa4d3985c57ebbf07f5b43d6ec59ebe0a10f40a8c07960b8f3a0a3b6b57c896",
+        "bytes": 3198
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/exponentiation.c",
+        "sha256": "611972c753fc4e4bdebab4b8b6bee101f58a06d5befc89f6de2e4f43349e1861",
+        "bytes": 39755
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/gcd.c",
+        "sha256": "d465594eb05d5cad55bbcde1a29a0598373d84561f176b6a7276af2060024f58",
+        "bytes": 12990
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/gcd_extra.c",
+        "sha256": "f3318bd1d7dd5528796b71d9a3e92ee05fd1ccfe4eab66c8d1371fa85ec24482",
+        "bytes": 11652
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/generic.c",
+        "sha256": "517cebffe8aadea38c8b614b4710713ba11b3ac7c528731c99558449548a6461",
+        "bytes": 17592
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/internal.h",
+        "sha256": "47ecd8c342debf5af09d9784616680adf91f24171cbbb1c88d93d97870698d8d",
+        "bytes": 38921
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/jacobi.c",
+        "sha256": "bc82950de04940fce5061f29e78298d5fa8255f77715a5fd8257af04f338dece",
+        "bytes": 4618
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/montgomery.c",
+        "sha256": "a85466bddb0c28ca8293cd5e0f8e66868d5750a95b404f27feff5b7d5ef1dddb",
+        "bytes": 17602
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/montgomery_inv.c",
+        "sha256": "adedce18ca24fb0b525a188782d6284fac3fef95f80d2643361124aed43e6eb8",
+        "bytes": 8963
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/mul.c",
+        "sha256": "bdec2d8a5d3ae2109069f7985bb85586fe3adc111fdd4360616a6b523b69546f",
+        "bytes": 23619
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/prime.c",
+        "sha256": "b38117ecc7b92810a6fa2fc8b1b5dbd2add7cb2af8eaadc71ac03b0679d9662c",
+        "bytes": 37818
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/random.c",
+        "sha256": "3c2b712e0a3d6a51eb54995fd16b64f896a38e86d023fbf84395a35f7b97d264",
+        "bytes": 13489
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/rsaz_exp.c",
+        "sha256": "71bf77acf884bb9a99860c450bb1fc7b1432e76e29446bfd491f8157d8d0f4b3",
+        "bytes": 4877
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/rsaz_exp.h",
+        "sha256": "9cfdbb03077064b3e7547a7fb7b93ce967da8c6d678f740be144ca217664f42e",
+        "bytes": 4351
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/shift.c",
+        "sha256": "107a94d1b1024936aa77389d24732d013cc72e356c28332815401dfe28774d27",
+        "bytes": 10149
+      },
+      {
+        "path": "src/crypto/fipsmodule/bn/sqrt.c",
+        "sha256": "a0ebbbd23902643a244cdab6730f3d977ff0a131f2d70e38ccf1a945c0d6dc98",
+        "bytes": 12753
+      },
+      {
+        "path": "src/crypto/fipsmodule/cipher/internal.h",
+        "sha256": "4fcbc7878de429c04e91e68a83e099a1b26822b299df8a8199f6f91221004a07",
+        "bytes": 7059
+      },
+      {
+        "path": "src/crypto/fipsmodule/delocate.h",
+        "sha256": "23cced48cf841458d4a4bc4bc43dc1426378294c1f7fbefe80c0bc185c028f34",
+        "bytes": 4352
+      },
+      {
+        "path": "src/crypto/fipsmodule/dh/internal.h",
+        "sha256": "08f59bf3c06e9a6060065b0b9fe151b9ed4ecbc60545050d1812a9525072f428",
+        "bytes": 2093
+      },
+      {
+        "path": "src/crypto/fipsmodule/digest/internal.h",
+        "sha256": "54f4e6c08316c6496cd80dcf1278fff3c40506bcfada3a399801208642034ae9",
+        "bytes": 4701
+      },
+      {
+        "path": "src/crypto/fipsmodule/digest/md32_common.h",
+        "sha256": "c3d3d7145e26613707e1ea1e73341347938b192431c267267a1727ff999c45e2",
+        "bytes": 7259
+      },
+      {
+        "path": "src/crypto/fipsmodule/ec/builtin_curves.h",
+        "sha256": "c97b0e679bb4881da7937b949fb42bbd44a8d92af6f6de2a9811782a85ae233b",
+        "bytes": 14730
+      },
+      {
+        "path": "src/crypto/fipsmodule/ec/internal.h",
+        "sha256": "e4305aa44fe145086edf4e1f4f821960035911446c5f1d0376fce9961a4c0d1c",
+        "bytes": 35800
+      },
+      {
+        "path": "src/crypto/fipsmodule/ec/p256-nistz-table.h",
+        "sha256": "04de70aacb1b079abe368125fbd683e4dae32c3c877f33187742ad4068810a52",
+        "bytes": 643054
+      },
+      {
+        "path": "src/crypto/fipsmodule/ec/p256-nistz.h",
+        "sha256": "f441f5ae5e0f23cbeee419fca6222322c4ecdf8b66d0b93e484f9e409d3061c7",
+        "bytes": 5295
+      },
+      {
+        "path": "src/crypto/fipsmodule/ec/p256_table.h",
+        "sha256": "e51b222d99a6ea4bbbb6c43c0b34a57f3687f1a826931f2401e4ffa03b4de0d5",
+        "bytes": 14847
+      },
+      {
+        "path": "src/crypto/fipsmodule/ecdsa/internal.h",
+        "sha256": "c723350cd1005dbc97405179d76e99523bb473ff91fa98faa58a88bd29ea6315",
+        "bytes": 1964
+      },
+      {
+        "path": "src/crypto/fipsmodule/md5/internal.h",
+        "sha256": "931d31af0666a1571ae0514165917ef4b9b3043511c6654ed9d80f26e676581b",
+        "bytes": 1251
+      },
+      {
+        "path": "src/crypto/fipsmodule/modes/internal.h",
+        "sha256": "668ed00cbf9c44626c0f3f48dbb2c8be50b97a582e3198ec2218086b6bcbc90b",
+        "bytes": 18757
+      },
+      {
+        "path": "src/crypto/fipsmodule/rand/ctrdrbg.c",
+        "sha256": "eeb4bc200757c44542b577d265793f4f11962583db83af28adc9b484ed1fdf3b",
+        "bytes": 6936
+      },
+      {
+        "path": "src/crypto/fipsmodule/rand/fork_detect.c",
+        "sha256": "d7b2bca7b9456fa8276639cdcaac69a07c1511a8274f6beb9c1fce7ea7bf2e4f",
+        "bytes": 7162
+      },
+      {
+        "path": "src/crypto/fipsmodule/rand/fork_detect.h",
+        "sha256": "ee7a3dec064f3f9e7154d29d08c92d0a74c13b873315203c853e0c4cc0f40723",
+        "bytes": 2857
+      },
+      {
+        "path": "src/crypto/fipsmodule/rand/getrandom_fillin.h",
+        "sha256": "6689f4de9db942f6dd861c0dac4e8b6f98de8606907a64fda896f27d398d5d7e",
+        "bytes": 1826
+      },
+      {
+        "path": "src/crypto/fipsmodule/rand/internal.h",
+        "sha256": "8fbf408e18df34690eab59cdbe15fcb169a98c78d1b51ce7394a87fda460474e",
+        "bytes": 6401
+      },
+      {
+        "path": "src/crypto/fipsmodule/rand/rand.c",
+        "sha256": "5c71b97f49cc4fd8eb8bf286a04bc625839a4a0fe0a464c6914113a16e347062",
+        "bytes": 18159
+      },
+      {
+        "path": "src/crypto/fipsmodule/rand/urandom.c",
+        "sha256": "82eab1e829d7cdce683b49dcb43eb2bef15944046c424b98202db4321e547a10",
+        "bytes": 9557
+      },
+      {
+        "path": "src/crypto/fipsmodule/rsa/internal.h",
+        "sha256": "e183426484deee5bc891e99d5480ccb094d73355d8d65729996ff31ff54b0298",
+        "bytes": 8573
+      },
+      {
+        "path": "src/crypto/fipsmodule/service_indicator/internal.h",
+        "sha256": "15a7b85d40d24bfc4029f7395e36c753be6f4c2c20b3aac0613ccd697619e84d",
+        "bytes": 3811
+      },
+      {
+        "path": "src/crypto/fipsmodule/sha/internal.h",
+        "sha256": "0bf453137739cbf1dfdb92fd85de0afb8d04f83b72c513383737955913ec8509",
+        "bytes": 7945
+      },
+      {
+        "path": "src/crypto/fipsmodule/sha/sha1.c",
+        "sha256": "4325727435cbf2c1658e3ab461a785115485a9f653aab336d04a63b6aaafde13",
+        "bytes": 17371
+      },
+      {
+        "path": "src/crypto/fipsmodule/tls/internal.h",
+        "sha256": "85e52092b25cd3e2d38957e1a051337706d3dab408ce5a827edd50af13c82121",
+        "bytes": 2041
+      },
+      {
+        "path": "src/crypto/hrss/internal.h",
+        "sha256": "e63c927b652ee5d367a7440296da4283f17991ad283d1e44eb7e14412ea51ffd",
+        "bytes": 2458
+      },
+      {
+        "path": "src/crypto/internal.h",
+        "sha256": "6b9094716ff4e0572d1c952a07a08390d7753aecdd843925a620a4f835c0be08",
+        "bytes": 60037
+      },
+      {
+        "path": "src/crypto/keccak/internal.h",
+        "sha256": "311aa2c5f8702dfd6441730f3363151ab26a0d8eb08d4c980a2c6028adf8dd3b",
+        "bytes": 2625
+      },
+      {
+        "path": "src/crypto/kyber/internal.h",
+        "sha256": "6a471d2b526bb90a36bdd9b166a0bf9fd9605b8e729fa7c9df7f426341cd3285",
+        "bytes": 2544
+      },
+      {
+        "path": "src/crypto/lhash/internal.h",
+        "sha256": "7a1fa29eda6b14d944d38e9aa4c6117ffb3dc881f7b3f8e83daffbfaf825ad53",
+        "bytes": 16009
+      },
+      {
+        "path": "src/crypto/mem.c",
+        "sha256": "6ee015b5c2d0d3c716d270edb93a426fbc61c6a092b48bca76b9a8207efcb969",
+        "bytes": 18012
+      },
+      {
+        "path": "src/crypto/obj/obj_dat.h",
+        "sha256": "d97462f09edc522b0323a9888dfedf180d2266165548068e8f9a461b3266bd68",
+        "bytes": 295689
+      },
+      {
+        "path": "src/crypto/pkcs7/internal.h",
+        "sha256": "59fc2082593bf5cf236c4a91bd44b302b53f4cc96b5804e92a3de74afc9cb569",
+        "bytes": 2555
+      },
+      {
+        "path": "src/crypto/pkcs8/internal.h",
+        "sha256": "11f53777376c1801936e3622a485b12ea392a1f9e713dd72737c2855f85ff83e",
+        "bytes": 5918
+      },
+      {
+        "path": "src/crypto/poly1305/internal.h",
+        "sha256": "bf5dcd6ab3a361fe6598083c4474f2b53cbac6089a344990c957e72070b46d72",
+        "bytes": 1453
+      },
+      {
+        "path": "src/crypto/pool/internal.h",
+        "sha256": "890e44aa393a13d30f8893f0ee56d4b881635cfae9155649c99370877100405d",
+        "bytes": 1396
+      },
+      {
+        "path": "src/crypto/rsa_extra/internal.h",
+        "sha256": "3b5aebe7afc100588afb7683fcf8dfb1b1bdb4ca551254055085fcf32922538e",
+        "bytes": 3753
+      },
+      {
+        "path": "src/crypto/spx/address.h",
+        "sha256": "615369059a4b1dac5fda3cf914a782ec152fd89e9707ce3d404b80beeabbb14a",
+        "bytes": 1844
+      },
+      {
+        "path": "src/crypto/spx/fors.h",
+        "sha256": "a0b0e45abfef6240300a85eaaa7b02b1137036619977c2f749eefdfe46ff75a3",
+        "bytes": 2178
+      },
+      {
+        "path": "src/crypto/spx/merkle.h",
+        "sha256": "6df99991273e1313b7d070b3d0451e6e35ed99ac818ab4ed0e9f9470873d30cb",
+        "bytes": 2447
+      },
+      {
+        "path": "src/crypto/spx/params.h",
+        "sha256": "ffec3a0384e56a7e606848ba14153be22faf4b336634fb76c04f99c54d126c7d",
+        "bytes": 2459
+      },
+      {
+        "path": "src/crypto/spx/spx_util.h",
+        "sha256": "8fbac1333b131cf4565b543b04574771eaecc8f723f286889de7518df211cc6b",
+        "bytes": 1683
+      },
+      {
+        "path": "src/crypto/spx/thash.h",
+        "sha256": "a08a09bf8473fbe5d192dfb6200d34df9dcb42067f6ba11626b4aae4d206bc77",
+        "bytes": 2894
+      },
+      {
+        "path": "src/crypto/spx/wots.h",
+        "sha256": "fcab84c315e77fefb3a6fe53431b0183674ab39a2aa920da21a7eb1b29ed59e5",
+        "bytes": 1700
+      },
+      {
+        "path": "src/crypto/stack/stack.c",
+        "sha256": "88d41bd4a75b3a484636fe2de993059b3a98359ae8f54c18de80fb1f25422ab3",
+        "bytes": 15262
+      },
+      {
+        "path": "src/crypto/test/abi_test.h",
+        "sha256": "d3998871cec85206342fdbdc3cabbcb38564ef829062791e13c34bbca73f9940",
+        "bytes": 21020
+      },
+      {
+        "path": "src/crypto/test/file_test.h",
+        "sha256": "3b23274f9b139ae082420ca9bf7f0915e09dbd0257b687189bb6f7e00368a4af",
+        "bytes": 11011
+      },
+      {
+        "path": "src/crypto/test/file_util.h",
+        "sha256": "538d3512bca3029b53e77ed34e86d5410ece23bc81ea03885af4de326c3a5a38",
+        "bytes": 4886
+      },
+      {
+        "path": "src/crypto/test/gtest_main.h",
+        "sha256": "755ce3879807f0f01278e6fcdf290a5e28ac261d83a9f1a2b1e161d616d4dc6d",
+        "bytes": 2969
+      },
+      {
+        "path": "src/crypto/test/test_data.h",
+        "sha256": "9923891c0c00cc7455949b1f34f294e4e029ad6e33345fcbe6f47f78871760ac",
+        "bytes": 1572
+      },
+      {
+        "path": "src/crypto/test/test_util.h",
+        "sha256": "3089c3a2cda8fe88d8975476f2a64f7402e9adf81a45acba469ab98235a57bb4",
+        "bytes": 2698
+      },
+      {
+        "path": "src/crypto/test/wycheproof_util.h",
+        "sha256": "ae4f139a52d393ce9a93585cdc16cf6087178aed528ef9d89ee767c7abecc6aa",
+        "bytes": 2345
+      },
+      {
+        "path": "src/crypto/thread_pthread.c",
+        "sha256": "f17d625101431ec012f351d10224309c418424301ee6082914c83f9035e2a6df",
+        "bytes": 4146
+      },
+      {
+        "path": "src/crypto/trust_token/internal.h",
+        "sha256": "4c46f36f97b267d2d953e61d5dbb6f6a0e7cbc3dfcf26b443b4c0ef085e36674",
+        "bytes": 18440
+      },
+      {
+        "path": "src/crypto/x509/ext_dat.h",
+        "sha256": "51e31103c459765ef85d514997f46054b0ead406dc33ad593969f032c7e41c5e",
+        "bytes": 4793
+      },
+      {
+        "path": "src/crypto/x509/internal.h",
+        "sha256": "26cd1a5c9e5a76ba4c2af16e5f91e7a86711d2090e3d86f11e4714ee9d7229f4",
+        "bytes": 22594
+      },
+      {
+        "path": "src/gen/crypto/err_data.c",
+        "sha256": "83d1dad2ed68f44547522d3e7a4bf2eaae3e4058e68a598cad0b3324a083a307",
+        "bytes": 35899
+      },
+      {
+        "path": "src/include/openssl/aead.h",
+        "sha256": "c5c9bee5dac8970213709e061ab8bc3a130d9975e96ce97426b1ef767f91a885",
+        "bytes": 22379
+      },
+      {
+        "path": "src/include/openssl/aes.h",
+        "sha256": "ebd97d352390e8f5199853430469e0fdac1601f4eac33a49460201c6da216b2e",
+        "bytes": 9801
+      },
+      {
+        "path": "src/include/openssl/arm_arch.h",
+        "sha256": "c73f50068cf63ccabef264eee198c7d0227e7dcf9ee0d68825aaec8abbfa953f",
+        "bytes": 3607
+      },
+      {
+        "path": "src/include/openssl/asm_base.h",
+        "sha256": "ff7e7632c6611a4169c62be749bfdeaab1d0d57df67a5663f94fe7cf6db2a3f6",
+        "bytes": 8024
+      },
+      {
+        "path": "src/include/openssl/asn1.h",
+        "sha256": "1b62c621f555b32e7856391327adc7c546efe6337635e6e9c636677b7bd60b95",
+        "bytes": 98939
+      },
+      {
+        "path": "src/include/openssl/asn1_mac.h",
+        "sha256": "34df6c213813107aec7f4b6872fea6f1812b608e81ed5e9f3bce36826178d7e8",
+        "bytes": 892
+      },
+      {
+        "path": "src/include/openssl/asn1t.h",
+        "sha256": "9d4efc6288d0791471d4af25b4903292411ead409ea2e458d3a4fe126d9f4d8e",
+        "bytes": 21018
+      },
+      {
+        "path": "src/include/openssl/base.h",
+        "sha256": "6765e5131fa3b2c7f0d644b2e6303857af0905e7d6cedd7ce89bf7ec25b2a4e4",
+        "bytes": 20426
+      },
+      {
+        "path": "src/include/openssl/base64.h",
+        "sha256": "ea7867ab003aa7c84a1ab7a05375e251f39f4a7aeca85bec294713fed80e4f7b",
+        "bytes": 8979
+      },
+      {
+        "path": "src/include/openssl/bio.h",
+        "sha256": "492fddb51ddf15721c3e423d5276ab716797404b108c7198e626ded854413184",
+        "bytes": 42809
+      },
+      {
+        "path": "src/include/openssl/blake2.h",
+        "sha256": "db4e8e60bf615e4668c38f5217a7a9effb64fd76f8ee148516427f28515e8448",
+        "bytes": 2103
+      },
+      {
+        "path": "src/include/openssl/blowfish.h",
+        "sha256": "f74e962f37692deceee7d919cf86dfbd614c82cb2770e4b18706e0b281114996",
+        "bytes": 4091
+      },
+      {
+        "path": "src/include/openssl/bn.h",
+        "sha256": "a503f7b075ad4326cda402b26859da006cffecdc2e7438df2f72fd5cbea64b25",
+        "bytes": 49777
+      },
+      {
+        "path": "src/include/openssl/buf.h",
+        "sha256": "6e3e32d91b97ecbc204bbd0ed4c40ef8d3baae829d7f7eb516e77a92cef17a18",
+        "bytes": 5483
+      },
+      {
+        "path": "src/include/openssl/buffer.h",
+        "sha256": "9d3ea6b2ef3ad19dd0394b0e8f8cab43544559cc9563dd5c5eadf1831024061a",
+        "bytes": 891
+      },
+      {
+        "path": "src/include/openssl/bytestring.h",
+        "sha256": "46b9ee7aef462c6e56ac0df5dac26bf9d0c8f61efdc8111937be5b154bb8e885",
+        "bytes": 32561
+      },
+      {
+        "path": "src/include/openssl/cast.h",
+        "sha256": "a8d5a2a258faaa5f9e373b3f276cb3088e553d3b5057e3af3bacb50b36d9294f",
+        "bytes": 4394
+      },
+      {
+        "path": "src/include/openssl/chacha.h",
+        "sha256": "d71660c2066eda21ed02ea6aace6cae973283c0eeaf71e379454447d691a8a17",
+        "bytes": 1917
+      },
+      {
+        "path": "src/include/openssl/cipher.h",
+        "sha256": "d42eb650ed1960a945ae42661d1af19b17e3bdab668d6b8c16767386918da02c",
+        "bytes": 28445
+      },
+      {
+        "path": "src/include/openssl/cmac.h",
+        "sha256": "ae01c9703a5200db73c50eb5397bf647f7e7320e60074fca3a217410301b7aa2",
+        "bytes": 3150
+      },
+      {
+        "path": "src/include/openssl/conf.h",
+        "sha256": "79c9f7c856d1e4251158beee623076976bd8fb70fecee3d405bd1be3f0fd427c",
+        "bytes": 6785
+      },
+      {
+        "path": "src/include/openssl/cpu.h",
+        "sha256": "92e7dc72dd9a96818b4c4148e57d85d47cb2bc79856cdfd83dddacb2002cf854",
+        "bytes": 911
+      },
+      {
+        "path": "src/include/openssl/crypto.h",
+        "sha256": "9d568eac4a5884cdac696cd68fb4c46de5b28a212dbdd54d3d1b2ee1f8b0fa68",
+        "bytes": 7709
+      },
+      {
+        "path": "src/include/openssl/ctrdrbg.h",
+        "sha256": "b65dbf96b18d4fbfc17b2923fed4c3332a61468e6f7a26085099e275af28465d",
+        "bytes": 3194
+      },
+      {
+        "path": "src/include/openssl/curve25519.h",
+        "sha256": "994a6eb7093b5c4538dd00d85e5003b4b92fae616f6d00385bee6871f54e78ee",
+        "bytes": 8428
+      },
+      {
+        "path": "src/include/openssl/des.h",
+        "sha256": "5eb37892242711a8b836bfdbe1cceda17b3e508d8bc782cf237aea007e4ada97",
+        "bytes": 7868
+      },
+      {
+        "path": "src/include/openssl/dh.h",
+        "sha256": "cbfa4436ffaaf3f73b4d4a22dd414faad45dcdfe3c8a066ee3713f5f567f35f1",
+        "bytes": 16598
+      },
+      {
+        "path": "src/include/openssl/digest.h",
+        "sha256": "170510ff72fa6ce8772e009d14013d44dcc5bcfb18ae7961b574e552055d0c08",
+        "bytes": 14760
+      },
+      {
+        "path": "src/include/openssl/dsa.h",
+        "sha256": "98d8d3ae8b5e05f5c0ab1b1c4280843cd326152dc0dc7f56d58b85c99601b747",
+        "bytes": 18490
+      },
+      {
+        "path": "src/include/openssl/dtls1.h",
+        "sha256": "ff5aa6b5001ee98886d9b5fe1de41d2ab4ce6202c1c4fe4de977a3db002f2b2b",
+        "bytes": 873
+      },
+      {
+        "path": "src/include/openssl/e_os2.h",
+        "sha256": "d60740fe5548675494fab4fbbdfbc010d05abf6cdf173d3565134f54e87e87ea",
+        "bytes": 900
+      },
+      {
+        "path": "src/include/openssl/ec.h",
+        "sha256": "91f5cc601b96ffe41291b7561c6e41fa691deeac1a6faf6ac0ebf241f4dbebc4",
+        "bytes": 23745
+      },
+      {
+        "path": "src/include/openssl/ec_key.h",
+        "sha256": "00e2660692da14d1a57a08ec48325b35d003386c1b978310866f7cf328fe060b",
+        "bytes": 17578
+      },
+      {
+        "path": "src/include/openssl/ecdh.h",
+        "sha256": "09006b60d851cb7d746a02b634249f714790426815849ff103fea9e0e6ccc72b",
+        "bytes": 5063
+      },
+      {
+        "path": "src/include/openssl/ecdsa.h",
+        "sha256": "cdcae89aab39507a4e2ff91ff4981d3085be0c887a5abdf23912124db6ddf509",
+        "bytes": 9937
+      },
+      {
+        "path": "src/include/openssl/engine.h",
+        "sha256": "2412e7b7b46cff64a30d8a2900daf43b2e99943a0d9eb88fc74f5a105e066819",
+        "bytes": 3737
+      },
+      {
+        "path": "src/include/openssl/err.h",
+        "sha256": "7e1e559224fca1780abdb571ba8fabc232c50c92c029131cdfa7844dcfb08093",
+        "bytes": 21215
+      },
+      {
+        "path": "src/include/openssl/evp.h",
+        "sha256": "4739564aa7107ade06ff7e8d1968c7b3d75a9135b08d2f98cb02ecba706e6f7d",
+        "bytes": 51041
+      },
+      {
+        "path": "src/include/openssl/evp_errors.h",
+        "sha256": "771cae56ce6bfe5c77804452820969582f582c80c86712c4a60de4400c8a8e66",
+        "bytes": 4756
+      },
+      {
+        "path": "src/include/openssl/ex_data.h",
+        "sha256": "ab20802aa98f04363ccda76bed041cfe28fe27064b69723b2fd59628302545bd",
+        "bytes": 9779
+      },
+      {
+        "path": "src/include/openssl/experimental/dilithium.h",
+        "sha256": "37c574aaa74bb948fc70fcfde0567d2753927229a9d03f2833ce9c7b5427e815",
+        "bytes": 5035
+      },
+      {
+        "path": "src/include/openssl/experimental/kyber.h",
+        "sha256": "995e01772bbca917373d71cc9f02ae8aaac4bced111cfad455e0562997367ca1",
+        "bytes": 5534
+      },
+      {
+        "path": "src/include/openssl/experimental/spx.h",
+        "sha256": "53a276f58f39dca6650d94ba3443634021e8d1b741a4db4aab22c4740a34a2ab",
+        "bytes": 3530
+      },
+      {
+        "path": "src/include/openssl/hkdf.h",
+        "sha256": "0cabd5b38c07d3983c7cb2204b48fb0ce492ea93902555fddd5c131a81020f47",
+        "bytes": 2886
+      },
+      {
+        "path": "src/include/openssl/hmac.h",
+        "sha256": "85ce736c6684bc654727a9dad27ffee58b921afbdda3fc9718e1c53b826be727",
+        "bytes": 7977
+      },
+      {
+        "path": "src/include/openssl/hpke.h",
+        "sha256": "4cc876a7235e63e2d9582bedd2207a2d30a68a3c54ac692120b177e10807dcbb",
+        "bytes": 18722
+      },
+      {
+        "path": "src/include/openssl/hrss.h",
+        "sha256": "94c769f0b6b9ce3c9f4c10acc44c4e54ba60b7a885596f5d4886d42e7b85a2c0",
+        "bytes": 4488
+      },
+      {
+        "path": "src/include/openssl/is_boringssl.h",
+        "sha256": "7762f240223d930eb3372afefb6bcdedba5181547062629e37201ba24fabfcb3",
+        "bytes": 863
+      },
+      {
+        "path": "src/include/openssl/kdf.h",
+        "sha256": "17401cbbfcae9895301fbe5825ca25a871ebf262b3ec2128e0af9b90cf27737f",
+        "bytes": 4164
+      },
+      {
+        "path": "src/include/openssl/lhash.h",
+        "sha256": "8605cdefdb1ad512de21399482e628a0b392e7cbfff85d0baa32fb6fd86a71b1",
+        "bytes": 3778
+      },
+      {
+        "path": "src/include/openssl/md4.h",
+        "sha256": "0326ccb7d688d6e1b81f233c397dc2ba8c17b966b28ee4d75f456165ca199eb2",
+        "bytes": 4659
+      },
+      {
+        "path": "src/include/openssl/md5.h",
+        "sha256": "5871ad023c197a947d2cf8d1cd670cc9c5dbe13cad643828b5d18fe106f46be3",
+        "bytes": 4660
+      },
+      {
+        "path": "src/include/openssl/mem.h",
+        "sha256": "ecdb2429ca5b4572ee6b05f110ccc5d77e26334da29bff9af6910ddcfcdeb239",
+        "bytes": 11351
+      },
+      {
+        "path": "src/include/openssl/nid.h",
+        "sha256": "315a417e6404d24ece3e01c0c331803a345c4113389610bda1fa2c8e0cf79883",
+        "bytes": 148774
+      },
+      {
+        "path": "src/include/openssl/obj.h",
+        "sha256": "54e0c553d6060d1debfbecc1ed8766177f34eda69e9946530fa13cd0e358d53c",
+        "bytes": 11977
+      },
+      {
+        "path": "src/include/openssl/obj_mac.h",
+        "sha256": "75679833ca443451bc6640e9c7ec1e6b54470d3776575087a4660252e97f0a13",
+        "bytes": 891
+      },
+      {
+        "path": "src/include/openssl/objects.h",
+        "sha256": "e0f9a293ef22ebe20bde25acd4bc008e0ce0f02cfab0de02a23057da6bb51b95",
+        "bytes": 891
+      },
+      {
+        "path": "src/include/openssl/opensslconf.h",
+        "sha256": "d6a13008a5b5c35c1fbfb79e9425e673cb86227817283966f79d5b4af3a6b6ed",
+        "bytes": 2256
+      },
+      {
+        "path": "src/include/openssl/opensslv.h",
+        "sha256": "8b6129b2dc8d28ab72f4a9d632cb36e66b3567673d913e1d3388189bc8125081",
+        "bytes": 894
+      },
+      {
+        "path": "src/include/openssl/ossl_typ.h",
+        "sha256": "178fbd08f198d1735f253aeeee355279f91e416d969e78b449f9f9d3fc393c97",
+        "bytes": 892
+      },
+      {
+        "path": "src/include/openssl/pem.h",
+        "sha256": "f01deea2b966e535077bea9aec70c6f879713c0122af385e8f2e1385dcc627a7",
+        "bytes": 24241
+      },
+      {
+        "path": "src/include/openssl/pkcs12.h",
+        "sha256": "0432f0dff9abd2b37ffc8f5fc04940cbb588af0e431212d6a695853b0bfb103d",
+        "bytes": 893
+      },
+      {
+        "path": "src/include/openssl/pkcs7.h",
+        "sha256": "a6d9878b44a674f03869db87b36bd3873186abbfb74c713cdbc62983102ff82b",
+        "bytes": 9225
+      },
+      {
+        "path": "src/include/openssl/pkcs8.h",
+        "sha256": "259e6b54d908cb6537eb8b6386697f7f2efbe58c404234de1015f34bd89a2301",
+        "bytes": 13730
+      },
+      {
+        "path": "src/include/openssl/pki/certificate.h",
+        "sha256": "6f3a7236207638a3edd5bc0f5d2d1fb4196d10f4ab43095f7e3181ce7f05207b",
+        "bytes": 3335
+      },
+      {
+        "path": "src/include/openssl/pki/signature_verify_cache.h",
+        "sha256": "49370a047f19c8d82dfc99eab360f5eaafee47a3891ddff412bba1cf89078e27",
+        "bytes": 1548
+      },
+      {
+        "path": "src/include/openssl/pki/verify.h",
+        "sha256": "f0bcb0e3cab95ea96205de6f6913aa06a1e7767f60b1ae4471ab79a04ce9872b",
+        "bytes": 6816
+      },
+      {
+        "path": "src/include/openssl/pki/verify_error.h",
+        "sha256": "a1a7f0c046c671e9936344436df706dccd8a106ee23bb49b390e36b9085251f3",
+        "bytes": 5620
+      },
+      {
+        "path": "src/include/openssl/poly1305.h",
+        "sha256": "5a79a9038c2976d7a82f1a3e6e18ee3239889f1a6aa3a463e175a45645a7ebc6",
+        "bytes": 1965
+      },
+      {
+        "path": "src/include/openssl/pool.h",
+        "sha256": "b0a9b187fac024d1816bf99f16821c173d30f662dd075cce4c30e1bf06af8234",
+        "bytes": 4225
+      },
+      {
+        "path": "src/include/openssl/posix_time.h",
+        "sha256": "6df623f25b4e9f240b9b9ea6653935e7ce1d25e018926d5d98c63c722ebedba8",
+        "bytes": 1991
+      },
+      {
+        "path": "src/include/openssl/rand.h",
+        "sha256": "2e5d612bde69ab71d8c546313143b48d2c63616942c5150ec92916f76853573e",
+        "bytes": 5336
+      },
+      {
+        "path": "src/include/openssl/rc4.h",
+        "sha256": "f9d5ce88d5ab607f3e24f7b16d09e9cf225806a280a92e80d81601d8c6eb02e2",
+        "bytes": 4020
+      },
+      {
+        "path": "src/include/openssl/ripemd.h",
+        "sha256": "10e68f3013bd3427b550cdd9d0b9bb2ae161fc2aa90c7e7ad890ca24cc47033a",
+        "bytes": 4854
+      },
+      {
+        "path": "src/include/openssl/rsa.h",
+        "sha256": "711648e79267b89a87e20266dc46d4a8eff5100483fab0929928890a93599a0b",
+        "bytes": 41726
+      },
+      {
+        "path": "src/include/openssl/safestack.h",
+        "sha256": "50e2482b1ff462d766a05369528627f1907e6d9fad815a796093673359340d0a",
+        "bytes": 873
+      },
+      {
+        "path": "src/include/openssl/service_indicator.h",
+        "sha256": "786e7a390611d60a53144d263ba6130eec587344e11426e37fee1683de705ee7",
+        "bytes": 3569
+      },
+      {
+        "path": "src/include/openssl/sha.h",
+        "sha256": "d0d4f316f4732f5d307270df374ea0e6e8956dc050ecde51cd3d2f5b4f76b070",
+        "bytes": 12610
+      },
+      {
+        "path": "src/include/openssl/siphash.h",
+        "sha256": "7b37bd9978c033354f0b80073b30a8251fe85bfdcd9bedc877bc3abe411aa4bf",
+        "bytes": 1284
+      },
+      {
+        "path": "src/include/openssl/span.h",
+        "sha256": "0e99a80e91017f95d3f06aaa0552232803023d2e22e250a4ebcf85c599aa6432",
+        "bytes": 7126
+      },
+      {
+        "path": "src/include/openssl/srtp.h",
+        "sha256": "7e071b8c19baf2e2358381e83524a82db6dbe7dc461ab76eaeace7279c65e074",
+        "bytes": 891
+      },
+      {
+        "path": "src/include/openssl/ssl.h",
+        "sha256": "2a5c9fea9c60086606ab5ad65e39f44342b10060379ca28684c7d945f3e695f1",
+        "bytes": 302518
+      },
+      {
+        "path": "src/include/openssl/ssl3.h",
+        "sha256": "f5cfb1917dc5e2d46624d4f99c78e0b346e9df3870b7793a429b7e4ed58d19f4",
+        "bytes": 13944
+      },
+      {
+        "path": "src/include/openssl/stack.h",
+        "sha256": "4d5220c4fafddc466ff5a738099db71dea84cf7bc068afd9b6429175e6fb4bff",
+        "bytes": 33990
+      },
+      {
+        "path": "src/include/openssl/target.h",
+        "sha256": "a1b075466a9d3935fbcfc29f29640940ad7f987c76e0210ec029a2907db6e93f",
+        "bytes": 8228
+      },
+      {
+        "path": "src/include/openssl/thread.h",
+        "sha256": "f205aa1d785d83c5f4138abd1c35f89fdfebdf3eab164045c932af87a00a5428",
+        "bytes": 7264
+      },
+      {
+        "path": "src/include/openssl/time.h",
+        "sha256": "266d6490484ce2ffa408e0f90af2e0dd587fa63c552d4dccaad096fde5aca788",
+        "bytes": 978
+      },
+      {
+        "path": "src/include/openssl/tls1.h",
+        "sha256": "c4b74f9e70e6b8dfa0d71286db4561e0dea37e36cad6452150f40e5bf8849741",
+        "bytes": 30616
+      },
+      {
+        "path": "src/include/openssl/trust_token.h",
+        "sha256": "dbea64fd0bd924d42779613e8f5f2fe2e64d0e3fb197b75670ff7de8c4797a9a",
+        "bytes": 17364
+      },
+      {
+        "path": "src/include/openssl/type_check.h",
+        "sha256": "96315cb8cc61650d1561da8836676904a3b19cac611e96c223c25bcf31946844",
+        "bytes": 3708
+      },
+      {
+        "path": "src/include/openssl/x509.h",
+        "sha256": "656cf5ddf1225c445ee0b6d4f850cda858815cd7217a1b9155a6ce80ee5c1c6e",
+        "bytes": 269607
+      },
+      {
+        "path": "src/include/openssl/x509_vfy.h",
+        "sha256": "c62b3e360c6f6f806d974be4136d191a4b88236e19c20fc985789941388b1e66",
+        "bytes": 892
+      },
+      {
+        "path": "src/include/openssl/x509v3.h",
+        "sha256": "026484a59c272531c557ff63e86ca6539e5140be02d85778fd48363d1039dfb2",
+        "bytes": 2898
+      },
+      {
+        "path": "src/include/openssl/x509v3_errors.h",
+        "sha256": "88cf944a60779e9fcdcf3b7de1de006f514a112a584e4dcbdd7dd815a17b379f",
+        "bytes": 5594
+      }
+    ]
+  },
+  "art-openjdkjvm": {
+    "files": [
+      {
+        "path": "openjdkjvm/Android.bp",
+        "bytes": 2518,
+        "sha256": "3c44c6a0fd701d18f178a29443cdf9393877c75ae26d9b6e1c206a468bfba468"
+      },
+      {
+        "path": "openjdkjvm/LICENSE",
+        "bytes": 1451,
+        "sha256": "b2fdb88151f747b40f4a8b17ceba930136c8c1be873611972b413bce2c2eb587"
+      },
+      {
+        "path": "openjdkjvm/MODULE_LICENSE_GPL_WITH_CLASSPATH_EXCEPTION",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "openjdkjvm/OpenjdkJvm.cc",
+        "bytes": 16025,
+        "sha256": "13b925ea37168d1e2c6a8a79aa15ca39ea9667542acf311f1bd9f9dfa7a1eb17"
+      }
+    ],
+    "commit": "bebbc3cc49f2d9d5420197df0a336fbc3fcbea40",
+    "repository": "aosp-mirror-neo/platform_art",
+    "tag": "android-15.0.0_r1",
+    "archive": "art-android-15.0.0_r1.tar.gz",
+    "archive_bytes": 14845639,
+    "archive_sha256": "97805fc14a9c60719e2959f2833dd79dbe03dcdf4f04b88cd4f5ab05a39c346e",
+    "notice": "openjdkjvm/LICENSE",
+    "notice_sha256": "b2fdb88151f747b40f4a8b17ceba930136c8c1be873611972b413bce2c2eb587"
+  }
+}

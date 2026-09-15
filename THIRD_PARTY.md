@@ -367,3 +367,20 @@ file, without modifying these upstream sources. Existing libbase, liblog, fmt
 and NDK dependencies retain their previously listed terms. The Linux output
 also includes the verified ART dependency's complete corresponding-source
 archive. No Google services or vendor implementation is selected.
+
+`third_party/art/libcore-native-sources.json` adds the remaining native class
+library implementations at the same `android-15.0.0_r1` tag:
+
+| Component | Commit | Retained terms |
+| --- | --- | --- |
+| Libcore JNI and OpenJDK native implementations | `a996d969fdd17c6707b84544e5d1c35e0c25b5cb` | Complete LICENSE and NOTICE, GPL-2.0 with Classpath exception for designated OpenJDK sources, and original Apache/per-file notices |
+| ART OpenjdkJvm implementation | `bebbc3cc49f2d9d5420197df0a336fbc3fcbea40` | Original GPL-2.0 with Classpath exception source notice and openjdkjvm/LICENSE; full GPL terms accompany libcore |
+| fdlibm | `1e651e1ef2b613db2c4b29ae59c1de74cf0222ae` | Sun's permission notice in NOTICE and each selected source |
+| BoringSSL libcrypto_for_art subset | `23a87e389eb925678c6766f7d0fcd189c2f9303c` | Complete NOTICE, src/LICENSE and original per-file notices, including OpenSSL, SSLeay, ISC and MIT terms |
+| Expat library | `8ae3fff00472acf17b96871c7cdeaccfa7430c73` | MIT root COPYING, expat/COPYING and original source notices |
+
+The native libcore artifacts retain all selected corresponding source and build
+inputs, including the original relative-header layout recipe. No license header
+is removed; ARTBox's MIT license applies to original ARTBox code. The Expat
+selection excludes its documentation and tools. Its canonical `expat/lib` paths
+avoid depending on the upstream directory symlink.
