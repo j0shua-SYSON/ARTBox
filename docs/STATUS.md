@@ -110,14 +110,24 @@ preflight passes, including every nativehelper and ICU JNI source. At `758ea8d`,
 all 480 units compile and five native dependency libraries link on Linux ARM64.
 All eight native ICU/data/JNI-loading cases pass in 7.867 ms, including process
 startup; this is not interpreter performance. Downloaded objects, binaries,
-source and notices match their recorded hashes. All required CI is green.
+source and notices match their recorded hashes. All required CI is green at
+that revision.
 
 The [native libcore builder](m3-libcore-native.md) adds the real javacore,
 OpenJDK, androidio and OpenjdkJvm sources, with fdlibm, Expat and the upstream
-BoringSSL subset. The local source probe compiles all 208 units. Public native
-linking and 21 dependency cases are being integrated into the same Linux job.
-These checks do not start a Java VM; a complete native library set is required
-before ART startup with the boot class path.
+BoringSSL subset. The local Android probe compiles all 208 upstream units.
+At `5884e23`, all 209 Linux units compile, including the capability bridge, and
+the native libraries link. All 21 dependency cases pass in 4.605 ms including
+process startup. Downloaded objects, sources, layouts, notices and all 14 linked
+outputs match their recorded hashes; the 12 ELF binaries have no writable
+executable load segments or executable stacks. Required host and iOS CI is
+green at that revision. These checks do not start a Java VM.
+
+The [native startup probe](m3-runtime-startup.md) now consumes the same-revision
+runtime, native libraries and boot DEX. It tests the executable-memory denial
+filter before entering original ART, asserts interpreter/JIT policy, invokes
+the hello method and preserves logs and maps. Native execution of this new
+probe is pending; compilation does not establish ART startup.
 
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build
