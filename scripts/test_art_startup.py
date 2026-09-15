@@ -120,7 +120,8 @@ def main():
     harness.chmod(harness.stat().st_mode | stat.S_IXUSR)
     shutil.copyfile(core / 'corresponding-source.zip', output / 'native-corresponding-source.zip')
     hello = output / 'hello.dex'
-    hello.write_bytes(make_hello())
+    hello_data, _ = make_hello()
+    hello.write_bytes(hello_data)
     roots = {name: output / path for name, path in [
         ('ANDROID_ROOT', 'system'), ('ANDROID_ART_ROOT', 'art'), ('ANDROID_DATA', 'data'),
         ('SYSTEM_EXT_ROOT', 'system_ext'), ('ANDROID_I18N_ROOT', 'i18n'), ('ANDROID_TZDATA_ROOT', 'tzdata')]}
