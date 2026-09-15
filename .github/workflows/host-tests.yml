@@ -184,6 +184,28 @@ jobs:
           path: build/m3/runtime/source-inventory.json
           if-no-files-found: error
           retention-days: 7
+  runtime-build:
+    name: AOSP ART runtime build (native Linux ARM64)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Compile the interpreter and link its native reference harness
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_art_runtime.py --profile linux --all --link --jobs 3
+      - name: Preserve runtime build diagnostics and corresponding source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-runtime-linux-build
+          path: build/m3/runtime-build/linux/
+          if-no-files-found: error
+          retention-days: 7
   class-library:
     name: AOSP class libraries (${{ matrix.os }})
     strategy:
