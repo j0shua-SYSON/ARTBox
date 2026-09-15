@@ -18244,5 +18244,84 @@
         "git_blob": "7c8f381eeeddb8354466525f6e25aec12604459d"
       }
     ]
+  },
+  "art-runtime-policy": {
+    "repository": "aosp-mirror-neo/platform_art",
+    "upstream": "https://android.googlesource.com/platform/art",
+    "tag": "android-15.0.0_r1",
+    "commit": "bebbc3cc49f2d9d5420197df0a336fbc3fcbea40",
+    "notice": "NOTICE",
+    "notice_sha256": "613c3a67424d8f9f32da434d1b98a610f98a7df6c2350c3429d9da975f0405fd",
+    "files": [
+      {
+        "path": "NOTICE",
+        "bytes": 10695,
+        "sha256": "613c3a67424d8f9f32da434d1b98a610f98a7df6c2350c3429d9da975f0405fd"
+      },
+      {
+        "path": "compiler/export/jit_create.h",
+        "bytes": 985,
+        "sha256": "bacf9d3a471361d8bc52b6aa5d0e632742bf54698ca07d639a0ef0233cfcf809"
+      },
+      {
+        "path": "libartbase/base/macros.h",
+        "bytes": 5404,
+        "sha256": "26f3c272fe2381b10be4383f105138eae3ad18c3e997ecb09e69b07ef7d38940"
+      }
+    ]
+  },
+  "unwindstack-demangle": {
+    "repository": "msft-mirror-aosp/platform.system.unwinding",
+    "upstream": "https://android.googlesource.com/platform/system/unwinding",
+    "tag": "android-15.0.0_r1",
+    "commit": "63e40770259ea336f17be2ba6af791e89419169c",
+    "notice": "libunwindstack/LICENSE_BSD",
+    "notice_sha256": "31a88a81ed744b061a59e29e64f6fdc4697b66ff09fbcb374c74a6697758ad12",
+    "files": [
+      {
+        "path": "libunwindstack/Android.bp",
+        "bytes": 17595,
+        "sha256": "4cf9e45c503540174cf118e5a3e88e3cbefe8ab551d1634e35b0a3da65ee51fd"
+      },
+      {
+        "path": "libunwindstack/LICENSE_BSD",
+        "bytes": 1325,
+        "sha256": "31a88a81ed744b061a59e29e64f6fdc4697b66ff09fbcb374c74a6697758ad12"
+      },
+      {
+        "path": "libunwindstack/Demangle.cpp",
+        "bytes": 1396,
+        "sha256": "48ecc10746919366b620a9bff1c7e6e729e27a952bdf6e5a9ebf11a90f3f1416"
+      },
+      {
+        "path": "libunwindstack/include/unwindstack/Demangle.h",
+        "bytes": 767,
+        "sha256": "e9f0cc55e8854ea1fe9eb651136491dd7ca6d3829f0251600340b776d21b15c7"
+      }
+    ]
+  },
+  "rust-demangle-test-header": {
+    "repository": "msft-mirror-aosp/platform.external.rust.crates.rustc-demangle-capi",
+    "tag": "android-15.0.0_r1",
+    "commit": "4037ffd297333c120ea13e9c8809f5a24adc4317",
+    "notice": "LICENSE-MIT",
+    "notice_sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397",
+    "files": [
+      {
+        "path": "LICENSE-MIT",
+        "bytes": 1057,
+        "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397"
+      },
+      {
+        "path": "LICENSE-APACHE",
+        "bytes": 10847,
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "include/rustc_demangle.h",
+        "bytes": 264,
+        "sha256": "73803ba22253eaebfc48d827f6429a7b2826bda1ad93c978704af4c0da449d1a"
+      }
+    ]
   }
 }
