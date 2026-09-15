@@ -680,3 +680,374 @@ inflated counts cannot increase the numerator. A mandatory workload failure
 rejects acceptance even above 90 percent. The device packaging step recomputes
 this score and verifies the canonical JSON manifest hash before consuming any
 artifact. No physical-device result is inferred from a signed build.
+
+## ADR 0031 - Validate ART's low-address heap before adapting its references
+
+Status: the reduced guard was rejected before entry on native ARM64 macOS at
+`87b036f` (EBADMACHO). At `0f1aed8`, the signed native comparison and
+high-address codec pass CI; both iOS 15 layouts/signatures are verified.
+
+ART at Android 15 stores managed references as 32-bit addresses in
+`runtime/mirror/object_reference.h`. Our current app's 4 GiB `__PAGEZERO`
+occupies that address range. First compare the default guard with a 64 KiB
+guard using the public `-pagezero_size` linker option, before modifying ART's
+object layout or compressed-reference encoding. Keep all mappings non-executable
+and use address hints without fixed replacement. Verify two independent 64 MiB
+reservations, zeroed end pages, reference round trips and release.
+
+The alternatives are a heap-base-relative reference representation (more invasive
+changes to ART, native bridges and future AOT output), wider references (layout
+and memory cost), or accepting a slower managed path with explicitly adapted
+references. No CPU emulator, kernel or entitlement workaround is an option.
+The probe does not select the production layout until its native and signed
+device-build results are known; the current app layout remains the baseline.
+
+
+The native failure rules out the reduced-guard route for ARM64. Apple's
+[XNU loader](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/mach_loader.c)
+requires a 4 GiB hard page-zero region. Keep the default executable layout and
+retain the rejected prototype as an explicit EBADMACHO test; other errors or
+unexpected execution fail. This records the failed assumption without skipping
+the address-space check.
+
+Select heap-base-relative 32-bit byte offsets for initial switch interpretation.
+Reserve zero for null and keep a guard at the beginning of one stable, at-most
+4 GiB window. The first portable codec checks alignment, range and arithmetic
+before publishing an output. It does not allocate, collect, validate object
+liveness or modify ART yet. Native tests store and retrieve bytes through a
+reference to memory above 4 GiB, alongside malformed/overflow/null boundaries.
+An add/subtract and validation branches per reference are accepted initial
+costs. ART's stack references, JNI roots, read barriers, image relocation and
+future AOT output require a consistent adaptation; no compatibility with
+unmodified ART native reference accesses is implied.
+
+
+The negative launch harness calls public `posix_spawn` directly after checking
+Mach-O layout and the ordinary signature. CTest initially reported EBADMACHO;
+Python's subprocess wrapper instead observed a killed child, including with an
+explicit pre-exec callback. A generic signal is not accepted as proof of this
+loader restriction. Keep the exact errno check and the independent high-address
+reference success test.
+
+## ADR 0032 - Validate real ART reference storage before widening the runtime build
+
+Status: at `2586a50`, 38 signed Mac cases and 38 original Linux cases pass,
+including stored representations and real acquire/release instructions.
+Both iOS framework profiles pass signature/layout checks; see
+[reference evidence](m3-references.md).
+
+Use the pinned Android 15 reference types themselves before adapting the full
+interpreter. Select their 12-file ART header closure, five libbase headers and
+seven fmtlib headers, with each component's complete reviewed notices. The
+original ARTBox contract was compiled against unmodified AOSP headers before
+the compression overlay was added. Compare those original NDK objects on native
+Linux with adapted NDK objects packaged by the existing signed ELF wrapper.
+
+Change only the raw-pointer `PtrCompression` entry points. Retain AOSP's null,
+copy, four-byte storage, stack-vreg, volatile access and negation-based poison
+semantics. Test heap poisoning both off and on. Keep the source cache immutable;
+reject a changed upstream hash or repeated adaptation. Preserve the Apache
+notice and label the change in the generated overlay. Every packaged object
+must have no SVC, TPIDR, reserved-register or unknown instruction references;
+only the two fixed-width reference bridges may remain as native imports.
+
+The diagnostic bridge calls the checked portable codec for every access, which
+adds native calls as well as range/alignment validation. This is an accepted
+initial cost, not an optimized production reference ABI. It uses one stable
+window and aborts on invalid input. Storage used by this fixture is opaque
+aligned memory, not constructed ART Objects. The fixture verifies decoded
+reads/writes but establishes neither object liveness nor collector correctness.
+
+`ObjPtr` debug encoding, its reference overloads, CAS operations defined in
+other headers, GC/root/JNI access, read barriers, class layout, quick/nterp and
+AOT code remain outside this test. Each needs consistent encoding and actual
+runtime tests before claiming ART support. iOS framework compilation and
+signature/layout checks are separate from device execution.
+
+The first native comparison at `89aa2b7` passed, but artifact inspection showed
+that optimization folded away most local storage and both poisoning profiles
+had identical machine code. Strengthen the test before relying on its volatile
+coverage: construct the actual HeapReference in caller-provided aligned storage,
+read representations through volatile bytes, and return four storage observations
+for independent host checks. Require real ARM64 `ldar` and `stlr` instructions
+in both original and adapted objects. This changes the diagnostic fixture, not
+AOSP's atomic implementation or the selected compression adaptation.
+
+## ADR 0033 - Establish an upstream DEX loading baseline before runtime adaptation
+
+Status: at `28b13ff`, the six native format cases pass on Mac and Linux ARM64,
+and the iOS 15 library links and passes signature/layout checks. See
+[DEX loading evidence](m3-dex.md). ART/DEX execution remains unimplemented.
+
+Use AOSP's normal `DexFileLoader` API with structural and checksum verification
+enabled. An original Python generator emits a fixed 448-byte DEX with one
+static string-returning method. The independent AOSP verifier and accessors
+check its tables, method and instruction data. Mutated checksums, map entries,
+method-name indices, code sizes and truncation must return ordinary failures.
+Merely observing a string constant does not count as method execution.
+
+Build the portable upstream library with each host's C++ ABI for this format
+baseline. Keep C++ types inside that build and expose only a fixed C entry.
+The same source selection must also link and sign for iOS 15, which surfaces
+SDK restrictions early. Separately compile its Android ARM64 units on Windows;
+that result provides source/build evidence and does not claim native loading.
+The full ART/Bionic runtime and its Android C++ dependencies remain subsequent
+integration work. This baseline does not substitute host C++ symbols into an
+Android ELF or change the native guest ABI.
+
+Select 108 ART files, the needed libbase and ZIP reader support, three host
+liblog units, the existing filesystem-ID header, fmt headers and the AOSP JNI
+type header. Reuse AOSP's enum-printer generator. Android 15's file support
+requires declarations hidden at the exploratory API 28 target; use Android API
+35 for its compile check, preserving fdsan calls. The Apple deployment target
+remains iOS 15. No fdsan runtime behavior is established by this compile check.
+
+The host baseline uses the upstream options disabling the ZIP callback API and
+IncFS signal support. It reads complete fixture files; kernel incremental-file
+semantics are outside its scope. Managed-heap allocation, class libraries,
+runtime signals and JIT/AOT paths are not part of the DEX format result.
+
+The first Mac format checks and iOS library build pass, but native Linux with
+libstdc++ rejects `time_utils.h`: it uses `std::numeric_limits` before
+`time_utils.cc` includes `<limits>`. Keep the failing Linux compile check and
+apply one hash-checked source overlay, moving that include before the header
+and explicitly including `<algorithm>` for `std::min`. The generated source
+retains its Apache notice and labels the include-order change; the source cache
+is unchanged. Use the same overlay on all targets and compare its hash in the
+Mac/Linux evidence. No time behavior or verifier check changes.
+
+The next Linux compile reaches libbase's POSIX `strerror_r` wrapper, which
+intentionally undefines `_GNU_SOURCE`. In strict C++ mode glibc also needs an
+explicit feature level to expose that declaration. Build Linux with
+`_POSIX_C_SOURCE=200809L`, retaining the upstream POSIX return ABI and source.
+Preserve per-unit compiler diagnostics with the Linux artifact for subsequent
+dependency failures.
+
+## 0034: Fetch large source selections from a pinned archive
+
+Status: accepted for M3 build preparation.
+
+The ART class libraries require thousands of Java source files. Fetching each
+file through GitHub's contents API adds thousands of requests to a fresh build.
+Allow an existing exact file selection to specify a reviewed archive hash and
+size as its transport. Stream only selected regular files into a temporary
+tree, then verify all file hashes and notices before installation. Revalidate
+cached selected files on reuse, as with individual-file downloads.
+
+This retains a larger compressed archive in the configured cache in exchange
+for one download per component. Unselected files and aliases are not installed.
+Tests cover selection, cache corruption, archive corruption, traversal, missing
+files, duplicate/case-conflicting entries and selected aliases. Existing small
+selections continue to support individual-file downloads.
+
+Reviewed binary build tools can specify a Git blob identifier alongside their
+file hash. Fetch and decode the API's base64 representation to preserve arbitrary
+bytes through CLI output, then check the Git identity and SHA-256. A binary
+fixture containing invalid UTF-8 and zero bytes tests this path and rejects
+corrupted content before installation.
+
+## 0035: Build implementation class libraries from selected AOSP Java sources
+
+Status: accepted for the M3 class-library prerequisite; runtime boot pending.
+
+ART needs implementation classes rather than SDK signature stubs. Select the
+libcore implementation source groups and only their required Java dependencies
+from Android 15's named tag. Build them with an explicitly selected JDK 17,
+without its host boot classes or annotation processors. Follow AOSP Soong's
+inline string-concatenation option and libcore's minimum Android API 31 for D8.
+This avoids a full Soong checkout and does not change the iOS 15 target.
+
+Generate Conscrypt's constants with the original upstream generator and pinned
+BoringSSL headers; compare all 50 values. Generate ICU annotation keys from the
+hash-checked aconfig declarations, without introducing runtime flag stubs.
+Keep these generated inputs, corresponding selected source, original notices
+and portable build commands with every class-library binary artifact. Original
+ARTBox files remain MIT; upstream source licenses remain in force.
+
+Use one implementation input jar and allow D8 to emit multiple DEX files. This
+first format baseline does not reproduce the final bootclasspath module split,
+hidden-API metadata, resources or JNI libraries. Do not call it an ART boot.
+Validate the complete class set with AOSP's DEX verifier on native Mac/Linux,
+including corrupt input and duplicate/missing DEX cases, and compile the same
+inspection entry for an ordinarily signed iOS 15 framework. Interpreter-only
+runtime integration is the next contract; no runtime code generation is used
+to prepare or inspect these DEX data files.
+
+The first class-library CI run selected JDK 21 from the runner environment
+instead of JDK 17. Keep the JDK 17 build contract and add an explicit
+`--fetch-jdk` option for a checksum-pinned portable distribution. Download and
+extract it inside the configured cache; retain its complete licenses and
+revalidate installed file hashes. CI opts in, while interactive builds can
+continue to select an existing JDK. Archive tests cover binary preservation,
+executable permissions, internal aliases, traversal and duplicate entries.
+
+## 0036: Reject compiler creation and omit optional Rust trace formatting
+
+Status: accepted for M3 bring-up; complete runtime enforcement pending.
+
+Use the original AOSP `jit_create()` declaration with an ARTBox definition that
+logs the violation and terminates the diagnostic process with exit 126. Do not
+return a null compiler interface: the caller immediately dereferences it. This
+keeps the compiler library out of the interpreter build and makes an unexpected
+factory call observable. A native child-process test verifies the diagnostic,
+exit code and absence of a return to the caller.
+
+The factory is a final invariant check, not permission to create a code cache.
+`Runtime::CreateJit()` allocates the cache before calling the factory. Runtime
+integration must disable both compilation and profile saving, select the
+interpreter and reject executable-memory creation at the platform boundary.
+Those complete startup checks remain required for M3 acceptance.
+
+Retain upstream C++ stack-trace demangling but make Rust formatting optional
+through an explicit build flag. Preserve Rust labels verbatim in the first
+interpreter build. This avoids importing a Rust standard library only for
+diagnostic names; adding the original Rust demangler later remains possible.
+Hash-check and label the source overlay. Eight native name cases and an
+unchanged-source negative control verify this behavior before integration.
+
+The Windows-only fmt stream header requires RTTI even when unused. Allow RTTI
+in the Windows native policy fixture; Apple policy builds and Android runtime
+objects retain their existing no-RTTI settings. No exception behavior or runtime
+code generation is introduced by that host compilation choice.
+
+## 0037: Preserve a native Linux reference during ART ABI adaptation
+
+Status: accepted for build bring-up; runtime execution pending.
+
+Compile the original interpreter and support sources before adapting their
+memory representation or managed entrypoints. Keep an independent native Linux
+host reference with the original reference representation and host C/C++ ABI.
+The Apple-bound Android build uses Bionic's tested native TLS bridge; it still
+needs complete reference, signal and register-boundary validation.
+
+A static NDK/Bionic reference link collides with ART's real `signal` interposer.
+A shared link against the public NDK libc ABI lacks `android_mallopt` and
+`async_safe_format_log_va_list`, which the selected sources reference. Do not
+resolve these by allowing duplicate symbols or substituting success stubs.
+Use the upstream Linux host configuration for reference execution and the
+source-built Bionic dependency set for Apple integration. Each configuration
+must compile its dependencies consistently; C++ library ABI objects cannot be
+mixed across them.
+
+Record the required runtime/support source selection in a separate pinned
+catalog, so existing smaller fixtures do not download the complete runtime.
+Reuse the existing hash-verifying downloader and configurable cache. Include
+the upstream assembly generators and templates, and generate outputs inside
+the build directory. Preparing this catalog does not satisfy M3 execution.
+
+## 0038: Adapt ART's host assumptions to the selected Linux C library
+
+Status: accepted for build bring-up; complete runtime execution pending.
+
+The first complete native Linux build compiled 450 of 458 units. The remaining
+failures exposed missing standard includes, an unqualified `nullptr_t`, a
+`strlcpy` fallback that conflicts with current glibc, and assumptions that
+thread/signal stack minima are unsigned compile-time constants.
+
+Use explicit declarations and qualify the standard type. Probe `strlcpy` with
+the selected compiler and library, and check copying, truncation and zero-size
+behavior through ART's header. Keep the upstream fallback for hosts without the
+function. Validate dynamic stack minima before conversion to `size_t`, preserve
+the requested floor, and cache the alternate-stack size at first use. Invalid
+system minima fail explicitly. Keep upstream warnings enabled.
+
+Hash-check and label each source edit. Copy the verified selection into the
+build directory so sibling quoted includes see the adapted headers. Preserve
+the unchanged upstream sources, notices, replacement manifest and adapted files
+with binary artifacts. These host-build fixes do not establish Apple TLS,
+signal handling or managed-reference compatibility.
+
+## 0039: Build the real ICU and JNI dependencies before ART startup
+
+Status: accepted for dependency bring-up; ART startup pending.
+
+ART loads ICU JNI before the native libcore libraries. Preserve their real
+upstream implementations and use the matching ICU 75 data from the pinned AOSP
+archive. Keep the data root configurable through the original registration
+code's `ANDROID_I18N_ROOT` interface. A native check must exercise ICU data and
+load the JNI library; finding `JNI_OnLoad` alone cannot establish registration
+or Java execution.
+
+For the Linux reference, reuse base/log support symbols already exported by
+the monolithic ART library. Verify that dependency against its build record and
+preserve its complete corresponding source with the native library artifacts.
+Apple packaging and native ABI adaptation remain separate acceptance work.
+
+Retain ICU's upstream RTTI setting and disable C++ exceptions. No code-generation
+facility is introduced. The selected data file adds about 28 MB before packaging;
+its mapped size is not a resident-memory measurement. Measure interpreter and
+application memory after the complete runtime can start.
+
+## 0040: Preserve the original native class-library implementations
+
+Status: accepted for dependency bring-up; Java execution pending.
+
+Build libcore's original JNI implementations and ART's OpenjdkJvm bridge before
+attempting boot-class initialization. Keep fdlibm and `libcrypto_for_art` as
+static archives, as upstream does, so unused members do not introduce unrelated
+crypto dependencies. Expat remains a shared library. The Linux reference reuses
+the base/log, ZIP and zlib symbols in its verified monolithic ART library.
+
+Reuse ART's actual compiler and header configuration for OpenjdkJvm. Preserve
+the original sibling layout for its libcore include and the original fdlibm
+header at StrictMath's expected relative path. This avoids editing upstream
+sources just to replace their build system. Check every selected file and
+retain the layout recipe with complete corresponding source and notices.
+
+Exercise native dependency behavior before VM registration: deterministic
+crypto/math vectors, malformed XML, file errors and monitor contention, plus
+eager JNI library loading. These tests cannot establish ART or Java execution.
+Portable BoringSSL C code avoids adding an assembly ABI boundary during bring-up;
+its performance cost remains to be measured with an actual application.
+
+## 0041: Supply explicit Linux host declarations and JNI symbol scope
+
+Status: accepted for native libcore bring-up; execution checks pending.
+
+The first Linux libcore build passed 171 of 208 compilation units. Its failures
+exposed hidden pthread declarations in strict C11, OpenjdkJvm's missing math
+header, and a capability header unavailable in the runner's glibc development
+files. Enable GNU declarations for the Linux BoringSSL C build and explicitly
+include the standard math header for OpenjdkJvm.
+
+Reuse Bionic's original capability declarations with Linux's own kernel types.
+Forward `capget` and `capset` through the actual host `syscall` interface. The
+[Linux interface documentation](https://man7.org/linux/man-pages/man2/capget.2.html)
+records glibc's lack of these wrappers. Test reads, invalid versions, null
+headers, errno and output mutation against raw syscalls; no valid capability
+mutation is part of the test. This bridge adds no Android or iOS privilege.
+
+Preserve AOSP's original javacore export map. Both native class libraries define
+the same C++ class-cache names for different class sets, so javacore must keep
+its implementation local. Check that its JNI entrypoint remains visible and
+its class-cache initializer cannot be found through the public dynamic scope.
+
+## 0042: Activate the original ICU shim header configuration
+
+Status: accepted for native libcore linking; startup pending.
+
+The first javacore link requested versioned `_75` ICU symbols while linking
+the unversioned `libicu` C API shim. The selected NDK headers include their
+original `uconfig_local.h` only for an AOSP (`ANDROID`) or Android-target
+(`__ANDROID__`) build. That local configuration selects the shim's symbol ABI.
+
+Set the AOSP build marker for libcore's ICU header consumers while preserving
+the target-OS selection. Retain the implementation libraries' own versioning
+and the original shim between the two APIs. Do not rename exports or alter
+the ICU sources. Exercise the shim directly through the same configured
+headers, including version lookup and malformed UTF-8 substitution.
+
+## 0043: Deny code generation in the native ART startup reference
+
+Status: selected; native execution pending.
+
+Preload the pinned native libraries and then install a Linux syscall filter
+before calling original JNI_CreateJavaVM. Reject executable-memory requests and
+runtime process execution; synchronize existing threads and test inheritance.
+Use the real switch interpreter with both JIT compilation and profiling disabled,
+and assert the actual runtime policy before and after method invocation.
+
+Preserve the same-revision libraries, implementation DEX, logs and mapping
+permissions with each attempt. This catches hidden code-generation dependencies
+while preparing signed Apple integration. The filter is a native reference test
+instrument, not a replacement for iOS signing or a complete app sandbox.

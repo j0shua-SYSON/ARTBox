@@ -47,14 +47,15 @@ Apple's [Mach-O format header](https://github.com/apple-oss-distributions/cctool
 was consulted for container constants and layouts. Its APSL-2.0 header is not
 vendored or copied into ARTBox; the Python encoder is original implementation.
 
-## M2 source pin (runtime integration in progress)
+## M2 source pin
 
 Bionic is pinned to [android-15.0.0_r1](https://github.com/aosp-mirror/platform_bionic/tree/361ba86734fb2821a6adcfdf775db8abd04e0de0)
 at commit `361ba86734fb2821a6adcfdf775db8abd04e0de0`, from AOSP's GitHub mirror.
 `third_party/sources.json` records the retrieved archive and libc notice hashes.
 The source includes BSD and other permissive notices; libdl has an Apache-2.0
 notice. Preserve component notices and individual source headers. Bionic is not
-relicensed as MIT. No Bionic runtime is shipped by the current M1 app.
+relicensed as MIT. The M1-only app omits Bionic; the integrated M2 app embeds
+the four tested libraries and complete notices described below.
 
 The source fetch step omits editor configuration, header-versioner tooling and
 unused netfilter kernel headers listed in the lock file. Netfilter's
@@ -166,3 +167,226 @@ complete, hash-verified text is preserved as `COMPILER-RT-NOTICE.txt` with objec
 and the signed arithmetic fixture. The original test caller is MIT. Test symbol
 prefixes do not change compiler-rt licensing. The host's floating-point ABI and
 arithmetic library are not substituted for these Android runtime functions.
+
+## M3 ART reference review
+
+Reviewed AOSP ART `android-15.0.0_r1`, commit
+`bebbc3cc49f2d9d5420197df0a336fbc3fcbea40`, through the
+[official source](https://android.googlesource.com/platform/art/+/bebbc3cc49f2d9d5420197df0a336fbc3fcbea40)
+and its `aosp-mirror-neo/platform_art` mirror. Its 10,695-byte Apache-2.0
+`NOTICE` has SHA-256
+`613c3a67424d8f9f32da434d1b98a610f98a7df6c2350c3429d9da975f0405fd`.
+Runtime/interpreter build definitions, startup/JIT paths, thread access,
+managed-reference storage and low-address mapping code were studied for the
+[M3 contract](docs/m3-contract.md). No ART implementation was copied into the
+first native address-space probe, which is original MIT-licensed test code.
+The `art-references` exact-file pin now selects 12 files (including that notice)
+for the `ObjectReference`, `HeapReference` and `CompressedReference` contract.
+The original ARTBox fixture is MIT. The AOSP headers retain their Apache-2.0
+notices, including in generated source overlays. This selection does not build
+the ART runtime, interpreter, collector or class libraries.
+
+Its header dependencies are separate `android-15.0.0_r1` exact-file pins:
+
+- [libbase](https://android.googlesource.com/platform/system/libbase/+/68f963c62f7fddc70c34df141d943ae0f7631020),
+  commit `68f963c62f7fddc70c34df141d943ae0f7631020`: five headers and the
+  complete Apache-2.0 `NOTICE` (`libbase-references`).
+- [fmtlib](https://android.googlesource.com/platform/external/fmtlib/+/360e74bb8ec766ee05e5c4e8956c811391e3e9e5),
+  commit `360e74bb8ec766ee05e5c4e8956c811391e3e9e5`: seven headers, MIT
+  `LICENSE` and the supplied older BSD-2-Clause `NOTICE` (`fmtlib-references`).
+  Both license files are retained; ARTBox does not rely on the optional
+  compiled-object exception to remove attribution.
+
+These headers are compiled with NDK r28c's libc++ headers. The complete LLVM
+toolchain notice, already hash-pinned in `third_party/bionic/builtins.json`,
+accompanies the fixture as `LIBCXX-NOTICE.txt`. The reference objects do not
+link additional compiler-rt or libc++ runtime archive members. Reference
+frameworks retain `ART-NOTICE.txt`, `LIBBASE-NOTICE.txt`, `FMT-LICENSE.txt`,
+`FMT-NOTICE.txt` and `LIBCXX-NOTICE.txt` before signing. Class-library and
+broader runtime dependencies still need separate review and selection.
+
+Apple's APSL-2.0 `bsd/kern/mach_loader.c` was consulted to explain the native
+ARM64 reduced-pagezero rejection. No kernel code is imported or executed by
+ARTBox; the retained negative test and heap-relative codec are original code.
+
+## M3 DEX loader source selection
+
+`art-dex` selects 108 files (987,451 bytes) from the same reviewed ART commit:
+16 libdexfile implementation units, 13 libartbase support units, their header
+closure, the enum-printer generator, build definitions and complete NOTICE.
+The original ARTBox generator emits a fixed DEX data fixture; its caller uses
+AOSP's normal loader and verifier API. Neither is a replacement interpreter.
+This selection excludes the runtime, compiler and class libraries.
+
+`libbase-dex` extends the same libbase commit above with the selected source
+and headers required by the loader. Its complete NOTICE retains both Apache-2.0
+and BSD terms. `liblog-dex` selects the host logging implementation and headers
+from [system/logging](https://android.googlesource.com/platform/system/logging/+/54d3fa266d2123c0b076c646fae60d049311052a),
+commit `54d3fa266d2123c0b076c646fae60d049311052a`, retaining liblog's complete
+Apache-2.0 NOTICE. The filesystem-ID header comes from the existing reviewed
+`property-info` selection; its libcutils NOTICE is retained as well.
+
+`ziparchive-dex` selects the ZIP reader and support headers from
+[system/libziparchive](https://android.googlesource.com/platform/system/libziparchive/+/13b815f485784ed356869746796bb405ec86a7d4),
+commit `13b815f485784ed356869746796bb405ec86a7d4`. This tree declares the AOSP
+Apache-2.0 license in Android.bp and supplies notices in the source headers
+rather than a standalone NOTICE. The pin uses `zip_archive.cc` as its notice
+input, retaining its full text alongside the complete Apache-2.0 terms from
+ART's NOTICE. ZIP writing and its gtest dependency are not selected.
+
+`jni-dex` contains only `include_jni/jni.h` and NOTICE from
+[libnativehelper](https://android.googlesource.com/platform/libnativehelper/+/3ca43dfe2bf4613852df0303531fa8ecf4b7063c),
+commit `3ca43dfe2bf4613852df0303531fa8ecf4b7063c`. Both are Apache-2.0; this
+provides the types used by libdexfile without importing a Java runtime.
+All selections are at the named `android-15.0.0_r1` tag. The existing fmtlib
+headers and their two license files are reused. Native host/platform standard
+libraries remain platform dependencies; Android object artifacts retain the
+pinned NDK toolchain notice. No DEX execution or ART startup is claimed by
+compiling these components.
+
+The generated `time_utils.cc` overlay retains its AOSP Apache-2.0 notice and
+labels an include-order fix for libstdc++: `<limits>` and `<algorithm>` precede
+the header that uses their declarations. The pinned source is unchanged; both
+upstream and generated hashes are recorded in the DEX build evidence.
+
+## M3 class-library build inputs
+
+The `*-classlib` selections in `third_party/sources.json` and the build settings
+in `third_party/art/classlib.json` use the named AOSP `android-15.0.0_r1` tag.
+Each archive and selected file has a recorded hash. Original source headers
+remain intact. These inputs build implementation DEX; they do not establish an
+ART boot or supply the missing JNI libraries and runtime resources.
+
+| Selection | Upstream commit | License inputs retained |
+| --- | --- | --- |
+| libcore | `a996d969fdd17c6707b84544e5d1c35e0c25b5cb` | `LICENSE` (GPL-2.0 with the per-file Classpath exception), root `NOTICE`, `ojluni/src/main/NOTICE`, and original Apache/Harmony, MIT/XML and other per-file notices |
+| frameworks/libs/modules-utils annotations | `810bd8c57bb39c232cad66e5aa007839dd4e55e3` | Apache-2.0 source/build notices; complete terms accompany the build |
+| tools/platform-compat annotations | `df531c7caea306b811fec85a638a371c2a2492d1` | Apache-2.0 source/build notices; complete terms accompany the build |
+| ICU Java and libcore bridge | `cf305aeb6df416fa81cfc98bd73d913ee781175d` | Complete root `LICENSE` (Unicode-3.0 and included terms) and original per-file notices |
+| Conscrypt Java | `f8e2d81432416b14fbc8e6f62375d9917b044ef1` | Apache-2.0 `LICENSE`, `NOTICE` and source notices |
+| Repackaged OkHttp/Okio Java | `fdad2b22b00721086808f155529df11a2e4335f3` | Apache-2.0 `LICENSE.txt`, `okio/LICENSE.txt` and source notices |
+| BoringSSL headers for the host constants generator | `23a87e389eb925678c6766f7d0fcd189c2f9303c` | Complete `NOTICE` and `src/LICENSE`, including OpenSSL, SSLeay, ISC and MIT terms |
+| R8/D8 host tool | `535c14aebec54e8b67a8ca2889d34cb7c38a29b4` | `LICENSE`, `NOTICE`, `r8.spdx.json`; BSD-3-Clause R8 plus the dependencies listed there |
+
+Libcore's Java sources retain their own licenses; ARTBox's MIT license applies
+to original ARTBox code. Class-library binary artifacts must accompany the
+selected corresponding source, original notices, build scripts and generated
+inputs. The build's source bundle preserves those materials, including the
+per-file copyright and permission text. It includes the full Apache-2.0 terms
+from Conscrypt's license for selections that supply only source-header notices.
+
+Conscrypt's original C++ generator supplies its 50 native constants using the
+pinned BoringSSL headers. ICU's generated `Flags` class contains only the
+annotation string keys from `icu.aconfig`; it supplies no runtime flag accessor.
+These generated files and their input hashes accompany the artifacts.
+
+D8 and the installed JDK are host build tools. Their binaries are not embedded
+in the app or the class-library output. The R8 jar is fetched as an exact Git
+blob and checked against SHA-256
+`4a84f75723c26d647025204560161bf9e02bdf05700f4014d377393c349f22dc` before execution.
+An existing JDK 17 is selected by the builder; its version is recorded. Any
+separately installed JDK retains its distribution's own licenses.
+
+The optional portable JDK download selects Eclipse Temurin `17.0.20.1+1` from
+`adoptium/temurin17-binaries`, with platform archive sizes and SHA-256 values in
+`third_party/jdk.json`, cross-checked against the release's checksum files.
+The complete distribution is retained under the configured tool cache,
+including GPL-2.0, the Classpath and assembly exceptions, and bundled dependency
+notices under `legal/`. It is a host compiler and is not redistributed in the
+class-library or app artifacts.
+
+## M3 runtime policy test inputs
+
+`art-runtime-policy` selects the JIT factory declaration, its macro header and
+NOTICE from the same Apache-2.0 ART commit
+`bebbc3cc49f2d9d5420197df0a336fbc3fcbea40`. The factory implementation is original
+MIT ARTBox code. It does not include any ART compiler implementation.
+
+`unwindstack-demangle` selects `Demangle.cpp`, its public header, Android.bp and
+`LICENSE_BSD` from AOSP system/unwinding commit
+`63e40770259ea336f17be2ba6af791e89419169c`, tag `android-15.0.0_r1`. The selected
+source/header carry Apache-2.0 notices; the module's two-clause BSD notice is
+also retained, alongside the full Apache text from ART. The generated overlay
+keeps its original notice and labels the optional Rust-formatting change.
+
+`rust-demangle-test-header` selects only the C declaration and both MIT/Apache
+license texts from AOSP rustc-demangle-capi commit
+`4037ffd297333c120ea13e9c8809f5a24adc4317`, at the same named tag. The original
+control build uses that declaration with a test-only callback that records
+invocations. No Rust implementation, compiler or runtime is built or shipped.
+The adapted binary contains no such callback. Existing libbase and fmt headers
+retain their previously recorded notices. Every selected file is pinned in
+`third_party/sources.json` and the binary evidence preserves the license texts.
+
+## M3 interpreter runtime source selection
+
+`third_party/art/runtime-sources.json` supplements the existing DEX, logging,
+fmt and JNI selections with the original runtime sources and required support
+headers/libraries. `scripts/art_runtime_sources.py` fetches and verifies these
+inputs in the configured cache. Source preparation does not build or execute ART.
+The AOSP selections below use `android-15.0.0_r1`; every selected file has an
+individual SHA-256 in addition to any archive hash.
+
+| Component | Commit | Retained terms |
+| --- | --- | --- |
+| ART runtime, support libraries and ARM64 entrypoints | `bebbc3cc49f2d9d5420197df0a336fbc3fcbea40` | Apache-2.0 NOTICE and original per-file notices |
+| CPU features | `eca53ba6d2e951e174b64682eaf56a36b8204c89` | Complete LICENSE and source notices |
+| dlmalloc | `f18b9ade29f2be5126c85918c2354f1e09735220` | Public-domain NOTICE and original source headers |
+| Additional liblog event functions | `54d3fa266d2123c0b076c646fae60d049311052a` | Apache-2.0 `liblog/NOTICE` |
+| LZ4 library | `1d69e78024385c335dc5b42752b96623c31d8e5d` | BSD-2-Clause `lib/LICENSE` and root license description; CLI excluded |
+| LZMA SDK C library | `b744809d5506de926da56108065051d970692ec7` | Public-domain NOTICE and marker; 7-Zip C++ and unRAR excluded |
+| libnativehelper headers | `3ca43dfe2bf4613852df0303531fa8ecf4b7063c` | Apache-2.0 NOTICE and source headers |
+| procinfo map parser header | `e2d8c69e0454afe6defccb62152738888a1cbd22` | Apache-2.0 header notice, with complete terms from ART's NOTICE |
+| tinyxml2 | `d3f5ba7b82e0f97c06dc8eca7048cd5098323c2f` | Zlib-style `LICENSE.txt` |
+| libunwindstack | `63e40770259ea336f17be2ba6af791e89419169c` | Original Apache-2.0 source notices, module `LICENSE_BSD` and complete Apache terms from ART |
+| zlib | `86056a43326ceb4d9f5c3ca2410e51dcdcb4517d` | Zlib LICENSE and Chromium BSD-3-Clause terms for selected SIMD code |
+| zstd library | `34edb25604da376a8a951c34801734ffb6ce662d` | BSD-3-Clause LICENSE selected; alternative GPL COPYING retained; CLI excluded |
+
+The complete Chromium license text is separately pinned at commit
+`249765936393e6222039dfbfc05f8ace9e561f32`; this selection contains only LICENSE.
+Any runtime binary distribution must retain these complete terms and original
+per-file notices. The source catalog imports no ART compiler implementation or
+Rust demangler implementation. Existing NDK static libraries remain toolchain
+inputs subject to the NDK notices; source selection does not establish their
+suitability for Apple's register, TLS or unwinding conventions.
+
+## Native Java library dependencies
+
+`third_party/art/native-library-sources.json` extends the same reviewed AOSP
+`android-15.0.0_r1` pins for the native Java dependency build:
+
+| Component | Commit | Retained terms |
+| --- | --- | --- |
+| Seven libnativehelper implementations and their headers | `3ca43dfe2bf4613852df0303531fa8ecf4b7063c` | Complete Apache-2.0 NOTICE and per-file notices |
+| ICU common/i18n, native JNI bridge, registration, C API shim and ICU 75 data | `cf305aeb6df416fa81cfc98bd73d913ee781175d` | Root LICENSE, icu4c/LICENSE, icu4c/license.html and original per-file notices |
+
+The ICU implementation retains its Unicode/ICU and included permissive terms;
+the AOSP bridge and registration sources retain their Apache-2.0 notices. The
+native build preserves all selected corresponding source, including the data
+file, without modifying these upstream sources. Existing libbase, liblog, fmt
+and NDK dependencies retain their previously listed terms. The Linux output
+also includes the verified ART dependency's complete corresponding-source
+archive. No Google services or vendor implementation is selected.
+
+`third_party/art/libcore-native-sources.json` adds the remaining native class
+library implementations at the same `android-15.0.0_r1` tag:
+
+| Component | Commit | Retained terms |
+| --- | --- | --- |
+| Libcore JNI and OpenJDK native implementations | `a996d969fdd17c6707b84544e5d1c35e0c25b5cb` | Complete LICENSE and NOTICE, GPL-2.0 with Classpath exception for designated OpenJDK sources, and original Apache/per-file notices |
+| ART OpenjdkJvm implementation | `bebbc3cc49f2d9d5420197df0a336fbc3fcbea40` | Original GPL-2.0 with Classpath exception source notice and openjdkjvm/LICENSE; full GPL terms accompany libcore |
+| fdlibm | `1e651e1ef2b613db2c4b29ae59c1de74cf0222ae` | Sun's permission notice in NOTICE and each selected source |
+| BoringSSL libcrypto_for_art subset | `23a87e389eb925678c6766f7d0fcd189c2f9303c` | Complete NOTICE, src/LICENSE and original per-file notices, including OpenSSL, SSLeay, ISC and MIT terms |
+| Expat library | `8ae3fff00472acf17b96871c7cdeaccfa7430c73` | MIT root COPYING, expat/COPYING and original source notices |
+
+The native libcore artifacts retain all selected corresponding source and build
+inputs, including the original relative-header layout recipe. No license header
+is removed; ARTBox's MIT license applies to original ARTBox code. The Expat
+selection excludes its documentation and tools. Its canonical `expat/lib` paths
+avoid depending on the upstream directory symlink.
+
+The native Linux build also selects the original Bionic `sys/capability.h` and
+complete `libc/NOTICE` at the already reviewed commit
+`361ba86734fb2821a6adcfdf775db8abd04e0de0`. The header retains its BSD-2-Clause
+notice. Its Linux `syscall` forwarding definitions are original MIT ARTBox code;
+the host's own Linux UAPI headers supply the kernel structures.

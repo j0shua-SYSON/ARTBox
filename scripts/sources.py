@@ -4,6 +4,7 @@ import sys
 sys.dont_write_bytecode = True
 
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -28,6 +29,59 @@ def verify_archive(path, spec):
             digest.update(block)
     if digest.hexdigest() != spec["archive_sha256"]:
         raise RuntimeError("Source archive SHA-256 differs from the pin")
+
+
+def source_archive(spec, cache):
+    """Fetch one pinned archive into the configured download cache."""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", spec["archive"]):
+        raise RuntimeError("Source archive name must be a cache filename")
+    downloads = cache / "downloads"
+    downloads.mkdir(parents=True, exist_ok=True)
+    archive = downloads / spec["archive"]
+    partial = archive.with_suffix(archive.suffix + ".part")
+    if archive.is_symlink() or partial.is_symlink():
+        raise RuntimeError("Source archive cache files must not be symlinks")
+    if not archive.is_file():
+        with partial.open("wb") as output:
+            subprocess.run(["gh", "api", f"repos/{spec['repository']}/tarball/{spec['commit']}"],
+                           stdout=output, check=True)
+        verify_archive(partial, spec)
+        partial.replace(archive)
+    verify_archive(archive, spec)
+    return archive
+
+
+def unpack_selected(archive, stage, selected):
+    """Stream only validated pinned files into a temporary installation tree."""
+    seen, prefix = set(), None
+    with tarfile.open(archive, "r|gz") as bundle:
+        for member in bundle:
+            path = PurePosixPath(member.name)
+            if path.is_absolute() or not path.parts or ".." in path.parts or ":" in member.name or "\\" in member.name:
+                raise RuntimeError("Unsafe source archive path")
+            prefix = prefix or path.parts[0]
+            if path.parts[0] != prefix:
+                raise RuntimeError("Source archive has multiple roots")
+            if len(path.parts) == 1:
+                if not member.isdir():
+                    raise RuntimeError("Source archive root is not a directory")
+                continue
+            name = PurePosixPath(*path.parts[1:]).as_posix()
+            key = name.casefold()
+            if key not in selected:
+                continue
+            entry = selected[key]
+            if key in seen or name != entry["path"] or not member.isfile():
+                raise RuntimeError("Duplicate, aliased or non-regular selected source")
+            if member.size != entry["bytes"]:
+                raise RuntimeError("Selected archive file size differs from the pin")
+            seen.add(key)
+            output = stage / entry["path"]
+            output.parent.mkdir(parents=True, exist_ok=True)
+            with bundle.extractfile(member) as source, output.open("wb") as target:
+                shutil.copyfileobj(source, target, 1024 * 1024)
+    if seen != set(selected):
+        raise RuntimeError("Source archive is missing selected files")
 
 
 def unpack(archive, destination, exclude):
@@ -105,6 +159,8 @@ def obtain_files(name, spec, cache):
         key = raw.casefold()
         if key in selected or entry["bytes"] < 0 or not re.fullmatch(r"[0-9a-f]{64}", entry["sha256"]):
             raise RuntimeError("Duplicate or invalid pinned source file")
+        if "git_blob" in entry and not re.fullmatch(r"[0-9a-f]{40}", entry["git_blob"]):
+            raise RuntimeError("Invalid pinned Git blob")
         selected[key] = entry
     if not selected:
         raise RuntimeError("Empty pinned source selection")
@@ -138,13 +194,31 @@ def obtain_files(name, spec, cache):
     else:
         with tempfile.TemporaryDirectory(prefix=f"{name}-", dir=parent) as temporary:
             stage = Path(temporary) / "source"
-            for entry in selected.values():
-                path = stage / entry["path"]
-                path.parent.mkdir(parents=True, exist_ok=True)
-                endpoint = f"repos/{spec['repository']}/contents/{quote(entry['path'], safe='/')}?ref={spec['commit']}"
-                with path.open("wb") as output:
-                    subprocess.run(["gh", "api", endpoint, "-H", "Accept: application/vnd.github.raw+json"],
-                                   stdout=output, check=True)
+            if "archive" in spec:
+                unpack_selected(source_archive(spec, cache), stage, selected)
+            else:
+                for entry in selected.values():
+                    path = stage / entry["path"]
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    if "git_blob" in entry:
+                        endpoint = f"repos/{spec['repository']}/git/blobs/{entry['git_blob']}"
+                        blob = json.loads(subprocess.check_output(["gh", "api", endpoint]))
+                        if blob.get("encoding") != "base64" or blob.get("size") != entry["bytes"] or \
+                                blob.get("sha") != entry["git_blob"]:
+                            raise RuntimeError("Git blob metadata differs from the pin")
+                        try:
+                            data = base64.b64decode("".join(blob["content"].split()), validate=True)
+                        except ValueError as error:
+                            raise RuntimeError("Invalid Git blob encoding") from error
+                        identity = hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
+                        if len(data) != entry["bytes"] or identity != entry["git_blob"]:
+                            raise RuntimeError("Git blob content differs from the pin")
+                        path.write_bytes(data)
+                        continue
+                    endpoint = f"repos/{spec['repository']}/contents/{quote(entry['path'], safe='/')}?ref={spec['commit']}"
+                    with path.open("wb") as output:
+                        subprocess.run(["gh", "api", endpoint, "-H", "Accept: application/vnd.github.raw+json"],
+                                       stdout=output, check=True)
             verify(stage)
             (stage / ".artbox-source.json").write_text(json.dumps(spec, indent=2) + "\n", encoding="utf-8")
             stage.replace(installed)
@@ -159,17 +233,7 @@ def obtain(name):
     cache = Path(os.environ["ARTBOX_CACHE_DIR"])
     if "files" in spec:
         return obtain_files(name, spec, cache)
-    downloads = cache / "downloads"
-    downloads.mkdir(parents=True, exist_ok=True)
-    archive = downloads / spec["archive"]
-    if not archive.is_file():
-        partial = archive.with_suffix(archive.suffix + ".part")
-        with partial.open("wb") as output:
-            subprocess.run(["gh", "api", f"repos/{spec['repository']}/tarball/{spec['commit']}"],
-                           stdout=output, check=True)
-        verify_archive(partial, spec)
-        partial.replace(archive)
-    verify_archive(archive, spec)
+    archive = source_archive(spec, cache)
     parent = cache / "sources"
     parent.mkdir(parents=True, exist_ok=True)
     installed = parent / f"{name}-{spec['commit'][:12]}"
