@@ -16,6 +16,8 @@
 #include <jvm.h>
 #include <openssl/bn.h>
 #include <openssl/sha.h>
+#include <unicode/ustring.h>
+#include <unicode/uversion.h>
 
 #define CHECK(value) do { if (!(value)) { std::fprintf(stderr, "line %d failed: %s\n", __LINE__, #value); return 1; } } while (0)
 
@@ -42,6 +44,15 @@ int main(int argc, char** argv) {
                                     0x25,0x71,0x78,0x50,0xc2,0x6c,0x9c,0xd0,0xd8,0x9d};
   CHECK(SHA1(reinterpret_cast<const unsigned char*>("abc"), 3, hash) == hash);
   CHECK(std::memcmp(hash, expected, sizeof(hash)) == 0);
+  ++cases;
+
+  UVersionInfo version;
+  u_getVersion(version);
+  UErrorCode status = U_ZERO_ERROR;
+  UChar replacement[2]{};
+  int32_t length = 0, substitutions = 0;
+  u_strFromUTF8WithSub(replacement, 2, &length, "\xff", 1, 0xfffd, &substitutions, &status);
+  CHECK(version[0] == 75 && U_SUCCESS(status) && length == 1 && substitutions == 1 && replacement[0] == 0xfffd);
   ++cases;
 
   BN_CTX* context = BN_CTX_new();
@@ -156,7 +167,7 @@ int main(int argc, char** argv) {
     CHECK(dlclose(library) == 0);
     ++cases;
   }
-  CHECK(cases == 20);
+  CHECK(cases == 21);
   std::printf("ARTBox native libcore dependencies: %d cases passed; no Java VM started\n", cases);
   return 0;
 }

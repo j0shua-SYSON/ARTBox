@@ -133,7 +133,9 @@ def main():
     paths.append(sources['art-zlib'])
     if args.profile == 'linux': paths.append(sources['art-host-capability'] / 'libc/include')
     includes = [word for path in paths for word in ['-I', str(path)]]
-    common = base + includes + ['-DFMT_HEADER_ONLY', '-D_LARGEFILE64_SOURCE', '-D_GNU_SOURCE',
+    # AOSP's ANDROID marker activates the NDK header's uconfig_local.h. That
+    # header disables ICU symbol suffixes for clients of the libicu C API shim.
+    common = base + includes + ['-DANDROID', '-DFMT_HEADER_ONLY', '-D_LARGEFILE64_SOURCE', '-D_GNU_SOURCE',
                                 '-DLINUX', '-D_FILE_OFFSET_BITS=64', '-DU_USING_ICU_NAMESPACE=0']
     cpp = ['-std=c++20', '-fno-exceptions', '-fno-rtti', '-DLIBICU_U_SHOW_CPLUSPLUS_API=1']
     units = []
@@ -274,7 +276,7 @@ def main():
         harness = output / 'native-libcore-check'
         link_run([cxx, *common, *cpp, '-I', sources['art-fdlibm'], ROOT / 'fixtures/art-runtime/native_libcore.cpp',
              *inputs(['capabilities']),
-             output / 'libcrypto.a', output / 'libfdlibm.a', output / 'libexpat.so', output / 'libopenjdkjvm.so',
+             output / 'libcrypto.a', output / 'libfdlibm.a', output / 'libexpat.so', output / 'libopenjdkjvm.so', output / 'libicu.so',
              '-Wl,-rpath,$ORIGIN', '-pthread', '-ldl', '-lm', '-o', harness], output / 'native-libcore-check-build.log')
         scratch = output / 'scratch'
         scratch.mkdir(exist_ok=True)
