@@ -37,6 +37,7 @@ jobs:
           ${{ matrix.python }} -B tests/test_classlib_build.py
           ${{ matrix.python }} -B tests/test_jdk.py
           ${{ matrix.python }} -B tests/test_bionic_adapt.py
+          ${{ matrix.python }} -B tests/test_art_host_adapt.py
           ${{ matrix.python }} -B tests/test_bionic_syscalls.py
           ${{ matrix.python }} -B tests/test_dynamic_pack.py
           ${{ matrix.python }} -B tests/test_tls_adapt.py
