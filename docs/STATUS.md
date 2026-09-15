@@ -106,10 +106,18 @@ waived by the successful source compilation probes.
 
 The [native dependency builder](m3-native-libraries.md) selects 480 original
 nativehelper/ICU units and the matching ICU 75 data. Its 29-unit Android
-preflight passes, including every nativehelper and ICU JNI source. Native
-linking and data-loading checks are being integrated into the Linux runtime
-job. Native libcore and its remaining dependencies are still required before
-ART startup can be attempted with a complete class library.
+preflight passes, including every nativehelper and ICU JNI source. At `758ea8d`,
+all 480 units compile and five native dependency libraries link on Linux ARM64.
+All eight native ICU/data/JNI-loading cases pass in 7.867 ms, including process
+startup; this is not interpreter performance. Downloaded objects, binaries,
+source and notices match their recorded hashes. All required CI is green.
+
+The [native libcore builder](m3-libcore-native.md) adds the real javacore,
+OpenJDK, androidio and OpenjdkJvm sources, with fdlibm, Expat and the upstream
+BoringSSL subset. The local source probe compiles all 208 units. Public native
+linking and 13 dependency cases are being integrated into the same Linux job.
+These checks do not start a Java VM; a complete native library set is required
+before ART startup with the boot class path.
 
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build

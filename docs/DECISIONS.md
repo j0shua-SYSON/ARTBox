@@ -977,3 +977,25 @@ Retain ICU's upstream RTTI setting and disable C++ exceptions. No code-generatio
 facility is introduced. The selected data file adds about 28 MB before packaging;
 its mapped size is not a resident-memory measurement. Measure interpreter and
 application memory after the complete runtime can start.
+
+## 0040: Preserve the original native class-library implementations
+
+Status: accepted for dependency bring-up; Java execution pending.
+
+Build libcore's original JNI implementations and ART's OpenjdkJvm bridge before
+attempting boot-class initialization. Keep fdlibm and `libcrypto_for_art` as
+static archives, as upstream does, so unused members do not introduce unrelated
+crypto dependencies. Expat remains a shared library. The Linux reference reuses
+the base/log, ZIP and zlib symbols in its verified monolithic ART library.
+
+Reuse ART's actual compiler and header configuration for OpenjdkJvm. Preserve
+the original sibling layout for its libcore include and the original fdlibm
+header at StrictMath's expected relative path. This avoids editing upstream
+sources just to replace their build system. Check every selected file and
+retain the layout recipe with complete corresponding source and notices.
+
+Exercise native dependency behavior before VM registration: deterministic
+crypto/math vectors, malformed XML, file errors and monitor contention, plus
+eager JNI library loading. These tests cannot establish ART or Java execution.
+Portable BoringSSL C code avoids adding an assembly ABI boundary during bring-up;
+its performance cost remains to be measured with an actual application.
