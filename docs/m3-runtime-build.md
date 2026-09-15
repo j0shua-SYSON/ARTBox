@@ -47,3 +47,29 @@ does not prove startup, JNI registration, DEX execution, signal handling,
 collection or absence of runtime executable-memory requests. The harness is
 prepared to call the original `artbox.Hello.message()` method; it is not an
 acceptance result until executed and checked under the M3 contract.
+
+## Verified build at e6e69d5
+
+[Host CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34950970550) and
+[iOS CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34950970484) pass.
+Native Linux ARM64 compiles all 458 units, passes the five host `strlcpy` cases,
+and links both the runtime and invocation harness. The portable checks include
+nine stack-minimum cases and source-drift rejection. All 458 original Android
+objects also compile in the local preflight builder.
+
+The downloaded runtime artifact has SHA-256
+`25c9bf762dcaee6a70313ea11c262c52fe07375f50959977284a0aad059e6de5`.
+All object hashes, source pins, generated inputs, notices and project source
+bytes match the recorded build. The source archive has SHA-256
+`1894dc07847afa3bf0f1401417baa3a77fc24d810d34f6eced5057dfc718e329`.
+
+| Output | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `libart.so` | 14,195,504 | `ee9af99b817fe65050a61ee0b8ca8232c9694d62564152dff671619f2602f142` |
+| `art-linux-reference` | 71,464 | `0988de7beee4cb4cd160ef5dd951cd0ca0a992d933a65f8019549c1dded0c8a2` |
+
+Both outputs are ARM64 ELF files with no writable executable load segment or
+executable GNU stack. Linking the runtime and compiling/linking the harness
+together took 0.753 seconds on this runner. This is a build observation, not
+ART startup or interpreter performance. ART execution and runtime mapping
+behavior remain unverified.

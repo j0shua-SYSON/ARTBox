@@ -956,3 +956,24 @@ build directory so sibling quoted includes see the adapted headers. Preserve
 the unchanged upstream sources, notices, replacement manifest and adapted files
 with binary artifacts. These host-build fixes do not establish Apple TLS,
 signal handling or managed-reference compatibility.
+
+## 0039: Build the real ICU and JNI dependencies before ART startup
+
+Status: accepted for dependency bring-up; ART startup pending.
+
+ART loads ICU JNI before the native libcore libraries. Preserve their real
+upstream implementations and use the matching ICU 75 data from the pinned AOSP
+archive. Keep the data root configurable through the original registration
+code's `ANDROID_I18N_ROOT` interface. A native check must exercise ICU data and
+load the JNI library; finding `JNI_OnLoad` alone cannot establish registration
+or Java execution.
+
+For the Linux reference, reuse base/log support symbols already exported by
+the monolithic ART library. Verify that dependency against its build record and
+preserve its complete corresponding source with the native library artifacts.
+Apple packaging and native ABI adaptation remain separate acceptance work.
+
+Retain ICU's upstream RTTI setting and disable C++ exceptions. No code-generation
+facility is introduced. The selected data file adds about 28 MB before packaging;
+its mapped size is not a resident-memory measurement. Measure interpreter and
+application memory after the complete runtime can start.

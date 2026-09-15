@@ -199,12 +199,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 -B scripts/build_art_runtime.py --profile linux --all --link --jobs 3
+      - name: Build and test native ICU and JNI dependencies
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_art_native_libraries.py --profile linux --all --link --jobs 3
       - name: Preserve runtime build diagnostics and corresponding source
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: art-runtime-linux-build
           path: build/m3/runtime-build/linux/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve native dependency diagnostics and corresponding source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-native-libraries-linux
+          path: build/m3/native-libraries/linux/
           if-no-files-found: error
           retention-days: 7
   class-library:

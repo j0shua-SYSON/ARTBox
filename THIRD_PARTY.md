@@ -349,3 +349,21 @@ per-file notices. The source catalog imports no ART compiler implementation or
 Rust demangler implementation. Existing NDK static libraries remain toolchain
 inputs subject to the NDK notices; source selection does not establish their
 suitability for Apple's register, TLS or unwinding conventions.
+
+## Native Java library dependencies
+
+`third_party/art/native-library-sources.json` extends the same reviewed AOSP
+`android-15.0.0_r1` pins for the native Java dependency build:
+
+| Component | Commit | Retained terms |
+| --- | --- | --- |
+| Seven libnativehelper implementations and their headers | `3ca43dfe2bf4613852df0303531fa8ecf4b7063c` | Complete Apache-2.0 NOTICE and per-file notices |
+| ICU common/i18n, native JNI bridge, registration, C API shim and ICU 75 data | `cf305aeb6df416fa81cfc98bd73d913ee781175d` | Root LICENSE, icu4c/LICENSE, icu4c/license.html and original per-file notices |
+
+The ICU implementation retains its Unicode/ICU and included permissive terms;
+the AOSP bridge and registration sources retain their Apache-2.0 notices. The
+native build preserves all selected corresponding source, including the data
+file, without modifying these upstream sources. Existing libbase, liblog, fmt
+and NDK dependencies retain their previously listed terms. The Linux output
+also includes the verified ART dependency's complete corresponding-source
+archive. No Google services or vendor implementation is selected.
