@@ -34,8 +34,27 @@ no-Rust contract. The adapted source passes without defining or importing that
 callback. A separate child process calls the forbidden JIT factory and must
 exit 126 without returning to its caller.
 
-Windows native function tests pass locally. CI runs the same cases on native
-macOS/Linux ARM64. The Mac job also builds and signs an iOS 15 framework with
-the same functions. Those CI outcomes are pending for this change; building
-the framework does not establish iPhone execution. These tests are not M3
+Windows native function tests pass locally. At source commit `c11f5a6`, CI runs
+the same cases successfully on native macOS/Linux ARM64. The Mac job also
+builds and signs an iOS 15 framework with the same functions. Building the
+framework does not establish iPhone execution. These tests are not M3
 acceptance, ART startup, a Java benchmark or a complete code-generation audit.
+
+## Verified evidence
+
+[Host run 34943019981](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34943019981)
+and [iOS run 34943019883](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34943019883)
+pass. The tested PR merge is `04496a887965d6d091998937192d3341728f7445`, whose
+parent is source commit `c11f5a69cae727962bb9baab7af1794e8140c8c9`.
+Downloaded artifacts match their GitHub SHA-256 digests, source and notice
+hashes, case logs, native architecture and empty entitlements. All 13 signed
+code pages in each Mac executable and the iOS framework were checked.
+
+| Output | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Adapted Mac executable | 69,376 | `ffc6d9d6192209bca9c4af06baf7986b241ccf6c960bde8bf9db8e27bbfbc812` |
+| iOS 15 policy framework binary | 69,008 | `d28abe98b4568a864b08a24fccaa59c4b5f6d083ce11d9669b4499b76f6f5f71` |
+
+The eight-name process took 3.321 ms on the Mac runner and 1.118 ms on Linux,
+including process startup. These are one-shot function-test observations and
+say nothing about ART interpreter performance.

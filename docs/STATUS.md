@@ -85,7 +85,8 @@ startup remain incomplete.
 The [runtime policy fixture](m3-runtime-policy.md) tests a forbidden JIT factory
 and optional Rust stack-trace name formatting. Eight native name cases and the
 factory's fatal error path pass locally; Mac/Linux CI and the signed iOS 15
-framework are pending for this change. These functions do not start ART or
+framework pass at `c11f5a6`. Downloaded binaries, notices, source hashes and
+signature pages match their evidence. These functions do not start ART or
 establish that runtime startup avoids executable allocations.
 
 Pin and review only the ART sources and dependencies required to execute a
