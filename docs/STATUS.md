@@ -115,7 +115,7 @@ source and notices match their recorded hashes. All required CI is green.
 The [native libcore builder](m3-libcore-native.md) adds the real javacore,
 OpenJDK, androidio and OpenjdkJvm sources, with fdlibm, Expat and the upstream
 BoringSSL subset. The local source probe compiles all 208 units. Public native
-linking and 20 dependency cases are being integrated into the same Linux job.
+linking and 21 dependency cases are being integrated into the same Linux job.
 These checks do not start a Java VM; a complete native library set is required
 before ART startup with the boot class path.
 

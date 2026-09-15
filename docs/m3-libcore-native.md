@@ -33,6 +33,10 @@ the original fdlibm header to libcore's expected relative include path. It does
 not modify the source cache. ICU's generated NDK headers precede its internal
 headers; the original `LIBICU_U_SHOW_CPLUSPLUS_API` switch exposes the C++ helper
 types used by libcore.
+The AOSP `ANDROID` build marker activates the NDK header's original local
+configuration, which disables symbol renaming for the `libicu` C API shim.
+It does not change the separate `__ANDROID__` target-OS macro. The Linux
+implementation libraries retain their versioned `_75` symbols behind the shim.
 
 Strict C11 needs `_GNU_SOURCE` for BoringSSL's Linux pthread declarations.
 OpenjdkJvm explicitly includes the standard math header for its `isnan` call.
@@ -59,7 +63,9 @@ two pthread-backed C++ threads, then loads both JNI libraries and checks their
 `JNI_OnLoad` exports and javacore's hidden class cache. It checks JVM NaN
 classification and compares capability reads and invalid requests with raw
 Linux syscalls. Invalid `capset` requests cannot change process privileges.
-These are 20 native cases. Calling JNI registration and executing the boot
+It also calls the unversioned ICU shim to check its version and malformed UTF-8
+substitution through the same headers used by libcore. These are 21 native
+cases. Calling JNI registration and executing the boot
 classes still require a real ART startup test.
 
 Artifacts preserve source/object hashes, compiler and link commands, native test

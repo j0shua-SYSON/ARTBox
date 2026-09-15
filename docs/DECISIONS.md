@@ -1021,3 +1021,18 @@ Preserve AOSP's original javacore export map. Both native class libraries define
 the same C++ class-cache names for different class sets, so javacore must keep
 its implementation local. Check that its JNI entrypoint remains visible and
 its class-cache initializer cannot be found through the public dynamic scope.
+
+## 0042: Activate the original ICU shim header configuration
+
+Status: accepted for native libcore linking; startup pending.
+
+The first javacore link requested versioned `_75` ICU symbols while linking
+the unversioned `libicu` C API shim. The selected NDK headers include their
+original `uconfig_local.h` only for an AOSP (`ANDROID`) or Android-target
+(`__ANDROID__`) build. That local configuration selects the shim's symbol ABI.
+
+Set the AOSP build marker for libcore's ICU header consumers while preserving
+the target-OS selection. Retain the implementation libraries' own versioning
+and the original shim between the two APIs. Do not rename exports or alter
+the ICU sources. Exercise the shim directly through the same configured
+headers, including version lookup and malformed UTF-8 substitution.
