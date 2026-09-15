@@ -27,7 +27,9 @@ binary and complete corresponding-source bundle accompany this build. This is
 a host dependency arrangement, not an Apple packaging result.
 
 ICU retains RTTI as specified by its upstream build; C++ exceptions remain
-disabled. Its original registration code maps the original `icudt75l.dat`
+disabled. Nativehelper's Linux C11 build requests POSIX.1-2008 declarations,
+including the XSI `int`-returning `strerror_r` used by its unchanged source.
+Its ICU registration code maps the original `icudt75l.dat`
 through a configured `ANDROID_I18N_ROOT`. The native check exercises version and
 data initialization, Unicode conversion, malformed UTF-8 rejection, Turkish
 case mapping, collation, regular expressions, and loading the JNI library with
