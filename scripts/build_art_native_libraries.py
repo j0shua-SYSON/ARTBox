@@ -146,7 +146,9 @@ def main():
         units.append(('helper-' + name, helper / name, [*common, *helper_features, '-std=c11', '-fvisibility=protected'], cc, 'helper'))
     for group, names in graph['icu'].items():
         selected = names if args.all or group not in ['common', 'i18n'] else names[:2]
-        flags = common + cpp + ['-DUCONFIG_USE_ML_PHRASE_BREAKING=1', '-DU_USING_ICU_NAMESPACE=0',
+        # ANDROID selects AOSP's host data-loading integration in ICU. It is
+        # distinct from __ANDROID__, which selects the target operating-system ABI.
+        flags = common + cpp + ['-DANDROID', '-DUCONFIG_USE_ML_PHRASE_BREAKING=1', '-DU_USING_ICU_NAMESPACE=0',
                                '-Wno-ambiguous-reversed-operator', '-Wno-deprecated-declarations']
         if group == 'common': flags += ['-DU_COMMON_IMPLEMENTATION', '-D_REENTRANT']
         if group == 'i18n': flags += ['-DU_I18N_IMPLEMENTATION']
@@ -208,7 +210,12 @@ def main():
         run([cxx, *common, *cpp, ROOT / 'fixtures/art-runtime/native_icu.cpp',
              output / 'libicui18n.so', output / 'libicuuc.so', '-ldl', '-Wl,-rpath,$ORIGIN', '-o', harness],
             output / 'native-icu-check-build.log')
-        env = {**os.environ, 'ANDROID_I18N_ROOT': str((output / 'i18n').resolve())}
+        # The original ART-host initializer requires all three roots before it
+        # registers the bundled ICU data. No separate timezone update is staged.
+        roots = {name: output / directory for name, directory in
+                 [('ANDROID_DATA', 'data'), ('ANDROID_TZDATA_ROOT', 'tzdata'), ('ANDROID_I18N_ROOT', 'i18n')]}
+        for path in roots.values(): path.mkdir(exist_ok=True)
+        env = {**os.environ, **{name: str(path.resolve()) for name, path in roots.items()}}
         start = time.monotonic()
         stdout = run([harness, (output / 'libicu_jni.so').resolve()], output / 'native-icu-check.log', env)
         record['native_check'] = {'stdout': stdout, 'seconds': time.monotonic() - start,
