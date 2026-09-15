@@ -14,14 +14,16 @@ python -B scripts/build_art_native_libraries.py --profile linux --all --link
 python -B scripts/build_art_libcore.py --profile linux --all --link
 ```
 
-The default preflight compiles 12 units; `--all` compiles 208: 21 javacore,
+The default preflight compiles 12 upstream units; `--all` compiles 208: 21 javacore,
 one androidio, 61 OpenJDK, 80 fdlibm, 41 BoringSSL, three Expat, and one
 OpenjdkJvm unit. The source catalog selects 458 original file entries at the reviewed
 `android-15.0.0_r1` pins. ICU, nativehelper and support headers reuse the existing
 selections. Compiler, archiver, toolchain, build, runtime and native dependency
 paths are configurable. The Linux reference requires native ARM64 Linux.
-It also compiles one small host bridge for `capget`/`capset`, bringing its full
-compilation total to 209 units.
+It also compiles one small host bridge for `capget`/`capset`, bringing its
+preflight/full compilation totals to 13/209 units. Linux uses the native `ar`
+command by default, with an `AR`/`--ar` override; Android uses the NDK archiver.
+The link build checks and records the selected archiver before compilation.
 
 OpenjdkJvm uses ART's recorded compiler/header configuration, including its
 checked host source adaptations. Build ART in the same workspace first; moving
