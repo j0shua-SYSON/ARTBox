@@ -294,3 +294,26 @@ The complete distribution is retained under the configured tool cache,
 including GPL-2.0, the Classpath and assembly exceptions, and bundled dependency
 notices under `legal/`. It is a host compiler and is not redistributed in the
 class-library or app artifacts.
+
+## M3 runtime policy test inputs
+
+`art-runtime-policy` selects the JIT factory declaration, its macro header and
+NOTICE from the same Apache-2.0 ART commit
+`bebbc3cc49f2d9d5420197df0a336fbc3fcbea40`. The factory implementation is original
+MIT ARTBox code. It does not include any ART compiler implementation.
+
+`unwindstack-demangle` selects `Demangle.cpp`, its public header, Android.bp and
+`LICENSE_BSD` from AOSP system/unwinding commit
+`63e40770259ea336f17be2ba6af791e89419169c`, tag `android-15.0.0_r1`. The selected
+source/header carry Apache-2.0 notices; the module's two-clause BSD notice is
+also retained, alongside the full Apache text from ART. The generated overlay
+keeps its original notice and labels the optional Rust-formatting change.
+
+`rust-demangle-test-header` selects only the C declaration and both MIT/Apache
+license texts from AOSP rustc-demangle-capi commit
+`4037ffd297333c120ea13e9c8809f5a24adc4317`, at the same named tag. The original
+control build uses that declaration with a test-only callback that records
+invocations. No Rust implementation, compiler or runtime is built or shipped.
+The adapted binary contains no such callback. Existing libbase and fmt headers
+retain their previously recorded notices. Every selected file is pinned in
+`third_party/sources.json` and the binary evidence preserves the license texts.

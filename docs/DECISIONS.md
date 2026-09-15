@@ -880,3 +880,32 @@ extract it inside the configured cache; retain its complete licenses and
 revalidate installed file hashes. CI opts in, while interactive builds can
 continue to select an existing JDK. Archive tests cover binary preservation,
 executable permissions, internal aliases, traversal and duplicate entries.
+
+## 0036: Reject compiler creation and omit optional Rust trace formatting
+
+Status: accepted for M3 bring-up; complete runtime enforcement pending.
+
+Use the original AOSP `jit_create()` declaration with an ARTBox definition that
+logs the violation and terminates the diagnostic process with exit 126. Do not
+return a null compiler interface: the caller immediately dereferences it. This
+keeps the compiler library out of the interpreter build and makes an unexpected
+factory call observable. A native child-process test verifies the diagnostic,
+exit code and absence of a return to the caller.
+
+The factory is a final invariant check, not permission to create a code cache.
+`Runtime::CreateJit()` allocates the cache before calling the factory. Runtime
+integration must disable both compilation and profile saving, select the
+interpreter and reject executable-memory creation at the platform boundary.
+Those complete startup checks remain required for M3 acceptance.
+
+Retain upstream C++ stack-trace demangling but make Rust formatting optional
+through an explicit build flag. Preserve Rust labels verbatim in the first
+interpreter build. This avoids importing a Rust standard library only for
+diagnostic names; adding the original Rust demangler later remains possible.
+Hash-check and label the source overlay. Eight native name cases and an
+unchanged-source negative control verify this behavior before integration.
+
+The Windows-only fmt stream header requires RTTI even when unused. Allow RTTI
+in the Windows native policy fixture; Apple policy builds and Android runtime
+objects retain their existing no-RTTI settings. No exception behavior or runtime
+code generation is introduced by that host compilation choice.

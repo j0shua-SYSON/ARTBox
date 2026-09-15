@@ -200,6 +200,32 @@ jobs:
             artifacts/m3-dex-loader.json
           if-no-files-found: warn
           retention-days: 7
+  runtime-policy:
+    name: ART runtime policy (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test stack trace names and reject JIT compiler creation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_art_runtime_policy.py
+      - name: Preserve native tests and the signed iOS policy framework
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: runtime-policy-${{ matrix.os }}
+          path: build/m3/runtime-policy/
+          if-no-files-found: warn
+          retention-days: 7
   linux-oracle:
     name: unchanged ELF on native Linux ARM64
     needs: host
