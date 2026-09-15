@@ -92,8 +92,10 @@ establish that runtime startup avoids executable allocations.
 The original interpreter/runtime source selection and its support dependencies
 are pinned in `third_party/art/runtime-sources.json`. Run
 `python -B scripts/art_runtime_sources.py` to prepare and verify those inputs
-using the configured cache. The complete portable runtime builder, native Linux
-reference startup and Apple ABI integration remain in progress. Static Bionic
+using the configured cache. The [runtime builder](m3-runtime-build.md) regenerates
+the upstream assembly inputs and compiles the full 458-unit source selection.
+Its native Linux link, reference startup and Apple ABI integration remain in
+progress. Static Bionic
 and public-NDK shared-link limitations are recorded in ADR 0037; they are not
 waived by the successful source compilation probes.
 
