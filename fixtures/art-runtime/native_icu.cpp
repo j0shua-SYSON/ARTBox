@@ -17,6 +17,7 @@ int main(int argc, char** argv) {
   CHECK(version[0] == 75);
   UErrorCode status = U_ZERO_ERROR;
   u_init(&status);
+  if (U_FAILURE(status)) std::fprintf(stderr, "ICU initialization: %s (%d)\n", u_errorName(status), status);
   CHECK(U_SUCCESS(status));
 
   UChar text[16];

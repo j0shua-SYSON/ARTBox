@@ -29,8 +29,11 @@ a host dependency arrangement, not an Apple packaging result.
 ICU retains RTTI as specified by its upstream build; C++ exceptions remain
 disabled. Nativehelper's Linux C11 build requests POSIX.1-2008 declarations,
 including the XSI `int`-returning `strerror_r` used by its unchanged source.
-Its ICU registration code maps the original `icudt75l.dat`
-through a configured `ANDROID_I18N_ROOT`. The native check exercises version and
+The `ANDROID` build marker enables ICU's original AOSP host registration path;
+the separate `__ANDROID__` OS-ABI macro remains unchanged for Linux. Registration
+requires `ANDROID_DATA`, `ANDROID_TZDATA_ROOT` and `ANDROID_I18N_ROOT`, all rooted
+in the build directory. It maps the original `icudt75l.dat` from the I18N root;
+no separate timezone update is staged. The native check exercises version and
 data initialization, Unicode conversion, malformed UTF-8 rejection, Turkish
 case mapping, collation, regular expressions, and loading the JNI library with
 an exported `JNI_OnLoad`. It does not call that entrypoint without a Java VM.
