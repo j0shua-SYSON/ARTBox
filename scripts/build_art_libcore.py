@@ -130,6 +130,7 @@ def main():
               [('libbase-dex', 'include'), ('liblog-dex', 'liblog/include'), ('fmtlib-references', 'include'),
                ('ziparchive-dex', 'include'), ('ziparchive-dex', 'incfs_support/include'), ('property-info', 'libcutils/include')]]
     paths.append(sources['art-zlib'])
+    if args.profile == 'linux': paths.append(sources['art-host-capability'] / 'libc/include')
     includes = [word for path in paths for word in ['-I', str(path)]]
     common = base + includes + ['-DFMT_HEADER_ONLY', '-D_LARGEFILE64_SOURCE', '-D_GNU_SOURCE',
                                 '-DLINUX', '-D_FILE_OFFSET_BITS=64', '-DU_USING_ICU_NAMESPACE=0']
@@ -145,7 +146,7 @@ def main():
                 flags = common + (cpp if is_cpp else ['-std=c11'])
                 if is_cpp: driver = cxx
             elif group == 'jvm':
-                source, flags, driver = layout / 'art' / name, jvm_flags + includes, cxx
+                source, flags, driver = layout / 'art' / name, jvm_flags + includes + ['-include', 'math.h'], cxx
             elif group == 'fdlibm':
                 source = sources['art-fdlibm'] / name
                 flags = base + ['-std=c99', '-D_IEEE_LIBM', '-D__LITTLE_ENDIAN', '-fno-strict-aliasing',
@@ -159,10 +160,15 @@ def main():
                 source = sources['art-crypto-native'] / name
                 flags = base + ['-std=c11', '-DBORINGSSL_IMPLEMENTATION', '-DOPENSSL_NO_ASM',
                                 '-I', str(sources['art-crypto-native'] / 'src/include')]
+                if args.profile == 'linux': flags.append('-D_GNU_SOURCE')
             else: raise RuntimeError('Unknown libcore group: ' + group)
             units.append((group + '-' + source.name, source, flags, driver, group))
     if len(units) != (208 if args.all else 12) or len({x[0] for x in units}) != len(units):
         raise RuntimeError('Libcore source selection changed')
+    if args.profile == 'linux':
+        units.append(('host-capabilities', ROOT / 'platform/linux/capabilities.c',
+                      [*base, '-std=c11', '-D_GNU_SOURCE', '-I', str(sources['art-host-capability'] / 'libc/include')],
+                      cc, 'capabilities'))
 
     files = {'dependencies/art-runtime-corresponding-source.zip': runtime_bundle,
              'dependencies/art-runtime-build.json': metadata}
@@ -197,6 +203,7 @@ def main():
                'third_party/art/libcore-native-sources.json', 'third_party/art/libcore-native.json',
                'third_party/art/native-library-sources.json', 'third_party/art/runtime-sources.json',
                'third_party/bionic/builtins.json', 'fixtures/art-runtime/native_libcore.cpp']
+    project.append('platform/linux/capabilities.c')
     project += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT / 'scripts').glob('*.py'))]
     for name in project: files['artbox/' + name] = ROOT / name
     for path in notices.iterdir(): files['notices/' + path.name] = path
@@ -236,6 +243,11 @@ def main():
     print('Passed', sum(x['exit'] == 0 for x in results), '/', len(results), flush=True)
     if any(x['exit'] for x in results): return 1
     if args.link:
+        record['link_commands'] = []
+        def link_run(command, log):
+            record['link_commands'].append(list(map(str, command)))
+            save(result_path, record)
+            return run(command, log)
         def inputs(groups):
             paths = []
             for item in results:
@@ -245,19 +257,21 @@ def main():
                 paths.append(obj)
             return paths
         for group in ['fdlibm', 'crypto']:
-            run([ar, 'rcs', output / ('lib' + group + '.a'), *inputs([group])], output / (group + '-archive.log'))
-        def link(name, groups, dependencies):
-            run([cxx, '-shared', '-Wl,-z,defs', '-Wl,-soname,' + name, *inputs(groups),
+            link_run([ar, 'rcs', output / ('lib' + group + '.a'), *inputs([group])], output / (group + '-archive.log'))
+        def link(name, groups, dependencies, flags=()):
+            link_run([cxx, '-shared', '-Wl,-z,defs', '-Wl,-soname,' + name, *flags, *inputs(groups),
                  *[output / name for name in dependencies], '-Wl,-rpath,$ORIGIN', '-pthread', '-ldl', '-lm',
                  '-o', output / name], output / (name + '-link.log'))
         link('libexpat.so', ['expat'], [])
         link('libandroidio.so', ['androidio'], ['libart.so'])
         link('libopenjdkjvm.so', ['jvm'], ['libart.so', 'libnativehelper.so'])
         shared = ['libandroidio.so', 'libicu.so', 'libnativehelper.so', 'libart.so', 'libcrypto.a']
-        link('libjavacore.so', ['javacore'], [*shared, 'libexpat.so'])
+        link('libjavacore.so', ['javacore', 'capabilities'], [*shared, 'libexpat.so'],
+             ['-Wl,--version-script=' + str(sources['art-libcore-exports'] / 'libjavacore.map')])
         link('libopenjdk.so', ['openjdk'], [*shared, 'libopenjdkjvm.so', 'libfdlibm.a'])
         harness = output / 'native-libcore-check'
-        run([cxx, *common, *cpp, '-I', sources['art-fdlibm'], ROOT / 'fixtures/art-runtime/native_libcore.cpp',
+        link_run([cxx, *common, *cpp, '-I', sources['art-fdlibm'], ROOT / 'fixtures/art-runtime/native_libcore.cpp',
+             *inputs(['capabilities']),
              output / 'libcrypto.a', output / 'libfdlibm.a', output / 'libexpat.so', output / 'libopenjdkjvm.so',
              '-Wl,-rpath,$ORIGIN', '-pthread', '-ldl', '-lm', '-o', harness], output / 'native-libcore-check-build.log')
         scratch = output / 'scratch'

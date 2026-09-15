@@ -384,3 +384,9 @@ inputs, including the original relative-header layout recipe. No license header
 is removed; ARTBox's MIT license applies to original ARTBox code. The Expat
 selection excludes its documentation and tools. Its canonical `expat/lib` paths
 avoid depending on the upstream directory symlink.
+
+The native Linux build also selects the original Bionic `sys/capability.h` and
+complete `libc/NOTICE` at the already reviewed commit
+`361ba86734fb2821a6adcfdf775db8abd04e0de0`. The header retains its BSD-2-Clause
+notice. Its Linux `syscall` forwarding definitions are original MIT ARTBox code;
+the host's own Linux UAPI headers supply the kernel structures.

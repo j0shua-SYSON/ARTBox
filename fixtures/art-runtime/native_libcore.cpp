@@ -1,11 +1,14 @@
 // Original ARTBox dependency tests. MIT. No Java VM is started here.
 #include <atomic>
+#include <cerrno>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <string>
+#include <sys/capability.h>
+#include <sys/syscall.h>
 #include <thread>
 #include <unistd.h>
 #include <expat.h>
@@ -57,6 +60,32 @@ int main(int argc, char** argv) {
   ++cases;
   CHECK(std::isinf(ieee_log(0.0)) && std::signbit(ieee_log(0.0)));
   ++cases;
+  CHECK(JVM_IsNaN(ieee_sqrt(-1.0)) && !JVM_IsNaN(1.0) && !JVM_IsNaN(ieee_log(0.0)));
+  ++cases;
+
+  __user_cap_header_struct header{_LINUX_CAPABILITY_VERSION_3, 0}, raw_header = header;
+  __user_cap_data_struct capabilities[2]{}, raw_capabilities[2]{};
+  CHECK(capget(&header, capabilities) == 0);
+  CHECK(syscall(SYS_capget, &raw_header, raw_capabilities) == 0);
+  CHECK(std::memcmp(capabilities, raw_capabilities, sizeof(capabilities)) == 0);
+  ++cases;
+  // Every capset request below is invalid; no test changes process privileges.
+  for (bool set : {false, true}) {
+    for (bool null_header : {false, true}) {
+      header = {0, 0}; raw_header = header;
+      errno = 0;
+      const int forwarded = set ? capset(null_header ? nullptr : &header, capabilities)
+                                : capget(null_header ? nullptr : &header, capabilities);
+      const int forwarded_errno = errno;
+      errno = 0;
+      const long raw = syscall(set ? SYS_capset : SYS_capget,
+                               null_header ? nullptr : &raw_header, raw_capabilities);
+      CHECK(forwarded == -1 && raw == -1 && errno == forwarded_errno);
+      CHECK(forwarded_errno == (null_header ? EFAULT : EINVAL));
+      CHECK(header.version == raw_header.version && header.pid == raw_header.pid);
+      ++cases;
+    }
+  }
 
   XmlState xml;
   XML_Parser parser = XML_ParserCreate(nullptr);
@@ -118,10 +147,16 @@ int main(int argc, char** argv) {
     void* library = dlopen(library_path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (!library) std::fprintf(stderr, "%s\n", dlerror());
     CHECK(library && dlsym(library, "JNI_OnLoad"));
+    if (std::strcmp(name, "libjavacore.so") == 0) {
+      // Both JNI libraries define this cache with different class sets.
+      // Upstream javacore's export map keeps its copy local to that library.
+      CHECK(dlsym(library, "_ZN12JniConstants10InitializeEP7_JNIEnv") == nullptr);
+      ++cases;
+    }
     CHECK(dlclose(library) == 0);
     ++cases;
   }
-  CHECK(cases == 13);
+  CHECK(cases == 20);
   std::printf("ARTBox native libcore dependencies: %d cases passed; no Java VM started\n", cases);
   return 0;
 }

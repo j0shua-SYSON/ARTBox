@@ -999,3 +999,25 @@ crypto/math vectors, malformed XML, file errors and monitor contention, plus
 eager JNI library loading. These tests cannot establish ART or Java execution.
 Portable BoringSSL C code avoids adding an assembly ABI boundary during bring-up;
 its performance cost remains to be measured with an actual application.
+
+## 0041: Supply explicit Linux host declarations and JNI symbol scope
+
+Status: accepted for native libcore bring-up; execution checks pending.
+
+The first Linux libcore build passed 171 of 208 compilation units. Its failures
+exposed hidden pthread declarations in strict C11, OpenjdkJvm's missing math
+header, and a capability header unavailable in the runner's glibc development
+files. Enable GNU declarations for the Linux BoringSSL C build and explicitly
+include the standard math header for OpenjdkJvm.
+
+Reuse Bionic's original capability declarations with Linux's own kernel types.
+Forward `capget` and `capset` through the actual host `syscall` interface. The
+[Linux interface documentation](https://man7.org/linux/man-pages/man2/capget.2.html)
+records glibc's lack of these wrappers. Test reads, invalid versions, null
+headers, errno and output mutation against raw syscalls; no valid capability
+mutation is part of the test. This bridge adds no Android or iOS privilege.
+
+Preserve AOSP's original javacore export map. Both native class libraries define
+the same C++ class-cache names for different class sets, so javacore must keep
+its implementation local. Check that its JNI entrypoint remains visible and
+its class-cache initializer cannot be found through the public dynamic scope.
