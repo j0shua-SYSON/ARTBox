@@ -163,6 +163,27 @@ jobs:
             build/host/Testing/Temporary/LastTest.log
           if-no-files-found: error
           retention-days: 7
+  runtime-sources:
+    name: ART runtime source selection
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Fetch and verify the pinned interpreter source selection
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/art_runtime_sources.py
+      - name: Preserve the source inventory
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-runtime-source-inventory
+          path: build/m3/runtime/source-inventory.json
+          if-no-files-found: error
+          retention-days: 7
   class-library:
     name: AOSP class libraries (${{ matrix.os }})
     strategy:

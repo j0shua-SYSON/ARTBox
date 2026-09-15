@@ -89,6 +89,14 @@ framework pass at `c11f5a6`. Downloaded binaries, notices, source hashes and
 signature pages match their evidence. These functions do not start ART or
 establish that runtime startup avoids executable allocations.
 
+The original interpreter/runtime source selection and its support dependencies
+are pinned in `third_party/art/runtime-sources.json`. Run
+`python -B scripts/art_runtime_sources.py` to prepare and verify those inputs
+using the configured cache. The complete portable runtime builder, native Linux
+reference startup and Apple ABI integration remain in progress. Static Bionic
+and public-NDK shared-link limitations are recorded in ADR 0037; they are not
+waived by the successful source compilation probes.
+
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build
 contract before adapting native entry, thread, memory and code-loading paths.

@@ -317,3 +317,35 @@ invocations. No Rust implementation, compiler or runtime is built or shipped.
 The adapted binary contains no such callback. Existing libbase and fmt headers
 retain their previously recorded notices. Every selected file is pinned in
 `third_party/sources.json` and the binary evidence preserves the license texts.
+
+## M3 interpreter runtime source selection
+
+`third_party/art/runtime-sources.json` supplements the existing DEX, logging,
+fmt and JNI selections with the original runtime sources and required support
+headers/libraries. `scripts/art_runtime_sources.py` fetches and verifies these
+inputs in the configured cache. Source preparation does not build or execute ART.
+The AOSP selections below use `android-15.0.0_r1`; every selected file has an
+individual SHA-256 in addition to any archive hash.
+
+| Component | Commit | Retained terms |
+| --- | --- | --- |
+| ART runtime, support libraries and ARM64 entrypoints | `bebbc3cc49f2d9d5420197df0a336fbc3fcbea40` | Apache-2.0 NOTICE and original per-file notices |
+| CPU features | `eca53ba6d2e951e174b64682eaf56a36b8204c89` | Complete LICENSE and source notices |
+| dlmalloc | `f18b9ade29f2be5126c85918c2354f1e09735220` | Public-domain NOTICE and original source headers |
+| Additional liblog event functions | `54d3fa266d2123c0b076c646fae60d049311052a` | Apache-2.0 `liblog/NOTICE` |
+| LZ4 library | `1d69e78024385c335dc5b42752b96623c31d8e5d` | BSD-2-Clause `lib/LICENSE` and root license description; CLI excluded |
+| LZMA SDK C library | `b744809d5506de926da56108065051d970692ec7` | Public-domain NOTICE and marker; 7-Zip C++ and unRAR excluded |
+| libnativehelper headers | `3ca43dfe2bf4613852df0303531fa8ecf4b7063c` | Apache-2.0 NOTICE and source headers |
+| procinfo map parser header | `e2d8c69e0454afe6defccb62152738888a1cbd22` | Apache-2.0 header notice, with complete terms from ART's NOTICE |
+| tinyxml2 | `d3f5ba7b82e0f97c06dc8eca7048cd5098323c2f` | Zlib-style `LICENSE.txt` |
+| libunwindstack | `63e40770259ea336f17be2ba6af791e89419169c` | Original Apache-2.0 source notices, module `LICENSE_BSD` and complete Apache terms from ART |
+| zlib | `86056a43326ceb4d9f5c3ca2410e51dcdcb4517d` | Zlib LICENSE and Chromium BSD-3-Clause terms for selected SIMD code |
+| zstd library | `34edb25604da376a8a951c34801734ffb6ce662d` | BSD-3-Clause LICENSE selected; alternative GPL COPYING retained; CLI excluded |
+
+The complete Chromium license text is separately pinned at commit
+`249765936393e6222039dfbfc05f8ace9e561f32`; this selection contains only LICENSE.
+Any runtime binary distribution must retain these complete terms and original
+per-file notices. The source catalog imports no ART compiler implementation or
+Rust demangler implementation. Existing NDK static libraries remain toolchain
+inputs subject to the NDK notices; source selection does not establish their
+suitability for Apple's register, TLS or unwinding conventions.

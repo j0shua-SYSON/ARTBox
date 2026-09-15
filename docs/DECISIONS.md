@@ -909,3 +909,28 @@ The Windows-only fmt stream header requires RTTI even when unused. Allow RTTI
 in the Windows native policy fixture; Apple policy builds and Android runtime
 objects retain their existing no-RTTI settings. No exception behavior or runtime
 code generation is introduced by that host compilation choice.
+
+## 0037: Preserve a native Linux reference during ART ABI adaptation
+
+Status: accepted for build bring-up; runtime execution pending.
+
+Compile the original interpreter and support sources before adapting their
+memory representation or managed entrypoints. Keep an independent native Linux
+host reference with the original reference representation and host C/C++ ABI.
+The Apple-bound Android build uses Bionic's tested native TLS bridge; it still
+needs complete reference, signal and register-boundary validation.
+
+A static NDK/Bionic reference link collides with ART's real `signal` interposer.
+A shared link against the public NDK libc ABI lacks `android_mallopt` and
+`async_safe_format_log_va_list`, which the selected sources reference. Do not
+resolve these by allowing duplicate symbols or substituting success stubs.
+Use the upstream Linux host configuration for reference execution and the
+source-built Bionic dependency set for Apple integration. Each configuration
+must compile its dependencies consistently; C++ library ABI objects cannot be
+mixed across them.
+
+Record the required runtime/support source selection in a separate pinned
+catalog, so existing smaller fixtures do not download the complete runtime.
+Reuse the existing hash-verifying downloader and configurable cache. Include
+the upstream assembly generators and templates, and generate outputs inside
+the build directory. Preparing this catalog does not satisfy M3 execution.
