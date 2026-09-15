@@ -19,6 +19,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
 from environment import environment
 from art_runtime_sources import obtain_runtime_sources
+from art_host_adapt import adapt_sources
 from art_runtime_policy import without_rust_demangler
 from sources import obtain
 from ndk import obtain as obtain_ndk
@@ -60,7 +61,9 @@ def preserve_sources(output, sources, generated, toolchain=None):
         (notices/'NDK-NOTICE.txt').write_bytes(notice.read_bytes())
     project=['LICENSE','THIRD_PARTY.md','docs/DECISIONS.md','docs/m3-runtime-build.md',
       'third_party/sources.json','third_party/art/runtime-sources.json','third_party/art/runtime-build.json',
-      'third_party/art/adapters/no_jit.cpp','third_party/bionic/builtins.json','fixtures/art-runtime/linux_reference.cpp']
+      'third_party/art/adapters/no_jit.cpp','third_party/art/adapters/artbox_host_stack.h',
+      'third_party/art/host-build-boundary.json','third_party/bionic/builtins.json',
+      'fixtures/art-runtime/linux_reference.cpp','fixtures/art-runtime/host_strlcpy.cpp']
     project += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT/'scripts').glob('*.py'))]
     for name in project:files['artbox/'+name]=ROOT/name
     for path in generated:files['generated/'+path.relative_to(output).as_posix()]=path
@@ -115,6 +118,29 @@ def main():
     base=[*abi,'-O1','-DNDEBUG','-fPIC','-march=armv8-a','-mno-outline-atomics',
           '-ffixed-x18','-ffixed-x27','-ffixed-x28','-ffunction-sections','-fdata-sections']
     cxx_flags=['-std=c++20','-fno-exceptions','-fno-rtti','-Wno-invalid-offsetof']
+    host_adaptation=[];host_probe=None;host_generated=[]
+    if args.profile=='linux':
+        selection=json.loads((ROOT/'third_party/art/runtime-sources.json').read_text(encoding='utf-8'))['art-runtime']['files']
+        patch=json.loads((ROOT/'third_party/art/host-build-boundary.json').read_text(encoding='utf-8'))
+        host_art=output/'host-source'
+        host_adaptation=adapt_sources(art,host_art,selection,patch)
+        art=host_art
+        host_generated=[art/item['path'] for item in host_adaptation]
+        # Test the actual compiler/libc pair, not an assumed libc version.
+        fixture=ROOT/'fixtures/art-runtime/host_strlcpy.cpp'
+        probe=output/'system-strlcpy'
+        command=list(map(str,[cxx,*base,*cxx_flags,fixture,'-o',probe]))
+        result=subprocess.run(command,capture_output=True,encoding='utf-8')
+        (output/'system-strlcpy-build.log').write_text(result.stdout+result.stderr,encoding='utf-8')
+        has_strlcpy=result.returncode==0
+        host_probe={'command':command,'system_compile_exit':result.returncode,'system_has_strlcpy':has_strlcpy}
+        if has_strlcpy:
+            host_probe['system_cases']=run([probe],output/'system-strlcpy-test.log').strip()
+        actual=output/'art-strlcpy'
+        flags=['-DARTBOX_TEST_ART_STRLCPY','-I',art/'libartbase']
+        if has_strlcpy:flags.append('-DARTBOX_SYSTEM_HAS_STRLCPY')
+        run([cxx,*base,*cxx_flags,*flags,fixture,'-o',actual],output/'art-strlcpy-build.log')
+        host_probe['art_cases']=run([actual],output/'art-strlcpy-test.log').strip()
     defines=['-DART_PAGE_SIZE_AGNOSTIC','-DSTATIC_LIB','-DART_STATIC_LIBARTBASE',
       '-DART_BASE_ADDRESS=0x70000000','-DART_BASE_ADDRESS_MIN_DELTA=(-0x1000000)',
       '-DART_BASE_ADDRESS_MAX_DELTA=0x1000000','-DFMT_HEADER_ONLY','-DBUILDING_LIBART',
@@ -122,10 +148,11 @@ def main():
       '-DART_CLANG_PATH="clang"','-D_FILE_OFFSET_BITS=64','-D_LARGEFILE64_SOURCE','-D_POSIX_C_SOURCE=200809L',
       '-DZIPARCHIVE_DISABLE_CALLBACK_API=1','-DINCFS_SUPPORT_DISABLED=1','-DZLIB_CONST']
     defines+=['-DART_STACK_OVERFLOW_GAP_'+arch+'=8192' for arch in ['arm','arm64','riscv64','x86','x86_64']]
+    if host_probe and host_probe['system_has_strlcpy']:defines.append('-DARTBOX_SYSTEM_HAS_STRLCPY')
     roots=['runtime','libartbase','libartbase/base','libdexfile','libdexfile/external/include',
       'libartpalette/include','libprofile','libelffile','libnativebridge/include','libnativeloader/include',
       'sigchainlib','cmdline','tools/cpp-define-generator','odrefresh/include','compiler/export']
-    paths=[output,*[art/p for p in roots],sources['libbase-dex']/'include',sources['liblog-dex']/'liblog/include',
+    paths=[output,ROOT/'third_party/art/adapters',*[art/p for p in roots],sources['libbase-dex']/'include',sources['liblog-dex']/'liblog/include',
       sources['fmtlib-references']/'include',sources['jni-dex']/'include_jni',sources['ziparchive-dex']/'include',
       sources['ziparchive-dex']/'incfs_support/include',sources['property-info']/'libcutils/include',
       sources['art-tinyxml2'],sources['art-dlmalloc'],sources['art-nativehelper']/'header_only_include',
@@ -140,7 +167,7 @@ def main():
     run([cxx,*runtime_flags,'-UNDEBUG','-S',generator/'asm_defines.cc','-o',assembly],output/'asm-defines.log')
     header=run([sys.executable,'-B',generator/'make_header.py',assembly],output/'asm-header.log')
     (output/'asm_defines.h').write_text(header,encoding='utf-8')
-    generated_sources=[assembly,output/'asm_defines.h']
+    generated_sources=[assembly,output/'asm_defines.h',*host_generated]
     units=[]
     def add(name,source,flags,driver=cxx):units.append((name,source,flags,driver))
     time_unit,time_adaptation=time_source(art,output)
@@ -206,6 +233,7 @@ def main():
     record={'profile':args.profile,'runtime_executed':False,
       'project_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
       'time_include_adaptation':time_adaptation,
+      'host_source_adaptation':host_adaptation,'host_strlcpy_probe':host_probe,
       'compiler_version':run([cxx,'--version'],output/'compiler-version.log')}
     record.update(preserve_sources(output,sources,generated_sources,toolchain))
     save(output/'build-inputs.json',record)

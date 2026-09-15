@@ -934,3 +934,25 @@ catalog, so existing smaller fixtures do not download the complete runtime.
 Reuse the existing hash-verifying downloader and configurable cache. Include
 the upstream assembly generators and templates, and generate outputs inside
 the build directory. Preparing this catalog does not satisfy M3 execution.
+
+## 0038: Adapt ART's host assumptions to the selected Linux C library
+
+Status: accepted for build bring-up; complete runtime execution pending.
+
+The first complete native Linux build compiled 450 of 458 units. The remaining
+failures exposed missing standard includes, an unqualified `nullptr_t`, a
+`strlcpy` fallback that conflicts with current glibc, and assumptions that
+thread/signal stack minima are unsigned compile-time constants.
+
+Use explicit declarations and qualify the standard type. Probe `strlcpy` with
+the selected compiler and library, and check copying, truncation and zero-size
+behavior through ART's header. Keep the upstream fallback for hosts without the
+function. Validate dynamic stack minima before conversion to `size_t`, preserve
+the requested floor, and cache the alternate-stack size at first use. Invalid
+system minima fail explicitly. Keep upstream warnings enabled.
+
+Hash-check and label each source edit. Copy the verified selection into the
+build directory so sibling quoted includes see the adapted headers. Preserve
+the unchanged upstream sources, notices, replacement manifest and adapted files
+with binary artifacts. These host-build fixes do not establish Apple TLS,
+signal handling or managed-reference compatibility.

@@ -27,6 +27,14 @@ for execution. The JIT compiler implementation is excluded. Its factory fails
 if called, and optional Rust trace formatting remains disabled under ADR 0036.
 The previously tested `time_utils` include-order fix is reused.
 
+The Linux build applies six hash-checked source edits in a separate copy of the
+selected ART tree. They add missing standard declarations, qualify `nullptr_t`,
+probe the host's `strlcpy` declaration and library, and accept runtime-valued
+thread/signal stack minima. Nine portable stack-size cases reject invalid minima
+and preserve the requested size; five native copy/truncation cases check the
+selected `strlcpy`. The original cache and notices remain intact, and changed
+sources are included in the corresponding-source archive. See ADR 0038.
+
 The Android build still uses original Bionic TLS and absolute ART references.
 It is an ABI build input, and cannot yet run through the Apple boundary. The
 Linux configuration uses its native host ABI and original ART reference
