@@ -93,13 +93,23 @@ The original interpreter/runtime source selection and its support dependencies
 are pinned in `third_party/art/runtime-sources.json`. Run
 `python -B scripts/art_runtime_sources.py` to prepare and verify those inputs
 using the configured cache. The [runtime builder](m3-runtime-build.md) regenerates
-the upstream assembly inputs and selects 458 compilation units. The first
-complete Linux build compiled 450; six source adaptations address the eight
-failed units' standard-library and dynamic stack-minimum assumptions (ADR 0038).
-Its native Linux link, reference startup and Apple ABI integration remain in
-progress. Static Bionic
+the upstream assembly inputs and selects 458 compilation units. At `e6e69d5`,
+all 458 compile on native Linux ARM64, and `libart.so` plus its JNI invocation
+harness link successfully. Six source adaptations address host-library and
+dynamic stack-minimum assumptions (ADR 0038). Downloaded object, binary, source
+and notice hashes verify; the ELF load segments and stack are non-executable
+where writable. All required CI is green at that revision. The original Android
+configuration also compiles all 458 units locally. Native Java libraries,
+reference startup and Apple ABI integration remain in progress. Static Bionic
 and public-NDK shared-link limitations are recorded in ADR 0037; they are not
 waived by the successful source compilation probes.
+
+The [native dependency builder](m3-native-libraries.md) selects 480 original
+nativehelper/ICU units and the matching ICU 75 data. Its 29-unit Android
+preflight passes, including every nativehelper and ICU JNI source. Native
+linking and data-loading checks are being integrated into the Linux runtime
+job. Native libcore and its remaining dependencies are still required before
+ART startup can be attempted with a complete class library.
 
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build
