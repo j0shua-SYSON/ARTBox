@@ -135,10 +135,19 @@ class-layout mismatch before VM creation returns. The failed process takes
 libraries, DEX and source hashes verify. iOS build CI passes; host CI correctly
 fails the startup check. No hello DEX method has executed.
 
-The next build enables upstream's `USE_D8_DESUGAR` configuration to match the
-D8-produced boot class library. A diagnostic overlay records the linked class
-header, embedded vtable and static field offsets on mismatch. The original
-fatal check remains; the flag alone does not yet explain the entire difference.
+At `67f0219`, upstream's `USE_D8_DESUGAR` configuration changes String's
+reservation to 808 bytes. The native diagnostic still finds a 792-byte linked
+class, with a 120-byte header and 79 embedded vtable slots. The DEX declares
+73 virtual methods, overriding three of Object's eleven methods, which should
+produce 81 slots. The original fatal check remains.
+
+Tracing that difference found a second omitted AOSP build policy: automatic
+storage zero initialization. The original method linker supplies stack memory
+to a bitmap without explicitly clearing it. The runtime now enables upstream's
+`-ftrivial-auto-var-init=zero` default and requires a compiler-policy probe with
+a deterministic negative control. Both controls pass on native Windows; the
+four-unit Android preflight and adapted class linker compile. Native ART
+startup validation of this change is pending.
 
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build

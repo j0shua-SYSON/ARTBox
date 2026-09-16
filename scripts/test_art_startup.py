@@ -103,6 +103,10 @@ def main():
     subprocess.run([sys.executable, '-B', str(ROOT / 'scripts/test_runtime_codegen.py'),
                     '--build-dir', str(output / 'codegen')], check=True)
     runtime_record, runtime_bins = verify_build(runtime, 'runtime')
+    stack_cases = (runtime_record.get('stack_initialization_probe') or {}).get('cases', [])
+    if ([case['name'] for case in stack_cases] != ['zero', 'pattern'] or
+            not all(case['passed'] for case in stack_cases)):
+        raise RuntimeError('Compiler stack initialization and its negative control must pass')
     native_record, _ = verify_build(native, 'native')
     core_record, core_bins = verify_build(core, 'native')
     if not native_record.get('native_check') or not core_record.get('native_check'):

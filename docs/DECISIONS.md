@@ -1071,3 +1071,32 @@ Retain the system-class check and add diagnostic output for the actual linked
 header, embedded vtable length and static field offsets through the verified
 host-source overlay. Use the next native run to distinguish an additional
 build mismatch from a class-library generation problem.
+
+## 0045: Preserve AOSP's automatic-storage initialization policy
+
+Status: selected; native ART startup validation pending.
+
+The pinned class linker's `AssignVTableIndexes` allocates a small buffer with
+`alloca` and passes part of it to `BitVector`. That constructor retains the
+provided bits. For the current String DEX, the stack branch uses 255 words;
+stale bits can therefore suppress assignment of otherwise new virtual methods.
+The runtime builder omitted AOSP's global automatic-storage initialization flag.
+
+At `67f0219`, native diagnostics find 79 embedded vtable slots instead of the
+81 implied by the DEX. The 120-byte header and static offsets account for the
+remaining 16-byte discrepancy after enabling D8 configuration. This is consistent
+with stale bitmap bits; the next startup run must test that explanation.
+
+Enable `-ftrivial-auto-var-init=zero`, matching the Android 15 default in
+[Soong's compiler configuration](https://android.googlesource.com/platform/build/soong/+/refs/tags/android-15.0.0_r1/cc/config/global.go).
+The pinned Android compiler emits a zeroing operation for explicit `alloca`
+with this flag. Preserve the original linker and bitmap implementation instead
+of adding an isolated clear that would miss other users of the same build policy.
+
+Before the native ART build, test both an automatic array and four dynamic
+allocation sizes with the actual compiler and runtime flags. Compile the same
+probe with pattern initialization as a deterministic negative control; all five
+cases must be nonzero there. Retain both results and require them before VM
+startup. The probe passes on native Windows using the pinned Clang compiler;
+native ARM64 startup remains the decisive check. Zeroing adds stack writes;
+their runtime cost is not yet measured.

@@ -27,10 +27,20 @@ for execution. The JIT compiler implementation is excluded. Its factory fails
 if called, and optional Rust trace formatting remains disabled under ADR 0036.
 The previously tested `time_utils` include-order fix is reused.
 
-The Linux build applies six hash-checked source edits in a separate copy of the
+The runtime uses D8 desugaring and AOSP's default zero initialization of automatic
+storage (`-ftrivial-auto-var-init=zero`). The original class linker supplies stack
+memory to a bitmap without clearing it explicitly. Omitting this compiler policy
+can make unrelated stack contents appear to be already assigned virtual methods.
+The Linux builder checks an automatic array and four dynamic allocation sizes
+with its actual runtime flags before compiling ART. A pattern-initialized
+negative control must reject all five cases. Commands, binaries, logs and source
+hashes are retained. See ADRs 0044 and 0045.
+
+The Linux build adapts six hash-checked source files in a separate copy of the
 selected ART tree. They add missing standard declarations, qualify `nullptr_t`,
 probe the host's `strlcpy` declaration and library, and accept runtime-valued
-thread/signal stack minima. Nine portable stack-size cases reject invalid minima
+thread/signal stack minima. Bootstrap failures also report the linked class layout.
+Nine portable stack-size cases reject invalid minima
 and preserve the requested size; five native copy/truncation cases check the
 selected `strlcpy`. The original cache and notices remain intact, and changed
 sources are included in the corresponding-source archive. See ADR 0038.

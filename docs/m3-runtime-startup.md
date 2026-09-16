@@ -46,3 +46,10 @@ shows that this changes the reservation to 808 bytes, so it does not by itself
 explain the entire observed mismatch. The host overlay adds the actual embedded
 vtable length and static field offsets to the existing fatal diagnostic. It
 does not change the comparison, class-size constants or loaded DEX.
+
+The [diagnostic run at 67f0219](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35071200764)
+confirms a 120-byte header, 808-byte reservation and 792-byte linked class with
+79 embedded vtable slots. The three reference statics begin at 768, the bytes
+occupy 780-782 and the long begins at 784. The expected 81 slots follow from
+String's 73 declared virtual methods, Object's eleven and three overrides.
+The next build restores AOSP's automatic-storage zeroing policy; see ADR 0045.

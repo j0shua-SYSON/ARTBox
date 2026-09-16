@@ -33,6 +33,28 @@ def run(command,log):
     if result.returncode:raise RuntimeError(f'Command failed; see {log}')
     return result.stdout
 
+def check_stack_initialization(cxx, flags, output):
+    """Verify AOSP's stack initialization policy and a deterministic negative control."""
+    fixture=ROOT/'fixtures/art-runtime/stack_initialization.cpp'
+    cases=[]
+    for name,extra,expected,message in [
+        ('zero',[],0,'stack initialization: 5/5 zero'),
+        ('pattern',['-ftrivial-auto-var-init=pattern'],42,'stack initialization: 5/5 nonzero')]:
+        binary=output/('stack-initialization-'+name+('.exe' if os.name=='nt' else ''))
+        command=list(map(str,[cxx,*flags,*extra,fixture,'-o',binary]))
+        run(command,output/('stack-initialization-'+name+'-build.log'))
+        result=subprocess.run([str(binary)],capture_output=True,encoding='utf-8')
+        (output/('stack-initialization-'+name+'-test.log')).write_text(
+            result.stdout+result.stderr,encoding='utf-8')
+        passed=result.returncode==expected and result.stdout.strip()==message and not result.stderr
+        cases.append({'name':name,'command':command,'binary_sha256':digest(binary),
+                      'exit':result.returncode,'stdout':result.stdout,'stderr':result.stderr,
+                      'passed':passed})
+        record={'fixture_sha256':digest(fixture),'cases':cases}
+        save(output/'stack-initialization.json',record)
+        if not passed:raise RuntimeError('Compiler stack initialization policy failed: '+name)
+    return record
+
 def preserve_sources(output, sources, generated, toolchain=None):
     """Retain original notices, selected sources and build inputs with binary outputs."""
     specs=json.loads((ROOT/'third_party/sources.json').read_text(encoding='utf-8'))
@@ -64,6 +86,7 @@ def preserve_sources(output, sources, generated, toolchain=None):
       'third_party/art/adapters/no_jit.cpp','third_party/art/adapters/artbox_host_stack.h',
       'third_party/art/host-build-boundary.json','third_party/bionic/builtins.json',
       'fixtures/art-runtime/linux_reference.cpp','fixtures/art-runtime/host_strlcpy.cpp',
+      'fixtures/art-runtime/stack_initialization.cpp',
       'platform/linux/no_codegen.h','fixtures/art-runtime/codegen_policy.cpp']
     project += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT/'scripts').glob('*.py'))]
     for name in project:files['artbox/'+name]=ROOT/name
@@ -116,7 +139,7 @@ def main():
         abi=['--target=aarch64-linux-android35','-U__ANDROID__']
         sources['bionic']=obtain('bionic')
     else:cxx,cc=args.cxx,args.cc
-    base=[*abi,'-O1','-DNDEBUG','-fPIC','-march=armv8-a','-mno-outline-atomics',
+    base=[*abi,'-O1','-DNDEBUG','-fPIC','-ftrivial-auto-var-init=zero','-march=armv8-a','-mno-outline-atomics',
           '-ffixed-x18','-ffixed-x27','-ffixed-x28','-ffunction-sections','-fdata-sections']
     cxx_flags=['-std=c++20','-fno-exceptions','-fno-rtti','-Wno-invalid-offsetof']
     host_adaptation=[];host_probe=None;host_generated=[]
@@ -164,6 +187,7 @@ def main():
     if args.profile=='android':paths += [sources['bionic']/'libc/platform',sources['bionic']/'libc/async_safe/include']
     includes=[word for p in paths for word in ['-I',str(p)]]
     runtime_flags=[*base,*cxx_flags,*defines,*includes]
+    stack_probe=check_stack_initialization(cxx,runtime_flags,output) if args.profile=='linux' else None
     generator=art/'tools/cpp-define-generator'
     assembly=output/'asm_defines.s'
     run([cxx,*runtime_flags,'-UNDEBUG','-S',generator/'asm_defines.cc','-o',assembly],output/'asm-defines.log')
@@ -236,6 +260,7 @@ def main():
       'project_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
       'time_include_adaptation':time_adaptation,
       'host_source_adaptation':host_adaptation,'host_strlcpy_probe':host_probe,
+      'stack_initialization_probe':stack_probe,
       'compiler_version':run([cxx,'--version'],output/'compiler-version.log')}
     record.update(preserve_sources(output,sources,generated_sources,toolchain))
     save(output/'build-inputs.json',record)
