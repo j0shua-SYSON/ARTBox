@@ -1039,7 +1039,7 @@ headers, including version lookup and malformed UTF-8 substitution.
 
 ## 0043: Deny code generation in the native ART startup reference
 
-Status: filter verified on native Linux ARM64; ART bootstrap remains incomplete.
+Status: native Linux ARM64 hello and policy checks verified at `7d0ed24`.
 
 Preload the pinned native libraries and then install a Linux syscall filter
 before calling original JNI_CreateJavaVM. Reject executable-memory requests and
@@ -1054,7 +1054,7 @@ instrument, not a replacement for iOS signing or a complete app sandbox.
 
 ## 0044: Match ART's D8 class-library layout configuration
 
-Status: selected; bootstrap validation pending.
+Status: accepted; native Linux bootstrap passes at `7d0ed24` with ADR 0045.
 
 The first original VM invocation reaches imageless bootstrap and fails ART's
 system-class identity check for `java.lang.String`. Both ART and libcore use
@@ -1069,12 +1069,12 @@ setting, while the failed run reports a 792-byte linked class. Do not infer
 that the flag resolves the whole failure or replace the constant with 792.
 Retain the system-class check and add diagnostic output for the actual linked
 header, embedded vtable length and static field offsets through the verified
-host-source overlay. Use the next native run to distinguish an additional
-build mismatch from a class-library generation problem.
+host-source overlay. The native diagnostic at `67f0219` confirms a 120-byte
+header and 79 vtable slots. ADR 0045 records the second omitted build setting.
 
 ## 0045: Preserve AOSP's automatic-storage initialization policy
 
-Status: selected; native ART startup validation pending.
+Status: accepted; native ART startup and hello pass at `7d0ed24`.
 
 The pinned class linker's `AssignVTableIndexes` allocates a small buffer with
 `alloca` and passes part of it to `BitVector`. That constructor retains the
@@ -1085,7 +1085,7 @@ The runtime builder omitted AOSP's global automatic-storage initialization flag.
 At `67f0219`, native diagnostics find 79 embedded vtable slots instead of the
 81 implied by the DEX. The 120-byte header and static offsets account for the
 remaining 16-byte discrepancy after enabling D8 configuration. This is consistent
-with stale bitmap bits; the next startup run must test that explanation.
+with stale bitmap bits.
 
 Enable `-ftrivial-auto-var-init=zero`, matching the Android 15 default in
 [Soong's compiler configuration](https://android.googlesource.com/platform/build/soong/+/refs/tags/android-15.0.0_r1/cc/config/global.go).
@@ -1098,5 +1098,6 @@ allocation sizes with the actual compiler and runtime flags. Compile the same
 probe with pattern initialization as a deterministic negative control; all five
 cases must be nonzero there. Retain both results and require them before VM
 startup. The probe passes on native Windows using the pinned Clang compiler;
-native ARM64 startup remains the decisive check. Zeroing adds stack writes;
-their runtime cost is not yet measured.
+both controls also pass on native ARM64. At `7d0ed24`, the original VM completes
+bootstrap and executes the hello DEX, resolving the observed String mismatch.
+Zeroing adds stack writes; their isolated runtime cost is not yet measured.

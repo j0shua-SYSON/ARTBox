@@ -24,6 +24,8 @@ execution remains unverified. Runtime milestones take priority over launcher UI.
   M2 iOS 15 IPA embeds the same diagnostic runner and four tested libraries,
   alongside the M1 fixtures. Its seven Mach-O images, original ELF resources,
   signatures, notices and source provenance are verified.
+- M3 reference: original AOSP ART executes the hello DEX on native Linux ARM64
+  through the switch interpreter with JIT and profiling caches disabled.
 
 See [M2 acceptance](acceptance/m2.md) for exact revisions, CI links, artifact
 hashes, counts and limitations. One traced Mac process takes 17.503 ms for
@@ -34,8 +36,8 @@ timed waits, not steady-state performance or iPhone measurements.
 
 ## What does not run
 
-ART bootstrap does not yet complete or execute the hello DEX. Binder/services,
-Android Activities and APK execution are not implemented.
+ART runs the hello DEX only in the native Linux reference. ART execution on
+macOS/iOS, Binder/services, Android Activities and APK execution remain incomplete.
 The M2 runner is diagnostic and single-use; unexpected contract failures can
 terminate its process. General dlopen scope growth, unloading/finalization,
 other ELF TLS models, signal delivery, broader proc files, mutable directories
@@ -44,120 +46,56 @@ provider is not implemented; portable VFS tests use an injected provider there.
 
 ## In progress: M3 ART bring-up
 
-The [M3 contract](m3-contract.md) specifies real ART/DEX execution, runtime
-code-generation checks and shared iOS integration. Its first host probe tests
-two low-address heap reservations and compares the default Apple null guard
-with a reduced guard in native executables. ARM64 macOS rejected the reduced
-guard before entry (EBADMACHO), consistent with XNU's hard 4 GiB requirement.
-A checked heap-relative reference codec and retained negative launch test now
-cover the selected alternative. At `0f1aed8`, signed ARM64 macOS reports the
-exact EBADMACHO errno (88), and native memory above 4 GiB round-trips through
-the codec. Both iOS 15 probe binaries link and pass signature/layout checks;
-their launch behavior is unverified. All required CI is green at that revision.
+At `7d0ed24`, original AOSP ART starts on native Linux ARM64, executes
+`artbox.Hello.message()` from the original 448-byte DEX and returns
+`hello from ARTBox ART`. The harness exits zero. Both
+[host CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35072533465) and
+[iOS build CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35072533366)
+pass. This is the first successful ART execution checkpoint; the current iOS
+build contains earlier diagnostic fixtures and does not execute ART.
 
-The next fixture selects AOSP's real `ObjectReference`, `HeapReference` and
-`CompressedReference` headers and tests 19 cases with heap poisoning both off
-and on. A narrow source overlay redirects raw-pointer compression through the
-checked codec while retaining AOSP's four-byte storage and poison encoding.
-The native Linux control uses the original headers and absolute low addresses;
-the signed Mac wrapper uses heap-relative high addresses. At `2586a50`, all
-38 cases pass on each native OS, with independently checked stored bit patterns
-and retained acquire/release instructions. Four Mac/iOS frameworks pass layout,
-signature and notice checks. See [reference evidence](m3-references.md).
-This does not yet boot ART, collect objects or execute DEX.
+The runtime uses the C++ switch interpreter, semispace GC and imageless startup.
+JIT compilation and profiling caches are disabled and checked before and after
+the method call. Eleven native tests verify the executable-memory/process-execution
+denial filter. Both compiler stack-initialization controls pass on native ARM64.
+The same filter remains active during actual VM startup and method execution.
+Downloaded libraries, DEX, source bundles, object hashes and mapping records
+verify against their build records. See [startup evidence](m3-runtime-startup.md).
 
-At `28b13ff`, AOSP's DEX loader accepts the original hello fixture and rejects
-five malformed variants on both native Mac and Linux ARM64. The same selected
-sources link into an ordinarily signed iOS 15 framework. The 448-byte DEX,
-component/source pins, compiled objects, notices and signed binaries are checked
-against downloaded evidence. Windows compiles 31 Android source units. See
-[DEX loading evidence](m3-dex.md); inspecting instructions is not execution.
+VM startup takes 60.884 ms; the full process takes 115.745 ms, including method
+invocation and shutdown. These are single-run correctness timings, not interpreter
+throughput or iPhone measurements. The process maps 934,653,952 bytes of virtual
+address space after the method; this does not measure resident memory. No writable
+executable mapping appears before or after execution. Time-zone data is incomplete,
+and the successful invocation still logs an attached-thread warning at shutdown.
+Those paths remain visible follow-up work.
 
-The portable [class-library builder](m3-classlib.md) now compiles 3,227 pinned
-AOSP Java inputs into 6,422 classes and two DEX039 files containing 7,309 class
-definitions. The output includes selected corresponding source and notices.
-Local Java/D8 compilation passes; native AOSP class-library verification and
-its iOS 15 library build pass at `5afd004`. All five class-library cases pass
-on each native Mac/Linux ARM64 host. Downloaded source, notices, compiled
-objects, DEX files and signed binaries match the recorded provenance; both
-platforms produce identical DEX. Native libraries, resources and ART interpreter
-startup remain incomplete.
+The build selects 458 ART/support units, 480 nativehelper/ICU units and 209 native
+libcore/bridge units. Eight ICU cases and 21 native libcore cases pass. The
+implementation class library compiles 3,227 pinned Java inputs to two DEX files
+with 7,309 classes. Original sources and notices accompany the outputs. The first
+bootstrap failure exposed two omitted AOSP build settings: D8 desugaring and
+zero initialization of automatic storage. Restoring those settings lets the
+original class linker pass its retained class-layout checks (ADRs 0044-0045).
 
-The [runtime policy fixture](m3-runtime-policy.md) tests a forbidden JIT factory
-and optional Rust stack-trace name formatting. Eight native name cases and the
-factory's fatal error path pass locally; Mac/Linux CI and the signed iOS 15
-framework pass at `c11f5a6`. Downloaded binaries, notices, source hashes and
-signature pages match their evidence. These functions do not start ART or
-establish that runtime startup avoids executable allocations.
+Earlier Apple probes remain prerequisites: [heap-relative reference checks](m3-references.md)
+pass 38 native cases on each Mac/Linux host; [AOSP DEX validation](m3-dex.md),
+[class-library validation](m3-classlib.md) and [runtime-policy fixtures](m3-runtime-policy.md)
+also have native and signed iOS build evidence. These probes do not establish
+full ART's managed ABI, garbage collection or JNI behavior on Apple platforms.
+The [runtime build](m3-runtime-build.md), [native dependencies](m3-native-libraries.md)
+and [libcore build](m3-libcore-native.md) record their source and ABI boundaries.
 
-The original interpreter/runtime source selection and its support dependencies
-are pinned in `third_party/art/runtime-sources.json`. Run
-`python -B scripts/art_runtime_sources.py` to prepare and verify those inputs
-using the configured cache. The [runtime builder](m3-runtime-build.md) regenerates
-the upstream assembly inputs and selects 458 compilation units. At `e6e69d5`,
-all 458 compile on native Linux ARM64, and `libart.so` plus its JNI invocation
-harness link successfully. Six source adaptations address host-library and
-dynamic stack-minimum assumptions (ADR 0038). Downloaded object, binary, source
-and notice hashes verify; the ELF load segments and stack are non-executable
-where writable. All required CI is green at that revision. The original Android
-configuration also compiles all 458 units locally. Native Java libraries,
-reference startup and Apple ABI integration remain in progress. Static Bionic
-and public-NDK shared-link limitations are recorded in ADR 0037; they are not
-waived by the successful source compilation probes.
+Next, exercise allocation, cyclic references, explicit null/bounds exceptions,
+virtual dispatch, verified collection and native-thread attachment through real
+ART. Then adapt the full managed reference/stack representation and thread/signal
+boundaries, and integrate the same runtime and DEX into signed macOS/iOS builds.
+The [M3 contract](m3-contract.md) remains unmet until those execution and shared
+iOS requirements pass. AOT/OAT execution and host dex2oat are still future work;
+M3 permits interpreter-only acceptance. M4-M7 follow M3 acceptance.
 
-The [native dependency builder](m3-native-libraries.md) selects 480 original
-nativehelper/ICU units and the matching ICU 75 data. Its 29-unit Android
-preflight passes, including every nativehelper and ICU JNI source. At `758ea8d`,
-all 480 units compile and five native dependency libraries link on Linux ARM64.
-All eight native ICU/data/JNI-loading cases pass in 7.867 ms, including process
-startup; this is not interpreter performance. Downloaded objects, binaries,
-source and notices match their recorded hashes. All required CI is green at
-that revision.
-
-The [native libcore builder](m3-libcore-native.md) adds the real javacore,
-OpenJDK, androidio and OpenjdkJvm sources, with fdlibm, Expat and the upstream
-BoringSSL subset. The local Android probe compiles all 208 upstream units.
-At `5884e23`, all 209 Linux units compile, including the capability bridge, and
-the native libraries link. All 21 dependency cases pass in 4.605 ms including
-process startup. Downloaded objects, sources, layouts, notices and all 14 linked
-outputs match their recorded hashes; the 12 ELF binaries have no writable
-executable load segments or executable stacks. Required host and iOS CI is
-green at that revision. These checks do not start a Java VM.
-
-The [native startup probe](m3-runtime-startup.md) now consumes the same-revision
-runtime, native libraries and boot DEX. It tests the executable-memory denial
-filter before entering original ART, asserts interpreter/JIT policy, invokes
-the hello method and preserves logs and maps. At `9d89158`, all eleven filter
-cases pass and the harness enters original `JNI_CreateJavaVM` on Linux ARM64.
-Imageless bootstrap selects semispace GC, then aborts on a `java.lang.String`
-class-layout mismatch before VM creation returns. The failed process takes
-1.368 seconds; this is not interpreter performance. The downloaded attempt's
-libraries, DEX and source hashes verify. iOS build CI passes; host CI correctly
-fails the startup check. No hello DEX method has executed.
-
-At `67f0219`, upstream's `USE_D8_DESUGAR` configuration changes String's
-reservation to 808 bytes. The native diagnostic still finds a 792-byte linked
-class, with a 120-byte header and 79 embedded vtable slots. The DEX declares
-73 virtual methods, overriding three of Object's eleven methods, which should
-produce 81 slots. The original fatal check remains.
-
-Tracing that difference found a second omitted AOSP build policy: automatic
-storage zero initialization. The original method linker supplies stack memory
-to a bitmap without explicitly clearing it. The runtime now enables upstream's
-`-ftrivial-auto-var-init=zero` default and requires a compiler-policy probe with
-a deterministic negative control. Both controls pass on native Windows; the
-four-unit Android preflight and adapted class linker compile. Native ART
-startup validation of this change is pending.
-
-Pin and review only the ART sources and dependencies required to execute a
-hello-world DEX with the AOSP interpreter. Establish a host reference and build
-contract before adapting native entry, thread, memory and code-loading paths.
-Keep all generated native code in build-time signed artifacts; document the
-cost of the interpreter and each disabled runtime optimization. M4-M7 follow
-after M3 acceptance is green.
-
-The three largest M3 risks are ART's dependency/build footprint, its assumptions
-about signals/thread suspension and executable mappings, and ordinary iOS memory
-limits. The current Scudo reservation is about 8.25 GiB of virtual address space;
-Mac RSS does not establish an iPhone memory budget. ART's managed ABI and stack
-walking also need explicit validation across signed native boundaries.
+The three largest M3 risks are the complete managed ABI above Apple's 4 GiB guard,
+thread suspension/signals and shutdown across native boundaries, and iOS memory
+limits. The existing M2 Apple Bionic runner reserves about 8.25 GiB of virtual
+address space; combining it with ART has not been validated. Neither host virtual
+mapping totals nor build success establish an iPhone memory budget.

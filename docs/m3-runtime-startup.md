@@ -5,6 +5,47 @@ libcore and implementation class-library builds. It verifies their source and
 binary hashes and requires the same checkout revision. The script has configurable
 input/output directories; execution requires a native ARM64 Linux host.
 
+## Verified native hello at 7d0ed24
+
+[Host CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35072533465) and
+[iOS build CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35072533366)
+pass. Original ART completes imageless bootstrap, invokes the original hello DEX
+through the switch interpreter and exits zero after VM destruction. Its output is:
+
+```text
+ARTBox: ART started in 60.884 ms; switch interpreter, no JIT, no profiling cache
+hello from ARTBox ART
+ARTBox: real ART method returned the expected string
+```
+
+The complete process takes 115.745 ms. These are single-run correctness timings,
+not steady-state interpreter performance. The 448-byte hello DEX has SHA-256
+`6d080e7780d6e0c1187bddf33c12dd22b6b59fc630a48eb62f639971b75f1258`.
+All eleven code-generation guard cases pass before startup, and the guard stays
+active throughout the actual VM invocation. Runtime policy assertions pass before
+and after the method. Both compiler stack-initialization controls also pass.
+
+The downloaded startup archive has SHA-256
+`4080ab464bb53e13e5b3760afed05e96702280d69c79e5fef308ac1b084855c8`.
+Its 16 retained payload hashes verify, including eleven shared libraries, the
+harness, all three DEX files and native corresponding source. Its twelve ELF
+binaries are ARM64 with no writable executable load segment or executable stack.
+The before/after process maps have no writable executable mapping, and all 18
+executable mappings are unchanged. After the
+method, 121 mappings total 934,653,952 bytes of virtual address space; resident
+memory has not been measured. The build archive has SHA-256
+`0f39f473921dcc258e810bfe8cacb58f19835ee89a4bfa72d1cc54da2cd8d696`;
+all 458 object hashes, 1,425 selected upstream source files, 67 canonical project
+files, 14 generated files and 20 notices verify.
+
+The log retains expected missing-image fallback messages, incomplete time-zone
+data and an attached-thread warning during VM destruction. Successful hello
+execution does not establish those paths, explicit collection, attachment
+lifecycle or Apple runtime support. The iOS build still contains the earlier
+diagnostic fixtures; it does not yet execute ART. M3 remains incomplete.
+
+## Invocation and policy
+
 The JNI harness preloads the real native libraries before installing a diagnostic
 filter. It then enters original `JNI_CreateJavaVM` with switch interpretation,
 JIT compilation and profiling disabled, no boot image and no runtime dex2oat.
@@ -32,6 +73,8 @@ The first probe establishes VM startup and one method return. Allocation,
 exceptions, collection and thread attachment still require the additional
 checks in [the M3 contract](m3-contract.md).
 
+## Bootstrap diagnosis
+
 At `9d89158`, the [native startup run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34967912962)
 passes all eleven filter cases and calls original `JNI_CreateJavaVM`. Imageless
 bootstrap aborts on `java.lang.String`: the reserved class occupies 824 bytes
@@ -52,4 +95,5 @@ confirms a 120-byte header, 808-byte reservation and 792-byte linked class with
 79 embedded vtable slots. The three reference statics begin at 768, the bytes
 occupy 780-782 and the long begins at 784. The expected 81 slots follow from
 String's 73 declared virtual methods, Object's eleven and three overrides.
-The next build restores AOSP's automatic-storage zeroing policy; see ADR 0045.
+Restoring AOSP's automatic-storage zeroing policy allows the original VM and
+hello method to run at `7d0ed24`; see ADR 0045.

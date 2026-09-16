@@ -6,6 +6,9 @@ Bionic integration, and a native Linux host reference. It does not run ART.
 M3 remains incomplete until the execution checks in [the contract](m3-contract.md)
 pass and the runtime is integrated into the signed iOS app.
 
+The separate [startup probe](m3-runtime-startup.md) executes the original hello
+DEX on native Linux ARM64 at `7d0ed24`. Apple ART execution remains incomplete.
+
 ```console
 python -B scripts/build_art_runtime.py --profile android
 python -B scripts/build_art_runtime.py --profile android --all
