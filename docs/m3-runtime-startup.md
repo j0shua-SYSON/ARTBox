@@ -31,3 +31,18 @@ remain separate from this Linux reference.
 The first probe establishes VM startup and one method return. Allocation,
 exceptions, collection and thread attachment still require the additional
 checks in [the M3 contract](m3-contract.md).
+
+At `9d89158`, the [native startup run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34967912962)
+passes all eleven filter cases and calls original `JNI_CreateJavaVM`. Imageless
+bootstrap aborts on `java.lang.String`: the reserved class occupies 824 bytes
+and the linked class 792 bytes. VM creation does not return and no hello method
+executes. The 1.368-second failed process duration is not interpreter performance.
+The downloaded attempt retains matching library, DEX and corresponding-source
+hashes, plus its log and memory map before VM entry.
+
+The runtime now selects upstream's D8 desugaring configuration to match the
+class-library compiler. ARM64 compilation of the original class-size expression
+shows that this changes the reservation to 808 bytes, so it does not by itself
+explain the entire observed mismatch. The host overlay adds the actual embedded
+vtable length and static field offsets to the existing fatal diagnostic. It
+does not change the comparison, class-size constants or loaded DEX.

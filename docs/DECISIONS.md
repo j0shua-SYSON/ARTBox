@@ -1039,7 +1039,7 @@ headers, including version lookup and malformed UTF-8 substitution.
 
 ## 0043: Deny code generation in the native ART startup reference
 
-Status: selected; native execution pending.
+Status: filter verified on native Linux ARM64; ART bootstrap remains incomplete.
 
 Preload the pinned native libraries and then install a Linux syscall filter
 before calling original JNI_CreateJavaVM. Reject executable-memory requests and
@@ -1051,3 +1051,23 @@ Preserve the same-revision libraries, implementation DEX, logs and mapping
 permissions with each attempt. This catches hidden code-generation dependencies
 while preparing signed Apple integration. The filter is a native reference test
 instrument, not a replacement for iOS signing or a complete app sandbox.
+
+## 0044: Match ART's D8 class-library layout configuration
+
+Status: selected; bootstrap validation pending.
+
+The first original VM invocation reaches imageless bootstrap and fails ART's
+system-class identity check for `java.lang.String`. Both ART and libcore use
+the pinned Android 15 release, but the runtime builder omitted the upstream
+`USE_D8_DESUGAR=1` setting while the class-library builder uses D8. Enable that
+setting for the runtime and its JNI harness. In the pinned `build/art.go` it is
+the default; `mirror/string-inl.h` uses it to account for the two CharSequence
+lambdas that D8 represents as direct methods.
+
+The original ARM64 size expression changes from 824 to 808 bytes with this
+setting, while the failed run reports a 792-byte linked class. Do not infer
+that the flag resolves the whole failure or replace the constant with 792.
+Retain the system-class check and add diagnostic output for the actual linked
+header, embedded vtable length and static field offsets through the verified
+host-source overlay. Use the next native run to distinguish an additional
+build mismatch from a class-library generation problem.

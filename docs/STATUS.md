@@ -34,7 +34,8 @@ timed waits, not steady-state performance or iPhone measurements.
 
 ## What does not run
 
-ART/DEX execution, Binder/services, Android Activities and APKs are not implemented.
+ART bootstrap does not yet complete or execute the hello DEX. Binder/services,
+Android Activities and APK execution are not implemented.
 The M2 runner is diagnostic and single-use; unexpected contract failures can
 terminate its process. General dlopen scope growth, unloading/finalization,
 other ELF TLS models, signal delivery, broader proc files, mutable directories
@@ -126,8 +127,18 @@ green at that revision. These checks do not start a Java VM.
 The [native startup probe](m3-runtime-startup.md) now consumes the same-revision
 runtime, native libraries and boot DEX. It tests the executable-memory denial
 filter before entering original ART, asserts interpreter/JIT policy, invokes
-the hello method and preserves logs and maps. Native execution of this new
-probe is pending; compilation does not establish ART startup.
+the hello method and preserves logs and maps. At `9d89158`, all eleven filter
+cases pass and the harness enters original `JNI_CreateJavaVM` on Linux ARM64.
+Imageless bootstrap selects semispace GC, then aborts on a `java.lang.String`
+class-layout mismatch before VM creation returns. The failed process takes
+1.368 seconds; this is not interpreter performance. The downloaded attempt's
+libraries, DEX and source hashes verify. iOS build CI passes; host CI correctly
+fails the startup check. No hello DEX method has executed.
+
+The next build enables upstream's `USE_D8_DESUGAR` configuration to match the
+D8-produced boot class library. A diagnostic overlay records the linked class
+header, embedded vtable and static field offsets on mismatch. The original
+fatal check remains; the flag alone does not yet explain the entire difference.
 
 Pin and review only the ART sources and dependencies required to execute a
 hello-world DEX with the AOSP interpreter. Establish a host reference and build

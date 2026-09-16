@@ -12,6 +12,10 @@
         {
           "before": "Finish([[maybe_unused]] nullptr_t np)",
           "after": "Finish([[maybe_unused]] std::nullptr_t np)"
+        },
+        {
+          "before": "    c2->DumpClass(os2, mirror::Class::kDumpClassFullDetail);",
+          "after": "    c2->DumpClass(os2, mirror::Class::kDumpClassFullDetail);\n    // ARTBox: preserve the fatal check and expose the actual linked layout.\n    os2 << \"\\nARTBox bootstrap layout: class_header=\" << sizeof(mirror::Class)\n        << \" reserved=\" << c1->GetClassSize()\n        << \" linked=\" << c2->GetClassSize()\n        << \" embedded_vtable=\" << c2->GetEmbeddedVTableLength() << '\\n';\n    for (ArtField& field : c2->GetSFields()) {\n      os2 << \"static \" << field.GetName() << \" offset=\"\n          << field.GetOffset().Uint32Value() << '\\n';\n    }"
         }
       ]
     },
