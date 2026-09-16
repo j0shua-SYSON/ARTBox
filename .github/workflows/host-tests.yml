@@ -258,7 +258,11 @@ jobs:
         with:
           name: class-library-ubuntu-24.04-arm
           path: build/m3/startup-inputs/classlib
-      - name: Start original ART with code generation denied and invoke the hello DEX
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: art-managed-fixture-ubuntu-24.04-arm
+          path: build/m3/managed-fixture
+      - name: Start original ART and verify hello, GC, exceptions and native attachment
         run: >-
           python3 -B scripts/test_art_startup.py
           --classlib-dir build/m3/startup-inputs/classlib/build/m3/classlib
@@ -288,6 +292,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 -B scripts/build_art_classlib.py --fetch-jdk
+      - name: Build the managed ART acceptance fixture
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_art_managed_fixture.py --fetch-jdk
       - name: Verify class libraries and malformed inputs with AOSP
         env:
           GH_TOKEN: ${{ github.token }}
@@ -306,6 +314,14 @@ jobs:
             artifacts/m3-classlib-verifier.json
             artifacts/m3-dex-loader.json
           if-no-files-found: warn
+          retention-days: 7
+      - name: Preserve the managed fixture and source provenance
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-managed-fixture-${{ matrix.os }}
+          path: build/m3/managed-fixture/
+          if-no-files-found: error
           retention-days: 7
   runtime-policy:
     name: ART runtime policy (${{ matrix.os }})

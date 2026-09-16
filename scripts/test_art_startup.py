@@ -20,6 +20,7 @@ import zipfile
 
 from environment import ROOT, environment
 from dex_fixture import make_hello
+from build_art_managed_fixture import prepare_fixture
 
 
 def digest(path):
@@ -84,6 +85,7 @@ def main():
     parser.add_argument('--native-dir', type=Path)
     parser.add_argument('--libcore-dir', type=Path)
     parser.add_argument('--classlib-dir', type=Path)
+    parser.add_argument('--managed-fixture-dir', type=Path)
     parser.add_argument('--build-dir', type=Path)
     parser.add_argument('--timeout', type=int, default=90)
     args = parser.parse_args()
@@ -96,6 +98,7 @@ def main():
     native = (args.native_dir or build / 'm3/native-libraries/linux').resolve()
     core = (args.libcore_dir or build / 'm3/libcore-native/linux').resolve()
     classlib = (args.classlib_dir or build / 'm3/classlib').resolve()
+    managed_fixture = (args.managed_fixture_dir or build / 'm3/managed-fixture').resolve()
     directory = (args.build_dir or build / 'm3/runtime-startup').resolve()
     directory.mkdir(parents=True, exist_ok=True)
     output = Path(tempfile.mkdtemp(prefix='attempt-', dir=directory))
@@ -114,8 +117,10 @@ def main():
     if core_bins['libart.so']['sha256'] != runtime_bins['libart.so']['sha256']:
         raise RuntimeError('Native class libraries and harness use different ART builds')
     dex_files, classlib_report = prepare_classlib(classlib, output)
+    managed_dex, managed_report = prepare_fixture(managed_fixture, output)
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-    if any(r['project_commit'] != head for r in (runtime_record, native_record, core_record, classlib_report)):
+    if any(r['project_commit'] != head for r in
+           (runtime_record, native_record, core_record, classlib_report, managed_report)):
         raise RuntimeError('Startup inputs must come from this checkout revision')
     for name in core_bins:
         if name.endswith('.so'): shutil.copyfile(core / name, output / name)
@@ -136,11 +141,12 @@ def main():
         raise RuntimeError('ICU data changed')
     shutil.copyfile(data, output / 'i18n/etc/icu/icudt75l.dat')
     env = {**os.environ, **{name: str(path) for name, path in roots.items()}, 'LD_LIBRARY_PATH': str(output)}
-    command = [str(harness), ':'.join(map(str, dex_files)), str(hello), str(output)]
+    command = [str(harness), ':'.join(map(str, dex_files)), str(hello) + ':' + str(managed_dex), str(output)]
     record = {'project_commit': head, 'device_execution_verified': False, 'runtime_started': False,
               'dex_method_executed': False, 'command': command, 'roots': {k: str(v) for k, v in roots.items()},
               'hello_sha256': digest(hello), 'boot_dex': classlib_report['dex_files'],
               'harness_sha256': digest(harness), 'native_libraries': core_bins,
+              'managed_fixture': managed_report,
               'source_bundle_sha256': core_record['source_bundle_sha256']}
     def save():
         (output / 'result.json').write_text(json.dumps(record, indent=2) + '\n', encoding='utf-8')
@@ -164,12 +170,31 @@ def main():
     record['runtime_invocation_attempted'] = 'ARTBox: entering original ART JNI_CreateJavaVM\n' in stdout
     record['runtime_started'] = 'ms; switch interpreter, no JIT, no profiling cache\n' in stdout
     record['dex_method_executed'] = 'ARTBox: real ART method returned the expected string\n' in stdout
-    record['passed'] = record['exit'] == 0 and record['runtime_started'] and record['dex_method_executed']
+    def observation(prefix):
+        reports = [line.removeprefix(prefix) for line in stdout.splitlines() if line.startswith(prefix)]
+        if len(reports) == 1:
+            try: return json.loads(reports[0])
+            except json.JSONDecodeError: pass
+        return None
+    record['managed_checks'] = observation('ARTBox managed checks: ')
+    managed = record['managed_checks']
+    record['managed_checks_passed'] = (isinstance(managed, dict) and
+        managed.get('heap_checksum') == 6496 and managed.get('exceptions') == 3 and
+        managed.get('attachments') == 4 and type(managed.get('gc_before')) is int and
+        type(managed.get('gc_after')) is int and 0 <= managed['gc_before'] < managed['gc_after'])
+    record['runtime_memory'] = observation('ARTBox runtime memory: ')
+    memory = record['runtime_memory']
+    memory_valid = (isinstance(memory, dict) and
+        all(type(memory.get(key)) is int and memory[key] > 0 for key in
+            ('managed_allocated_bytes', 'process_peak_rss_kib')))
+    record['lifecycle_checks_passed'] = 'ARTBox: native ART lifecycle checks passed\n' in stdout
+    record['passed'] = (record['exit'] == 0 and record['runtime_started'] and record['dex_method_executed']
+                        and record['managed_checks_passed'] and record['lifecycle_checks_passed'] and memory_valid)
     save()
     print(stdout, end='')
     print(stderr, end='', file=sys.stderr)
     if not record['passed']: raise RuntimeError('Original ART startup failed; see ' + str(output))
-    print('Native Linux ART hello passed; Apple runtime acceptance remains pending')
+    print('Native Linux ART hello and managed runtime checks passed; Apple acceptance remains pending')
 
 
 if __name__ == '__main__': main()

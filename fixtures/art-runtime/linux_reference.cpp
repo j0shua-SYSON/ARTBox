@@ -6,10 +6,14 @@
 #include "runtime.h"
 #include "instrumentation.h"
 #include "jit/jit_options.h"
+#include "gc/heap.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+#include <sys/resource.h>
+
+bool artbox_run_managed_checks(JavaVM* vm, JNIEnv* env);
 
 static bool record_maps(const std::string& path) {
   FILE* source = fopen("/proc/self/maps", "r");
@@ -33,7 +37,7 @@ static bool record_maps(const std::string& path) {
 
 int main(int argc, char** argv) {
   if (argc != 4) {
-    fputs("usage: art-linux-reference boot-class-path hello.dex native-library-directory\n", stderr);
+    fputs("usage: art-linux-reference boot-class-path app-class-path native-library-directory\n", stderr);
     return 64;
   }
   setvbuf(stdout, nullptr, _IONBF, 0);
@@ -52,7 +56,7 @@ int main(int argc, char** argv) {
     return runtime && !runtime->GetJit() && !runtime->GetJitCodeCache() &&
       !runtime->GetJITOptions()->UseJitCompilation() &&
       !runtime->GetJITOptions()->GetSaveProfilingInfo() &&
-      runtime->GetInstrumentation()->IsForcedInterpretOnly();
+      runtime->GetInstrumentation()->IsForcedInterpretOnly() && !runtime->IsExplicitGcDisabled();
   };
   std::string boot = std::string("-Xbootclasspath:") + argv[1];
   std::string app = std::string("-Djava.class.path=") + argv[2];
@@ -72,12 +76,17 @@ int main(int argc, char** argv) {
   puts("ARTBox: entering original ART JNI_CreateJavaVM");
   const auto start = std::chrono::steady_clock::now();
   jint result = JNI_CreateJavaVM(&vm, &env, &args);
+  const auto initialized = std::chrono::steady_clock::now();
   if (result != JNI_OK || !vm || !env) {
     fprintf(stderr, "ARTBox: ART startup failed: %d\n", result);
     return 2;
   }
   if (!policy_valid()) { fputs("ARTBox: runtime policy failed\n", stderr); return 67; }
-  const double startup_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+  JavaVM* registered = nullptr;
+  jsize registered_count = 0;
+  if (JNI_GetCreatedJavaVMs(&registered, 1, &registered_count) != JNI_OK ||
+      registered_count != 1 || registered != vm) return 70;
+  const double startup_ms = std::chrono::duration<double, std::milli>(initialized - start).count();
   printf("ARTBox: ART started in %.3f ms; switch interpreter, no JIT, no profiling cache\n", startup_ms);
   jclass cls = env->FindClass("artbox/Hello");
   if (!cls || env->ExceptionCheck()) { env->ExceptionDescribe(); return 3; }
@@ -91,8 +100,28 @@ int main(int argc, char** argv) {
   puts(text);
   env->ReleaseStringUTFChars(value, text);
   if (!matched) return 7;
+  puts("ARTBox: real ART method returned the expected string");
+  if (!artbox_run_managed_checks(vm, env)) {
+    fputs("ARTBox: managed runtime checks failed\n", stderr);
+    return 71;
+  }
   if (!policy_valid()) return 68;
   if (!record_maps(scratch + "/maps-after.txt")) return 69;
-  puts("ARTBox: real ART method returned the expected string");
-  return vm->DestroyJavaVM() == JNI_OK ? 0 : 8;
+  rusage usage{};
+  if (getrusage(RUSAGE_SELF, &usage) != 0 || usage.ru_maxrss <= 0) return 75;
+  const size_t managed_bytes = art::Runtime::Current()->GetHeap()->GetBytesAllocated();
+  printf("ARTBox runtime memory: {\"managed_allocated_bytes\":%zu,\"process_peak_rss_kib\":%ld}\n",
+         managed_bytes, usage.ru_maxrss);
+  env->DeleteLocalRef(value);
+  env->DeleteLocalRef(cls);
+  if (vm->DetachCurrentThread() != JNI_OK) return 72;
+  void* detached = nullptr;
+  if (vm->GetEnv(&detached, JNI_VERSION_1_6) != JNI_EDETACHED) return 73;
+  if (vm->DestroyJavaVM() != JNI_OK) return 8;
+  registered = nullptr;
+  registered_count = -1;
+  if (JNI_GetCreatedJavaVMs(&registered, 1, &registered_count) != JNI_OK || registered_count != 0) return 74;
+  if (!record_maps(scratch + "/maps-shutdown.txt")) return 69;
+  puts("ARTBox: native ART lifecycle checks passed");
+  return 0;
 }

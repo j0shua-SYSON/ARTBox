@@ -86,9 +86,11 @@ full ART's managed ABI, garbage collection or JNI behavior on Apple platforms.
 The [runtime build](m3-runtime-build.md), [native dependencies](m3-native-libraries.md)
 and [libcore build](m3-libcore-native.md) record their source and ABI boundaries.
 
-Next, exercise allocation, cyclic references, explicit null/bounds exceptions,
-virtual dispatch, verified collection and native-thread attachment through real
-ART. Then adapt the full managed reference/stack representation and thread/signal
+The next [managed acceptance fixture](m3-managed-checks.md) tests allocation,
+cyclic references, explicit null/bounds exceptions, virtual dispatch, verified
+collection and repeated native-thread attachment. Its portable producer and
+extended JNI harness are prepared; native ART validation is pending. Then adapt
+the full managed reference/stack representation and thread/signal
 boundaries, and integrate the same runtime and DEX into signed macOS/iOS builds.
 The [M3 contract](m3-contract.md) remains unmet until those execution and shared
 iOS requirements pass. AOT/OAT execution and host dex2oat are still future work;

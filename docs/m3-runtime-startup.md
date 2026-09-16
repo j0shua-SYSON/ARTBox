@@ -73,6 +73,12 @@ The first probe establishes VM startup and one method return. Allocation,
 exceptions, collection and thread attachment still require the additional
 checks in [the M3 contract](m3-contract.md).
 
+The extended harness adds [managed acceptance checks](m3-managed-checks.md)
+using a separately built, verified DEX. It retains the original hello result as
+an independent observation, then requires collection, exceptions, native-thread
+attachment and VM shutdown to pass. Those extended checks are pending native
+execution; the verified `7d0ed24` checkpoint above covers hello only.
+
 ## Bootstrap diagnosis
 
 At `9d89158`, the [native startup run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34967912962)

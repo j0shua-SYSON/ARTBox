@@ -85,7 +85,9 @@ def preserve_sources(output, sources, generated, toolchain=None):
       'third_party/sources.json','third_party/art/runtime-sources.json','third_party/art/runtime-build.json',
       'third_party/art/adapters/no_jit.cpp','third_party/art/adapters/artbox_host_stack.h',
       'third_party/art/host-build-boundary.json','third_party/bionic/builtins.json',
-      'fixtures/art-runtime/linux_reference.cpp','fixtures/art-runtime/host_strlcpy.cpp',
+      'fixtures/art-runtime/linux_reference.cpp','fixtures/art-runtime/managed_checks.cpp',
+      'fixtures/art-runtime/RuntimeChecks.java','fixtures/art-runtime/RuntimeChecksHost.java',
+      'fixtures/art-runtime/host_strlcpy.cpp',
       'fixtures/art-runtime/stack_initialization.cpp',
       'platform/linux/no_codegen.h','fixtures/art-runtime/codegen_policy.cpp']
     project += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT/'scripts').glob('*.py'))]
@@ -297,7 +299,8 @@ def main():
         harness=output/'art-linux-reference'
         harness_flags=[flag for flag in runtime_flags if flag!='-DBUILDING_LIBART']
         harness_command=[cxx,*harness_flags,'-I',ROOT/'platform/linux',
-             ROOT/'fixtures/art-runtime/linux_reference.cpp',library,'-Wl,-rpath,$ORIGIN','-pthread','-ldl','-o',harness]
+             ROOT/'fixtures/art-runtime/linux_reference.cpp',ROOT/'fixtures/art-runtime/managed_checks.cpp',
+             library,'-Wl,-rpath,$ORIGIN','-pthread','-ldl','-o',harness]
         run(harness_command,output/'harness-link.log')
         record['link']={'seconds':time.monotonic()-start,'runtime_executed':False,
           'harness_command':list(map(str,harness_command)),

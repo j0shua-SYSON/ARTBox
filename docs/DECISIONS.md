@@ -1101,3 +1101,27 @@ startup. The probe passes on native Windows using the pinned Clang compiler;
 both controls also pass on native ARM64. At `7d0ed24`, the original VM completes
 bootstrap and executes the hello DEX, resolving the observed String mismatch.
 Zeroing adds stack writes; their isolated runtime cost is not yet measured.
+
+## 0046: Verify managed collection and native attachment through original ART
+
+Status: selected; extended native execution pending.
+
+Keep the original hello DEX and add an original Java fixture for allocation,
+cyclic references, array contents, virtual dispatch and null/bounds exceptions.
+Compile it separately with the pinned JDK/D8 tools, retaining source, notices,
+commands and hashes. Check the exact producer revision and current source hashes
+before adding the DEX to ART's application class path. Host JDK test execution
+only checks fixture logic; it never substitutes for ART acceptance.
+
+Use `Runtime.gc()` and observe the existing VMDebug collection counter through
+JNI. The pinned `System.gc()` may defer collection for target SDK <= 34. A counter
+increase and preserved managed roots provide evidence beyond requesting a GC;
+no new native GC API or collector stub is introduced.
+
+Exercise two native threads, each attaching and detaching twice, with `GetEnv`
+transitions, managed thread names and a synchronized Java counter. Detach the
+launching thread before destroying the VM and verify that VM registration is
+empty afterward. This tests the original destructor's shutdown-thread path and
+addresses the warning observed in the first successful hello run. Keep the
+code-generation denial filter active through all methods and shutdown, and
+retain mapping snapshots after both managed calls and VM destruction.
