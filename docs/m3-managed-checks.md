@@ -46,5 +46,49 @@ the execution attempt. The boot class path and original hello DEX are unchanged.
 
 A host JDK driver checks fixture logic before conversion; it is excluded from
 the DEX payload. Host execution, D8 output and ARM64 compilation do not prove ART
-execution. Native Linux execution of the extended checks is pending; Apple ART
-integration and the remaining [M3 contract](m3-contract.md) are also incomplete.
+execution. Apple ART integration and the remaining [M3 contract](m3-contract.md)
+are incomplete.
+
+## Verified native execution at 7f9d8da
+
+[Host CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35077793094) and
+[iOS build CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35077793076)
+pass. The native Linux ARM64 run executes the original hello, then reports:
+
+```text
+ARTBox: managed heap checksum 6496; collections 0 -> 1
+ARTBox: managed null and bounds exceptions passed
+ARTBox managed checks: {"heap_checksum":6496,"exceptions":3,"gc_before":0,"gc_after":1,"attachments":4}
+ARTBox runtime memory: {"managed_allocated_bytes":637920,"process_peak_rss_kib":27808}
+ARTBox: native ART lifecycle checks passed
+```
+
+The process exits zero. Original ART logs an explicit semispace collection:
+308 KB freed, 839 microseconds total and 798 microseconds paused. The retained
+graph, arrays and virtual dispatch survive that collection. VM startup takes
+65.999 ms; the full process takes 115.915 ms. These are correctness observations
+from one Linux process, not throughput benchmarks or iPhone measurements.
+
+The launching thread detaches before VM destruction, and the earlier
+attached-thread shutdown warning is absent. All eleven code-generation guard
+cases pass. All 18 executable mappings are identical before startup, after
+managed checks and after VM destruction; no writable executable mapping appears.
+Total virtual mappings are 1,102,565,376 bytes after the checks and 549,445,632
+after destruction. Those totals are distinct from the measured peak RSS above.
+Missing boot-image fallback, optional DEX metadata and incomplete time-zone data
+remain visible in the log.
+
+The startup artifact has SHA-256
+`c6a9a7e4ed88d2944368bc3a09af40184a8e1c60eefcc1a357106d69c7e1a8c1`.
+Its 18 retained payload hashes verify. The harness and eleven shared libraries
+are ARM64 ELF with no writable executable load segment or executable stack.
+The source bundles contain 84 distinct project files matching the canonical
+commit bytes. The tested merge `48cde648aa36625bfed6da0c124e549e017ba858`
+contains branch head `7f9d8dacc1b8a02d5270157a030f9f27c768b51f`.
+
+Both macOS and Linux fixture producers emit the same 3,148-byte DEX 039 with four
+classes and twenty methods, SHA-256
+`b6d6294c020dad8f08549cf0083de0ebe122f9825786209580a716ef983cafa9`.
+Both producer bundles, their three payload hashes, fourteen project-source
+hashes and corresponding-source contents verify. The macOS producer executes
+the host JDK logic check; it does not run ART.

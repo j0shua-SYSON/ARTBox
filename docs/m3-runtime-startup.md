@@ -5,6 +5,11 @@ libcore and implementation class-library builds. It verifies their source and
 binary hashes and requires the same checkout revision. The script has configurable
 input/output directories; execution requires a native ARM64 Linux host.
 
+The latest [managed acceptance run at `7f9d8da`](m3-managed-checks.md) extends
+the first hello result below with verified collection, explicit exceptions,
+native-thread attachment and VM shutdown. Both host and iOS build workflows pass;
+actual ART execution remains native Linux only.
+
 ## Verified native hello at 7d0ed24
 
 [Host CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35072533465) and
@@ -69,15 +74,11 @@ JNI lookup or wrong string fails CI. Build success and failed startup attempts
 do not count as Java execution. Physical and signed Apple runtime acceptance
 remain separate from this Linux reference.
 
-The first probe establishes VM startup and one method return. Allocation,
-exceptions, collection and thread attachment still require the additional
-checks in [the M3 contract](m3-contract.md).
-
 The extended harness adds [managed acceptance checks](m3-managed-checks.md)
 using a separately built, verified DEX. It retains the original hello result as
 an independent observation, then requires collection, exceptions, native-thread
-attachment and VM shutdown to pass. Those extended checks are pending native
-execution; the verified `7d0ed24` checkpoint above covers hello only.
+attachment and VM shutdown to pass. Those extended checks pass on native Linux
+at `7f9d8da`; the historical `7d0ed24` checkpoint above covers hello only.
 
 ## Bootstrap diagnosis
 

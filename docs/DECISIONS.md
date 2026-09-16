@@ -1104,7 +1104,7 @@ Zeroing adds stack writes; their isolated runtime cost is not yet measured.
 
 ## 0046: Verify managed collection and native attachment through original ART
 
-Status: selected; extended native execution pending.
+Status: verified on native Linux ARM64 at `7f9d8da`; Apple runtime integration pending.
 
 Keep the original hello DEX and add an original Java fixture for allocation,
 cyclic references, array contents, virtual dispatch and null/bounds exceptions.
@@ -1125,3 +1125,11 @@ empty afterward. This tests the original destructor's shutdown-thread path and
 addresses the warning observed in the first successful hello run. Keep the
 code-generation denial filter active through all methods and shutdown, and
 retain mapping snapshots after both managed calls and VM destruction.
+
+The native run observes one explicit semispace collection and preserves the
+graph/checksum, catches both exceptions, completes all four attachment cycles
+and leaves no registered VM after destruction. The earlier attached-thread
+shutdown warning is absent. All 18 executable mappings remain unchanged through
+shutdown. Measurements and artifact provenance are in
+[the managed acceptance record](m3-managed-checks.md); this does not establish
+Apple runtime or physical-device execution.

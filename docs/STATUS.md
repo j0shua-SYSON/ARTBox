@@ -25,7 +25,9 @@ execution remains unverified. Runtime milestones take priority over launcher UI.
   alongside the M1 fixtures. Its seven Mach-O images, original ELF resources,
   signatures, notices and source provenance are verified.
 - M3 reference: original AOSP ART executes the hello DEX on native Linux ARM64
-  through the switch interpreter with JIT and profiling caches disabled.
+  through the switch interpreter with JIT and profiling caches disabled. Its
+  managed graph survives explicit collection; exceptions and native-thread
+  attachment, detachment and VM shutdown checks pass.
 
 See [M2 acceptance](acceptance/m2.md) for exact revisions, CI links, artifact
 hashes, counts and limitations. One traced Mac process takes 17.503 ms for
@@ -46,12 +48,13 @@ provider is not implemented; portable VFS tests use an injected provider there.
 
 ## In progress: M3 ART bring-up
 
-At `7d0ed24`, original AOSP ART starts on native Linux ARM64, executes
+At `7f9d8da`, original AOSP ART starts on native Linux ARM64, executes
 `artbox.Hello.message()` from the original 448-byte DEX and returns
-`hello from ARTBox ART`. The harness exits zero. Both
-[host CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35072533465) and
-[iOS build CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35072533366)
-pass. This is the first successful ART execution checkpoint; the current iOS
+`hello from ARTBox ART`. The extended managed acceptance checks pass and the
+harness exits zero. Both
+[host CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35077793094) and
+[iOS build CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35077793076)
+pass. The first successful hello was at `7d0ed24`; the current iOS
 build contains earlier diagnostic fixtures and does not execute ART.
 
 The runtime uses the C++ switch interpreter, semispace GC and imageless startup.
@@ -62,13 +65,19 @@ The same filter remains active during actual VM startup and method execution.
 Downloaded libraries, DEX, source bundles, object hashes and mapping records
 verify against their build records. See [startup evidence](m3-runtime-startup.md).
 
-VM startup takes 60.884 ms; the full process takes 115.745 ms, including method
-invocation and shutdown. These are single-run correctness timings, not interpreter
-throughput or iPhone measurements. The process maps 934,653,952 bytes of virtual
-address space after the method; this does not measure resident memory. No writable
-executable mapping appears before or after execution. Time-zone data is incomplete,
-and the successful invocation still logs an attached-thread warning at shutdown.
-Those paths remain visible follow-up work.
+VM startup takes 65.999 ms; the full process takes 115.915 ms, including managed
+checks and shutdown. Explicit semispace collection advances the GC counter from
+zero to one and preserves the graph and dispatch checksum. Both expected exceptions
+and four native-thread attachment cycles pass. Explicit main-thread detachment
+removes the earlier attached-thread shutdown warning; VM registration is empty
+after destruction.
+
+Peak process RSS is 27,808 KiB, with 637,920 managed bytes allocated at the recorded
+observation. The process maps 1,102,565,376 virtual bytes after the checks and
+549,445,632 after VM destruction. These are single-run Linux correctness and memory
+observations, not interpreter throughput or iPhone measurements. All 18 executable
+mappings remain unchanged through shutdown, with no writable executable mapping.
+Time-zone data is still incomplete. See [managed evidence](m3-managed-checks.md).
 
 The build selects 458 ART/support units, 480 nativehelper/ICU units and 209 native
 libcore/bridge units. Eight ICU cases and 21 native libcore cases pass. The
@@ -86,10 +95,9 @@ full ART's managed ABI, garbage collection or JNI behavior on Apple platforms.
 The [runtime build](m3-runtime-build.md), [native dependencies](m3-native-libraries.md)
 and [libcore build](m3-libcore-native.md) record their source and ABI boundaries.
 
-The next [managed acceptance fixture](m3-managed-checks.md) tests allocation,
-cyclic references, explicit null/bounds exceptions, virtual dispatch, verified
-collection and repeated native-thread attachment. Its portable producer and
-extended JNI harness are prepared; native ART validation is pending. Then adapt
+The [managed acceptance fixture](m3-managed-checks.md) now passes on the original
+native Linux runtime. Its macOS and Linux producers emit identical DEX bytes;
+downloaded payloads and corresponding project sources verify. Next adapt
 the full managed reference/stack representation and thread/signal
 boundaries, and integrate the same runtime and DEX into signed macOS/iOS builds.
 The [M3 contract](m3-contract.md) remains unmet until those execution and shared
