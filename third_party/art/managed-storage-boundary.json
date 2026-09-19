@@ -1,0 +1,57 @@
+{
+  "scope": "Heap-relative forwarding words and raw JNI dead markers; not a complete managed ABI",
+  "files": [
+    {
+      "path": "runtime/lock_word.h",
+      "sha256": "2994e7a57933c599e4f62c892f4c0c1c1ad4889272158e3c8f0bf1d702018c8f",
+      "replacements": [
+        {
+          "before": "#include \"read_barrier.h\"",
+          "after": "#include \"read_barrier.h\"\n#include \"artbox_art_reference_bridge.h\""
+        },
+        {
+          "before": "return LockWord((target >> kForwardingAddressShift) | kStateForwardingAddressShifted);",
+          "after": "const uint32_t reference = artbox_art_reference_compress(reinterpret_cast<const void*>(target));\n    return LockWord((reference >> kForwardingAddressShift) | kStateForwardingAddressShifted);"
+        }
+      ]
+    },
+    {
+      "path": "runtime/lock_word-inl.h",
+      "sha256": "f01f40736b2cee00b6f41df025855736647ce1ab6223b5a678597839ee43a02d",
+      "replacements": [
+        {
+          "before": "return value_ << kForwardingAddressShift;",
+          "after": "return reinterpret_cast<size_t>(artbox_art_reference_decompress(value_ << kForwardingAddressShift));"
+        }
+      ]
+    },
+    {
+      "path": "runtime/jni/local_reference_table.h",
+      "sha256": "63fdcd7dd0ab77727ed63508371a3240602d73af6d3b52eaf935391688069bac",
+      "replacements": [
+        {
+          "before": "  void SetReference(ObjPtr<mirror::Object> ref) REQUIRES_SHARED(Locks::mutator_lock_);",
+          "after": "  void SetReference(ObjPtr<mirror::Object> ref) REQUIRES_SHARED(Locks::mutator_lock_);\n\n  // ARTBox: a dead entry contains a raw marker, not a heap address.\n  void SetDeadReference() REQUIRES_SHARED(Locks::mutator_lock_) {\n    SetVRegValue(0xdead10c0u);\n  }"
+        }
+      ]
+    },
+    {
+      "path": "runtime/jni/local_reference_table.cc",
+      "sha256": "913f30444f7be97130066b0b85fa8249f39755596fcb50e876b3d43da45bf6ac",
+      "replacements": [
+        {
+          "before": "    constexpr uint32_t kDeadLocalValue = 0xdead10c0;\n    entry->SetReference(reinterpret_cast32<mirror::Object*>(kDeadLocalValue));",
+          "after": "    entry->SetDeadReference();"
+        },
+        {
+          "before": "        free_index = pruned_entry->GetNextFree();\n        pruned_entry->SetReference(reinterpret_cast32<mirror::Object*>(kDeadLocalValue));",
+          "after": "        free_index = pruned_entry->GetNextFree();\n        pruned_entry->SetDeadReference();"
+        },
+        {
+          "before": "        free_entry->SetNextFree(pruned_entry->GetNextFree());\n        pruned_entry->SetReference(reinterpret_cast32<mirror::Object*>(kDeadLocalValue));",
+          "after": "        free_entry->SetNextFree(pruned_entry->GetNextFree());\n        pruned_entry->SetDeadReference();"
+        }
+      ]
+    }
+  ]
+}

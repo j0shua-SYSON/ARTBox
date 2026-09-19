@@ -1,0 +1,5353 @@
+{
+  "art-nativehelper-runtime": {
+    "repository": "aosp-mirror-neo/platform_libnativehelper",
+    "tag": "android-15.0.0_r1",
+    "commit": "3ca43dfe2bf4613852df0303531fa8ecf4b7063c",
+    "notice": "NOTICE",
+    "notice_sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+    "files": [
+      {
+        "path": "ALog-priv.h",
+        "bytes": 1945,
+        "sha256": "5b195d46fa146c7ff030798bc6b2b4c93b2c6cec6aacdd61c5a3d4b8f45a1e63"
+      },
+      {
+        "path": "Android.bp",
+        "bytes": 6806,
+        "sha256": "eac19666c19e0b4263c697a7db0dc966ae1b377c9957a06b4d1950adc333ebcb"
+      },
+      {
+        "path": "DlHelp.c",
+        "bytes": 2209,
+        "sha256": "549829df68089a241a1e1af40c6612faa280124434011c0c1449387e3d9fdfae"
+      },
+      {
+        "path": "DlHelp.h",
+        "bytes": 932,
+        "sha256": "9ff34cdabd069610d8d169ffe569a6ee298d80a1bbf5efd23b8a5cc904be5f10"
+      },
+      {
+        "path": "ExpandableString.c",
+        "bytes": 1470,
+        "sha256": "544dff4e24d875b4ede25db0d07a852d3c5a74944dfde88e6d15796004d626fd"
+      },
+      {
+        "path": "ExpandableString.h",
+        "bytes": 1531,
+        "sha256": "bf3b0c3b579fde6830ffa58b29a1f6bd2c68fbfd0a675d11629abbafb17ba369"
+      },
+      {
+        "path": "JNIHelp.c",
+        "bytes": 14495,
+        "sha256": "097dd81bca400f813b21958ed6e5c83531f8b4d81231e698fb5933d74bed3a90"
+      },
+      {
+        "path": "JNIPlatformHelp.c",
+        "bytes": 2699,
+        "sha256": "367964ae42890793af119c79b7dd1ffca5488b1e915f0a05794167e5a938a7e7"
+      },
+      {
+        "path": "JniConstants.c",
+        "bytes": 7851,
+        "sha256": "4ddfeaf0452197d765702a858489be1f4366b745cbc1e4764e1f4fbc9366f1b0"
+      },
+      {
+        "path": "JniConstants.h",
+        "bytes": 1968,
+        "sha256": "7069ae799c681e45bbd41bd09a3231dec33f0564cbf3de262c288de8c2c99944"
+      },
+      {
+        "path": "JniInvocation-priv.h",
+        "bytes": 888,
+        "sha256": "9d4d398f467aa0e569ba283520b371e46c35e7fc2b4dd146dc2926d5b24f4022"
+      },
+      {
+        "path": "JniInvocation.c",
+        "bytes": 7094,
+        "sha256": "ecec73e5088e8074553cc9b4ca457b84252bad74ff47a9f78b7476f00ff557f5"
+      },
+      {
+        "path": "NOTICE",
+        "bytes": 10695,
+        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+      },
+      {
+        "path": "file_descriptor_jni.c",
+        "bytes": 1821,
+        "sha256": "4f6989757d5d116a5e45ba0daeba4726e149c58107e9146de80b95a5e98955c3"
+      },
+      {
+        "path": "header_only_include/nativehelper/nativehelper_utils.h",
+        "bytes": 1626,
+        "sha256": "e216014aef0ba4c7c889009a75e2fbcbcc33cc6ba8c2e98af42021d51da9dc8d"
+      },
+      {
+        "path": "header_only_include/nativehelper/scoped_local_frame.h",
+        "bytes": 975,
+        "sha256": "f6b46fd9439345fffd3310455571dd32d4e4e83f4cfd566317eb39ebfaaa640f"
+      },
+      {
+        "path": "header_only_include/nativehelper/scoped_local_ref.h",
+        "bytes": 2356,
+        "sha256": "d3cfeaedca89015cc1c1f24ad5e874d4eb838985b335e8cf2378b2e9d02ae723"
+      },
+      {
+        "path": "header_only_include/nativehelper/scoped_primitive_array.h",
+        "bytes": 6206,
+        "sha256": "aaad3bf20fc5849efdd738f8cb0f4c7d809890e8bb0b96e86aa38af03d8ff2ce"
+      },
+      {
+        "path": "header_only_include/nativehelper/scoped_string_chars.h",
+        "bytes": 1870,
+        "sha256": "65ffd365f6a8a0195c72a81140288201e04c0295d5c80c7b33b428ad479c9de5"
+      },
+      {
+        "path": "header_only_include/nativehelper/scoped_utf_chars.h",
+        "bytes": 2738,
+        "sha256": "14b61cedec183ed2da45bd44ddd186885916be9329e9fbbae6feff356b67a779"
+      },
+      {
+        "path": "header_only_include/nativehelper/utils.h",
+        "bytes": 6471,
+        "sha256": "e4307a43b077ed06a186026d2feea5d62bea61211b7a246f89533ac4d18fe5bd"
+      },
+      {
+        "path": "include/android/file_descriptor_jni.h",
+        "bytes": 2888,
+        "sha256": "de0f602858c15b01da1f90a2db668fa0afe8c6d68ef8a7062653ab1f4894b412"
+      },
+      {
+        "path": "include/nativehelper/JNIHelp.h",
+        "bytes": 18856,
+        "sha256": "610f4efca3586ffc3af31360789b5702d71533dab085771d94ae6be857493940"
+      },
+      {
+        "path": "include/nativehelper/ScopedLocalFrame.h",
+        "bytes": 684,
+        "sha256": "f27517db1bc434664a474d8f169a7bdd234091f08b2eaccf0e5c4d819623d03a"
+      },
+      {
+        "path": "include/nativehelper/ScopedLocalRef.h",
+        "bytes": 700,
+        "sha256": "4c012fc261fae161000d10aa339989f2c30c3f157d138642f13241dd23acb1da"
+      },
+      {
+        "path": "include/nativehelper/ScopedPrimitiveArray.h",
+        "bytes": 706,
+        "sha256": "bc9823a53b83bfd1f9975ea600679e62f6cc4094279cc4c4d3d40d1b4ee5eccf"
+      },
+      {
+        "path": "include/nativehelper/ScopedStringChars.h",
+        "bytes": 703,
+        "sha256": "16c45e6ea42f6b7f5f98d91786d394851d011c2cc5ca63c8bf372ada7a0231ad"
+      },
+      {
+        "path": "include/nativehelper/ScopedUtfChars.h",
+        "bytes": 700,
+        "sha256": "4765dc3a995d92ecc8111ab54d86a0fdd8f513e5450e2ff8ea93e3244537b292"
+      },
+      {
+        "path": "include/nativehelper/Utils.h",
+        "bytes": 667,
+        "sha256": "d7ec19aec366f72626ecb3c63bf9e558f931f6c379d8b23a3f7909e822f10eb3"
+      },
+      {
+        "path": "include/nativehelper/toStringArray.h",
+        "bytes": 2130,
+        "sha256": "07d451ab00855c803fd76c936e8971b5465a17fb6c447ef3c7da3b6bf9b05858"
+      },
+      {
+        "path": "include_jni/jni.h",
+        "bytes": 52276,
+        "sha256": "c88ce2cb6ce10378cd4c706a3a2ad017794aedb9314ddcc341e39b470cdb601a"
+      },
+      {
+        "path": "include_platform/nativehelper/JNIPlatformHelp.h",
+        "bytes": 4237,
+        "sha256": "57ef3faa2a46d68ec7059d62d62fa4929f8884458f9e1b8889c01c60abba1c25"
+      },
+      {
+        "path": "include_platform/nativehelper/JniInvocation.h",
+        "bytes": 4563,
+        "sha256": "56126e640a1781a89f4e3def7d869857ce1558b0cf4d829c308ce17f7b68e1b7"
+      },
+      {
+        "path": "include_platform_header_only/nativehelper/detail/signature_checker.h",
+        "bytes": 50278,
+        "sha256": "2fd3c44d74445cea62b68fe10ab53a03f03af3f1bccd4a0b85fcc1505a318b01"
+      },
+      {
+        "path": "include_platform_header_only/nativehelper/jni_macros.h",
+        "bytes": 12956,
+        "sha256": "c4058d232a61f785651efe5e03c0ef3e685d937312670d7f01144ad2064646d6"
+      },
+      {
+        "path": "libnativehelper.map.txt",
+        "bytes": 640,
+        "sha256": "1d1a688885e018b90b52a76e79730804318dafe84ce2a697bb85e85a171eec02"
+      },
+      {
+        "path": "libnativehelper_lazy.h",
+        "bytes": 736,
+        "sha256": "e3ba4e92d5616cc630c7c0b63f9ed6d6fbaa8ea40d80b5728fce08e9f67d6d0c"
+      }
+    ]
+  },
+  "art-icu-native": {
+    "repository": "msft-mirror-aosp/platform.external.icu",
+    "commit": "cf305aeb6df416fa81cfc98bd73d913ee781175d",
+    "archive_bytes": 107228391,
+    "archive_sha256": "da85d24015b1eeea0b5257ace3e0f23ef75c8858d336ad7aeee31ce777b81dbe",
+    "tag": "android-15.0.0_r1",
+    "archive": "icu-classlib-android-15.0.0_r1.tar.gz",
+    "notice": "LICENSE",
+    "notice_sha256": "ea75d2e79a97f8dfc1e1ca04beedc432a47af4993e0cd659cef062050a57d3f9",
+    "files": [
+      {
+        "path": "Android.bp",
+        "bytes": 3514,
+        "sha256": "b6ae8f5a82a5f937caaa39b3a0cbb6cc366240070df8fc47bcdc67bab3136bb4"
+      },
+      {
+        "path": "LICENSE",
+        "bytes": 36620,
+        "sha256": "ea75d2e79a97f8dfc1e1ca04beedc432a47af4993e0cd659cef062050a57d3f9"
+      },
+      {
+        "path": "android_icu4c/include/uconfig_local.h",
+        "bytes": 1064,
+        "sha256": "5b45963069b688f3af1dc36eefaf125ad6dd7be54e71737ab10dbcbf2e914cea"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/Android.bp",
+        "bytes": 1870,
+        "sha256": "948c440094ee76bd8cb75b0c8392f9f815754ac2b8c6d856c7ddc0b0d68e13b6"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/IcuUtilities.cpp",
+        "bytes": 1564,
+        "sha256": "46535623550023cf1ee8ef7e0b426d209c1899d1b940d4bde3066803e100620b"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/IcuUtilities.h",
+        "bytes": 872,
+        "sha256": "e37d32405081fa104e34eada9399515a6bd7775143a70a0a1b58314b397a6fef"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/JniConstants.cpp",
+        "bytes": 2848,
+        "sha256": "834a2ea7bc1335cd2ccee465bad06cfaa5c9a1eef13d455723685ba93e459416"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/JniConstants.h",
+        "bytes": 1124,
+        "sha256": "9a312f8c7748828bf5c08c5a0338357c2a674c80a9becbfaf53e755f332dbd2e"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/MatcherState.cpp",
+        "bytes": 3504,
+        "sha256": "6e48f1ab4a2425de7a5d5318157298154fa06dc89b20648629e9ad6c8c9b10a2"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/MatcherState.h",
+        "bytes": 1965,
+        "sha256": "3514edfe7988d8ead21e9140bab04300ff1de0affffe909492d5558a24c834d4"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/Register.cpp",
+        "bytes": 2798,
+        "sha256": "93f719dd6e51ec6cd1e4f2aa4887ecf1801ad37147783ac771f38de414f09e7d"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/ScopedIcuLocale.h",
+        "bytes": 1706,
+        "sha256": "64e7ebe02b67f60e3eee6947941b8b8a42a311a5017bcd59e8d1e2c87115f427"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/ScopedJavaUnicodeString.h",
+        "bytes": 1996,
+        "sha256": "80b16e76b88da2ffdd5bd296dc22927ef48aa3e2bef776df250e88edad2b4715"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/com_android_i18n_timezone_internal_Memory.cpp",
+        "bytes": 10589,
+        "sha256": "635404bbcb7ee0f20760bea79c220d8bd54b2fea5cbd82ed3f21186dc032241b"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/com_android_i18n_util_Log.cpp",
+        "bytes": 1665,
+        "sha256": "8064f3cfa872ba748aacd4a3a91997959cf9214e558c3d440af6d32c52d25472"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/com_android_icu_charset_NativeConverter.cpp",
+        "bytes": 27751,
+        "sha256": "c47805f10978cd553b96cc74162f01737ecf91c63330ec44b324e711fceff6a7"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/com_android_icu_text_TimeZoneNamesNative.cpp",
+        "bytes": 3935,
+        "sha256": "3fc17df609efb9994ae4c7e308c9e9ecedfe4f79d467ba6792d2d8aff8be6689"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/com_android_icu_util_CaseMapperNative.cpp",
+        "bytes": 2314,
+        "sha256": "cffc233736ff44820da386d52facfcccda3d2dd7ac34211d0e06afc1e64649af"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/com_android_icu_util_ICU4CMetadata.cpp",
+        "bytes": 2509,
+        "sha256": "729e465ab4d3268072d90c5e2e2affc5fc69f5c155d322bfa3f03e97eff8e1f0"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/com_android_icu_util_LocaleNative.cpp",
+        "bytes": 3914,
+        "sha256": "1d5949a05972a0fe4926888d54e0d113239455f019c104355680cad7c2db8ee3"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/com_android_icu_util_UResourceBundleNative.cpp",
+        "bytes": 1691,
+        "sha256": "ae401870610474eed04bcdf38e23e55f1d0092edf4588dc42ecfacd3ff8dd9cf"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/com_android_icu_util_regex_MatcherNative.cpp",
+        "bytes": 5112,
+        "sha256": "3ce8c1bcca023187c82c6ef0430d01e7b03e70ca09768b5a5a39f0861e336717"
+      },
+      {
+        "path": "android_icu4j/libcore_bridge/src/native/com_android_icu_util_regex_PatternNative.cpp",
+        "bytes": 6138,
+        "sha256": "02bbe2c426bb65ef0fa278f7adf227331b6955ed3aff07332b834141f5a1d01e"
+      },
+      {
+        "path": "icu4c/license.html",
+        "bytes": 622,
+        "sha256": "c62d7697c03979f5056d28b338fafc7a1152820f7b379adf4a9d88cd37160f96"
+      },
+      {
+        "path": "icu4c/source/common/Android.bp",
+        "bytes": 4193,
+        "sha256": "0013f82ceb6e31d7bf45611295ea5f6f54ae30b0bf8de6e31c24bcd0b7e38f4c"
+      },
+      {
+        "path": "icu4c/source/common/appendable.cpp",
+        "bytes": 1925,
+        "sha256": "fe8c4408c4ec025a3f01872dcab971fd5eeec5473ce81290585cd43d21365b8b"
+      },
+      {
+        "path": "icu4c/source/common/bmpset.cpp",
+        "bytes": 24743,
+        "sha256": "e796f9f65acd93868938549b8cc4c84df7e001cce728a24887e420ae3d14e6e4"
+      },
+      {
+        "path": "icu4c/source/common/bmpset.h",
+        "bytes": 5806,
+        "sha256": "116bff003ea069337df5b8c16f6887507f2b46900dbd02b8a45378f5cd1c51d4"
+      },
+      {
+        "path": "icu4c/source/common/brkeng.cpp",
+        "bytes": 12079,
+        "sha256": "07c84f15e98e437f889c22a4614316135bdb0072fd0d692fa2721746f4c12b84"
+      },
+      {
+        "path": "icu4c/source/common/brkeng.h",
+        "bytes": 9981,
+        "sha256": "40d0966d2e3d92a96ea1ca1245e9feb020033c7de700f698bd4681b6d7224ab4"
+      },
+      {
+        "path": "icu4c/source/common/brkiter.cpp",
+        "bytes": 16790,
+        "sha256": "d3e03f38e5dfba880f63fae3290ae8a11cbded1e4cea25b39fd5168100c573fd"
+      },
+      {
+        "path": "icu4c/source/common/bytesinkutil.cpp",
+        "bytes": 5018,
+        "sha256": "9346d8432fd8b69b95b83d36d83ecdb13b63bf66fcbaf72b890fe706888138f0"
+      },
+      {
+        "path": "icu4c/source/common/bytesinkutil.h",
+        "bytes": 5882,
+        "sha256": "76158c76c044a3183a28902a3213b3ef5aece1037979cc27176d78690ccc51da"
+      },
+      {
+        "path": "icu4c/source/common/bytestream.cpp",
+        "bytes": 2465,
+        "sha256": "5366eda20607df5000162319054e8c1ae7224f9938b8907830b17c1ce46d2042"
+      },
+      {
+        "path": "icu4c/source/common/bytestrie.cpp",
+        "bytes": 13902,
+        "sha256": "341a0ea6449c2875254ef4560279de761e6a64575117f5ad30f0c1770c42454e"
+      },
+      {
+        "path": "icu4c/source/common/bytestriebuilder.cpp",
+        "bytes": 15867,
+        "sha256": "59e4aad5527eeb66b25d30ac618a526793a5352c8054ccb258dd0ca0f78f454a"
+      },
+      {
+        "path": "icu4c/source/common/bytestrieiterator.cpp",
+        "bytes": 7329,
+        "sha256": "42a1452024f581bd935de2959d06255970418d03a47b311df2d1f9bf882a2975"
+      },
+      {
+        "path": "icu4c/source/common/caniter.cpp",
+        "bytes": 20183,
+        "sha256": "be4dd7821b249d42aa22c25f65c5d0fdfea707f1310d235091c670403a688173"
+      },
+      {
+        "path": "icu4c/source/common/capi_helper.h",
+        "bytes": 2647,
+        "sha256": "2487cdda817bb6692ed4b29502f93f64f1070d9eaa42d2431dd190ae8c8bc900"
+      },
+      {
+        "path": "icu4c/source/common/characterproperties.cpp",
+        "bytes": 13759,
+        "sha256": "ebe99a13a33cbcf3039c0f16843ab0cf07859804db6ecd5b4030edfc17004583"
+      },
+      {
+        "path": "icu4c/source/common/chariter.cpp",
+        "bytes": 2564,
+        "sha256": "baeb9c81887867365159a55aeca7e61627fcb2b961eef0600846e4ec077f3cf5"
+      },
+      {
+        "path": "icu4c/source/common/charstr.cpp",
+        "bytes": 8286,
+        "sha256": "d38c520622924b8e9b99d33e95e43f2378e37da22a99103c76938d0d583b856d"
+      },
+      {
+        "path": "icu4c/source/common/charstr.h",
+        "bytes": 7831,
+        "sha256": "96af08d5dd1db1e4aedea56c561c9b31bf5356953c8475612f6ca5d5245cb910"
+      },
+      {
+        "path": "icu4c/source/common/charstrmap.h",
+        "bytes": 1564,
+        "sha256": "36b664d469135ca26a4d7ac94ef8a335bd129d4a2d148675ef8496b823b07bc2"
+      },
+      {
+        "path": "icu4c/source/common/cmemory.cpp",
+        "bytes": 3540,
+        "sha256": "9a0ffa21c47a2a590b7a7be52a10e503d360dc43303fe61cf1271fc0d3de32bc"
+      },
+      {
+        "path": "icu4c/source/common/cmemory.h",
+        "bytes": 30731,
+        "sha256": "d564dab89c28a9089d2fc86c80fb357421e73a7d071cad2a94324d7c67bed057"
+      },
+      {
+        "path": "icu4c/source/common/cpputils.h",
+        "bytes": 3273,
+        "sha256": "389ab0ef237681e2e84997105ee885c6ce182174a2c34c76c2205c10d370be3a"
+      },
+      {
+        "path": "icu4c/source/common/cstr.cpp",
+        "bytes": 1723,
+        "sha256": "2af48ae2cd9ec4a56dd34acad7aa372d572b0a6e1700b89044a9634e9d4bc68f"
+      },
+      {
+        "path": "icu4c/source/common/cstr.h",
+        "bytes": 1807,
+        "sha256": "2f0f803018e24306831a1d08096c57a2eaa8ea375e71b9bf0c3e1b52e054dcad"
+      },
+      {
+        "path": "icu4c/source/common/cstring.cpp",
+        "bytes": 8785,
+        "sha256": "44359035a06488f6b0cdfc26ec5222b948b16f9a540f11e165bc607ee85326b8"
+      },
+      {
+        "path": "icu4c/source/common/cstring.h",
+        "bytes": 4013,
+        "sha256": "d07a23a841fc7ead757246068dacfe5d639669e1d1fb7c455beb566d9bf5cb29"
+      },
+      {
+        "path": "icu4c/source/common/cwchar.cpp",
+        "bytes": 1157,
+        "sha256": "92058b8f6ab8a3e5a420efff7cc3dd49202665bf99cef181adf804e6665b8352"
+      },
+      {
+        "path": "icu4c/source/common/cwchar.h",
+        "bytes": 1890,
+        "sha256": "b945a0f657d4e3b6462ebdcfe44f0c7ffd06d41ad9bc164ee2ea8610cfe81c1c"
+      },
+      {
+        "path": "icu4c/source/common/dictbe.cpp",
+        "bytes": 63402,
+        "sha256": "d99235ead5fd721779a1d57cbdf301a2889e50a70fff980840e0eaab04e4992c"
+      },
+      {
+        "path": "icu4c/source/common/dictbe.h",
+        "bytes": 13581,
+        "sha256": "f48ded17ed8beff80a4ae4dd8325049dca6a19a1876ede8e1e29c6d4618ba3c8"
+      },
+      {
+        "path": "icu4c/source/common/dictionarydata.cpp",
+        "bytes": 8352,
+        "sha256": "c62e4ad6c290d92b281fc87063a58ce1175f83a5da22264da952e03a1854be46"
+      },
+      {
+        "path": "icu4c/source/common/dictionarydata.h",
+        "bytes": 8007,
+        "sha256": "132a209149d5b4c7f6be31645a91052b15351477f0d8ec6c722adc90f8c8a58e"
+      },
+      {
+        "path": "icu4c/source/common/dtintrv.cpp",
+        "bytes": 1272,
+        "sha256": "dda238f6f0388cc0925c60d6e8ca8db84d9fdc225eac88b1511422a450cf0413"
+      },
+      {
+        "path": "icu4c/source/common/edits.cpp",
+        "bytes": 28861,
+        "sha256": "b3eda13c5a0b106a17711df862ff621e4fafc3c8f21c7ab46d08399aa92c3dea"
+      },
+      {
+        "path": "icu4c/source/common/emojiprops.cpp",
+        "bytes": 8051,
+        "sha256": "73ec67a0bae81d45cdc6486e4193cb76a99aa2672756a7e8f181767991529405"
+      },
+      {
+        "path": "icu4c/source/common/emojiprops.h",
+        "bytes": 2812,
+        "sha256": "17812a0907a722b39a4180bc9d6ec04b2852e68df0e24206cb67356c511c17d2"
+      },
+      {
+        "path": "icu4c/source/common/errorcode.cpp",
+        "bytes": 969,
+        "sha256": "49933ec89b2eb331f85d50f6da765e44cb99a3d2d3cd9cd2f63c31d5b81177a6"
+      },
+      {
+        "path": "icu4c/source/common/filteredbrk.cpp",
+        "bytes": 26164,
+        "sha256": "bfe1e840120c82281c65338a0a98223cf4e05d16129b87a3ba958f300aa2216e"
+      },
+      {
+        "path": "icu4c/source/common/filterednormalizer2.cpp",
+        "bytes": 12608,
+        "sha256": "1e6c74b5d3cc5c19223e63345e34bb00e2b845e93b599fbae8660946e121eb2f"
+      },
+      {
+        "path": "icu4c/source/common/hash.h",
+        "bytes": 8271,
+        "sha256": "0806d10eaec0be5691a21d5956d36620fa516924de7836163d6319f5d9c90336"
+      },
+      {
+        "path": "icu4c/source/common/icudataver.cpp",
+        "bytes": 1021,
+        "sha256": "6cf11160eab0b32a408f4d66796df42bb2cda5e14a203a88c88af0c5e7d6f853"
+      },
+      {
+        "path": "icu4c/source/common/icuplug.cpp",
+        "bytes": 23451,
+        "sha256": "138b36762054cdd9529ba785b5417e25752e4c23c63db97c200229ad338f5abe"
+      },
+      {
+        "path": "icu4c/source/common/icuplugimp.h",
+        "bytes": 2102,
+        "sha256": "9f7368f964e8e3afd77df36ff3e1f38ad7a7ec2d22fab72c28f6a7f43ef35046"
+      },
+      {
+        "path": "icu4c/source/common/loadednormalizer2impl.cpp",
+        "bytes": 14742,
+        "sha256": "06e14c6e29bbfe8852641727d5dbacdeab3936233193153cf3735c3eb7465322"
+      },
+      {
+        "path": "icu4c/source/common/localebuilder.cpp",
+        "bytes": 14950,
+        "sha256": "14cc019026c28a872f866f692ca368b4292075c31a1f0fa3710f881fc22ac2ce"
+      },
+      {
+        "path": "icu4c/source/common/localefallback_data.h",
+        "bytes": 45936,
+        "sha256": "253ecfefaa02573ca3500cb5b5ae91f3fca5aea220b7c9d95069c169c197b8df"
+      },
+      {
+        "path": "icu4c/source/common/localematcher.cpp",
+        "bytes": 31872,
+        "sha256": "38f9eff7c0ffd6d4f3bdccb0f5b0df156ab7ebee2e23ebe4b941167e1eff14c6"
+      },
+      {
+        "path": "icu4c/source/common/localeprioritylist.cpp",
+        "bytes": 7849,
+        "sha256": "01169b6b16703cbfc1715be1eae49b76ee836a821da349ace1ec5a01e949fede"
+      },
+      {
+        "path": "icu4c/source/common/localeprioritylist.h",
+        "bytes": 3612,
+        "sha256": "3dc52c65decb9289d9414f0cc3977d25c06a3fc9c770c2ea30c9051ecb97e647"
+      },
+      {
+        "path": "icu4c/source/common/localsvc.h",
+        "bytes": 947,
+        "sha256": "cefe5c65df370d43238b846cf50ea5b18454d3884085b1843c26c60ed70f93ae"
+      },
+      {
+        "path": "icu4c/source/common/locavailable.cpp",
+        "bytes": 8468,
+        "sha256": "2b2e92f2d4b2f91b3ab36a1d16ec03f1e95a3f8d2fb15b666eb9979dd1ca103a"
+      },
+      {
+        "path": "icu4c/source/common/locbased.cpp",
+        "bytes": 1687,
+        "sha256": "440db62c02b67f2616ce4a686c4c6b070e7e903e6e8b6b8db291fdcdb78584a2"
+      },
+      {
+        "path": "icu4c/source/common/locbased.h",
+        "bytes": 3413,
+        "sha256": "3daf240755435206d4941f29cecfdb9a1e398d8bc1efc7073ae864d2cab04601"
+      },
+      {
+        "path": "icu4c/source/common/locdispnames.cpp",
+        "bytes": 34887,
+        "sha256": "bf0b7357027ce248905d864d1af7ddffc8da3e6b2a7c94dca003aea8c0d27af7"
+      },
+      {
+        "path": "icu4c/source/common/locdistance.cpp",
+        "bytes": 17141,
+        "sha256": "37bce57c158c28beb705fd83b8581f8818e61af7fdd5a386dfb51a942c91e362"
+      },
+      {
+        "path": "icu4c/source/common/locdistance.h",
+        "bytes": 5307,
+        "sha256": "c01698c4a7559886d5f9cafd91aad30a6bf0c83238455df74267238cbc3276b5"
+      },
+      {
+        "path": "icu4c/source/common/locdspnm.cpp",
+        "bytes": 41277,
+        "sha256": "95e172ee38a035a751ea3df269d588dbbf724ab6c528f6de0f7819451fd25dda"
+      },
+      {
+        "path": "icu4c/source/common/locid.cpp",
+        "bytes": 87046,
+        "sha256": "38089e40d4bcdd5b506134436873e5a7c738169e7a59547431cc1365e4f8f27a"
+      },
+      {
+        "path": "icu4c/source/common/loclikely.cpp",
+        "bytes": 13366,
+        "sha256": "7f5168ebfcefecaff35229fba42dd7da92994ebdc5443e1542b251ce9924b005"
+      },
+      {
+        "path": "icu4c/source/common/loclikelysubtags.cpp",
+        "bytes": 35563,
+        "sha256": "93b48df12c2cc23ec744779f6ef24eb5366e4d6c5309276a1def18cf685322c5"
+      },
+      {
+        "path": "icu4c/source/common/loclikelysubtags.h",
+        "bytes": 4374,
+        "sha256": "eea239d8238c5f62a7a967711c26ce8c77a35d281d99e5da0c4cb3be459cf211"
+      },
+      {
+        "path": "icu4c/source/common/locmap.cpp",
+        "bytes": 44860,
+        "sha256": "7c961e84b6a5af21b4da05edd1b80592f1e5d3fa5f43bfe8852fa3ef563aeca3"
+      },
+      {
+        "path": "icu4c/source/common/locmap.h",
+        "bytes": 1361,
+        "sha256": "d2fa3a31d33e9ffe74e20cb47ee173ddd43d115ae18be5e741b92434e4df4610"
+      },
+      {
+        "path": "icu4c/source/common/locresdata.cpp",
+        "bytes": 7734,
+        "sha256": "d911ced6692c69620df1ca56ad9a456cf21915dba084251939e56b3699550730"
+      },
+      {
+        "path": "icu4c/source/common/locutil.cpp",
+        "bytes": 8861,
+        "sha256": "8b1cde356139a2bde4c71231721329fdf31334aceb48db8facb984cfaafed81b"
+      },
+      {
+        "path": "icu4c/source/common/locutil.h",
+        "bytes": 1303,
+        "sha256": "f97a89aadfb3e9985c9a0d9f6d890293941361eb1eea73f379f4da69b1f58640"
+      },
+      {
+        "path": "icu4c/source/common/lsr.cpp",
+        "bytes": 4331,
+        "sha256": "6a05dc97b57de7972ac9452ff687a5611beafefd0e28f53a319b8d7b78050353"
+      },
+      {
+        "path": "icu4c/source/common/lsr.h",
+        "bytes": 2560,
+        "sha256": "21b61e5f3481cb2a179a28887add96df4e6352e020619a39a8adf2682a7e0015"
+      },
+      {
+        "path": "icu4c/source/common/lstmbe.cpp",
+        "bytes": 25761,
+        "sha256": "18a88446fef9b7d8640868e8e9d35c1f36d9106c4d5f13ae63923b7c1d75da10"
+      },
+      {
+        "path": "icu4c/source/common/lstmbe.h",
+        "bytes": 2620,
+        "sha256": "eb7312d96ddcedb996fdafdbdf27b88b5bc0483e406b18bbe69563967617f868"
+      },
+      {
+        "path": "icu4c/source/common/messageimpl.h",
+        "bytes": 2071,
+        "sha256": "3d603b8ea173d360da44b86ba8af4c80f43dd548be76ebd64c1cd688346fb777"
+      },
+      {
+        "path": "icu4c/source/common/messagepattern.cpp",
+        "bytes": 44477,
+        "sha256": "843d81a564d1bfa0783f874eb87c792093b8e3a681abbdc2f9bad22916ca0d37"
+      },
+      {
+        "path": "icu4c/source/common/mlbe.cpp",
+        "bytes": 10713,
+        "sha256": "2c8c6bd2079f095a78434547319b3f227f2b7be0860dd79dd089906ea6e79cc0"
+      },
+      {
+        "path": "icu4c/source/common/mlbe.h",
+        "bytes": 4292,
+        "sha256": "6830d692c3a21b513108ec001dab39b03fb52f776d74151e9ef368eea044d264"
+      },
+      {
+        "path": "icu4c/source/common/msvcres.h",
+        "bytes": 912,
+        "sha256": "abfeaa00a20a2d445955fa934cde10bab172c4bd920e35fbffab66cf88506e8c"
+      },
+      {
+        "path": "icu4c/source/common/mutex.h",
+        "bytes": 2291,
+        "sha256": "023e1d2240e6f3b9905440e6ec07776cafdc78fca69f3779e2527454040455a6"
+      },
+      {
+        "path": "icu4c/source/common/norm2_nfc_data.h",
+        "bytes": 91220,
+        "sha256": "6270075f4b5f348d656d03697a4a555e56efbc0c02a74f228ab8c698f79511e4"
+      },
+      {
+        "path": "icu4c/source/common/norm2allmodes.h",
+        "bytes": 15430,
+        "sha256": "d0ad26ad984bad842c15b3d070cf796856ce53c00f50771b94de8a4d21fa59ef"
+      },
+      {
+        "path": "icu4c/source/common/normalizer2.cpp",
+        "bytes": 18810,
+        "sha256": "1e086a860daac75c9340330710d0e0bcbcdb3d6411bb2e71e51f376a0e5016ed"
+      },
+      {
+        "path": "icu4c/source/common/normalizer2impl.cpp",
+        "bytes": 108525,
+        "sha256": "e6d6012ca5b96d7e385d86fa21dd82b300e9eb8a1992fc8874d5d6ff7bf23955"
+      },
+      {
+        "path": "icu4c/source/common/normalizer2impl.h",
+        "bytes": 42022,
+        "sha256": "23070d5a5d1cb33221ccc299c592bbd0373747248d8e172e543b74694d2d6436"
+      },
+      {
+        "path": "icu4c/source/common/normlzr.cpp",
+        "bytes": 15145,
+        "sha256": "3abad322d6f9282d657b5513ef0bb0d30a1779e1a17f1898e3dacd9a06f92e1a"
+      },
+      {
+        "path": "icu4c/source/common/parsepos.cpp",
+        "bytes": 613,
+        "sha256": "3e4715affbf1fc05edf6bef2019397f192969524eb00a545bfec20f5c57d5221"
+      },
+      {
+        "path": "icu4c/source/common/patternprops.cpp",
+        "bytes": 6514,
+        "sha256": "ef7c0ea479147c66e5cc3efd4e0ce3f22f08025cd6c3d51d651ad2635080ce72"
+      },
+      {
+        "path": "icu4c/source/common/patternprops.h",
+        "bytes": 3356,
+        "sha256": "af796d3db8a3a889db6d4d4f4bda38fe124a7f7d27c32a87c3567497fcc814f2"
+      },
+      {
+        "path": "icu4c/source/common/pluralmap.cpp",
+        "bytes": 1209,
+        "sha256": "077f253fabcc1e9b19d6f1166393f38e125063c0cb44a8c25d49bbecc4693997"
+      },
+      {
+        "path": "icu4c/source/common/pluralmap.h",
+        "bytes": 8721,
+        "sha256": "8cb7807c05ae230faf7afaa634b8e2c153257232cefbddac5328540a0c0bb2a3"
+      },
+      {
+        "path": "icu4c/source/common/propname.cpp",
+        "bytes": 10158,
+        "sha256": "c6bc7085236056ec42b4a650167c76d6ce8398531e86044927d806e4612887fa"
+      },
+      {
+        "path": "icu4c/source/common/propname.h",
+        "bytes": 8169,
+        "sha256": "c3091799d2a5510eff489e97b8d8d84f50f95d53ff04cb7c2d2af4b291b4b181"
+      },
+      {
+        "path": "icu4c/source/common/propname_data.h",
+        "bytes": 176825,
+        "sha256": "bc4183f5134218d34d27ca2c7fe3a0c79df0111a6a9ef6c78cec8d78814f0036"
+      },
+      {
+        "path": "icu4c/source/common/propsvec.cpp",
+        "bytes": 15867,
+        "sha256": "f2885087e43eae2608e523947dca45b53f0320bb645957ecd21f3efc936f5d9c"
+      },
+      {
+        "path": "icu4c/source/common/propsvec.h",
+        "bytes": 5902,
+        "sha256": "3a4331ec979a395b34344e5fb5cb23a3e3599299dc1762991015cb973f7c9d24"
+      },
+      {
+        "path": "icu4c/source/common/punycode.cpp",
+        "bytes": 18079,
+        "sha256": "1f13a215b3f4e0a2eaf3e35440f9157ab0cb3585bb8f49845659a7d4101b9ec8"
+      },
+      {
+        "path": "icu4c/source/common/punycode.h",
+        "bytes": 4368,
+        "sha256": "dcab72c50aa9e864e72a1d9c2e459f35d1dbeb7de3a27bc17e52574437720a09"
+      },
+      {
+        "path": "icu4c/source/common/putil.cpp",
+        "bytes": 82110,
+        "sha256": "c92040fd35b852c0940a298227dbe81a303d023edbd237688b8bfc60a6deb076"
+      },
+      {
+        "path": "icu4c/source/common/putilimp.h",
+        "bytes": 19385,
+        "sha256": "d0fc0ae1c1b768c4179f7836cfdafcf33f6325683134f904e10e0ed26af85099"
+      },
+      {
+        "path": "icu4c/source/common/rbbi.cpp",
+        "bytes": 44423,
+        "sha256": "3aee119046d3411480a9e4bd646ce1296a4abbe437ad4c0fecdb231104538952"
+      },
+      {
+        "path": "icu4c/source/common/rbbi_cache.cpp",
+        "bytes": 26885,
+        "sha256": "739c40867b2bdcc5704d324be19f3ccf070fc97b384c468fd4d47c9b70864269"
+      },
+      {
+        "path": "icu4c/source/common/rbbi_cache.h",
+        "bytes": 7953,
+        "sha256": "deaadf9b86779595af05dcfc26f0eac9fc9d054f70ba64d50ab3b6acc6bc7302"
+      },
+      {
+        "path": "icu4c/source/common/rbbidata.cpp",
+        "bytes": 17163,
+        "sha256": "6f2498e48e4744caaed57be4bc9f5adee36b1582d1d0139bdcceff6c1e13a122"
+      },
+      {
+        "path": "icu4c/source/common/rbbidata.h",
+        "bytes": 9553,
+        "sha256": "cf3076d2a7657a42f309a95541164de03d7ee3feb6793ec20741fba548384817"
+      },
+      {
+        "path": "icu4c/source/common/rbbinode.cpp",
+        "bytes": 14418,
+        "sha256": "b99da09b697f41fbced68efc9f01b7efa55df9f662dc7b03df2ea57aec673577"
+      },
+      {
+        "path": "icu4c/source/common/rbbinode.h",
+        "bytes": 4478,
+        "sha256": "4a6e2d22cabbcd3c8edde2ce7375e0b920b1579a309cf97562df462bc3c06922"
+      },
+      {
+        "path": "icu4c/source/common/rbbirb.cpp",
+        "bytes": 11548,
+        "sha256": "c57d15967aef90cc483ac5251a9ae1ce471917e14ba50704582c71b6405e60ad"
+      },
+      {
+        "path": "icu4c/source/common/rbbirb.h",
+        "bytes": 9055,
+        "sha256": "2f9fe8eb77fdacbc6cccaf47c778f5740118041e72de47b15a382b3106075952"
+      },
+      {
+        "path": "icu4c/source/common/rbbirpt.h",
+        "bytes": 9851,
+        "sha256": "c20cc5d772e3552317f1186a06980d1c049c094847ee9dd285bc2f9444e9972d"
+      },
+      {
+        "path": "icu4c/source/common/rbbiscan.cpp",
+        "bytes": 47467,
+        "sha256": "1c13aff3c6fe963f34726dab9749498d4bf06755503b8f2851cf421f12682b4f"
+      },
+      {
+        "path": "icu4c/source/common/rbbiscan.h",
+        "bytes": 7513,
+        "sha256": "a398fff9a10e2267946962acd051a136cc310f0375182bba04cefbe420d277d4"
+      },
+      {
+        "path": "icu4c/source/common/rbbisetb.cpp",
+        "bytes": 25052,
+        "sha256": "95922f950ed66692a26780c437580a154f84ef451b15ddc4956568a5748ee68b"
+      },
+      {
+        "path": "icu4c/source/common/rbbisetb.h",
+        "bytes": 6086,
+        "sha256": "787ca6d16b9fbb55d7aaddc2e0e0a904df6ef0a5d9f0881f7ddbb627aa98f5cb"
+      },
+      {
+        "path": "icu4c/source/common/rbbistbl.cpp",
+        "bytes": 8877,
+        "sha256": "de1d065888d1b281ee4ff161bf7df93f304b02bf6af0ec49e858c52f84b1fa72"
+      },
+      {
+        "path": "icu4c/source/common/rbbitblb.cpp",
+        "bytes": 64565,
+        "sha256": "6690d0dd4b87d2f3a6903b74f1d58bae5cec6715568bf62bf58718640ffbb01f"
+      },
+      {
+        "path": "icu4c/source/common/rbbitblb.h",
+        "bytes": 8722,
+        "sha256": "df6c508fcf60b6f87b893bd69d742a4fd96ac5e3875fc3cc86048b3ac511b9fe"
+      },
+      {
+        "path": "icu4c/source/common/resbund.cpp",
+        "bytes": 15248,
+        "sha256": "630527b28ad3ad2f2608a054e5a393b758b8c9ee3b89e3700b5be282231495c1"
+      },
+      {
+        "path": "icu4c/source/common/resbund_cnv.cpp",
+        "bytes": 1775,
+        "sha256": "54975453340556d3909c475c394d971669d9a50d1c1e3ae815b96e72f391550a"
+      },
+      {
+        "path": "icu4c/source/common/resource.cpp",
+        "bytes": 588,
+        "sha256": "c7e1e7eb118db6a4725895b48abf0684740e6df7a1bb851098df7b630e1236d5"
+      },
+      {
+        "path": "icu4c/source/common/resource.h",
+        "bytes": 9470,
+        "sha256": "340122ddf8fbeed14e1592ed638df7fd53c384a6b009a555e6e6da9598d4c463"
+      },
+      {
+        "path": "icu4c/source/common/restrace.cpp",
+        "bytes": 3793,
+        "sha256": "e21453424fb4a8f17658d0599d59289e20f6d7fb8db5db9371c8fb8fcf9c2e09"
+      },
+      {
+        "path": "icu4c/source/common/restrace.h",
+        "bytes": 3479,
+        "sha256": "e791ed18e4850c5a0a4969a93435758abe255e9e6d742031d9da8acc224d4aba"
+      },
+      {
+        "path": "icu4c/source/common/ruleiter.cpp",
+        "bytes": 4489,
+        "sha256": "dbb9df0dfdd9c4b3ee1a9125bb23f3676dfc041f35e613d21057214b7f1a51af"
+      },
+      {
+        "path": "icu4c/source/common/ruleiter.h",
+        "bytes": 7881,
+        "sha256": "a9b8b7bfb228d65dde4dc4fa6bc306508fd3d4ea0b0d0673aa61adffca300999"
+      },
+      {
+        "path": "icu4c/source/common/schriter.cpp",
+        "bytes": 3801,
+        "sha256": "c6be72f9aedcce2d229fb18417586cbf86637568bb92b92478f7873cc5c930f0"
+      },
+      {
+        "path": "icu4c/source/common/serv.cpp",
+        "bytes": 26316,
+        "sha256": "1c91cbb84607d7ccd4e182fbd18f3cb5780a693b0063a5a3959d62bca596c71a"
+      },
+      {
+        "path": "icu4c/source/common/serv.h",
+        "bytes": 37146,
+        "sha256": "da403e84890153b6ea3fcf5a546bf1e104ca0af2d6d8691c532e0b2336d8c133"
+      },
+      {
+        "path": "icu4c/source/common/servlk.cpp",
+        "bytes": 5056,
+        "sha256": "a64e99822309be77d3297603c80cf696e4fb62315995042418920fcd950923ef"
+      },
+      {
+        "path": "icu4c/source/common/servlkf.cpp",
+        "bytes": 4223,
+        "sha256": "4917044d5c06de9d24ac0abcfdf170b7a1942ee6bf782068b45b63afea344179"
+      },
+      {
+        "path": "icu4c/source/common/servloc.h",
+        "bytes": 16575,
+        "sha256": "dcacab8e743fabdf2fa7f97e31a8d26b43f9a19085347c410e26d6f76ab86557"
+      },
+      {
+        "path": "icu4c/source/common/servls.cpp",
+        "bytes": 8605,
+        "sha256": "b3d1f02a1cf7306a2a7b1c0bee1317a56cac4bb8ee1fa84b963b800e761386ce"
+      },
+      {
+        "path": "icu4c/source/common/servnotf.cpp",
+        "bytes": 3187,
+        "sha256": "c041414cef25e4bf9ca3fd1ef3e947e428287c4f5850948a395746086790f674"
+      },
+      {
+        "path": "icu4c/source/common/servnotf.h",
+        "bytes": 3645,
+        "sha256": "e4e2587ef89798e04061c0ffc63d498d69b994441c2bd0121232dae1f44cdebf"
+      },
+      {
+        "path": "icu4c/source/common/servrbf.cpp",
+        "bytes": 2650,
+        "sha256": "9855b003c525a41f0afa711735f3cb1f825209ac63aa5c84bb0f62e499eb6a3e"
+      },
+      {
+        "path": "icu4c/source/common/servslkf.cpp",
+        "bytes": 3287,
+        "sha256": "d694fc67dc5bcd4df77f52459e26763438c20df5c9647f239b3804c69291dfbd"
+      },
+      {
+        "path": "icu4c/source/common/sharedobject.cpp",
+        "bytes": 1841,
+        "sha256": "6a181fee0b30745dc9336dce3f9a505793a68001a2d3f5f88ceb6410e0ceff29"
+      },
+      {
+        "path": "icu4c/source/common/sharedobject.h",
+        "bytes": 5696,
+        "sha256": "a1d32bd3c1e9a0859e0dd97fcdb5f3dbd6b9d9298fec283c98decf0ecb194852"
+      },
+      {
+        "path": "icu4c/source/common/simpleformatter.cpp",
+        "bytes": 11975,
+        "sha256": "5b1697a094b9d7d51256df4a9eae8c68c398642b48122a7a1f837990469e5b40"
+      },
+      {
+        "path": "icu4c/source/common/sprpimpl.h",
+        "bytes": 3604,
+        "sha256": "75d409bc2606c49538c45352eadcbe48290b5e823d0f5ab3fed25a41e59b02e9"
+      },
+      {
+        "path": "icu4c/source/common/static_unicode_sets.cpp",
+        "bytes": 9372,
+        "sha256": "c16f04e91e3c38c36158d48d2326092e20563bbf27cb555f730384b6a0ddae03"
+      },
+      {
+        "path": "icu4c/source/common/static_unicode_sets.h",
+        "bytes": 3832,
+        "sha256": "657511b220eca1ec2183c3bb9954d760fd9be5522b53b94bf31010b4821eb590"
+      },
+      {
+        "path": "icu4c/source/common/stringpiece.cpp",
+        "bytes": 2617,
+        "sha256": "086a665b2a7d0387ebaa63bc6208197585400bd1f1fd56a5f9244eec1e9f62d4"
+      },
+      {
+        "path": "icu4c/source/common/stringtriebuilder.cpp",
+        "bytes": 20929,
+        "sha256": "abb78423fab9214ea503130f5b47bb70c3c0037d847b30fdeedacbdb40148a80"
+      },
+      {
+        "path": "icu4c/source/common/uarrsort.cpp",
+        "bytes": 8857,
+        "sha256": "e82c16285ed3a55fcaf5e669aaf2358e3997bec4ccee052e3c4e1f945bba27c3"
+      },
+      {
+        "path": "icu4c/source/common/uarrsort.h",
+        "bytes": 3362,
+        "sha256": "d406cfed84a989de493f2f0f905aac0563ce1133f951ae764f2d13620f588d42"
+      },
+      {
+        "path": "icu4c/source/common/uassert.h",
+        "bytes": 2049,
+        "sha256": "234b6d10d322d0798d6b4dfba6ba7b5865dd2cb74d087f03e40fbdec11512d37"
+      },
+      {
+        "path": "icu4c/source/common/ubidi.cpp",
+        "bytes": 122469,
+        "sha256": "57f4057b709cf38ed497f940cb09a92e0e24ce29ac3cde30f652e533bcb9a5a0"
+      },
+      {
+        "path": "icu4c/source/common/ubidi_props.cpp",
+        "bytes": 7438,
+        "sha256": "d37b74728bd6be6890757a4fdfa8afd8316d9f2d978a58c2c9418ce09fce09e1"
+      },
+      {
+        "path": "icu4c/source/common/ubidi_props.h",
+        "bytes": 3798,
+        "sha256": "00ead0f2f93ff86f94062dd137d33feb7013ec3793db78ec84891529ba55ef68"
+      },
+      {
+        "path": "icu4c/source/common/ubidi_props_data.h",
+        "bytes": 59300,
+        "sha256": "0ae2c9946f8a5a014c60a905842da15a6d2b14ea6621d203774c16ba2fc54c11"
+      },
+      {
+        "path": "icu4c/source/common/ubidiimp.h",
+        "bytes": 18232,
+        "sha256": "2b432c4648d3132b7a129a007f880c8964d194ad0bb2b4494e656cb2a8c38586"
+      },
+      {
+        "path": "icu4c/source/common/ubidiln.cpp",
+        "bytes": 48717,
+        "sha256": "e2b360199bd2d2c222459bf42ec4b0fe614ca7dae3214edd15e4e670bf896496"
+      },
+      {
+        "path": "icu4c/source/common/ubiditransform.cpp",
+        "bytes": 20541,
+        "sha256": "fd09a827bc6277edbf8ae9c56bd527d810069d899fc1c6371c3d3d532bf79ae9"
+      },
+      {
+        "path": "icu4c/source/common/ubidiwrt.cpp",
+        "bytes": 22951,
+        "sha256": "c19b91d6f746dc63efc1990f7f8080003042cc13df3afcd3ca005eacca0227af"
+      },
+      {
+        "path": "icu4c/source/common/ubrk.cpp",
+        "bytes": 9047,
+        "sha256": "9004923f5c24e7fd70b192f842eb7653313ec33c4e461e7e658093752f0ba321"
+      },
+      {
+        "path": "icu4c/source/common/ubrkimpl.h",
+        "bytes": 503,
+        "sha256": "679b9961fc4b88e632afacbcb2df23992af8d24588b18c4964a5d378283bdc82"
+      },
+      {
+        "path": "icu4c/source/common/ucase.cpp",
+        "bytes": 61697,
+        "sha256": "e72bee2fd7a7566266b693af8c777ada82e063ddb2fde4ffde4b0a7378215b2d"
+      },
+      {
+        "path": "icu4c/source/common/ucase.h",
+        "bytes": 13802,
+        "sha256": "2481cb4979fcc21331e7f4453944b4ad3f26ac756f5096f94cb42992c882960c"
+      },
+      {
+        "path": "icu4c/source/common/ucase_props_data.h",
+        "bytes": 67136,
+        "sha256": "f8bd3513231803a28a0c1074ccd4d4141a294f9278b1dd761db80fa4b3e124f0"
+      },
+      {
+        "path": "icu4c/source/common/ucasemap.cpp",
+        "bytes": 37635,
+        "sha256": "ce92f27daada400e4fd6b8258ae16e472e2923b0768522b6a86b5818cdd33793"
+      },
+      {
+        "path": "icu4c/source/common/ucasemap_imp.h",
+        "bytes": 9951,
+        "sha256": "d1acc77c08324bd726c1a4e49f52f6a969910f0d77dd7d97bfddb72e0e841764"
+      },
+      {
+        "path": "icu4c/source/common/ucasemap_titlecase_brkiter.cpp",
+        "bytes": 4239,
+        "sha256": "444c039ea2d5234de8e79e05b96a0373331c5fdc38b9828e9f48f943c50ee8cc"
+      },
+      {
+        "path": "icu4c/source/common/ucat.cpp",
+        "bytes": 2178,
+        "sha256": "7a03853727212ca5749652394ec791182a5fa5ac7f8ba4d1dbf16cec80f6e6d3"
+      },
+      {
+        "path": "icu4c/source/common/uchar.cpp",
+        "bytes": 20691,
+        "sha256": "99134d9897fc48b78b8930e8656f9cbf0fd298544df6678840871ba6825377d5"
+      },
+      {
+        "path": "icu4c/source/common/uchar_props_data.h",
+        "bytes": 372100,
+        "sha256": "11646dd7f12f64a9191d141ee845042015938f5e2cd54c582577942c7fec4733"
+      },
+      {
+        "path": "icu4c/source/common/ucharstrie.cpp",
+        "bytes": 12770,
+        "sha256": "2c97938619fc201e9d5562bd62ec8f6ea0692ce5ba0270d29c519db541e3b126"
+      },
+      {
+        "path": "icu4c/source/common/ucharstriebuilder.cpp",
+        "bytes": 13890,
+        "sha256": "fbbe49dbb4a4f459e1a687e8f939a0bfbbb0f8fe9329db095f0431bccfe9637d"
+      },
+      {
+        "path": "icu4c/source/common/ucharstrieiterator.cpp",
+        "bytes": 7378,
+        "sha256": "0e051cc6afe3ac009f069ea66fce282e5a62660e6134dd3e0641689ce11a3ded"
+      },
+      {
+        "path": "icu4c/source/common/uchriter.cpp",
+        "bytes": 8037,
+        "sha256": "47cc068b5346d833511183e8ff16a5618bb7c356e065e85ee16dd4bdbc871530"
+      },
+      {
+        "path": "icu4c/source/common/ucln.h",
+        "bytes": 3205,
+        "sha256": "6d24bccfd665941373fdbb1d2df3cdcbe1edf2550d52b438fe239e6286cd6525"
+      },
+      {
+        "path": "icu4c/source/common/ucln_cmn.cpp",
+        "bytes": 4224,
+        "sha256": "95ed4f1f08a919e8353e3cbb83ca467b62d2cf6b830b1cc298983a9e48902b8d"
+      },
+      {
+        "path": "icu4c/source/common/ucln_cmn.h",
+        "bytes": 2486,
+        "sha256": "20a90978c7d8f62afcad6be680e7091775ac5004c6fa62bdbbf80dd1834ccd59"
+      },
+      {
+        "path": "icu4c/source/common/ucln_imp.h",
+        "bytes": 5217,
+        "sha256": "5c28cc4f9a9141b64fd58f2daab2c98a52d1e16e2818d02d712c39b80f519ad7"
+      },
+      {
+        "path": "icu4c/source/common/ucmndata.cpp",
+        "bytes": 13668,
+        "sha256": "2433273871b86ecc559ece16d656ff911bf98bf1f8223581282a14028715dc15"
+      },
+      {
+        "path": "icu4c/source/common/ucmndata.h",
+        "bytes": 3316,
+        "sha256": "3df8614ee1116227c184ab18d60617f8a55cc8854ceed6f6a85a6c902b2a0403"
+      },
+      {
+        "path": "icu4c/source/common/ucnv.cpp",
+        "bytes": 95825,
+        "sha256": "73b26257f6a238c9a9943fbdd8676aec4a117c5e665c043920c6b653e4d8797c"
+      },
+      {
+        "path": "icu4c/source/common/ucnv2022.cpp",
+        "bytes": 157563,
+        "sha256": "74ee728ec836476dea923c1012189ac3ec96ceab3fc60432af8cbeb03f17e74d"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_bld.cpp",
+        "bytes": 58936,
+        "sha256": "34f178cdc2b651a7dbf9bd1fa29f1df0b10f9d34c43ff9037e5f94fedd4ad8db"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_bld.h",
+        "bytes": 11454,
+        "sha256": "53cf7563522fbf6334ebb1c7f72ab1f6392738ee4698d3b468949dea8de76db0"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_cb.cpp",
+        "bytes": 8223,
+        "sha256": "21b9892025ddb6b65933ce3c553dfe25228f34e106bfb4c5437c5f0cc16a9118"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_cnv.cpp",
+        "bytes": 4798,
+        "sha256": "d99ec2a0425c8ad130706d038ddec92dceece261e13c8f8ed4ad405099a46c54"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_cnv.h",
+        "bytes": 12976,
+        "sha256": "0ff1147949527ecddb87510497587c88b7b80e39fc9e5117bfeba0ca7cbefd00"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_ct.cpp",
+        "bytes": 25792,
+        "sha256": "d7e1331178267f021b87fd5e0a6b63dab92170232a8c89f8a9188ef191aba77c"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_err.cpp",
+        "bytes": 18401,
+        "sha256": "09ddeae037b3054c637a1b7be47308c607bcaf3a095c4e23b2b64ab2efca274a"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_ext.cpp",
+        "bytes": 40071,
+        "sha256": "6da5e0a96096f9a91be1894aff4ae9c4e8cca7ac8320ac4ca527cd58ba6459ae"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_ext.h",
+        "bytes": 19116,
+        "sha256": "d907339951b3b028a570558df1c73acf2332cff2924a1ea64045d5609d335e88"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_imp.h",
+        "bytes": 4796,
+        "sha256": "ff4a8e0c42d008f5f5c0b392c6d53b0698a951566482355b1c2c2205de3d0ea7"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_io.cpp",
+        "bytes": 49169,
+        "sha256": "92eec35b48aa1cccbbd767c67f40c89540249e5d3864b2bc51f13aadf2c9aaf3"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_io.h",
+        "bytes": 3702,
+        "sha256": "e2a85f5ba42791d33e18fa22187810e543a4a31bb2b5b65385c44e860dc2164d"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_lmb.cpp",
+        "bytes": 50872,
+        "sha256": "bc69ce7dd65a04d2836b5504a4655fb576c0a9114ee5845d9735229e1e2739c1"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_set.cpp",
+        "bytes": 1986,
+        "sha256": "628350e71e84da7d6d0f57ab7e09bcd4d4db08154ad5b38217fbfd8f06711ccd"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_u16.cpp",
+        "bytes": 49763,
+        "sha256": "43c722fc08dbe3686d453345af04c61127f88f7b44d1935ab867e610ee3e9891"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_u32.cpp",
+        "bytes": 40746,
+        "sha256": "902096ceb25ca200a931759177aa26caa79924e1010828d1cc9287a0b4c0e80d"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_u7.cpp",
+        "bytes": 55992,
+        "sha256": "8df5d68501640fddfb8933b73aa76aec2c76acad363f94207d6dea0276db72bb"
+      },
+      {
+        "path": "icu4c/source/common/ucnv_u8.cpp",
+        "bytes": 30985,
+        "sha256": "85a0e0baac136f819523389da13457e97f93a5f33cc122789ff6cb8d10ca44fc"
+      },
+      {
+        "path": "icu4c/source/common/ucnvbocu.cpp",
+        "bytes": 46147,
+        "sha256": "de99ec693c9beba3056a7f3915cc2cc55aad59c6ba6f43b4cb38c89679526a19"
+      },
+      {
+        "path": "icu4c/source/common/ucnvdisp.cpp",
+        "bytes": 2703,
+        "sha256": "d232f797766e2129705bac3d24ce1334f42dc4e84cf631879dfaf7fd862760bf"
+      },
+      {
+        "path": "icu4c/source/common/ucnvhz.cpp",
+        "bytes": 26000,
+        "sha256": "9d5d0a528368a58c0eadd6c12bc67d093910feb6e80936479e7701be4d88503d"
+      },
+      {
+        "path": "icu4c/source/common/ucnvisci.cpp",
+        "bytes": 72817,
+        "sha256": "22d41bda2a0af6d079ff47c1e1e6cef10bbc446b260e894d27aca0892fbb2426"
+      },
+      {
+        "path": "icu4c/source/common/ucnvlat1.cpp",
+        "bytes": 22308,
+        "sha256": "a2b5cbf07f0e1ee126fe54cc8405eabdb2e7155ec1aa6f39e77f63ec2fc3e3d3"
+      },
+      {
+        "path": "icu4c/source/common/ucnvmbcs.cpp",
+        "bytes": 218379,
+        "sha256": "4e1f01c07dca8c9b9f17f63a328fd86e327ec43d9d4e9116f433f1aee4b00242"
+      },
+      {
+        "path": "icu4c/source/common/ucnvmbcs.h",
+        "bytes": 23835,
+        "sha256": "f8d634218e376344d83d5f3d7914f0796c9e6622ba513ffaa0424e3b1f814659"
+      },
+      {
+        "path": "icu4c/source/common/ucnvscsu.cpp",
+        "bytes": 76274,
+        "sha256": "597554d4473c8e9793f1f3ed9ce214ac600d95e87eda8d7be6830e2b1ded0594"
+      },
+      {
+        "path": "icu4c/source/common/ucnvsel.cpp",
+        "bytes": 25322,
+        "sha256": "04e3cb7fc7fab109edc06a0a8dd354e7426deab8256cce2db68af54f4e6c1fd8"
+      },
+      {
+        "path": "icu4c/source/common/ucol_data.h",
+        "bytes": 4488,
+        "sha256": "1b70e72c320b88ed067919ca129c11d2777604437b183d955050509d7b302512"
+      },
+      {
+        "path": "icu4c/source/common/ucol_swp.cpp",
+        "bytes": 23155,
+        "sha256": "cc9b9ab922c15cfd84c4be23a0a88f1099a217c8abe03bbccd1e68a45c07b003"
+      },
+      {
+        "path": "icu4c/source/common/ucol_swp.h",
+        "bytes": 1479,
+        "sha256": "7df65de3b1677a0ee5490448eb20cab77799bd5bb7cbf1b83f04687448d5c3bc"
+      },
+      {
+        "path": "icu4c/source/common/ucptrie.cpp",
+        "bytes": 22044,
+        "sha256": "9da27b7ab7a5b46a9ad2b1269c29a198b299de60aef45fb2f72840e81063f7fe"
+      },
+      {
+        "path": "icu4c/source/common/ucptrie_impl.h",
+        "bytes": 11336,
+        "sha256": "143e133e1d26da3cecb2f2e05bc17620f058dfb1b9b50dcee73f32387ffaf511"
+      },
+      {
+        "path": "icu4c/source/common/ucurr.cpp",
+        "bytes": 99220,
+        "sha256": "5e8e4e624a081d8ecf133e9cfb51569f04ce06bc80ed482f1f5cf4fef7226271"
+      },
+      {
+        "path": "icu4c/source/common/ucurrimp.h",
+        "bytes": 2801,
+        "sha256": "a8b844c3bb1550f2ebdde00c2a603f773852ac42f631160aeb4a55b8c37b845c"
+      },
+      {
+        "path": "icu4c/source/common/udata.cpp",
+        "bytes": 56669,
+        "sha256": "58941c6ddd143e41d4bae32e4278b9fbdc7d19a1bd50c680f2e6dc600e482d03"
+      },
+      {
+        "path": "icu4c/source/common/udatamem.cpp",
+        "bytes": 5083,
+        "sha256": "83c0c485daee09771fb2ceee3cb1f0d53b7168cb4d2ed06152685a7076211b31"
+      },
+      {
+        "path": "icu4c/source/common/udatamem.h",
+        "bytes": 2947,
+        "sha256": "b0d78a7e1be7ce42ba7f677a0ceda87595798809a55c2ee1b427818a5fab04d8"
+      },
+      {
+        "path": "icu4c/source/common/udataswp.cpp",
+        "bytes": 14271,
+        "sha256": "285589bccbb09c1a04d2b714fd636d3b4387bba876a7b8b42a50c70c5d64cd53"
+      },
+      {
+        "path": "icu4c/source/common/udataswp.h",
+        "bytes": 12850,
+        "sha256": "7ffb924f8ac2eff531ae6ab5ca28c7a3d793dc5b00ffbf3b6475916eec13326b"
+      },
+      {
+        "path": "icu4c/source/common/uelement.h",
+        "bytes": 3145,
+        "sha256": "d289f72f0b2ce2a7d782889a43b438be2c835dea132ca480a709f09066545132"
+      },
+      {
+        "path": "icu4c/source/common/uenum.cpp",
+        "bytes": 5222,
+        "sha256": "5a0cee3e5ce05a8e04b0a97f3305daeafe72a36de8c706995bdae8be7f0d72b8"
+      },
+      {
+        "path": "icu4c/source/common/uenumimp.h",
+        "bytes": 4239,
+        "sha256": "1b4d7a18872c773205c59dfb72093561f69a6df4d5dbdfbcef5bb0597829f61a"
+      },
+      {
+        "path": "icu4c/source/common/uhash.cpp",
+        "bytes": 34936,
+        "sha256": "5f0e8b4d3232af39610df9666b3c03e062885c41a3e7e41fd29880f9a21c4fe2"
+      },
+      {
+        "path": "icu4c/source/common/uhash.h",
+        "bytes": 28392,
+        "sha256": "e4a289fa057cc124f2a03df4c16d2108d969e233b82a0dfeb6c46950b1105b28"
+      },
+      {
+        "path": "icu4c/source/common/uhash_us.cpp",
+        "bytes": 849,
+        "sha256": "9588cf951e63417701064a4f6f9229238aafb4b3f501b037f646914f97d6c93f"
+      },
+      {
+        "path": "icu4c/source/common/uidna.cpp",
+        "bytes": 28150,
+        "sha256": "e172d87d6c2a35e14bdaaef9c5bd9655a40150f440f58f8d18d3640539255091"
+      },
+      {
+        "path": "icu4c/source/common/uinit.cpp",
+        "bytes": 1959,
+        "sha256": "96aece841726158257cfdfd4b93b65c61470ae4390d3089c2739a3c05a20c62a"
+      },
+      {
+        "path": "icu4c/source/common/uinvchar.cpp",
+        "bytes": 19465,
+        "sha256": "9c8c7ae79bd448dd4aee9e6b55ddfab99831e52dc6e2c6c40bb729e780b32a99"
+      },
+      {
+        "path": "icu4c/source/common/uinvchar.h",
+        "bytes": 5853,
+        "sha256": "1a157bd1a1e9bff6e1075b06c3065c0d6ba9724abfc5183a6e2a42606d6086bf"
+      },
+      {
+        "path": "icu4c/source/common/uiter.cpp",
+        "bytes": 32514,
+        "sha256": "ac18ef763767915c65b4179e34c5569ddeb70918eb5f0bc09d5fb05aa0dae85d"
+      },
+      {
+        "path": "icu4c/source/common/ulayout_props.h",
+        "bytes": 1261,
+        "sha256": "1542325c5ca262b03d53e44f2af428b0d591dd2956cdb12bbcdb435b32b9dc64"
+      },
+      {
+        "path": "icu4c/source/common/ulist.cpp",
+        "bytes": 7121,
+        "sha256": "ac25df6ea70b407d63835a1d048060f3d944e0b664ed62db8f03d453e97f9adc"
+      },
+      {
+        "path": "icu4c/source/common/ulist.h",
+        "bytes": 1766,
+        "sha256": "ad6f07e3dc2aa887282ca9713c7cf61561ebd388e9f0ccb18c59876c76f522f1"
+      },
+      {
+        "path": "icu4c/source/common/uloc.cpp",
+        "bytes": 84132,
+        "sha256": "a46a0f068ba99f2b57b8126d5a900f282bea296272a881d0410341756abd40ec"
+      },
+      {
+        "path": "icu4c/source/common/uloc_keytype.cpp",
+        "bytes": 19018,
+        "sha256": "f1dcd7682e44682d94e4e43eb63bc7e085920d386c41de4fd212569cf9aa29f2"
+      },
+      {
+        "path": "icu4c/source/common/uloc_tag.cpp",
+        "bytes": 85084,
+        "sha256": "144ef650f9121f6a6aae9d3ed73879cc6831a8eda4e081d7f7692b927c554e7e"
+      },
+      {
+        "path": "icu4c/source/common/ulocale.cpp",
+        "bytes": 3278,
+        "sha256": "8d4ecebf13f7c21e9484238d8823b59b29ae48fd8a487477352dcb757d753876"
+      },
+      {
+        "path": "icu4c/source/common/ulocbuilder.cpp",
+        "bytes": 4825,
+        "sha256": "c58512b999f40ad48e3aabeb2b23c36b9bd651d646dc8b9dd0e93d3df4abb3de"
+      },
+      {
+        "path": "icu4c/source/common/ulocimp.h",
+        "bytes": 13178,
+        "sha256": "add12a473f5223050cbfcce4352424456b8156b3e7ba7e63a5ebd38d8e20e5a4"
+      },
+      {
+        "path": "icu4c/source/common/umapfile.cpp",
+        "bytes": 18862,
+        "sha256": "3569aa948b0c2958fb1bcae34970f725221c9f73e99be80d3aeae533eb5dfa82"
+      },
+      {
+        "path": "icu4c/source/common/umapfile.h",
+        "bytes": 2150,
+        "sha256": "fcd9c385d74ce81670ea270667ed2f61ad97ad94fb4bb242dde16f0239562b1e"
+      },
+      {
+        "path": "icu4c/source/common/umath.cpp",
+        "bytes": 642,
+        "sha256": "5988316ab05053aaba7734ef292ed51537a18c90beebb9fa8080ead429f2a343"
+      },
+      {
+        "path": "icu4c/source/common/umutablecptrie.cpp",
+        "bytes": 65120,
+        "sha256": "ed5e03caa1ea37e12f6c8da5a97851fed0ae6720df9e1e4fd656af394551dceb"
+      },
+      {
+        "path": "icu4c/source/common/umutex.cpp",
+        "bytes": 5942,
+        "sha256": "f95e9859f447f0af834cb846181537f14de9e49dfa97f6e25b560ed16a6e9897"
+      },
+      {
+        "path": "icu4c/source/common/umutex.h",
+        "bytes": 9089,
+        "sha256": "05d9119498d579a5e9db98e877e458a5bd68910752438213d30f3f8c987243bd"
+      },
+      {
+        "path": "icu4c/source/common/unames.cpp",
+        "bytes": 67122,
+        "sha256": "a36085a4b1344e3e0bee537ec6198f3b4426ed925761069aea080182d3d97562"
+      },
+      {
+        "path": "icu4c/source/common/unicode/appendable.h",
+        "bytes": 8745,
+        "sha256": "fe3468123be9d08fd4bf3d7673cd8c1721c3271cf7752139ba7d719c9f002f89"
+      },
+      {
+        "path": "icu4c/source/common/unicode/brkiter.h",
+        "bytes": 28495,
+        "sha256": "b08260aed4923b4e0254e40b2b23c45d7c2b9236782a3b2196ab5f05eedfa6f2"
+      },
+      {
+        "path": "icu4c/source/common/unicode/bytestream.h",
+        "bytes": 11013,
+        "sha256": "35f56d235bb34042e32357a752f77eae7df7c1ed49bffbdbea0290c4bb27df82"
+      },
+      {
+        "path": "icu4c/source/common/unicode/bytestrie.h",
+        "bytes": 21301,
+        "sha256": "eed614a6be57a0fed65de373ce8d7b195bb3b88b9512e63fa0776b0240fae12c"
+      },
+      {
+        "path": "icu4c/source/common/unicode/bytestriebuilder.h",
+        "bytes": 7658,
+        "sha256": "4d31acf33db034c594f9f2bb3199a9ed252392d7652cf31b3610abd6ba159537"
+      },
+      {
+        "path": "icu4c/source/common/unicode/caniter.h",
+        "bytes": 7706,
+        "sha256": "8e63b26fcf63bdffa22daee3f3e6ad003fb703b64934b591a178f9ba407fa9fc"
+      },
+      {
+        "path": "icu4c/source/common/unicode/casemap.h",
+        "bytes": 26027,
+        "sha256": "ce15018c74f49bed22f8d6d599a14f265f29e6331728142f993b0413d3c71f29"
+      },
+      {
+        "path": "icu4c/source/common/unicode/char16ptr.h",
+        "bytes": 7389,
+        "sha256": "58c56abb24388216e09b480c854c471085fce381746e7b7da012ea290b38a8e7"
+      },
+      {
+        "path": "icu4c/source/common/unicode/chariter.h",
+        "bytes": 24362,
+        "sha256": "7d6483c56995dc51f73cfcdd75b21a17f8442387bc1f050441cac3c3f2676e00"
+      },
+      {
+        "path": "icu4c/source/common/unicode/dbbi.h",
+        "bytes": 1223,
+        "sha256": "e581695e25e5eb36d29444d67efe125a5c59b96d80b69fc590673a4edbc90d82"
+      },
+      {
+        "path": "icu4c/source/common/unicode/docmain.h",
+        "bytes": 7638,
+        "sha256": "24ce100cc6ea8f0c8c35cc5baa5bd001e216743e2b547297c3e9665d0ad433df"
+      },
+      {
+        "path": "icu4c/source/common/unicode/dtintrv.h",
+        "bytes": 3931,
+        "sha256": "e218dcba30f80b369dcf6b875fbfc1096a4938a56d9ec9c861f6830db553cfad"
+      },
+      {
+        "path": "icu4c/source/common/unicode/edits.h",
+        "bytes": 21223,
+        "sha256": "277b6192d26bbaac85ee4e22c794975fc3dfc7ce3b9dca51f6e78259419be644"
+      },
+      {
+        "path": "icu4c/source/common/unicode/enumset.h",
+        "bytes": 2130,
+        "sha256": "714e52368f8c204a118440c04587c6ed953a3000e2243004631ec5522bfaef04"
+      },
+      {
+        "path": "icu4c/source/common/unicode/errorcode.h",
+        "bytes": 4956,
+        "sha256": "e299e97e2f11f8ead9c3e7cfe24a785a98bab94ef86500a97f0b1df55efc5d1d"
+      },
+      {
+        "path": "icu4c/source/common/unicode/filteredbrk.h",
+        "bytes": 5501,
+        "sha256": "945a4366e5a11fd17ff77a4c325dd26df4fb02eb4c3b71d67b468843271938fc"
+      },
+      {
+        "path": "icu4c/source/common/unicode/icudataver.h",
+        "bytes": 1049,
+        "sha256": "5b127ee0c08b297cc97db14da06f9f52ab119e54c6fcc8732c89ff50d0e69ae8"
+      },
+      {
+        "path": "icu4c/source/common/unicode/icuplug.h",
+        "bytes": 12392,
+        "sha256": "b44cfed0aa6f238de470936a5a133e6764c77c36b92927a911c188daec56175e"
+      },
+      {
+        "path": "icu4c/source/common/unicode/idna.h",
+        "bytes": 13018,
+        "sha256": "7e952bd9f2fd9e461660bd2de37c39c90acb52e78c7d85948b8795bd036c7f05"
+      },
+      {
+        "path": "icu4c/source/common/unicode/localebuilder.h",
+        "bytes": 11350,
+        "sha256": "2c80c9c6112e90b06ac3dfc08f00b365d4f276a71f8177e2829ad4b409aa27db"
+      },
+      {
+        "path": "icu4c/source/common/unicode/localematcher.h",
+        "bytes": 27504,
+        "sha256": "c8331dbbc8ce5aaf5bf8b020b0fb196842a1be80a1c6a90be80512d1a7b4034d"
+      },
+      {
+        "path": "icu4c/source/common/unicode/localpointer.h",
+        "bytes": 20017,
+        "sha256": "f896f373072f037a4a92288621a7c80a309a4b3a06f8163b99de641b776aafb5"
+      },
+      {
+        "path": "icu4c/source/common/unicode/locdspnm.h",
+        "bytes": 7292,
+        "sha256": "823ddebeaea6229b9d9cf85e8cf3ced7afb53476c8bbccd5bcf3c15c0d967e2c"
+      },
+      {
+        "path": "icu4c/source/common/unicode/locid.h",
+        "bytes": 49465,
+        "sha256": "9ab062af3239d35f605472994900e19e74870d8a778a27441412333e7aa4887d"
+      },
+      {
+        "path": "icu4c/source/common/unicode/messagepattern.h",
+        "bytes": 34532,
+        "sha256": "9a1837b34aa69041008ce158b42e4748a3d4d6276508f8c68dca12f44b18cfa8"
+      },
+      {
+        "path": "icu4c/source/common/unicode/normalizer2.h",
+        "bytes": 35568,
+        "sha256": "c3819b2f152fc0a3da2220b11093861f3b86ece29868db78891cd7b7d76c59d3"
+      },
+      {
+        "path": "icu4c/source/common/unicode/normlzr.h",
+        "bytes": 31532,
+        "sha256": "89a2cad849536ce51a6b7940c5b2ea369b0f7f0c481aa5339f2ed2118eeba0e1"
+      },
+      {
+        "path": "icu4c/source/common/unicode/parseerr.h",
+        "bytes": 3155,
+        "sha256": "85336d61449740ae90a0c2c36cfd671e0aa3200c92d94e07afc3e82aacb19b35"
+      },
+      {
+        "path": "icu4c/source/common/unicode/parsepos.h",
+        "bytes": 5694,
+        "sha256": "5113e87ac6365e7bf4b061c76ee62d2d7243a0953463ac5fe0e89682a9551b70"
+      },
+      {
+        "path": "icu4c/source/common/unicode/platform.h",
+        "bytes": 27297,
+        "sha256": "aa06703d2fdbbbf7b2f4930f96b451f416cb9342a9706ae18a8ab992ac582d6f"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ptypes.h",
+        "bytes": 2211,
+        "sha256": "38d6cb8bfd4fa9a86ed741e373a1a4198521183bac55329a518ff1e28ab91be7"
+      },
+      {
+        "path": "icu4c/source/common/unicode/putil.h",
+        "bytes": 6471,
+        "sha256": "2583f4ea86136be8366527c79121721d4f917ed4b21137667333249ff83b1fad"
+      },
+      {
+        "path": "icu4c/source/common/unicode/rbbi.h",
+        "bytes": 32806,
+        "sha256": "bba7b14a3de0c66f8f71c1cfe3addf5c9c150233254c0f7d869ea80ee151ac0b"
+      },
+      {
+        "path": "icu4c/source/common/unicode/rep.h",
+        "bytes": 9602,
+        "sha256": "bb52f48eefd0855baf716002f2792162fc4d5d22f90c9409e8d5db3b6cb279b0"
+      },
+      {
+        "path": "icu4c/source/common/unicode/resbund.h",
+        "bytes": 18459,
+        "sha256": "107c96f8a5507fdeebeec09190596104efc4887bd46cd732a9accbbb5a828360"
+      },
+      {
+        "path": "icu4c/source/common/unicode/schriter.h",
+        "bytes": 6233,
+        "sha256": "d236cceb9784ea301ecf0b14ca6fa7f9d4f338d398c47dcfdc60265ea3726bd2"
+      },
+      {
+        "path": "icu4c/source/common/unicode/simpleformatter.h",
+        "bytes": 12885,
+        "sha256": "dabb189356d7c001be22a6b045136e0e16c7bc5366d92ee0e122fcfabdf7ee71"
+      },
+      {
+        "path": "icu4c/source/common/unicode/std_string.h",
+        "bytes": 1076,
+        "sha256": "2f5197b3e654925b3aeddae520a362f2544dd95242c140d3cf32b67ca83f6489"
+      },
+      {
+        "path": "icu4c/source/common/unicode/strenum.h",
+        "bytes": 10202,
+        "sha256": "d1ae793b03bf22e92e748a2e8271dc5bb6e3a679f08ee7e2bf53c1bb2400e5b5"
+      },
+      {
+        "path": "icu4c/source/common/unicode/stringoptions.h",
+        "bytes": 5926,
+        "sha256": "931533a849801ebb07e324f877f9e5d65c16b782d708d678f4918bf7fa206908"
+      },
+      {
+        "path": "icu4c/source/common/unicode/stringpiece.h",
+        "bytes": 10259,
+        "sha256": "c2c563554f74966e7d053e96bc3687678d2d3eadaa37ebccd604009366fed5e1"
+      },
+      {
+        "path": "icu4c/source/common/unicode/stringtriebuilder.h",
+        "bytes": 15872,
+        "sha256": "df9a88e26d674fca7b1236fb67abb4b0d77792954462eaacf2194318494291d2"
+      },
+      {
+        "path": "icu4c/source/common/unicode/symtable.h",
+        "bytes": 4386,
+        "sha256": "c73d4df7d8975ff4eeafe3a44ec6e8f7d72d0233fdedc3a7c505580bba9256b2"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ubidi.h",
+        "bytes": 91759,
+        "sha256": "6582eaa35054fea17fbcc756d1ce8ce9765b6b934fd2347cd46ef861c24cc01b"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ubiditransform.h",
+        "bytes": 13010,
+        "sha256": "a447338adc4b448fc6a6daa7a771d646b4dea95aff5c10f2711aacaa21587533"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ubrk.h",
+        "bytes": 25021,
+        "sha256": "6462fbec833cab11c23e3230c7b875986b478d1298c2b34fe347ce577cd7aaab"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ucasemap.h",
+        "bytes": 15579,
+        "sha256": "5ddf524ee8949ec03970267d60bb2ead1ecffb2a65d3bdd4d559c210a1df0bac"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ucat.h",
+        "bytes": 5478,
+        "sha256": "0a1990e56a7384fad3114fe0abc88561087a516acabdbfe9a30ed4c1619d4ec6"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uchar.h",
+        "bytes": 153738,
+        "sha256": "fb3668dd6cd6ab2a240a938359f16e7da5debba5e41eaabd9ac966f0783ead69"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ucharstrie.h",
+        "bytes": 23102,
+        "sha256": "d7968d842d53bd1eb16446ea302ea5698b788e432c05b448674cdced9aaa6211"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ucharstriebuilder.h",
+        "bytes": 7663,
+        "sha256": "f9dc4e91a2a68f3eb425fcc6e0bd02ac0b8f747aadd1a945bb1013673e7ca86f"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uchriter.h",
+        "bytes": 13558,
+        "sha256": "7855cec3242bf70d9d1fcfb194f72a02fb532807fd4c7343457aec202941c609"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uclean.h",
+        "bytes": 11475,
+        "sha256": "288a65c760f66ab4a00780ecf898923c38890f63e7528cd51afa8c6dd7e6f784"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ucnv.h",
+        "bytes": 85343,
+        "sha256": "c980b0b06839e96ec80b0c081097424e8fc649b8cb97a7de0fa58a0a8c887d53"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ucnv_cb.h",
+        "bytes": 6742,
+        "sha256": "ecac71191cbd4574ddcc7e7fb88f514af6ccc0271524819eff57bfc3ce082ea7"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ucnv_err.h",
+        "bytes": 21486,
+        "sha256": "b9b5001cfdd9cde9df391b7ec350816c8d266a325ee8423a45a0266b5030181d"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ucnvsel.h",
+        "bytes": 6391,
+        "sha256": "05b117f548a535ae125ef2e3851eba3f8db1baa9cf1bae064cc13e64d4e7b9c4"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uconfig.h",
+        "bytes": 13541,
+        "sha256": "aa9a18d4a666af3e675d98dfbadf92d1abb2253658ab51f4fcf7ca315122df48"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ucpmap.h",
+        "bytes": 5674,
+        "sha256": "e29a3d648799fbd8d756768a080e580dfe61a5da55cf2bdb9f45e8a03b78c80b"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ucptrie.h",
+        "bytes": 23055,
+        "sha256": "186e73fc293da8e6583cd6ea06d17afab51a823cf7b453ff5daf576e650eef7c"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ucurr.h",
+        "bytes": 17122,
+        "sha256": "2b41a7cbc53896b256080a386703523601218dc196276dc1bfc74e7af132e355"
+      },
+      {
+        "path": "icu4c/source/common/unicode/udata.h",
+        "bytes": 16006,
+        "sha256": "010c67952762696bd3eeb3e568cc0371aa2511724b4134fb3f976dc36d11906b"
+      },
+      {
+        "path": "icu4c/source/common/unicode/udisplaycontext.h",
+        "bytes": 6084,
+        "sha256": "e93cb0753e3a73e0c3115aa94302ac24639d2ab8be3589823dcafeb7be1189a6"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uenum.h",
+        "bytes": 7981,
+        "sha256": "a27a3bcba0fe695d96647bdb0982e15e8cca0d55df01d544fbb287e4944029e2"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uidna.h",
+        "bytes": 34229,
+        "sha256": "0dab79e5fa5c8eaec1161ef5426f080f45d1cf261e909fe648bd5a809a309993"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uiter.h",
+        "bytes": 23299,
+        "sha256": "79177406907ab5ecd861cf729238d1da884f84f0db0e3e3ea48b4e0b8601e901"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uldnames.h",
+        "bytes": 10733,
+        "sha256": "32ae18a86a1427ca4aac01ec13c96d28f7cd7b8fd02bd9bbd2bfe83a3b2939fa"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uloc.h",
+        "bytes": 56706,
+        "sha256": "1523822fb76d61ab009a331e375586e5832a88ef893b3b5e76975e270c9d078d"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ulocale.h",
+        "bytes": 6505,
+        "sha256": "4a9cb55a1c8cc12d48fd2bfbede0057ca0ee92aaad4c1f0a70676b54ed76ea06"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ulocbuilder.h",
+        "bytes": 17129,
+        "sha256": "31750ebffe4ac29988ef37743c259ae4a563b180ffc6bb0c50c34694d4517d80"
+      },
+      {
+        "path": "icu4c/source/common/unicode/umachine.h",
+        "bytes": 14936,
+        "sha256": "736f88443ea9da7495150ce200c8970edcb939f282bdabc3d9f3c30645dcded0"
+      },
+      {
+        "path": "icu4c/source/common/unicode/umisc.h",
+        "bytes": 1372,
+        "sha256": "d473d64e27ebff77b4f582d2d11ef3a0fd505e6b7d147f5e0c32f76a9e6e2322"
+      },
+      {
+        "path": "icu4c/source/common/unicode/umutablecptrie.h",
+        "bytes": 8501,
+        "sha256": "d7aafce91d4497b5fc0dc50cedce20780510c65d63efa18df1badd2b8f7cd795"
+      },
+      {
+        "path": "icu4c/source/common/unicode/unifilt.h",
+        "bytes": 4091,
+        "sha256": "d9dd3ea20f64d17fdfa3f0fc668368d7c66678c5e7a9c38ad82aff77bc2814d9"
+      },
+      {
+        "path": "icu4c/source/common/unicode/unifunct.h",
+        "bytes": 4143,
+        "sha256": "3af306c8dc156b4a8768fa3881629c75fd934e4808402ddcf296f9d558c60099"
+      },
+      {
+        "path": "icu4c/source/common/unicode/unimatch.h",
+        "bytes": 6244,
+        "sha256": "fc795abfa0bafa028cc14ebefb1f6726ddfecbaf28786fc9416a560d2dd7a040"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uniset.h",
+        "bytes": 68419,
+        "sha256": "11c1f96a59245f75bb5dd59b4b74a405530dff908b1bc510fae9b0f006ec7fb0"
+      },
+      {
+        "path": "icu4c/source/common/unicode/unistr.h",
+        "bytes": 175437,
+        "sha256": "9416777b4e7e5e471c9dc69c3061788448cc370a13f76d7dc91eeebab3f538f9"
+      },
+      {
+        "path": "icu4c/source/common/unicode/unorm.h",
+        "bytes": 21042,
+        "sha256": "3c4e6918c77b1a857953a646d2a17bc19300b41298ed428e6e20e771a1aa63ab"
+      },
+      {
+        "path": "icu4c/source/common/unicode/unorm2.h",
+        "bytes": 26330,
+        "sha256": "515e96020bacf9e14eb6ab83dfd0a8c6ca50741a7d3d1f7e9ce48e225bb9b723"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uobject.h",
+        "bytes": 10917,
+        "sha256": "36804d831a201c729d39ed470447112e290fc8ada5eb111abf480c321a775191"
+      },
+      {
+        "path": "icu4c/source/common/unicode/urename.h",
+        "bytes": 144703,
+        "sha256": "b361fe0400dec9e763ab100ed1ba0d3dbf4b252be4c6a366f6f8b34a8cd45e44"
+      },
+      {
+        "path": "icu4c/source/common/unicode/urep.h",
+        "bytes": 5507,
+        "sha256": "45327525a9a08ac044f401d7edcf60c7574a7cdbc29d2930d533987d6a214a48"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ures.h",
+        "bytes": 37525,
+        "sha256": "0b3b89478bb87d4b48c16231a0af531ed0b08989b40f991de925334cd51ab313"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uscript.h",
+        "bytes": 28561,
+        "sha256": "c4cba3e1ad047dd76981d3348888eb5cee060425440678f163d7aaaf507e1ce2"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uset.h",
+        "bytes": 46656,
+        "sha256": "ab17b23d40a9aad620ce9af79e3e31575208ce194dd0930b66661dcc6f43b3d6"
+      },
+      {
+        "path": "icu4c/source/common/unicode/usetiter.h",
+        "bytes": 9856,
+        "sha256": "7e4aa843700673ac87d73e1003395f6fe99c4bf53f32d6e04f5292f9b7351bb0"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ushape.h",
+        "bytes": 18430,
+        "sha256": "f81bb11d208a5dd0f44925ad0b2220e8bc0ad5ccd03285e9d59e0d87433c409c"
+      },
+      {
+        "path": "icu4c/source/common/unicode/usprep.h",
+        "bytes": 8382,
+        "sha256": "999242c7048f3fc5da8f7b552df180182bab482cbdf1185541907a2a6c29c627"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ustring.h",
+        "bytes": 73771,
+        "sha256": "d24ccc2dbbe13912ba120a51fabdc9c22d4e5d349e53a180b01f65c8c67413cb"
+      },
+      {
+        "path": "icu4c/source/common/unicode/ustringtrie.h",
+        "bytes": 3224,
+        "sha256": "5c9caacdad2a74a72890e24071fa6b1a96cd0ebb774452afba79e1d1ff7aa4eb"
+      },
+      {
+        "path": "icu4c/source/common/unicode/utext.h",
+        "bytes": 59495,
+        "sha256": "3cb8aff2ac169bff208cd0cd4f962a73371e6c3ab591fe0861622b1bcc68168f"
+      },
+      {
+        "path": "icu4c/source/common/unicode/utf.h",
+        "bytes": 8057,
+        "sha256": "928e351d712abcd097014120021c4c17191a4c00c041e6a4f59c73b9b9695160"
+      },
+      {
+        "path": "icu4c/source/common/unicode/utf16.h",
+        "bytes": 23910,
+        "sha256": "020083494bab47cb5d1cfd9b626bd6214a445d3d12fa0742ae38889faad27972"
+      },
+      {
+        "path": "icu4c/source/common/unicode/utf32.h",
+        "bytes": 763,
+        "sha256": "5d011b08161a4ad3cbe0d31bfeb0c76fffb6c6fe832eb9c76f4d2fde1e00b1c6"
+      },
+      {
+        "path": "icu4c/source/common/unicode/utf8.h",
+        "bytes": 31572,
+        "sha256": "d7f3a99537de4a31581501abff95762d2176b9e93ce31a8496dabf8ed56f6fd4"
+      },
+      {
+        "path": "icu4c/source/common/unicode/utf_old.h",
+        "bytes": 46896,
+        "sha256": "a62e7ad42bfca499d29ec04dffc4d17518634f6f8020d1337eefb06716c62a2a"
+      },
+      {
+        "path": "icu4c/source/common/unicode/utrace.h",
+        "bytes": 17595,
+        "sha256": "7961fc39b7cc8dfacd408e1c902e8367e76a79ecf55251484c44a4da51e77991"
+      },
+      {
+        "path": "icu4c/source/common/unicode/utypes.h",
+        "bytes": 34523,
+        "sha256": "404c2ef50a8360c74f8c10180cb1cb577210eb350105642855778572e9fda62e"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uvernum.h",
+        "bytes": 6480,
+        "sha256": "e0f4eb4f1cd05cf1552eafd3c192bc7f426dfa60d5e57d43ca5f65fe094a0ec8"
+      },
+      {
+        "path": "icu4c/source/common/unicode/uversion.h",
+        "bytes": 6137,
+        "sha256": "51cd9d09552fd4f09f0c36d7615a49c7d67c4c857c5e988935540b3afaf11500"
+      },
+      {
+        "path": "icu4c/source/common/unifiedcache.cpp",
+        "bytes": 16503,
+        "sha256": "2e3db0cdfa10ff9f75dc235384a3f1823ab26a2f93385368fc3ed6090ccb1a67"
+      },
+      {
+        "path": "icu4c/source/common/unifiedcache.h",
+        "bytes": 19879,
+        "sha256": "a5de0d4ea46b34b5e34ad0f1381122d00cb3d885928eccdf449b9f0e7800fb1d"
+      },
+      {
+        "path": "icu4c/source/common/unifilt.cpp",
+        "bytes": 2162,
+        "sha256": "83d4db3465511b84e0a52c187b6ae8fc6e39df8bbae368f5396c36d32a6ee59d"
+      },
+      {
+        "path": "icu4c/source/common/unifunct.cpp",
+        "bytes": 693,
+        "sha256": "2c7935a01d772fcbd80093ff1ea52766a0d5aa3e7c535b75f42dc6147b428023"
+      },
+      {
+        "path": "icu4c/source/common/uniquecharstr.h",
+        "bytes": 4003,
+        "sha256": "ebde18343a9838891a21b6b2c049edf2c469ff7b305b6057c3713336695c14a3"
+      },
+      {
+        "path": "icu4c/source/common/uniset.cpp",
+        "bytes": 72146,
+        "sha256": "1ccd398293b769dbdfe28b82a658ecadd12fe4631a9eaa1fb6554fc82230f2e0"
+      },
+      {
+        "path": "icu4c/source/common/uniset_closure.cpp",
+        "bytes": 11982,
+        "sha256": "f1efc17c2d888804ed5d9a351c6b7ef4712b7e33bee6d665934c2e8a620a2800"
+      },
+      {
+        "path": "icu4c/source/common/uniset_props.cpp",
+        "bytes": 39673,
+        "sha256": "d3ab6b63c354dcf1bb24ec1994386e65fa388dd019ee0a9817cab73cc106d437"
+      },
+      {
+        "path": "icu4c/source/common/unisetspan.cpp",
+        "bytes": 61760,
+        "sha256": "8604d3c605303975e6c089f0bf91c1821859ff6e287c48e604e98b55a8fc34c9"
+      },
+      {
+        "path": "icu4c/source/common/unisetspan.h",
+        "bytes": 5097,
+        "sha256": "1a4933c37a21068f6889c56aa9519a5e7744842ad99abfddd22853d80d328e3d"
+      },
+      {
+        "path": "icu4c/source/common/unistr.cpp",
+        "bytes": 59659,
+        "sha256": "3d08aaaf9378a5bb99655c80ae39a39d907d5e0cd7f26936b0b341935bdafee6"
+      },
+      {
+        "path": "icu4c/source/common/unistr_case.cpp",
+        "bytes": 8162,
+        "sha256": "6e6f54b4af053ad1ee3bee5bb2d713d660a895a325b4c348301c5c291f17f923"
+      },
+      {
+        "path": "icu4c/source/common/unistr_case_locale.cpp",
+        "bytes": 1759,
+        "sha256": "39789f56813c43089115e40e66d8649d3208d0b7a5615eea90eff868f4dc8348"
+      },
+      {
+        "path": "icu4c/source/common/unistr_cnv.cpp",
+        "bytes": 12534,
+        "sha256": "44fe14791c9e3882955928aabd096f2b8e752b3fe953391872da7c7b08c42c17"
+      },
+      {
+        "path": "icu4c/source/common/unistr_props.cpp",
+        "bytes": 1595,
+        "sha256": "90520b766263c92b7900dd920699f31c1314c54ec262b4d10298fcc1448e8f21"
+      },
+      {
+        "path": "icu4c/source/common/unistr_titlecase_brkiter.cpp",
+        "bytes": 1699,
+        "sha256": "6163fcf235a0e7ad3bff895529f90cdd0cc2682a9223232c69538c6c6067ba41"
+      },
+      {
+        "path": "icu4c/source/common/unistrappender.h",
+        "bytes": 2440,
+        "sha256": "ec14024b793db364d86e0d4cc2df7910f98835227ca6f9febe4f7757f58c4c8d"
+      },
+      {
+        "path": "icu4c/source/common/unorm.cpp",
+        "bytes": 10746,
+        "sha256": "1afd15d8a72c84b08c0febfdf34696acc1a79f1d7053f68600643956b7352d00"
+      },
+      {
+        "path": "icu4c/source/common/unormcmp.cpp",
+        "bytes": 23212,
+        "sha256": "6067f727c63fcdafd5505fa54c83fd1531e12addda2b5ca2f1417812e2234252"
+      },
+      {
+        "path": "icu4c/source/common/unormimp.h",
+        "bytes": 21227,
+        "sha256": "b7caa75a7ae54404f903b71ba5f8663a1f47dd288b6188472a5da009af2bc8de"
+      },
+      {
+        "path": "icu4c/source/common/uobject.cpp",
+        "bytes": 3257,
+        "sha256": "fe74824c6437a68a192e2ac81871ab907f5bae8597aee98bcd176c47003abe23"
+      },
+      {
+        "path": "icu4c/source/common/uposixdefs.h",
+        "bytes": 2654,
+        "sha256": "049eb0b52e961c63e041d8388430bd0fa325d07bb7f89ce0f2d8328e758859e3"
+      },
+      {
+        "path": "icu4c/source/common/uprops.cpp",
+        "bytes": 38481,
+        "sha256": "9d0d3b8d9f3b39d051dc76f4ef243f833ff1afb1bf21e99b30dffc4c1fd6120a"
+      },
+      {
+        "path": "icu4c/source/common/uprops.h",
+        "bytes": 15725,
+        "sha256": "1c03e3a47ae0ba7a8d9bbc353b24ad8d81d0d97d8ac19230f3b407f86d8e0d92"
+      },
+      {
+        "path": "icu4c/source/common/ures_cnv.cpp",
+        "bytes": 2430,
+        "sha256": "3b92d8ada0a3f85111171a71fd7b0a6bfd13bd9ff0154d5b26d3035290446c05"
+      },
+      {
+        "path": "icu4c/source/common/uresbund.cpp",
+        "bytes": 133388,
+        "sha256": "4f7bb3c3771dbdf231a5fd981595756b6c8dc7f6b32147c7d2d64b3dea5cc544"
+      },
+      {
+        "path": "icu4c/source/common/uresdata.cpp",
+        "bytes": 50126,
+        "sha256": "e55b4028fd65cae20630479c819acc94861c95876dc10cdf70206d4d4e572be8"
+      },
+      {
+        "path": "icu4c/source/common/uresdata.h",
+        "bytes": 24257,
+        "sha256": "3d7d229751978b96f334ca213e723da64642aed8c49012b6d05db65c4c84a333"
+      },
+      {
+        "path": "icu4c/source/common/uresimp.h",
+        "bytes": 17189,
+        "sha256": "e3da25e8e1ad3d297a06ab7285b67ccf5e8d34d2479b8efefa7ad5932427fc25"
+      },
+      {
+        "path": "icu4c/source/common/ureslocs.h",
+        "bytes": 861,
+        "sha256": "d6bfd65b472cd23d2d368993a141e3a9afcd8931f41d16e5c779541deee29f51"
+      },
+      {
+        "path": "icu4c/source/common/usc_impl.cpp",
+        "bytes": 9544,
+        "sha256": "bc5ee5b623c3b12881325c4750ceddc6f5016d70e877f35ccb93f7c995373997"
+      },
+      {
+        "path": "icu4c/source/common/usc_impl.h",
+        "bytes": 5560,
+        "sha256": "0b4eb294c1f790ffec5cce3fdced644a5028255c6a5f7bfabeefb10b716e0ef3"
+      },
+      {
+        "path": "icu4c/source/common/uscript.cpp",
+        "bytes": 5584,
+        "sha256": "95f72f810bc7f4261d32636ab05e3a71d4ce0e544d9641a87002cc37df1ca863"
+      },
+      {
+        "path": "icu4c/source/common/uscript_props.cpp",
+        "bytes": 9826,
+        "sha256": "c155f9b3664cea8442dcd34396b5ca8c83578bffcbc5b11f28165bb7331e1ffc"
+      },
+      {
+        "path": "icu4c/source/common/uset.cpp",
+        "bytes": 20450,
+        "sha256": "59253a793a8489dd915916cb34dad0a3086832f18bac0fc366273feba8c8fb5b"
+      },
+      {
+        "path": "icu4c/source/common/uset_imp.h",
+        "bytes": 1622,
+        "sha256": "54b3a9673aaf2f8ee81fcd8e28f6b1eb391bff5fed61d3285281acc9e814d292"
+      },
+      {
+        "path": "icu4c/source/common/uset_props.cpp",
+        "bytes": 3975,
+        "sha256": "8d5206824535218bdf8e25ebb063476b022e621025dfc711e3f2dc4773510d04"
+      },
+      {
+        "path": "icu4c/source/common/usetiter.cpp",
+        "bytes": 4606,
+        "sha256": "c0d87276284817bb58a8622e16cc4f9a3353640375f3db6e4dede29f59db670b"
+      },
+      {
+        "path": "icu4c/source/common/ushape.cpp",
+        "bytes": 63579,
+        "sha256": "9aa31d623bc74785bde339af687b961b0de69ba955d73d30217fad0ae44bb953"
+      },
+      {
+        "path": "icu4c/source/common/usprep.cpp",
+        "bytes": 28056,
+        "sha256": "9fb773850f7c617ea2908a15da0281584710897042990d9b56df9e40c6710b42"
+      },
+      {
+        "path": "icu4c/source/common/ustack.cpp",
+        "bytes": 1379,
+        "sha256": "55af64965263395363350d8a1764e54dedd9f8270c9cde41de29ef8dc9b967ed"
+      },
+      {
+        "path": "icu4c/source/common/ustr_cnv.cpp",
+        "bytes": 6208,
+        "sha256": "2aea46d5d8d4c47dbab7054c045c968359d7a460e7d373e3b6da6364e4ac0bd3"
+      },
+      {
+        "path": "icu4c/source/common/ustr_cnv.h",
+        "bytes": 1226,
+        "sha256": "1469303a5d5ee6d54cd1bd0c298068bb226a44ad43438cd62a055bbd7c07a54b"
+      },
+      {
+        "path": "icu4c/source/common/ustr_imp.h",
+        "bytes": 5068,
+        "sha256": "4ad88d27b74f0e8afe19112b16c13123d04a3be73b36bbd139326fb297aa0ba3"
+      },
+      {
+        "path": "icu4c/source/common/ustr_titlecase_brkiter.cpp",
+        "bytes": 8382,
+        "sha256": "24360031aeb4b30172bf34b94c2359af2395e7d547be90f3247d903280d70c30"
+      },
+      {
+        "path": "icu4c/source/common/ustr_wcs.cpp",
+        "bytes": 16337,
+        "sha256": "ed4bc0a0d4c390a7355e152cd95a1c95f5825bb1a0fd27ba176d2c194be2eeea"
+      },
+      {
+        "path": "icu4c/source/common/ustrcase.cpp",
+        "bytes": 63883,
+        "sha256": "bb50907765e71db9bf970e315a374ec512fd95671414753ee98f395503811da6"
+      },
+      {
+        "path": "icu4c/source/common/ustrcase_locale.cpp",
+        "bytes": 2942,
+        "sha256": "e6ce2a3f713f46228186844bfe490a2f1b7c367074970fd696f5b5ddf7a55298"
+      },
+      {
+        "path": "icu4c/source/common/ustrenum.cpp",
+        "bytes": 11002,
+        "sha256": "fc271a466f656f0dd8629dde208b6ec07195fb20eaa29d337612505fe24bad6c"
+      },
+      {
+        "path": "icu4c/source/common/ustrenum.h",
+        "bytes": 2605,
+        "sha256": "3b8c98f8d86969390fc01a324db1cd1f2e077b69a782b4c54b9b36d2741fe9ab"
+      },
+      {
+        "path": "icu4c/source/common/ustrfmt.cpp",
+        "bytes": 1815,
+        "sha256": "d21954a91aea625412a961ad4a9ff91cae15749138e393129fb443cda79cfd39"
+      },
+      {
+        "path": "icu4c/source/common/ustrfmt.h",
+        "bytes": 565,
+        "sha256": "61dc45016cf4b69111c6e0e887694270650c944245557f40c83a0da190614c7a"
+      },
+      {
+        "path": "icu4c/source/common/ustring.cpp",
+        "bytes": 45200,
+        "sha256": "cb323f757235736d03c695657a7590da5882c0791aa6d70a9a96f9c2dd5a346e"
+      },
+      {
+        "path": "icu4c/source/common/ustrtrns.cpp",
+        "bytes": 50244,
+        "sha256": "54d4ade1df6a255d2960d3ad93c1dc1b2a6afd461b943339c587292ea5070e6b"
+      },
+      {
+        "path": "icu4c/source/common/utext.cpp",
+        "bytes": 99186,
+        "sha256": "a334566ae94c076927ff206a1f0de99425ec6d9b02a12951495f8227d470dc4b"
+      },
+      {
+        "path": "icu4c/source/common/utf_impl.cpp",
+        "bytes": 11655,
+        "sha256": "6671b019723a7fa01993af68aefed2a557dddc32b5d19f73287aaa1e055237ca"
+      },
+      {
+        "path": "icu4c/source/common/util.cpp",
+        "bytes": 14814,
+        "sha256": "2103464f73bab2480bc3b12f6e94c4f0dd9ac1d2f7153495a57de71cf48f56e6"
+      },
+      {
+        "path": "icu4c/source/common/util.h",
+        "bytes": 11541,
+        "sha256": "faebcfdb47530dc413fc670e3474bf11ade46e42f21d2b7f4f0eff0dc7d2410f"
+      },
+      {
+        "path": "icu4c/source/common/util_props.cpp",
+        "bytes": 7042,
+        "sha256": "1751c94088c0e909310257044824d296c3452f01f75f43399e862f0041df1729"
+      },
+      {
+        "path": "icu4c/source/common/utrace.cpp",
+        "bytes": 16358,
+        "sha256": "5e5eed757f47ea56b75e8827eb97dd4861721a1e14688b5191f01bb843fc80a4"
+      },
+      {
+        "path": "icu4c/source/common/utracimp.h",
+        "bytes": 14377,
+        "sha256": "8f77820dbc354ec6bfe2d1bff1ab6afc2968ae9786051ed7d5e81a005f257130"
+      },
+      {
+        "path": "icu4c/source/common/utrie.cpp",
+        "bytes": 38841,
+        "sha256": "ec8cb95b49be5e0118ee617ae937d823683e45747742730a2ef1aed853775c5c"
+      },
+      {
+        "path": "icu4c/source/common/utrie.h",
+        "bytes": 31117,
+        "sha256": "6fa412ef423653c58f9ecb635c67f91ad68e3c3e8e7d372bbecc52c269731735"
+      },
+      {
+        "path": "icu4c/source/common/utrie2.cpp",
+        "bytes": 21225,
+        "sha256": "f227f5c8f0c82baf1e81c16735aa8f1f9e0eab40ba9588c35db237e6c488c480"
+      },
+      {
+        "path": "icu4c/source/common/utrie2.h",
+        "bytes": 37467,
+        "sha256": "79e37fcb51257a6e21ec261f20a4964707b5b922cfca2dc68c0932c4e2647dec"
+      },
+      {
+        "path": "icu4c/source/common/utrie2_builder.cpp",
+        "bytes": 48139,
+        "sha256": "a8afa26ea86a08e6470e73517dd2f0fcf3271ca19d426d7671b32995a41943f2"
+      },
+      {
+        "path": "icu4c/source/common/utrie2_impl.h",
+        "bytes": 5388,
+        "sha256": "83eca3e5a2141a37f9e82e34ab13cb20ee470684be6e857af62b8acc31da48c7"
+      },
+      {
+        "path": "icu4c/source/common/utrie_swap.cpp",
+        "bytes": 11225,
+        "sha256": "861753a86a89bc97303c1ccdbc55d3ddc54cc21dcd8e7bbb84ece1d83c416e55"
+      },
+      {
+        "path": "icu4c/source/common/uts46.cpp",
+        "bytes": 57288,
+        "sha256": "48dc3750120880a98b53cca86662baa111d57fb7cfe191b6e2b60d041b2136b6"
+      },
+      {
+        "path": "icu4c/source/common/utypeinfo.h",
+        "bytes": 1229,
+        "sha256": "acc419d396b7822008e8ad7663ec18bd96870ea5cff3917eb99b9a1976318efa"
+      },
+      {
+        "path": "icu4c/source/common/utypes.cpp",
+        "bytes": 7685,
+        "sha256": "7d8546d5fd9fcf1ba65c0e737b9ac071adf77a44a1ec8c61cc33c6bc7adefb00"
+      },
+      {
+        "path": "icu4c/source/common/uvector.cpp",
+        "bytes": 17143,
+        "sha256": "dde7ebe4dfedf621591f3902f0aa78dbfe125aa6ee149908174fbf9ffa988b2e"
+      },
+      {
+        "path": "icu4c/source/common/uvector.h",
+        "bytes": 12954,
+        "sha256": "85cd23e7d2c95c7bf190f64691982ae9379122baf8478c1600db7a4828cacd05"
+      },
+      {
+        "path": "icu4c/source/common/uvectr32.cpp",
+        "bytes": 8819,
+        "sha256": "95acb00183c03338af7718a3aa625807873e51f17748c8fb8979d63d9030d0d5"
+      },
+      {
+        "path": "icu4c/source/common/uvectr32.h",
+        "bytes": 8585,
+        "sha256": "34f856460f531d46ada2408975fa017711825ca8078c28bd9a7def548314e483"
+      },
+      {
+        "path": "icu4c/source/common/uvectr64.cpp",
+        "bytes": 5909,
+        "sha256": "232dc0754b205b14420d456584fe224b40aae60dd51e6794cad2c1eadb8b9d9e"
+      },
+      {
+        "path": "icu4c/source/common/uvectr64.h",
+        "bytes": 7902,
+        "sha256": "5028dac4025c82dc7916a3851f7eb629c2dc60c06319ff9a4148bbe72d20d0e5"
+      },
+      {
+        "path": "icu4c/source/common/wintz.cpp",
+        "bytes": 16418,
+        "sha256": "b73efa8f19fb1b01dfe1b97dc34251487df9e30b214d2620f6c6b95bed684eb3"
+      },
+      {
+        "path": "icu4c/source/common/wintz.h",
+        "bytes": 935,
+        "sha256": "837f3a28ca7b292213fbedbdcb1707eb9c297c2b3918ea1bf4ee45e47ab2d9d5"
+      },
+      {
+        "path": "icu4c/source/i18n/Android.bp",
+        "bytes": 2956,
+        "sha256": "ff906f484c04992bef6b4c1895dc4435f5f65376707bdcc8c7e53014e572996e"
+      },
+      {
+        "path": "icu4c/source/i18n/alphaindex.cpp",
+        "bytes": 43006,
+        "sha256": "40569e4df7f97db16485993b83fc99d44b706c464e83ca55a85aad23cdf746f3"
+      },
+      {
+        "path": "icu4c/source/i18n/anytrans.cpp",
+        "bytes": 13084,
+        "sha256": "61740893d4180a057d1e9cbda0b659f87566ec00948390876fe1c617e6999474"
+      },
+      {
+        "path": "icu4c/source/i18n/anytrans.h",
+        "bytes": 3894,
+        "sha256": "f523d4918aded782b6abfdd78fad4e870e134853a7653ef2ffc7348005ac897c"
+      },
+      {
+        "path": "icu4c/source/i18n/astro.cpp",
+        "bytes": 29884,
+        "sha256": "415fe1975e0c41f200b6aa473fdebcd9f6ad9587b141f42c9541f4fcb06d5802"
+      },
+      {
+        "path": "icu4c/source/i18n/astro.h",
+        "bytes": 14917,
+        "sha256": "bdd35a31c405d711bfe7dd8263d721404fb1234edd5b1e66335c163aa3efb298"
+      },
+      {
+        "path": "icu4c/source/i18n/basictz.cpp",
+        "bytes": 21237,
+        "sha256": "717b095f213f5d75b3d29ddf703402dd85ebe13ee49b00f0836ed34d67a75df7"
+      },
+      {
+        "path": "icu4c/source/i18n/bocsu.cpp",
+        "bytes": 4869,
+        "sha256": "837d8beffae1d872442faf7f6ba6f6d5444350fcc3761f1e94de5c3663bd3bae"
+      },
+      {
+        "path": "icu4c/source/i18n/bocsu.h",
+        "bytes": 5805,
+        "sha256": "a592f54c053da670e9f941c83124e2231f7fa07b31d326a5c985cfb5751dbb1b"
+      },
+      {
+        "path": "icu4c/source/i18n/brktrans.cpp",
+        "bytes": 6191,
+        "sha256": "9d74b437e8dfc645b7844da924e9e5f524a8e4a8888736c06d48bbd07bd85bac"
+      },
+      {
+        "path": "icu4c/source/i18n/brktrans.h",
+        "bytes": 3063,
+        "sha256": "4c152a413e1865afb047ce5d1b79f265d909d45d718e1e497aa6c04b94cdf5a5"
+      },
+      {
+        "path": "icu4c/source/i18n/buddhcal.cpp",
+        "bytes": 2977,
+        "sha256": "deaa9c261af30cba32a958dd9a993d6b6cb8771b7dc9b8aff71eb8c63bee0ff5"
+      },
+      {
+        "path": "icu4c/source/i18n/buddhcal.h",
+        "bytes": 5452,
+        "sha256": "64119eba52d63bdc490a72efdfb4ff9847ea9fed8cc027a7a1e98d78bc7c5ad0"
+      },
+      {
+        "path": "icu4c/source/i18n/calendar.cpp",
+        "bytes": 149549,
+        "sha256": "a3b1f9c949a5fab0cd7d60d1695efad5bbf8f2b7ecdd243a8a649be5b21e9f1f"
+      },
+      {
+        "path": "icu4c/source/i18n/casetrn.cpp",
+        "bytes": 5083,
+        "sha256": "3e691d459dbfa70d47d664528603250e209b6778b0a113ff7647d2a407d06d98"
+      },
+      {
+        "path": "icu4c/source/i18n/casetrn.h",
+        "bytes": 2922,
+        "sha256": "7b8734253468e2a43efd95542953da95ddb00a028250626d59633f2507344aa0"
+      },
+      {
+        "path": "icu4c/source/i18n/cecal.cpp",
+        "bytes": 5348,
+        "sha256": "0a7f9d773e121d77147163b014fa9ca5fe781360d38dfc166bd832a86d60a570"
+      },
+      {
+        "path": "icu4c/source/i18n/cecal.h",
+        "bytes": 4364,
+        "sha256": "2bb8a0a8f1569d3ca7e5bcc76eab120d7e7bf6bde66dc124a5d69ee0947b6189"
+      },
+      {
+        "path": "icu4c/source/i18n/chnsecal.cpp",
+        "bytes": 37360,
+        "sha256": "879452119f8b41e50697d6257871b27c476af65c5efed27de674ad208fa69883"
+      },
+      {
+        "path": "icu4c/source/i18n/chnsecal.h",
+        "bytes": 10904,
+        "sha256": "840ccc7da264cd50c8f8e96ce11bef7b45265e2908a137261accb5411744e043"
+      },
+      {
+        "path": "icu4c/source/i18n/choicfmt.cpp",
+        "bytes": 18710,
+        "sha256": "4437b178f6ffa074a47ab6a20cbde9c9b7664f466196bb221c012488fd611162"
+      },
+      {
+        "path": "icu4c/source/i18n/coleitr.cpp",
+        "bytes": 15679,
+        "sha256": "13414b0d3366c04dc881577e8417af87fdc5e161e95f6517da23a0d2c3254719"
+      },
+      {
+        "path": "icu4c/source/i18n/coll.cpp",
+        "bytes": 32680,
+        "sha256": "74193b74aa3264ddd144dd884b857e2266dda82d21c58eede10a27dfccc361a5"
+      },
+      {
+        "path": "icu4c/source/i18n/collation.cpp",
+        "bytes": 5285,
+        "sha256": "638f115dea3dfc07a8c70137cb0f085fce7e7595102f6dac87113f28757ddd33"
+      },
+      {
+        "path": "icu4c/source/i18n/collation.h",
+        "bytes": 19319,
+        "sha256": "756a4374e3d0ecdb6b2357abf7ad5857d0b6d6b8f6564484d63ccf6fa5ea7d07"
+      },
+      {
+        "path": "icu4c/source/i18n/collationbuilder.cpp",
+        "bytes": 74421,
+        "sha256": "b33adb50f8fde3732be21c38f09fd59a8dd7fe557f660d8a5f577fd32b572933"
+      },
+      {
+        "path": "icu4c/source/i18n/collationbuilder.h",
+        "bytes": 17357,
+        "sha256": "01d7af234eb59123a69178233bcb2808fcd41cfb16e21b66d487aa593ec69c96"
+      },
+      {
+        "path": "icu4c/source/i18n/collationcompare.cpp",
+        "bytes": 15024,
+        "sha256": "a6f549fb440741c52841b2c46e19bf58d7b8327849a41a312ab270c396e0c712"
+      },
+      {
+        "path": "icu4c/source/i18n/collationcompare.h",
+        "bytes": 1165,
+        "sha256": "68eac7ba6e5581418faadbd6eef229eb113412dd7ad3fe0925ad0e502e8205c3"
+      },
+      {
+        "path": "icu4c/source/i18n/collationdata.cpp",
+        "bytes": 13426,
+        "sha256": "f7ee5ebdcc70675c1dd7d5373abc2ef2d1f6cee1f7283a20e4fd85d767485240"
+      },
+      {
+        "path": "icu4c/source/i18n/collationdata.h",
+        "bytes": 9265,
+        "sha256": "31da85e055afa40b72e4d6d63ddf4cd14d4890851a22da78fd61fca26e4c598e"
+      },
+      {
+        "path": "icu4c/source/i18n/collationdatabuilder.cpp",
+        "bytes": 67494,
+        "sha256": "48049f4b06f911d4452a339d92426cf76855822053b95f04ad0650a5c65a3b41"
+      },
+      {
+        "path": "icu4c/source/i18n/collationdatabuilder.h",
+        "bytes": 10114,
+        "sha256": "d9dc0bb8e137872000cdf92243ea91f9bee86713baafbe43af214064503b5c0b"
+      },
+      {
+        "path": "icu4c/source/i18n/collationdatareader.cpp",
+        "bytes": 19538,
+        "sha256": "f4f55d74568c1c17860312ccc769b9a87606eca5810c566b8bf0cd919e62ea56"
+      },
+      {
+        "path": "icu4c/source/i18n/collationdatareader.h",
+        "bytes": 10346,
+        "sha256": "8d2ecce67a6bea853e569092483403065ee2126bc659d01e1900859f21d21e9e"
+      },
+      {
+        "path": "icu4c/source/i18n/collationdatawriter.cpp",
+        "bytes": 13984,
+        "sha256": "2b8bd9355d35db89dc0f7cfb167e9f8183b1ce787a91862ca72c8fad16e3402e"
+      },
+      {
+        "path": "icu4c/source/i18n/collationdatawriter.h",
+        "bytes": 2006,
+        "sha256": "672acd8e9b601977419a4be2be238689ba6768cd146a2d21ba2fa8f50ea8385f"
+      },
+      {
+        "path": "icu4c/source/i18n/collationfastlatin.cpp",
+        "bytes": 42785,
+        "sha256": "d0c6ec91412e776da2c0b554b62a5719292889fd8d552e30660a11862a44cf12"
+      },
+      {
+        "path": "icu4c/source/i18n/collationfastlatin.h",
+        "bytes": 14332,
+        "sha256": "1b38ee8953765ebf2d8e5e589aff705c455c29685eb772584f2f3e6615fd50a2"
+      },
+      {
+        "path": "icu4c/source/i18n/collationfastlatinbuilder.cpp",
+        "bytes": 28496,
+        "sha256": "7f0799fba7ee0d496acc59a539f3fdf3ae9be7cb1ab1c5b8f5866f6898288f9f"
+      },
+      {
+        "path": "icu4c/source/i18n/collationfastlatinbuilder.h",
+        "bytes": 3256,
+        "sha256": "653fc7522048133b940311704137b0a39bced2ce76e7aa0ee6cbc4222fe291e8"
+      },
+      {
+        "path": "icu4c/source/i18n/collationfcd.cpp",
+        "bytes": 11546,
+        "sha256": "0f695cc59e60f29cd54aa2a13f3c5a75d625b46920ecd147a12fc9d8793faafe"
+      },
+      {
+        "path": "icu4c/source/i18n/collationfcd.h",
+        "bytes": 4887,
+        "sha256": "ab31d9d13ef16bfed2bfbcc0c0d8f29cf750c24baba954d86c73577f0a362ddf"
+      },
+      {
+        "path": "icu4c/source/i18n/collationiterator.cpp",
+        "bytes": 37618,
+        "sha256": "a9894cc9d1d6c39c363784e0eb618d216e8e449aad86c9f9cb4222551ac9ebd0"
+      },
+      {
+        "path": "icu4c/source/i18n/collationiterator.h",
+        "bytes": 10969,
+        "sha256": "3a621019678fe95245087ac0d3f8f73fa4b7dc90db91728716934bda4274c056"
+      },
+      {
+        "path": "icu4c/source/i18n/collationkeys.cpp",
+        "bytes": 27837,
+        "sha256": "53181677f421869ab86d9cd4761fc2c98b5b1f905236a23c886d47c70216bd1d"
+      },
+      {
+        "path": "icu4c/source/i18n/collationkeys.h",
+        "bytes": 6851,
+        "sha256": "5a08726e202df00c2c458d0cdc3b937e4ffcbdf2d0e312f85569685c0e5d6811"
+      },
+      {
+        "path": "icu4c/source/i18n/collationroot.cpp",
+        "bytes": 4599,
+        "sha256": "3a9c0173d50348b19cee2772de453665317929b6c8d8ae441920eac606166e29"
+      },
+      {
+        "path": "icu4c/source/i18n/collationroot.h",
+        "bytes": 1461,
+        "sha256": "8e1a1f47f140a37426edea736c2f4487922abaaa47546ecf7c40a5777ff34211"
+      },
+      {
+        "path": "icu4c/source/i18n/collationrootelements.cpp",
+        "bytes": 11660,
+        "sha256": "bdefcaff67aad512deb4aed9a493e3845208e26717b3fde09aeac6176005d7b6"
+      },
+      {
+        "path": "icu4c/source/i18n/collationrootelements.h",
+        "bytes": 9461,
+        "sha256": "15c5fc23d79abe08d15981928501afde02946efa0afa44fb67d79f1713c32dce"
+      },
+      {
+        "path": "icu4c/source/i18n/collationruleparser.cpp",
+        "bytes": 31283,
+        "sha256": "431cbcba859cac192e11a6ae2899cdc9df5a4a89a513a8e212ed067ad86339f6"
+      },
+      {
+        "path": "icu4c/source/i18n/collationruleparser.h",
+        "bytes": 6409,
+        "sha256": "f159660604e465ee6bca48cf88c9c9ccf3ff85aea961560646a6a9b9288a7af1"
+      },
+      {
+        "path": "icu4c/source/i18n/collationsets.cpp",
+        "bytes": 21656,
+        "sha256": "ac3a4f736df12c9f6925d80828d3d8282c615f8471b24265d7b099da1d5aec98"
+      },
+      {
+        "path": "icu4c/source/i18n/collationsets.h",
+        "bytes": 4664,
+        "sha256": "b993fb292bd1953ec3ffa7fe7378537af72dee0b5dd0073c2904866a22dc9a34"
+      },
+      {
+        "path": "icu4c/source/i18n/collationsettings.cpp",
+        "bytes": 13026,
+        "sha256": "4aa8c1f8bfca5975d426f86098090e5d726ea3f8951bc9ba98dbddfce0fe6147"
+      },
+      {
+        "path": "icu4c/source/i18n/collationsettings.h",
+        "bytes": 10388,
+        "sha256": "d35ab71b4daf597e52978d0e996fbaa1c4b8044d935429d7f7d2f03c783761a7"
+      },
+      {
+        "path": "icu4c/source/i18n/collationtailoring.cpp",
+        "bytes": 3446,
+        "sha256": "fcfd5b875d7decf30de015dfaacaafb46a22c60820a55eb289f639fe97feea14"
+      },
+      {
+        "path": "icu4c/source/i18n/collationtailoring.h",
+        "bytes": 3591,
+        "sha256": "7135998bacbd00d0a3d1e113ec7203479d3c3e2ab30e746f3163d2472e8ac21a"
+      },
+      {
+        "path": "icu4c/source/i18n/collationweights.cpp",
+        "bytes": 19724,
+        "sha256": "f0099602abfeeb3dc10a6c7f5044cd63d6619510bf004dc0504b793891053942"
+      },
+      {
+        "path": "icu4c/source/i18n/collationweights.h",
+        "bytes": 3589,
+        "sha256": "7271d4877244d04325cc2a81b7518af9d28b86aaa75c5f4ce9311d6947278a2b"
+      },
+      {
+        "path": "icu4c/source/i18n/collunsafe.h",
+        "bytes": 8280,
+        "sha256": "fa1966eb36760afb3f4dd80c6ff98acc614bf8b51e10b2f1f645b5c94a8dca4d"
+      },
+      {
+        "path": "icu4c/source/i18n/compactdecimalformat.cpp",
+        "bytes": 2250,
+        "sha256": "b564e553f8e55a093f7553bdad5af934236e73ba15c51107adfbc2a5745a9b24"
+      },
+      {
+        "path": "icu4c/source/i18n/coptccal.cpp",
+        "bytes": 3268,
+        "sha256": "0bebb55b0613fc3453015ba8fb4f8c9422f7556c124014f2dda38f4f8a7f3ccc"
+      },
+      {
+        "path": "icu4c/source/i18n/coptccal.h",
+        "bytes": 7558,
+        "sha256": "f7911c0b14e1b8d5d847ef4cfe786e11293f18ea36b2eda253e420da2ad1b024"
+      },
+      {
+        "path": "icu4c/source/i18n/cpdtrans.cpp",
+        "bytes": 21593,
+        "sha256": "2330ac670652792f14add766480b438b21b4349ebc7b7fb2ddf3587bebbc43b3"
+      },
+      {
+        "path": "icu4c/source/i18n/cpdtrans.h",
+        "bytes": 7355,
+        "sha256": "15f2ee0c49d205ecca970a22dd799181211af6bb2129ae53621c5f4b2fd690f5"
+      },
+      {
+        "path": "icu4c/source/i18n/csdetect.cpp",
+        "bytes": 14073,
+        "sha256": "6d6013c2b540f72d5aa11e08a1be9ab24c1ffa7d4d6a5443dd356f08f6efbba1"
+      },
+      {
+        "path": "icu4c/source/i18n/csdetect.h",
+        "bytes": 1962,
+        "sha256": "4d30c60dd996a04e4c7a99a27a10359f3ee170006764f66a8cde7c2ab80e7d8e"
+      },
+      {
+        "path": "icu4c/source/i18n/csmatch.cpp",
+        "bytes": 1688,
+        "sha256": "38de029ac3b3e4d0a92df613d801bf4220097a1f9694e958ba78b95f32d1bfc3"
+      },
+      {
+        "path": "icu4c/source/i18n/csmatch.h",
+        "bytes": 2167,
+        "sha256": "1a07f3d47ef7bd5d8c842e6489befbc5268480eb839e957c8e57c79807778cb0"
+      },
+      {
+        "path": "icu4c/source/i18n/csr2022.cpp",
+        "bytes": 6270,
+        "sha256": "bce48e978c568361d28be391e7253d02b40bcca3a5da38811ef5281af774a8f3"
+      },
+      {
+        "path": "icu4c/source/i18n/csr2022.h",
+        "bytes": 2551,
+        "sha256": "5fb4a36aeb1f9fffa944feea32b50468ce39f2d85e483f5c77c1753a5b3af950"
+      },
+      {
+        "path": "icu4c/source/i18n/csrecog.cpp",
+        "bytes": 642,
+        "sha256": "bba1798334f47e94a90a41645f5e0f6a804501b713aa81eef5552be51b41dc9c"
+      },
+      {
+        "path": "icu4c/source/i18n/csrecog.h",
+        "bytes": 1714,
+        "sha256": "05df6ac332add1307037069a4cb623130a34006c9b1bf2d7410c233647ff1b73"
+      },
+      {
+        "path": "icu4c/source/i18n/csrmbcs.cpp",
+        "bytes": 16086,
+        "sha256": "37441c0e62297b629d51b99ab0356fcecefeb7753d2f3f20af76fa98914fafd8"
+      },
+      {
+        "path": "icu4c/source/i18n/csrmbcs.h",
+        "bytes": 6066,
+        "sha256": "f496ae6a8cd202a88cf55343215334d0194a20a0dcaf725315d4205d08483766"
+      },
+      {
+        "path": "icu4c/source/i18n/csrsbcs.cpp",
+        "bytes": 56652,
+        "sha256": "ebee07fcf8b996639da5318ed4c24d9d5b02619f391be21341797bb878881dbd"
+      },
+      {
+        "path": "icu4c/source/i18n/csrsbcs.h",
+        "bytes": 6978,
+        "sha256": "271455b380c9ff1455bcd8a2bfd8f503b9aed42f39b2d1e2c2a1b25c0b64f9da"
+      },
+      {
+        "path": "icu4c/source/i18n/csrucode.cpp",
+        "bytes": 5567,
+        "sha256": "52aa1699c441175437b38fda3a13a4050261723c4dd8f1d5eb44a5e19714550f"
+      },
+      {
+        "path": "icu4c/source/i18n/csrucode.h",
+        "bytes": 2401,
+        "sha256": "feed4c0194f9e9416c9075e2d9d54905c8521a7365169f8d885d9757a24dd9f5"
+      },
+      {
+        "path": "icu4c/source/i18n/csrutf8.cpp",
+        "bytes": 3021,
+        "sha256": "2ca899566bebf5e68ba2e3ecbe57fd9ac49ae7db72d6af5478ffa7d8a7997936"
+      },
+      {
+        "path": "icu4c/source/i18n/csrutf8.h",
+        "bytes": 963,
+        "sha256": "26745b0debf6b5c0ba40f9a54614611f5f1e99d927bcc7cf8daa07e1a6693bb5"
+      },
+      {
+        "path": "icu4c/source/i18n/curramt.cpp",
+        "bytes": 1573,
+        "sha256": "97af2646c3dc56a8b3028955a689c2d8a59ea331df792c9f031171e991d4d2d2"
+      },
+      {
+        "path": "icu4c/source/i18n/currfmt.cpp",
+        "bytes": 1769,
+        "sha256": "4225f2994b2e54c8964bdc9d3c948dd318f4709f76c2a2bd43197b9cc2899d5b"
+      },
+      {
+        "path": "icu4c/source/i18n/currfmt.h",
+        "bytes": 2316,
+        "sha256": "8e3008934563ec741d1986fb68e5d72ac336e89f739b536c2195d7699ee87db7"
+      },
+      {
+        "path": "icu4c/source/i18n/currpinf.cpp",
+        "bytes": 15863,
+        "sha256": "a12ce1fed2eebef58a2336c10d834323026b67039fc133097cb480d333bf0afc"
+      },
+      {
+        "path": "icu4c/source/i18n/currunit.cpp",
+        "bytes": 4429,
+        "sha256": "b5f72278481fb9575b48449af1f2c55cf6e7a3f6c0f360c34923092c95ea6279"
+      },
+      {
+        "path": "icu4c/source/i18n/dangical.cpp",
+        "bytes": 6167,
+        "sha256": "33a148d9c578619f1322d026e0e2b7ccea2aa73e30e9dc80d2ab32f43ec1faec"
+      },
+      {
+        "path": "icu4c/source/i18n/dangical.h",
+        "bytes": 3681,
+        "sha256": "946fbff6429401cb57ff931ab4585aef8cf66447d01baba995add7c4baabcbc2"
+      },
+      {
+        "path": "icu4c/source/i18n/datefmt.cpp",
+        "bytes": 22831,
+        "sha256": "2ff95e968097701f155cef77726af9a586aa7b1257a72680f6c0b4a07063d414"
+      },
+      {
+        "path": "icu4c/source/i18n/dayperiodrules.cpp",
+        "bytes": 18227,
+        "sha256": "fc0f5316836e93bcef53dbb11b79b59e51a300334a0972d4a41c8c975f47a1f2"
+      },
+      {
+        "path": "icu4c/source/i18n/dayperiodrules.h",
+        "bytes": 2820,
+        "sha256": "16a4e79592e1c1663014882fd8e72dca7ffe1525850ae598a59505dae41da545"
+      },
+      {
+        "path": "icu4c/source/i18n/dcfmtsym.cpp",
+        "bytes": 24085,
+        "sha256": "80f9d732faf9e3212d5f542a126cb6667ad7749ba839fd44b6b73fc46eb24e26"
+      },
+      {
+        "path": "icu4c/source/i18n/decContext.cpp",
+        "bytes": 24482,
+        "sha256": "2e8ac07bed092bb7027bc6579c9b6630beb5cc281f194a992f5ab9633817038d"
+      },
+      {
+        "path": "icu4c/source/i18n/decContext.h",
+        "bytes": 13196,
+        "sha256": "50103f4fb1481307a89a1a90d279f393d120b1a014f559e4e1528e89f9838447"
+      },
+      {
+        "path": "icu4c/source/i18n/decNumber.cpp",
+        "bytes": 405433,
+        "sha256": "40272799afe52593cb42320603af0f2fe51b164b7ae6a2ae2c8e7791175d717c"
+      },
+      {
+        "path": "icu4c/source/i18n/decNumber.h",
+        "bytes": 13299,
+        "sha256": "eb2ef92b4f4dab89f19ec6d1431b1e794ec653df2e004ca0b9c6b6a0d373c7aa"
+      },
+      {
+        "path": "icu4c/source/i18n/decNumberLocal.h",
+        "bytes": 37617,
+        "sha256": "5a671586790d6e6e8edd8e035e986e23cb8a9247d02070fddabeb9e97ad2ef03"
+      },
+      {
+        "path": "icu4c/source/i18n/decimfmt.cpp",
+        "bytes": 70902,
+        "sha256": "22dc680df928c7112c577b00fe8ed709382b488f0271d15cba61936c4578bb60"
+      },
+      {
+        "path": "icu4c/source/i18n/displayoptions.cpp",
+        "bytes": 4835,
+        "sha256": "0ed88ac2528281a4d16730808b0b4911d8f23cc2850b16691ec8145b7bf56c13"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-bignum-dtoa.cpp",
+        "bytes": 28164,
+        "sha256": "8cb99d305c6ef515b39a68e2d1eb88267c2c95c2e30ff810f684bc160631de33"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-bignum-dtoa.h",
+        "bytes": 4811,
+        "sha256": "e7e5f67ce018afd03ff1e749c08346fcef344616f6f720ad7fcfe84a533356da"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-bignum.cpp",
+        "bytes": 25387,
+        "sha256": "bc8f3f2414a277101108c6942d37ed5e372faf0953564900469785b4ad53bdee"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-bignum.h",
+        "bytes": 6402,
+        "sha256": "ed175abeb937a792bb55a09b4b08197bb5e2163d944fb12e752d0c411ab8efb5"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-cached-powers.cpp",
+        "bytes": 10413,
+        "sha256": "60bee506025ce887e0aaaf006db76bf45813547b965c737efc1846e403f16a2e"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-cached-powers.h",
+        "bytes": 3503,
+        "sha256": "9c18b0aec1f97d2a33e4197dfc08e5dbed5df951f835a679b70599790079e151"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-diy-fp.h",
+        "bytes": 5541,
+        "sha256": "9aa545869e81080131b92b7dcb8f011c4bc66d7c2faab4ab6f1ee840cb742e35"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-double-to-string.cpp",
+        "bytes": 16863,
+        "sha256": "059e375b620bbd2ab94e59d57ca1ffd8d014b2c35e0086b56da8f48c35dcfbc4"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-double-to-string.h",
+        "bytes": 24567,
+        "sha256": "2c85dfdd6c065bc00fbe675339f446b7dbbf363ba23dfa89a2b9a902e4c683d8"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-fast-dtoa.cpp",
+        "bytes": 32210,
+        "sha256": "fc23f5c79179f1f0c4a13f4e8c6c1479888f139944260bdf2aef4c6ef743c9d3"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-fast-dtoa.h",
+        "bytes": 4575,
+        "sha256": "c3b72e8a06cc0a48b06f2fbb10c037393ea48db4d34fae50e9c3119b02047c90"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-ieee.h",
+        "bytes": 15734,
+        "sha256": "b391884b459c085dabeaad969b0ea56b0a4b9f8b206f0d43cf66d86d4852d963"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-string-to-double.cpp",
+        "bytes": 28614,
+        "sha256": "b176a297c613a7ab79107534b594052fdab738a4cb943032072338d8355bc5bf"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-string-to-double.h",
+        "bytes": 11365,
+        "sha256": "1c3a19902d93a8d0aab5a205f22f284c8c8efa31c968746c1615e53435572f7e"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-strtod.cpp",
+        "bytes": 24127,
+        "sha256": "950f7a7fda51098621eb5fb81513a7d7c7e666996a4a4eb8f13701747207e02b"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-strtod.h",
+        "bytes": 3549,
+        "sha256": "f7a63f7e6c9b0a0b32d6af670849cfcb78c94f9bc5aabd35326a16c912ffd0b5"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion-utils.h",
+        "bytes": 16050,
+        "sha256": "fa93d408d8f55a16c6d5462a074aa887b064a1504fc6f8e3748b601d6c34bc39"
+      },
+      {
+        "path": "icu4c/source/i18n/double-conversion.h",
+        "bytes": 2227,
+        "sha256": "d8e691516f966733b205032c7426e1082c0b6887c525047b965372054c4326e2"
+      },
+      {
+        "path": "icu4c/source/i18n/dt_impl.h",
+        "bytes": 3301,
+        "sha256": "3def38205ad1fab850719a64084fab4b5065bdf0509c64c9395abf89f8413963"
+      },
+      {
+        "path": "icu4c/source/i18n/dtfmtsym.cpp",
+        "bytes": 108561,
+        "sha256": "8c3d310eb5b271e2866e7e1a72a156bc0f5f1a1fb9adfc06360c32e1e4a6e497"
+      },
+      {
+        "path": "icu4c/source/i18n/dtitv_impl.h",
+        "bytes": 3445,
+        "sha256": "f80a489edda19c36ff5c16b5831bdaea7669a574403564a5c61e0afe2626847d"
+      },
+      {
+        "path": "icu4c/source/i18n/dtitvfmt.cpp",
+        "bytes": 72444,
+        "sha256": "e0831fb4ffc0a83e35f131c45b995ebe8e2611be3e1de205a59461b8e065e0ef"
+      },
+      {
+        "path": "icu4c/source/i18n/dtitvinf.cpp",
+        "bytes": 28030,
+        "sha256": "229dd4b8beb3d5a2a3488eb8183193a85f32f3ac6e90d11e37697002f9e6dbc6"
+      },
+      {
+        "path": "icu4c/source/i18n/dtptngen.cpp",
+        "bytes": 112724,
+        "sha256": "1267857a635a76b91664ed2cafca351bce017043a88d00bd2f4c85095685b853"
+      },
+      {
+        "path": "icu4c/source/i18n/dtptngen_impl.h",
+        "bytes": 11332,
+        "sha256": "889778845bdbfdc6dc6e83b723b11a1a7bd5b939decb1471ec6c82307eb77c6d"
+      },
+      {
+        "path": "icu4c/source/i18n/dtrule.cpp",
+        "bytes": 3959,
+        "sha256": "d5a78ceda9dd98cca905bc2234de3a381e7c632c770666bf76458cd6a00ef522"
+      },
+      {
+        "path": "icu4c/source/i18n/erarules.cpp",
+        "bytes": 10393,
+        "sha256": "3bbe49025c329f1dd3e4ac010972473f1f6c4b801296bd64cddc9ba58b4c130c"
+      },
+      {
+        "path": "icu4c/source/i18n/erarules.h",
+        "bytes": 3171,
+        "sha256": "a5a55cac6202741dfd6b3c02385dcbccb1b980e8bf8ece6a1308e9513203af8d"
+      },
+      {
+        "path": "icu4c/source/i18n/esctrn.cpp",
+        "bytes": 6827,
+        "sha256": "611d30cdc4f84fe1e8c08aec5ac13fb383dbfa986d6cd5a6d8110b3cc74188aa"
+      },
+      {
+        "path": "icu4c/source/i18n/esctrn.h",
+        "bytes": 4441,
+        "sha256": "bc2b65c865e2953e745c0534ddf9a5a8b0bc9cb2ccacf1f43b18026bf4aa07f5"
+      },
+      {
+        "path": "icu4c/source/i18n/ethpccal.cpp",
+        "bytes": 6353,
+        "sha256": "008ff4efd739154c7463c447713d1689b33a14cf7d8f2a64030ac72a720bc87f"
+      },
+      {
+        "path": "icu4c/source/i18n/ethpccal.h",
+        "bytes": 10782,
+        "sha256": "4f7bd818e0973ce518562971ed24bf20c38366b53d1d8ff2433806e6654d1952"
+      },
+      {
+        "path": "icu4c/source/i18n/fmtable.cpp",
+        "bytes": 28070,
+        "sha256": "a57a42ef1cc352a66590208c810faa5918fa03052bb2d0fe0f31a044a24404f3"
+      },
+      {
+        "path": "icu4c/source/i18n/fmtable_cnv.cpp",
+        "bytes": 1390,
+        "sha256": "f5d8074142364e1ce22d1d6019d1055b9a232905507a30fe8001064f41c60f93"
+      },
+      {
+        "path": "icu4c/source/i18n/fmtableimp.h",
+        "bytes": 1049,
+        "sha256": "2c5ccb6bdde6709ad4fcef456bee69d568c51aa1dd882c4c3f2f795e78bfac79"
+      },
+      {
+        "path": "icu4c/source/i18n/format.cpp",
+        "bytes": 6334,
+        "sha256": "2abf92249099ccb1c4daabe90103f855aeca9c2196fb8b4418aebead45f5532f"
+      },
+      {
+        "path": "icu4c/source/i18n/formatted_string_builder.cpp",
+        "bytes": 15383,
+        "sha256": "487533b2847dcf7997b2cfa66b993cf88f6b28835d16bfa05ef7aeaa92496124"
+      },
+      {
+        "path": "icu4c/source/i18n/formatted_string_builder.h",
+        "bytes": 8947,
+        "sha256": "bc58802b332a278c5d9f0fb4b9099f5295484b3e05b07c6b4592505cf1d7bf0c"
+      },
+      {
+        "path": "icu4c/source/i18n/formattedval_impl.h",
+        "bytes": 11121,
+        "sha256": "920f2385c2ed7175e2d30860180bb003a5833a058627f8747e6a8235b70fa9c4"
+      },
+      {
+        "path": "icu4c/source/i18n/formattedval_iterimpl.cpp",
+        "bytes": 6245,
+        "sha256": "1f4608dff367c5deab8a6a5a1a7d1530bc0cd5b8fbe591e2c98642e4039f283d"
+      },
+      {
+        "path": "icu4c/source/i18n/formattedval_sbimpl.cpp",
+        "bytes": 13642,
+        "sha256": "b3f8df469ede96e6a7cc78664f8d70b1635e258f4f4781433ec122be5a9a018a"
+      },
+      {
+        "path": "icu4c/source/i18n/formattedvalue.cpp",
+        "bytes": 6575,
+        "sha256": "c69876c4e124e463491850ff6788a5fc944b0ec27ce4b34357829a77ab7453eb"
+      },
+      {
+        "path": "icu4c/source/i18n/fphdlimp.cpp",
+        "bytes": 3349,
+        "sha256": "a5d1d76aca4b518a89ff372df4069bcfccef71e84a6044a182dd220038522566"
+      },
+      {
+        "path": "icu4c/source/i18n/fphdlimp.h",
+        "bytes": 3329,
+        "sha256": "97c8a2c9ddcc4cae193f88a6f43091f045317e5402b71c2168a3765355f1a19a"
+      },
+      {
+        "path": "icu4c/source/i18n/fpositer.cpp",
+        "bytes": 2785,
+        "sha256": "46fb6ea1551283f293ad9877834996d85d3e832c58b0c1104f7b17c8f02c3590"
+      },
+      {
+        "path": "icu4c/source/i18n/funcrepl.cpp",
+        "bytes": 3404,
+        "sha256": "b4155ac592b3667179a529c09ff253cfdb34c4a9178f2036b3feedc50d65c5cb"
+      },
+      {
+        "path": "icu4c/source/i18n/funcrepl.h",
+        "bytes": 3107,
+        "sha256": "8959de39002747359f0da1ac3c7f21a0b297db62170fc16bfd2075001eda9bf6"
+      },
+      {
+        "path": "icu4c/source/i18n/gender.cpp",
+        "bytes": 6844,
+        "sha256": "b6550687cf303d903ed83825d7f849460fd9311177ad961561c9b118779b329b"
+      },
+      {
+        "path": "icu4c/source/i18n/gregocal.cpp",
+        "bytes": 49375,
+        "sha256": "8a7bb6d1c4e3193bc084b2629ab45c0dde9fb1b5eff4b0decf7d3ba55aa11002"
+      },
+      {
+        "path": "icu4c/source/i18n/gregoimp.cpp",
+        "bytes": 7001,
+        "sha256": "9d76e0c11a462f4eedff0c4f8ae2af1a4c5df3671dfd1ef5a71c112181ce38e7"
+      },
+      {
+        "path": "icu4c/source/i18n/gregoimp.h",
+        "bytes": 13855,
+        "sha256": "b83c290c900138edd59f4b750a946e2e0a6daaff74f01ff1171f9d01c9867125"
+      },
+      {
+        "path": "icu4c/source/i18n/hebrwcal.cpp",
+        "bytes": 30674,
+        "sha256": "70b721069cc5773d2b1be1549127c386b5f1225ffff2813738aec027f4f88803"
+      },
+      {
+        "path": "icu4c/source/i18n/hebrwcal.h",
+        "bytes": 16411,
+        "sha256": "f294eb6b1b44a1680fcb686e6807ed0459c5c49411e737b54e7d62262e2fe0f5"
+      },
+      {
+        "path": "icu4c/source/i18n/indiancal.cpp",
+        "bytes": 10502,
+        "sha256": "fe6eaf59f7bcef09243239dd1548b11954e8ca7b9b57b32eac279d10eb22ab07"
+      },
+      {
+        "path": "icu4c/source/i18n/indiancal.h",
+        "bytes": 9263,
+        "sha256": "d7a694170f960139cb324829cbb8d71f325d89219f47b3b710a2cc7c499947ee"
+      },
+      {
+        "path": "icu4c/source/i18n/inputext.cpp",
+        "bytes": 4520,
+        "sha256": "7a6b9a855d8eb971483e66588e2ed6968f88c3f97a6c168de273689624cca031"
+      },
+      {
+        "path": "icu4c/source/i18n/inputext.h",
+        "bytes": 1844,
+        "sha256": "15bbc92029fd2af572c5a9b1dae2d67934d2e332e2098127c52431223b56cd1b"
+      },
+      {
+        "path": "icu4c/source/i18n/islamcal.cpp",
+        "bytes": 40971,
+        "sha256": "929ce831afd9f4b9e68cce8f07cb4e21f1066b5a84e2074ebb57ca66b824f0be"
+      },
+      {
+        "path": "icu4c/source/i18n/islamcal.h",
+        "bytes": 21592,
+        "sha256": "867fa39fa2b36e3390d5387c47fd31cdaa1ede24c8fd2a22b87c1cdb378b8a2f"
+      },
+      {
+        "path": "icu4c/source/i18n/iso8601cal.cpp",
+        "bytes": 1122,
+        "sha256": "f813727cd59cbbd50091a3ae1a8662f259091a8aecf4467d2884e8e620e3c70f"
+      },
+      {
+        "path": "icu4c/source/i18n/iso8601cal.h",
+        "bytes": 2774,
+        "sha256": "27ae1cd965d01e36f2b13847f46e5591b86a3df76e9002a7bbf1f1a070e84e13"
+      },
+      {
+        "path": "icu4c/source/i18n/japancal.cpp",
+        "bytes": 9706,
+        "sha256": "a45d4c67a6508504c9d2f9e2948a290d20180ad397194b19d3eaca3682a21b39"
+      },
+      {
+        "path": "icu4c/source/i18n/japancal.h",
+        "bytes": 7549,
+        "sha256": "56c0a6039eb5b6e8c972cee544d9b9085cad125d9c8564570ce677822b04a1fe"
+      },
+      {
+        "path": "icu4c/source/i18n/listformatter.cpp",
+        "bytes": 24359,
+        "sha256": "d716844d6352dd2f306cf16d60f971a6d17c9ed5f9c1272a29d12b15c89a45ca"
+      },
+      {
+        "path": "icu4c/source/i18n/measfmt.cpp",
+        "bytes": 29050,
+        "sha256": "7dc2e1c417a4b86454fab41fb151c3b467a6f0adabbf0c29c4d063240065da52"
+      },
+      {
+        "path": "icu4c/source/i18n/measunit.cpp",
+        "bytes": 53033,
+        "sha256": "221e0550f935e1c0a52f374aa8b9b93f34fe053c090db62490e130c05a71185e"
+      },
+      {
+        "path": "icu4c/source/i18n/measunit_extra.cpp",
+        "bytes": 45792,
+        "sha256": "0761e384c73541f92e67f457e56def9dd098fc5a5836a7bdaf882f8ffb0323c0"
+      },
+      {
+        "path": "icu4c/source/i18n/measunit_impl.h",
+        "bytes": 13969,
+        "sha256": "aae6ef0887f33fae88877634ddc384e020d53dbffc1b3bafc46979b1cc5d4e06"
+      },
+      {
+        "path": "icu4c/source/i18n/measure.cpp",
+        "bytes": 2024,
+        "sha256": "975a7eafaf400ff149a743fe6103d90e0e16ecbafcef471742f1cbeb15c74db2"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2.cpp",
+        "bytes": 36875,
+        "sha256": "538ac5e61247be5124c96e82c94b7334a6eee80b17df35dc514d6f7e6729bf81"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_allocation.h",
+        "bytes": 3745,
+        "sha256": "f0056379e186e966715a5c63c47d4aecc52aa5b93eee607ca9b139c4943b0642"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_arguments.cpp",
+        "bytes": 1587,
+        "sha256": "45882f3c50c7f23f450fffaef2b13a857159fcdf3023aa7699efb2ac15509346"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_checker.cpp",
+        "bytes": 9804,
+        "sha256": "1892643186a4f0b3a9c0a497e83e0013022176d0fd348eeb0240bd219bb7f6f1"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_checker.h",
+        "bytes": 3332,
+        "sha256": "6e82afad22ce86a8ddcd9877b583e552d5cc06194a095c5f051c4d5d882dee1f"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_data_model.cpp",
+        "bytes": 33195,
+        "sha256": "75312620e17cf701123746518338f2c3c25f9a467d347326411fa5d99dd5afa8"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_errors.cpp",
+        "bytes": 10335,
+        "sha256": "6eb15d867f30ef67ed3d6ea0279088549a39cb1830fd46c0bb138df8b26b9d0b"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_errors.h",
+        "bytes": 4852,
+        "sha256": "4905c81b3fa63f64206f9a8c3477992304b0393e87c0222ad44b5075b92f1013"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_evaluation.cpp",
+        "bytes": 5968,
+        "sha256": "0f29c8983a6ff3abc9ec4b9885d7a4d03d574b807ac2fec5d889ca78b20e9217"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_evaluation.h",
+        "bytes": 7095,
+        "sha256": "9248fc4366c986cc1135cd3ac03fb3d12da4f474a8437fd5dea29d5c29900b89"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_formattable.cpp",
+        "bytes": 12035,
+        "sha256": "29c4aa2c88ab28bc55b33ce29946d04e8417601598b1e5884dd08a3c5ddf0d09"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_formatter.cpp",
+        "bytes": 12669,
+        "sha256": "fc110b30907ee35cebdf38b02221451a2c240a043fbe93e34b86b4407762a159"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_function_registry.cpp",
+        "bytes": 42351,
+        "sha256": "8469b88b73e3c14209b6891b20c8d2b599d7363926d58f35545380c241ab5d8c"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_function_registry_internal.h",
+        "bytes": 9263,
+        "sha256": "735e1c48d70ca202075cebedd38ad90c8c4da114d0c9e0ec3135d2ef62e5fd8c"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_macros.h",
+        "bytes": 3465,
+        "sha256": "6b58541663ee494db1a00cf8cb5ea4d2bee71c2c71a06f4adb21b64b85dec04b"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_parser.cpp",
+        "bytes": 74654,
+        "sha256": "ca6f3f7d79bba2138cdd63948a81ee201f809cb0fc41bb5517b723022283c025"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_parser.h",
+        "bytes": 6349,
+        "sha256": "c3134ffa71eb227831fbd789feacc298be97118f97535d620c5654df73375fc6"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_serializer.cpp",
+        "bytes": 9488,
+        "sha256": "af6f9b6346bbff37ae19b71d3d51b8607d826d1ca0c56920aa6363814725a86e"
+      },
+      {
+        "path": "icu4c/source/i18n/messageformat2_serializer.h",
+        "bytes": 1831,
+        "sha256": "6c6683269004192c8a35ea4741c779b8832a1dd3956da9875c2dd9b16258f3f4"
+      },
+      {
+        "path": "icu4c/source/i18n/msgfmt.cpp",
+        "bytes": 72298,
+        "sha256": "5d95b6da02b272b54f02ab01f2c633bbba4b2f7e10d10b16623a5f2290619492"
+      },
+      {
+        "path": "icu4c/source/i18n/msgfmt_impl.h",
+        "bytes": 1326,
+        "sha256": "e01264042f96a3a1f8508bf5e80bf183f16575025021e85df860ff05ea14e835"
+      },
+      {
+        "path": "icu4c/source/i18n/name2uni.cpp",
+        "bytes": 8376,
+        "sha256": "f817829862fe519c42acf696ed1fbd3873ce4aadb9730a967fc5f5cb8f9bd92a"
+      },
+      {
+        "path": "icu4c/source/i18n/name2uni.h",
+        "bytes": 2699,
+        "sha256": "a0bed2033f34e6595231a28bab1d5edb2319942faeb344f6dfb9921a997277c5"
+      },
+      {
+        "path": "icu4c/source/i18n/nfrlist.h",
+        "bytes": 3052,
+        "sha256": "1f96bb94d75d0688b436e103be36e0409dfd7f49eaf9b11ecf36f001e4e8156c"
+      },
+      {
+        "path": "icu4c/source/i18n/nfrs.cpp",
+        "bytes": 32467,
+        "sha256": "e408924f277749b9e1b5afd8220fbe5566df0c4159670b961f700f56f1743b1a"
+      },
+      {
+        "path": "icu4c/source/i18n/nfrs.h",
+        "bytes": 3730,
+        "sha256": "c9733df9c6f710eb878207284aa8524ab62074dc154e94d6aada3799f2d4d4c3"
+      },
+      {
+        "path": "icu4c/source/i18n/nfrule.cpp",
+        "bytes": 65602,
+        "sha256": "bad65a192e2ac12dd734d64b032367ab7eb076f3decfd073124f50c6aeeb0225"
+      },
+      {
+        "path": "icu4c/source/i18n/nfrule.h",
+        "bytes": 4696,
+        "sha256": "89bebf53225ae646db3e65fafac1992801c3e081c2666d5d03b4d9e07829bfcc"
+      },
+      {
+        "path": "icu4c/source/i18n/nfsubs.cpp",
+        "bytes": 54685,
+        "sha256": "37ce609d87c5b3acce8c0906fa9af18841e45ed79cd6a78e5ae1172f12c3dc3c"
+      },
+      {
+        "path": "icu4c/source/i18n/nfsubs.h",
+        "bytes": 10369,
+        "sha256": "a789c974627a0049f61740baf5b2d02e3d71fcfe1ea4c47c6ee4e4dac8bc2b28"
+      },
+      {
+        "path": "icu4c/source/i18n/nortrans.cpp",
+        "bytes": 6475,
+        "sha256": "47011b0af5598b9cc2909249d2e53a0098a302236ec1f93df749f76027fb41f4"
+      },
+      {
+        "path": "icu4c/source/i18n/nortrans.h",
+        "bytes": 2906,
+        "sha256": "fd00b27cbe65e6963812b8532d87a4a51549f81dfd05399e588d3d71f7f77a0c"
+      },
+      {
+        "path": "icu4c/source/i18n/nultrans.cpp",
+        "bytes": 1201,
+        "sha256": "cbcbec2a0bcb724c0313d6bd75acae5169c012b54b4b1c043d106043163efc4e"
+      },
+      {
+        "path": "icu4c/source/i18n/nultrans.h",
+        "bytes": 2200,
+        "sha256": "9deb001158b979490665b266cce8fd351b65e3bac035e540e528f2c8a8e1ce16"
+      },
+      {
+        "path": "icu4c/source/i18n/number_affixutils.cpp",
+        "bytes": 15622,
+        "sha256": "e6d27f03e7ed77e7cdb1b1313c63b10b6b592afa615bfc7b7efceaff054ed42a"
+      },
+      {
+        "path": "icu4c/source/i18n/number_affixutils.h",
+        "bytes": 8990,
+        "sha256": "941f59afeb58038a44d9b4c5cb41541e97bc57e342d60bec4a5b8ebe19ab3797"
+      },
+      {
+        "path": "icu4c/source/i18n/number_asformat.cpp",
+        "bytes": 4153,
+        "sha256": "a3cb0fcbef6c73282d6b1ae02facbe352e96ae5fa9c7d01c05c143bc2be9affe"
+      },
+      {
+        "path": "icu4c/source/i18n/number_asformat.h",
+        "bytes": 3290,
+        "sha256": "9b07798bc8dd79f0abe1d2ca74a3a57c84c6174737f00a468c4ccc9d2344a8a0"
+      },
+      {
+        "path": "icu4c/source/i18n/number_capi.cpp",
+        "bytes": 13508,
+        "sha256": "16101558036dc8e75b9290a4673cf9b3e1f3e10323a585c081babf481518c14a"
+      },
+      {
+        "path": "icu4c/source/i18n/number_compact.cpp",
+        "bytes": 14246,
+        "sha256": "cd6a5d58ff5da5725106a965cec735ca5f5e0f95b8219776962e2d937649ff55"
+      },
+      {
+        "path": "icu4c/source/i18n/number_compact.h",
+        "bytes": 2775,
+        "sha256": "afa55d327f8f13407b1c719fcf22ab21cffabf9a77002112039569bee327e90d"
+      },
+      {
+        "path": "icu4c/source/i18n/number_currencysymbols.cpp",
+        "bytes": 4975,
+        "sha256": "f8d7b1c9ea092c84a8943fd35c91b233e033ca4eda805f136a808bee46a832d7"
+      },
+      {
+        "path": "icu4c/source/i18n/number_currencysymbols.h",
+        "bytes": 2073,
+        "sha256": "88510dbf2753549957cbd4b4ebb3e18b6f54e792f1e22231f75ba085165148d5"
+      },
+      {
+        "path": "icu4c/source/i18n/number_decimalquantity.cpp",
+        "bytes": 47289,
+        "sha256": "4b6c8d11131aa4525c31a173d9d8835b8fd1291d0e3777520ac58669dcb89b9f"
+      },
+      {
+        "path": "icu4c/source/i18n/number_decimalquantity.h",
+        "bytes": 20547,
+        "sha256": "424f58f7c860ab7ffe2e3105a2a904018e581388a24b93fbf13b1cf6117c1939"
+      },
+      {
+        "path": "icu4c/source/i18n/number_decimfmtprops.cpp",
+        "bytes": 5888,
+        "sha256": "95199f3babd481d931254814705b94cbc8d811c58e5006caeea6ec8ed3cdb535"
+      },
+      {
+        "path": "icu4c/source/i18n/number_decimfmtprops.h",
+        "bytes": 6366,
+        "sha256": "be3d33ac638095349d10127e15c377341153b33d3eef5bec7e5afabfe00b4747"
+      },
+      {
+        "path": "icu4c/source/i18n/number_decnum.h",
+        "bytes": 2730,
+        "sha256": "505db172e898e2242fd0720d08c1db12dd9ab06c223a3cffb39a2d0823754f6a"
+      },
+      {
+        "path": "icu4c/source/i18n/number_fluent.cpp",
+        "bytes": 25953,
+        "sha256": "6294600059c6e90c58c69b895893ad625929cae6cffca8e4d037ad380916a716"
+      },
+      {
+        "path": "icu4c/source/i18n/number_formatimpl.cpp",
+        "bytes": 25913,
+        "sha256": "0cf44fe1d5d5374861cd8c0087fea25714ce1a4b6b90bf17e87a0b36bf4c05f1"
+      },
+      {
+        "path": "icu4c/source/i18n/number_formatimpl.h",
+        "bytes": 6846,
+        "sha256": "d127294be8bd8d27ca50353c6660a98bfaf8ce895b8af9fff3e35c6836fb2d37"
+      },
+      {
+        "path": "icu4c/source/i18n/number_grouping.cpp",
+        "bytes": 3591,
+        "sha256": "401a4d6671aafcf9251f9244df45a5c077dbc7c092125aaef24fc932b8f96af4"
+      },
+      {
+        "path": "icu4c/source/i18n/number_integerwidth.cpp",
+        "bytes": 2456,
+        "sha256": "2eb43513200731ed6bc7adfcde8dc03c933623785f022571b42a26d8ad4a5e07"
+      },
+      {
+        "path": "icu4c/source/i18n/number_longnames.cpp",
+        "bytes": 76429,
+        "sha256": "0205c20b73a32e47ca41bd8aa16c05c417f2194afe352b4574733d7838112470"
+      },
+      {
+        "path": "icu4c/source/i18n/number_longnames.h",
+        "bytes": 11408,
+        "sha256": "292854a23f81f8c9a9916e5b5e7bfa8f55356ef9079f74679c71bffcb67c7ffd"
+      },
+      {
+        "path": "icu4c/source/i18n/number_mapper.cpp",
+        "bytes": 21569,
+        "sha256": "9f6a30155cc63edd9eee3a6118635de9c3a59e113cbeb306681df4378f2b9798"
+      },
+      {
+        "path": "icu4c/source/i18n/number_mapper.h",
+        "bytes": 8226,
+        "sha256": "a79cd0f58198e18cf11e8199996b2e8c69064486b928bb4fcc131dac3485756f"
+      },
+      {
+        "path": "icu4c/source/i18n/number_microprops.h",
+        "bytes": 6874,
+        "sha256": "3db752f17db3b0180a35983dbb6420f7b0d90eb0aa5c118ed6f04e53538261ec"
+      },
+      {
+        "path": "icu4c/source/i18n/number_modifiers.cpp",
+        "bytes": 19469,
+        "sha256": "aff410cb752b329684d8e4dc73ceeabf74db4b754d8001ed43bbc42f12790b85"
+      },
+      {
+        "path": "icu4c/source/i18n/number_modifiers.h",
+        "bytes": 11921,
+        "sha256": "10cb90e07d4fcaf60715a3d385c6c4394e1971345e18c0ff6a3a2783b238c0a7"
+      },
+      {
+        "path": "icu4c/source/i18n/number_multiplier.cpp",
+        "bytes": 4619,
+        "sha256": "be62a6dec6020cc6072240d16aa5341c94fa832f7310e25ced8a6d650a7cba5d"
+      },
+      {
+        "path": "icu4c/source/i18n/number_multiplier.h",
+        "bytes": 1826,
+        "sha256": "bca6c8f14182ef21c8896fc188b21e8184316d8e45e7b931dc92fefcf743a35a"
+      },
+      {
+        "path": "icu4c/source/i18n/number_notation.cpp",
+        "bytes": 2816,
+        "sha256": "d53fabf78254079babccd2524a7f074089a1c92fe60565c4c3e5bb2c6b3a9dae"
+      },
+      {
+        "path": "icu4c/source/i18n/number_output.cpp",
+        "bytes": 2612,
+        "sha256": "fee5310f9a5d05ef63ecf844ba54bc9b3a15fe39dcd1a190cf000976fb0dbd81"
+      },
+      {
+        "path": "icu4c/source/i18n/number_padding.cpp",
+        "bytes": 3490,
+        "sha256": "8c5cd431ac9aa25a1c3f64b1be9f742049b12087568e813d4331834fb924d081"
+      },
+      {
+        "path": "icu4c/source/i18n/number_patternmodifier.cpp",
+        "bytes": 13831,
+        "sha256": "292e34ab20d2da6086098886e6a21f1bd35aa9ea6df5d0f858a926fcb05d1d51"
+      },
+      {
+        "path": "icu4c/source/i18n/number_patternmodifier.h",
+        "bytes": 9757,
+        "sha256": "15e7f49f69cf3da11f4fb08b2dab9d3f4d4b9bc47085fbe6edcda7e778e5c239"
+      },
+      {
+        "path": "icu4c/source/i18n/number_patternstring.cpp",
+        "bytes": 45032,
+        "sha256": "74967c64808673f72dc1664f945d2a643d2f5a10bfb75285ac0fb34662f4b6f8"
+      },
+      {
+        "path": "icu4c/source/i18n/number_patternstring.h",
+        "bytes": 13489,
+        "sha256": "251882ad7ce5db2c790318a814b2db341d55016209a9a4091cb4e3022850cee0"
+      },
+      {
+        "path": "icu4c/source/i18n/number_rounding.cpp",
+        "bytes": 20180,
+        "sha256": "143e154b965e462c6ac92b289b55f7d184b85e6afe369ef5ba1fea0cf67e19d0"
+      },
+      {
+        "path": "icu4c/source/i18n/number_roundingutils.h",
+        "bytes": 8462,
+        "sha256": "4857a1658447b97a1336b9ac23264fcde938d4492902f07564ad8dbe8d308b66"
+      },
+      {
+        "path": "icu4c/source/i18n/number_scientific.cpp",
+        "bytes": 6820,
+        "sha256": "5a53a975c42ecb78a4072f080ef4cc34934bdeee38e91305d33f3396c1a923f8"
+      },
+      {
+        "path": "icu4c/source/i18n/number_scientific.h",
+        "bytes": 1787,
+        "sha256": "9739cd674d6b27865b8ff6b4ffaff7674e6eecd9eed0a461ea69a816d0984899"
+      },
+      {
+        "path": "icu4c/source/i18n/number_simple.cpp",
+        "bytes": 7325,
+        "sha256": "66b76879e2cd5f9364a1706dd2f21fd91c51b8f11f0cebe05ee31ea2f3a3bea6"
+      },
+      {
+        "path": "icu4c/source/i18n/number_skeletons.cpp",
+        "bytes": 65067,
+        "sha256": "ce8374a2a8b63533563da13b6f5e0a1e9c0a8f9a5ad48ff7d315ad589fc18dfb"
+      },
+      {
+        "path": "icu4c/source/i18n/number_skeletons.h",
+        "bytes": 13403,
+        "sha256": "b49147d8b2afd6965b0e8d4073cad748ba55c374c738fe17ae598b1f8d62493b"
+      },
+      {
+        "path": "icu4c/source/i18n/number_symbolswrapper.cpp",
+        "bytes": 3039,
+        "sha256": "9e60966753a9c1618284df09b3d6ff3404761a65a7f9500b8b8871e118cee5fd"
+      },
+      {
+        "path": "icu4c/source/i18n/number_types.h",
+        "bytes": 11944,
+        "sha256": "03456692c84eb78da332df4ff4ea25ccef7ecda5d0e0fbe2b19efb3961cfb71c"
+      },
+      {
+        "path": "icu4c/source/i18n/number_usageprefs.cpp",
+        "bytes": 6713,
+        "sha256": "f407bc637125fb697d0fc841ed0072bc7493fd40f1c5ac2c8b6a06b804edb884"
+      },
+      {
+        "path": "icu4c/source/i18n/number_usageprefs.h",
+        "bytes": 4105,
+        "sha256": "fe66c5fd5b89d450c8135d3e37f2997d015cc4b9ed2663e08678c43b12e55317"
+      },
+      {
+        "path": "icu4c/source/i18n/number_utils.cpp",
+        "bytes": 9189,
+        "sha256": "a92be32b90a9b21ceb95b2654a966466f65efc0ae41752a6d702c125b26e37e6"
+      },
+      {
+        "path": "icu4c/source/i18n/number_utils.h",
+        "bytes": 3396,
+        "sha256": "8ca609b85ebc9b3130e9c61fa78ec3be1e58b41c6d95be2ceff26960965df985"
+      },
+      {
+        "path": "icu4c/source/i18n/number_utypes.h",
+        "bytes": 1681,
+        "sha256": "da602dd361bc14ccf84a386ab61f514e4a0f4bb4accfbde7b47d62c1a1737cbd"
+      },
+      {
+        "path": "icu4c/source/i18n/numfmt.cpp",
+        "bytes": 49172,
+        "sha256": "51b2be4c19132453cf75146df4c1ebc302d699761eb3c80f7563010a22668799"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_affixes.cpp",
+        "bytes": 17960,
+        "sha256": "383d72352dcf9c962948c25da18036aaee0cfc5e36d1cbd127417f488bdc2146"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_affixes.h",
+        "bytes": 7661,
+        "sha256": "65e718e5b9ef1bb5efc261736fc7a1fc6c8bad2e5ba8467aa9f8588c20e31260"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_compositions.cpp",
+        "bytes": 3599,
+        "sha256": "f80ce04d68602fc98ec49c63913dbc580aa1ceceb9a1cd25b6ad0ee80db7a6a7"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_compositions.h",
+        "bytes": 3865,
+        "sha256": "a16948ad5902414aac9ca756c10b93c23467b33535571f5f8e528310a40a6872"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_currency.cpp",
+        "bytes": 7206,
+        "sha256": "fcbe94c0c52d05efb33ccdc9747baa5a3c39d8517bb22b6ef027f2fa4796c081"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_currency.h",
+        "bytes": 2353,
+        "sha256": "a03301400e7f8191bf95cc0419284be2892db7a1458920f9b1b6de9ed84cd043"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_decimal.cpp",
+        "bytes": 17149,
+        "sha256": "5423fb12bf0e38ae72a89140489825b83bb3c3f8f651aa09df626abfd2568928"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_decimal.h",
+        "bytes": 2435,
+        "sha256": "6fc32db8ef7538635b5fd2d18e9d9d638b20b7bffb69c64fe056f432319ccffc"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_impl.cpp",
+        "bytes": 13948,
+        "sha256": "de5ed2e98228bc9b267973133e4d7c8d6b630c4e753f1fd170fcb17916e5cacb"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_impl.h",
+        "bytes": 3919,
+        "sha256": "8def44b8814c6344f49815a554dc02a07560460e554108cd83e24530266dd48b"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_parsednumber.cpp",
+        "bytes": 3367,
+        "sha256": "96250187416d2af75f42a6198af760a61db03ace42ef77d4028d04807908538a"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_scientific.cpp",
+        "bytes": 5637,
+        "sha256": "784031e7d44f6000604873dbdfa2db1f05740d4fba7a04b8a7ef056be6e5c261"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_scientific.h",
+        "bytes": 1236,
+        "sha256": "6a6a27d565aa181d11443d6b6f56139344d0b7324e0e42d217e292e4454b5628"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_symbols.cpp",
+        "bytes": 5664,
+        "sha256": "0f0b8b2009cf2a493cf33ec9804bb619c57e66824707808426c6a474d7f240a8"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_symbols.h",
+        "bytes": 4751,
+        "sha256": "15b6ea1ccfe8b74d03fc5ac6494eca2ec9759776424999133d921b118643a378"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_types.h",
+        "bytes": 9335,
+        "sha256": "c1367993f76f63021b793b5d092c090e600417895ce7af7d92840b1be797b7bd"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_utils.h",
+        "bytes": 1064,
+        "sha256": "8672bc257dc7658985f7dd49f60f6151c5b9afe5fd9759d43986626e3e7ea6e6"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_validators.cpp",
+        "bytes": 2400,
+        "sha256": "af10b357ece1712255a8f00d89941feabd18af4ed5bf335cac1b07e766af518b"
+      },
+      {
+        "path": "icu4c/source/i18n/numparse_validators.h",
+        "bytes": 2330,
+        "sha256": "d5530ea05fbbf5663b8ab3349884f9c02f3712e2d89d846382f85b730b8e077d"
+      },
+      {
+        "path": "icu4c/source/i18n/numrange_capi.cpp",
+        "bytes": 6326,
+        "sha256": "bb2a45421a5d668b131efc312ee609cd4002cb79b213f944d87b69f4a25dc677"
+      },
+      {
+        "path": "icu4c/source/i18n/numrange_fluent.cpp",
+        "bytes": 13618,
+        "sha256": "1f2ffbe3f2b232c00303ff70f90483b9d464f8cd121e47583c179cf6f849945f"
+      },
+      {
+        "path": "icu4c/source/i18n/numrange_impl.cpp",
+        "bytes": 18329,
+        "sha256": "e34e3580d13ca4660cf5955d893aaef1b6740bf754eda8f5fe6f4875088eb4e3"
+      },
+      {
+        "path": "icu4c/source/i18n/numrange_impl.h",
+        "bytes": 2750,
+        "sha256": "47057527f57fed9b113895e188cb78555a8f79dee7bb096b61e73326bb4e2bfc"
+      },
+      {
+        "path": "icu4c/source/i18n/numsys.cpp",
+        "bytes": 11387,
+        "sha256": "40f07f95b8931e96c0534c3852039dc23476765760b32a76df4092f24a64663f"
+      },
+      {
+        "path": "icu4c/source/i18n/numsys_impl.h",
+        "bytes": 1251,
+        "sha256": "ca1f987b3a60ea0416d92426e774c408b7a152e037e1d668c061ca37da4f85db"
+      },
+      {
+        "path": "icu4c/source/i18n/olsontz.cpp",
+        "bytes": 39580,
+        "sha256": "4c484426d4f98031c93b46c5fc5de01f3f80139ab33f5a5a26f3c0a9ea17ce0d"
+      },
+      {
+        "path": "icu4c/source/i18n/olsontz.h",
+        "bytes": 15573,
+        "sha256": "88e9daf2b525ae1e00d43558b291defdd3b4d412db8a316259e17c322e3e5761"
+      },
+      {
+        "path": "icu4c/source/i18n/persncal.cpp",
+        "bytes": 9694,
+        "sha256": "138e32e1f77dcc01ad44d7fb41e399e4f87daabdb7f3167a924a0c8e3d583298"
+      },
+      {
+        "path": "icu4c/source/i18n/persncal.h",
+        "bytes": 8349,
+        "sha256": "ae8db72ad25768eb95b89ea82599793fa3aa91b6591116ca6344d3f8474af562"
+      },
+      {
+        "path": "icu4c/source/i18n/pluralranges.cpp",
+        "bytes": 4926,
+        "sha256": "d866f285857298b349d2eaa1fd93d4d7bccab36118202d147343d3bcea59f8b8"
+      },
+      {
+        "path": "icu4c/source/i18n/pluralranges.h",
+        "bytes": 1906,
+        "sha256": "8f5a860514130af81e3364f5277bc2d537be5e46095163130769428b8305d716"
+      },
+      {
+        "path": "icu4c/source/i18n/plurfmt.cpp",
+        "bytes": 20654,
+        "sha256": "e58e35674c00d9f4c200eb06376a0b0a90efa3f05ed0d4d18f4e897e6ba2a9ac"
+      },
+      {
+        "path": "icu4c/source/i18n/plurrule.cpp",
+        "bytes": 65587,
+        "sha256": "3d663e8a0156466c67fda420240f853dc22468c64b347abf1283d68c9372dee9"
+      },
+      {
+        "path": "icu4c/source/i18n/plurrule_impl.h",
+        "bytes": 14709,
+        "sha256": "74f8df7643c7e7361d9e0164b0927ebdeca83c148dad47d805c49954ddef5f05"
+      },
+      {
+        "path": "icu4c/source/i18n/quant.cpp",
+        "bytes": 4074,
+        "sha256": "d2912226088e64ef444080caa1d95659143375f6f89e89bf4ad18802ac449a20"
+      },
+      {
+        "path": "icu4c/source/i18n/quant.h",
+        "bytes": 4021,
+        "sha256": "a65c585959e0c39bd01f13775f49e791f9b7d99eca6eb96600454c258b6cfa4e"
+      },
+      {
+        "path": "icu4c/source/i18n/quantityformatter.cpp",
+        "bytes": 7721,
+        "sha256": "fd34bda9a05110e935db3508c596efb1b88b1a00eb8496c299c35488653e723c"
+      },
+      {
+        "path": "icu4c/source/i18n/quantityformatter.h",
+        "bytes": 5032,
+        "sha256": "a59336a281068a11292826bbbb215a4258650f00c5e38b77415f1d7b869c8376"
+      },
+      {
+        "path": "icu4c/source/i18n/rbnf.cpp",
+        "bytes": 62156,
+        "sha256": "cc75c5c6be9556c5bfcc848d8d34333c99ffcf0da14133d67d4f2c6bbcd1562e"
+      },
+      {
+        "path": "icu4c/source/i18n/rbt.cpp",
+        "bytes": 10622,
+        "sha256": "0877e024ae09d3c23a225492085abd96498d969ae0ecba3f0a2c7f743d76579a"
+      },
+      {
+        "path": "icu4c/source/i18n/rbt.h",
+        "bytes": 8387,
+        "sha256": "94bc039f14c00712ffd5b124dd6001f16087e953677eb8f31f34f22081d28bc7"
+      },
+      {
+        "path": "icu4c/source/i18n/rbt_data.cpp",
+        "bytes": 3632,
+        "sha256": "83d6b064a33a99f6b953bdda661d4a20d62b12c36d65cc7fe1995e224e8a4abe"
+      },
+      {
+        "path": "icu4c/source/i18n/rbt_data.h",
+        "bytes": 5214,
+        "sha256": "4961c45f1e650c669a2ba3bb84ba5abe478088ab9988625a5e376d17c1c03cb1"
+      },
+      {
+        "path": "icu4c/source/i18n/rbt_pars.cpp",
+        "bytes": 64732,
+        "sha256": "e9c28404d0457af72bb67cf0c4c3d2294de36b5c9839040d5afc0ee108a4fe2f"
+      },
+      {
+        "path": "icu4c/source/i18n/rbt_pars.h",
+        "bytes": 11853,
+        "sha256": "3e81b72008b27c6634a7e119571fc3e694804e6ca9943fc8646771bc7bb69bb3"
+      },
+      {
+        "path": "icu4c/source/i18n/rbt_rule.cpp",
+        "bytes": 19630,
+        "sha256": "7c392042113b146458c06934284850e5c4a20a55451e2fd1ab9853e7e2895888"
+      },
+      {
+        "path": "icu4c/source/i18n/rbt_rule.h",
+        "bytes": 11978,
+        "sha256": "77f90007602a7c53a2fc7e81c7d79f96b1c4661d26f55e7faeb2e81899545866"
+      },
+      {
+        "path": "icu4c/source/i18n/rbt_set.cpp",
+        "bytes": 15874,
+        "sha256": "2e3cf851e6364fd41f9a06381ea28d7a3249f3a0aa29261676683ff29470f6e5"
+      },
+      {
+        "path": "icu4c/source/i18n/rbt_set.h",
+        "bytes": 5747,
+        "sha256": "8856b6eb461bd32ca013f05a9ed98d5b568580a604065dd2ac28a56ed9074299"
+      },
+      {
+        "path": "icu4c/source/i18n/rbtz.cpp",
+        "bytes": 32413,
+        "sha256": "961f4748bb342efd953c2e5d462dc4ab111ebd31ee7c875752d20e48b8de7189"
+      },
+      {
+        "path": "icu4c/source/i18n/regexcmp.cpp",
+        "bytes": 182316,
+        "sha256": "8826c552f7b0530c7e124f353b98cda9848a88af6126648430bb8564a26868c5"
+      },
+      {
+        "path": "icu4c/source/i18n/regexcmp.h",
+        "bytes": 12200,
+        "sha256": "889c754b926c71af6d8cbd000fb81d21356dc9aca4b4c08744d41734cbb74fac"
+      },
+      {
+        "path": "icu4c/source/i18n/regexcst.h",
+        "bytes": 19796,
+        "sha256": "acfce2528ef7756b6f01d4fb54c2c355a298a19d43e1d559e119435cbd7f2611"
+      },
+      {
+        "path": "icu4c/source/i18n/regeximp.cpp",
+        "bytes": 3509,
+        "sha256": "518366ecea17d5b7fa9c23b436930405d82e2e2aa2e208922962c6d5515c03b4"
+      },
+      {
+        "path": "icu4c/source/i18n/regeximp.h",
+        "bytes": 17308,
+        "sha256": "0cc88ccb1382879f438a8ca6d2ecd5a8c076e7f930395748e21baf81db212090"
+      },
+      {
+        "path": "icu4c/source/i18n/regexst.cpp",
+        "bytes": 6708,
+        "sha256": "8d5428b3f144c7b8c920031437c4a2c457cef548bf9c3b5eb70d325be8d943b9"
+      },
+      {
+        "path": "icu4c/source/i18n/regexst.h",
+        "bytes": 2046,
+        "sha256": "c1e3e1684ec98ffa62b2a1058ccd9aa34d2cabb6d3eae87296235141db6a9eae"
+      },
+      {
+        "path": "icu4c/source/i18n/regextxt.cpp",
+        "bytes": 1480,
+        "sha256": "614d53e16db111be967723ff14dd96a51b827c265816cc701aa44045a31bc6d7"
+      },
+      {
+        "path": "icu4c/source/i18n/regextxt.h",
+        "bytes": 1531,
+        "sha256": "c7479594a98890479dd77ee9a1b1c641b6c46b0a1dbf38e7be71cad020a1803d"
+      },
+      {
+        "path": "icu4c/source/i18n/region.cpp",
+        "bytes": 31559,
+        "sha256": "3e659120a59ae7dbd64b71c8f9368a3553de5fb8cb8af4dac297871967d3fe7d"
+      },
+      {
+        "path": "icu4c/source/i18n/region_impl.h",
+        "bytes": 1461,
+        "sha256": "2967a23622e343e6cccc558458be962199841cf753153e66e82325ec443eea4f"
+      },
+      {
+        "path": "icu4c/source/i18n/reldatefmt.cpp",
+        "bytes": 51558,
+        "sha256": "76a595f13cf28bc002c0f534f2beb3adf541590d5fd169560ea24117442b0113"
+      },
+      {
+        "path": "icu4c/source/i18n/reldtfmt.cpp",
+        "bytes": 23197,
+        "sha256": "0281339f3245e00e6ed604bfbf707ae2e4614f912fbdf7a14ed7ae3808959a55"
+      },
+      {
+        "path": "icu4c/source/i18n/reldtfmt.h",
+        "bytes": 12888,
+        "sha256": "26d157093ac035731b484ecf8977db42d7d7fe95246b4a3bee6e3b24709c88d7"
+      },
+      {
+        "path": "icu4c/source/i18n/rematch.cpp",
+        "bytes": 220799,
+        "sha256": "ee32d905d2929ea8e84c49ef35cf5a81cbce9ad65134223e87d5d9a9519e7bd6"
+      },
+      {
+        "path": "icu4c/source/i18n/remtrans.cpp",
+        "bytes": 2477,
+        "sha256": "9ea9e14b070952e40f4291e6ffd4b537d91e3870a1564d7337f1b0fb4a8bbcb7"
+      },
+      {
+        "path": "icu4c/source/i18n/remtrans.h",
+        "bytes": 2208,
+        "sha256": "cc5f02c4298b181830877d22cd40b3e4a491ecbb2cfc0cd0787bdcedde8b88b4"
+      },
+      {
+        "path": "icu4c/source/i18n/repattrn.cpp",
+        "bytes": 25451,
+        "sha256": "67fc8b57b174e9d0bd8ff148dddb5d8ef19f5083ad0dfd14c1fa84cace9bcb02"
+      },
+      {
+        "path": "icu4c/source/i18n/rulebasedcollator.cpp",
+        "bytes": 61779,
+        "sha256": "7d7bdd2990b699d6b0c6a73e92af8d5977187effdf6f7cae69cfe7a919e663ed"
+      },
+      {
+        "path": "icu4c/source/i18n/scientificnumberformatter.cpp",
+        "bytes": 9762,
+        "sha256": "076feadac3187baf89a4d45b5e89e33696f6b1420cce899a3d8986007550f832"
+      },
+      {
+        "path": "icu4c/source/i18n/scriptset.cpp",
+        "bytes": 8574,
+        "sha256": "cea059fd3c1d0d1701c904a6cc23e524113f6d2f24c692eb373ec251b5b4f6de"
+      },
+      {
+        "path": "icu4c/source/i18n/scriptset.h",
+        "bytes": 3096,
+        "sha256": "74b11cf7931325423a8cb06435e11ded54a5647c04f8cf5b9cc80b1bf5815d1c"
+      },
+      {
+        "path": "icu4c/source/i18n/search.cpp",
+        "bytes": 14867,
+        "sha256": "868d67b0091b156f9c4258c08d6fc908c85385c6aa84d35c357555b1af4386e5"
+      },
+      {
+        "path": "icu4c/source/i18n/selfmt.cpp",
+        "bytes": 5824,
+        "sha256": "15915964aa364cfbc346496b9c6f3d027b46c8184090f0a9a846aaf030638e02"
+      },
+      {
+        "path": "icu4c/source/i18n/selfmtimpl.h",
+        "bytes": 3442,
+        "sha256": "dee1b17b01322be7c461e9b14e66c9fa228de1ac7ff81eac7d18f2db71eea063"
+      },
+      {
+        "path": "icu4c/source/i18n/sharedbreakiterator.cpp",
+        "bytes": 887,
+        "sha256": "1380db0e7a23995865b21a4a472ba18f6197b1a658a1e7f72f35386bc1f259a1"
+      },
+      {
+        "path": "icu4c/source/i18n/sharedbreakiterator.h",
+        "bytes": 1704,
+        "sha256": "f53a95220326e5e73ec8a3595a4d680d111ac13cc21b51291b5a4cc8deb71947"
+      },
+      {
+        "path": "icu4c/source/i18n/sharedcalendar.h",
+        "bytes": 1233,
+        "sha256": "010cecfc6a111e4781758c509bf756bfd81791e3e283c3efb44a2b2c9787f058"
+      },
+      {
+        "path": "icu4c/source/i18n/shareddateformatsymbols.h",
+        "bytes": 1399,
+        "sha256": "7729f8ed008e666b2795fe02c26f4d0d6cf7b71a852d571dd9513b4a4d41cfeb"
+      },
+      {
+        "path": "icu4c/source/i18n/sharednumberformat.h",
+        "bytes": 1287,
+        "sha256": "af6046dcf1d360e2421b03294d7ce9d777cd9b99710cfed7bf0e0516e1b15730"
+      },
+      {
+        "path": "icu4c/source/i18n/sharedpluralrules.h",
+        "bytes": 1217,
+        "sha256": "e6a0ce721bc6ff6010c7200492b3bde3c57432e7042bf22b4522be4ebb5bbba2"
+      },
+      {
+        "path": "icu4c/source/i18n/simpletz.cpp",
+        "bytes": 46746,
+        "sha256": "b14844424064cf3bf6b9784877f87aa4ebd909b67acb584df835c2b32cbe5ca3"
+      },
+      {
+        "path": "icu4c/source/i18n/smpdtfmt.cpp",
+        "bytes": 176961,
+        "sha256": "cd41cd8af394517684017c9de6f040e41026b86914257eb2997373f411c89c0f"
+      },
+      {
+        "path": "icu4c/source/i18n/smpdtfst.cpp",
+        "bytes": 4223,
+        "sha256": "f6aaf09bf0862e292ac3c17e120b3e52fca2e31a1fb22bf365837c59aebc6ae8"
+      },
+      {
+        "path": "icu4c/source/i18n/smpdtfst.h",
+        "bytes": 1426,
+        "sha256": "9b6a6b7c2ce10080a95bbb0e140d2e2883a03b5eb98d24589e7327aacd61bce3"
+      },
+      {
+        "path": "icu4c/source/i18n/sortkey.cpp",
+        "bytes": 7589,
+        "sha256": "6bb934f4887b6f9a2eba10263dfeb5d5421afba60289bba3cba950557ce3e346"
+      },
+      {
+        "path": "icu4c/source/i18n/standardplural.cpp",
+        "bytes": 4152,
+        "sha256": "60e86b46dc615f52a1e84aa42ef00e6f892ae91a2e9536aa08833637df71ccb1"
+      },
+      {
+        "path": "icu4c/source/i18n/standardplural.h",
+        "bytes": 4176,
+        "sha256": "f2b518e226a9d34b411de2a0e4c859e6f9fd44ad410e9e1327a167bf73e17fd4"
+      },
+      {
+        "path": "icu4c/source/i18n/string_segment.cpp",
+        "bytes": 3831,
+        "sha256": "ab0019be8c0caaedab491e934874a189a00461ffeac7e87706c90ccbc8ca2b47"
+      },
+      {
+        "path": "icu4c/source/i18n/string_segment.h",
+        "bytes": 4110,
+        "sha256": "eaacc28d8df7e5f260259a07bd62f59aa07d3534314b16f86f2f977960249110"
+      },
+      {
+        "path": "icu4c/source/i18n/strmatch.cpp",
+        "bytes": 8805,
+        "sha256": "e0883f3caaf689fde04772a63f03ae2bfb641e713cdb2a662f669ab2d56543b4"
+      },
+      {
+        "path": "icu4c/source/i18n/strmatch.h",
+        "bytes": 8808,
+        "sha256": "afc0ab73d7e618bbc78fd6e16403a0ab9a9a0f651293d0b184bb3000bf75b0a9"
+      },
+      {
+        "path": "icu4c/source/i18n/strrepl.cpp",
+        "bytes": 10997,
+        "sha256": "0e04ccda678331f15d1820c123f3f7ce588d8bae87409d6b88f118394e69f47c"
+      },
+      {
+        "path": "icu4c/source/i18n/strrepl.h",
+        "bytes": 4843,
+        "sha256": "ebb6cdeab3f312bf2d4cd575bcd97cee931b444815330f5dc0215888edcf5166"
+      },
+      {
+        "path": "icu4c/source/i18n/stsearch.cpp",
+        "bytes": 17265,
+        "sha256": "0604d46dac8569be3bfca841c0a595b298bbab38df5d739d34b942e60bd7056d"
+      },
+      {
+        "path": "icu4c/source/i18n/taiwncal.cpp",
+        "bytes": 3541,
+        "sha256": "3bf86414a00c66855c2d61f604fe72c76b8a55e8d207e02c924f8487064b0d04"
+      },
+      {
+        "path": "icu4c/source/i18n/taiwncal.h",
+        "bytes": 5109,
+        "sha256": "5e944cbc0f132320ebeadbe92674b81818d558880c119e0ae11952b96fe027ac"
+      },
+      {
+        "path": "icu4c/source/i18n/timezone.cpp",
+        "bytes": 56277,
+        "sha256": "3b322f40e91ed87d115aff3128cccb40e366fb024421fe209555dfbef33a8184"
+      },
+      {
+        "path": "icu4c/source/i18n/titletrn.cpp",
+        "bytes": 5445,
+        "sha256": "3eafa18e515799e5dbb906c0505fbb497f2bc8776a2d0861077c144a64107073"
+      },
+      {
+        "path": "icu4c/source/i18n/titletrn.h",
+        "bytes": 2647,
+        "sha256": "83e64bac8a93e4b3a82881cff3c51072f4ac3bb6e6deb2727d85b50b17d03c77"
+      },
+      {
+        "path": "icu4c/source/i18n/tmunit.cpp",
+        "bytes": 4008,
+        "sha256": "4a2ce35267cad16a37f4a5a51b15646efeb89980144aef07baf57def9c89defe"
+      },
+      {
+        "path": "icu4c/source/i18n/tmutamt.cpp",
+        "bytes": 1841,
+        "sha256": "55b033f508f9fef29362868b010941233931b12b8a1a549fe621781aa5b03529"
+      },
+      {
+        "path": "icu4c/source/i18n/tmutfmt.cpp",
+        "bytes": 32123,
+        "sha256": "eecb457751bdb91f0263255189b4eb5d2f1e8fa38a3c2f2412d6106dcb5b4b24"
+      },
+      {
+        "path": "icu4c/source/i18n/tolowtrn.cpp",
+        "bytes": 1624,
+        "sha256": "3e07b80af15baef0fa24f4a63cae4080879badb1507ec42aa357e69b8200fde4"
+      },
+      {
+        "path": "icu4c/source/i18n/tolowtrn.h",
+        "bytes": 1801,
+        "sha256": "aa63dad6e233ba2d1576899b1fa73b17d2865eee1aa6160f8409e3c71d398651"
+      },
+      {
+        "path": "icu4c/source/i18n/toupptrn.cpp",
+        "bytes": 1623,
+        "sha256": "5a31c8223739e30bc7d3ae62fff762f46b6c0467f528b75f436bb285aa42a66a"
+      },
+      {
+        "path": "icu4c/source/i18n/toupptrn.h",
+        "bytes": 1801,
+        "sha256": "b3a9385dcf8b6304b0f30441c5dbafc98e04869747796cb7705e453f9b0bb9e3"
+      },
+      {
+        "path": "icu4c/source/i18n/translit.cpp",
+        "bytes": 62890,
+        "sha256": "0107e4ab4b9953810e350750ec2156d7f86b77dbfc4f1559ad90fb0f8e36560d"
+      },
+      {
+        "path": "icu4c/source/i18n/transreg.cpp",
+        "bytes": 50797,
+        "sha256": "d868c6cd5f4784cc9f67b71780bd3c2a7464b676c32c46c5cdb5a816f88d9dd5"
+      },
+      {
+        "path": "icu4c/source/i18n/transreg.h",
+        "bytes": 17421,
+        "sha256": "e14fe1eb65eb5ee4b7b9cff8423c5d84ec931f76d5589fb731da16dfc8922908"
+      },
+      {
+        "path": "icu4c/source/i18n/tridpars.cpp",
+        "bytes": 30384,
+        "sha256": "bd3c3532799d3315653a2548ca309c35369eb0630be7a6d98d1bf0857cfaac2f"
+      },
+      {
+        "path": "icu4c/source/i18n/tridpars.h",
+        "bytes": 15295,
+        "sha256": "cb829bb6d8f5ac6f897243908f87b0b154cb73956a75874e6b6fbd663f3ac6f9"
+      },
+      {
+        "path": "icu4c/source/i18n/tzfmt.cpp",
+        "bytes": 98266,
+        "sha256": "d40377a8d9caa18a72acffbbeaa7686d345d85accbc2e2917d53659d3f1b957b"
+      },
+      {
+        "path": "icu4c/source/i18n/tzgnames.cpp",
+        "bytes": 44078,
+        "sha256": "ab64f35f4b2abea96ffdbf270cb2656fc79a4dfc0ce738ee38be83972473874f"
+      },
+      {
+        "path": "icu4c/source/i18n/tzgnames.h",
+        "bytes": 1939,
+        "sha256": "25d25977f85bc5c9ff10ff21894c498a52f1fb601f5df45e7a9b93ca58015f77"
+      },
+      {
+        "path": "icu4c/source/i18n/tznames.cpp",
+        "bytes": 16447,
+        "sha256": "858be50455ac33ab0d2137f9dc43cd59fd7f78f58137101dc907b31feae37cb2"
+      },
+      {
+        "path": "icu4c/source/i18n/tznames_impl.cpp",
+        "bytes": 77883,
+        "sha256": "4504856b2accf798c4cb99b5fcd64c381ab7e8584fd070128371bcc86ec2e832"
+      },
+      {
+        "path": "icu4c/source/i18n/tznames_impl.h",
+        "bytes": 9663,
+        "sha256": "6a7fc4edd9435909464c182b525057d68e28ad8bac08ab98293e01f1c246335d"
+      },
+      {
+        "path": "icu4c/source/i18n/tzrule.cpp",
+        "bytes": 19239,
+        "sha256": "04f3ce4a0a39f267551842392564419c4a53b54e95a83467635b9bd8476e6b97"
+      },
+      {
+        "path": "icu4c/source/i18n/tztrans.cpp",
+        "bytes": 3010,
+        "sha256": "7130b07ee791cd504ca81209f0f6e1d40d9ce76718a7017904b9eb1ada0c3279"
+      },
+      {
+        "path": "icu4c/source/i18n/ucal.cpp",
+        "bytes": 25697,
+        "sha256": "60f65bff57bbc18c1d756466a9cb803b28af2677b7473882f74af24d5736fdde"
+      },
+      {
+        "path": "icu4c/source/i18n/ucln_in.cpp",
+        "bytes": 2159,
+        "sha256": "f8b3e3608359abdbc6db975a94b84840bd7776f62d7234b676da46b1ce7445f4"
+      },
+      {
+        "path": "icu4c/source/i18n/ucln_in.h",
+        "bytes": 2249,
+        "sha256": "eae3a1e2aab6bcec0813ecab56a310f61feb1b4a24705700d5316f0255737e79"
+      },
+      {
+        "path": "icu4c/source/i18n/ucol.cpp",
+        "bytes": 20051,
+        "sha256": "3f9c1501cfbaa04a5f5c4889e3853a1a7a840fb3b01c96a9a76864e640622e37"
+      },
+      {
+        "path": "icu4c/source/i18n/ucol_imp.h",
+        "bytes": 4356,
+        "sha256": "6c55732c2dd98a9fbee34cb27f8de1f2e9b3f6ef7ce3c8fe35adca98549e9882"
+      },
+      {
+        "path": "icu4c/source/i18n/ucol_res.cpp",
+        "bytes": 25622,
+        "sha256": "33c0b09313c242d77b8ca1642e79afb0b1b3ec8d21d9354709f1b522d121b234"
+      },
+      {
+        "path": "icu4c/source/i18n/ucol_sit.cpp",
+        "bytes": 21607,
+        "sha256": "998c27a02413cda017b40bce4dcbd6647cab0fe05ade3b8c8cddd1eadeb48f03"
+      },
+      {
+        "path": "icu4c/source/i18n/ucoleitr.cpp",
+        "bytes": 13024,
+        "sha256": "3d1e7d3eea0e82df465b9275a606815eb37deedb4c3a401e2d022d6480bbfe9b"
+      },
+      {
+        "path": "icu4c/source/i18n/ucsdet.cpp",
+        "bytes": 4889,
+        "sha256": "47ddb2fa18e3a0e1ef7c8983cb3a6b829c133b42f02bea2dc9b08f32ac572543"
+      },
+      {
+        "path": "icu4c/source/i18n/udat.cpp",
+        "bytes": 45425,
+        "sha256": "3848048b362d44da2a519956808eb5637f1b3dde0b6d7e7b914aead2404b3f4f"
+      },
+      {
+        "path": "icu4c/source/i18n/udateintervalformat.cpp",
+        "bytes": 5554,
+        "sha256": "c584886e4408f2a56b755c93b2078ae82b2bea40a8914a3886f9c176d943f0cb"
+      },
+      {
+        "path": "icu4c/source/i18n/udatpg.cpp",
+        "bytes": 13320,
+        "sha256": "da10b43780210f532513d17d1e6df77c49d0f51acf839f0c35f3877a5cd68211"
+      },
+      {
+        "path": "icu4c/source/i18n/ufieldpositer.cpp",
+        "bytes": 1542,
+        "sha256": "275238007c38b866962d60d3d2ccc5f02059356076e007719dd0d66e71ba651e"
+      },
+      {
+        "path": "icu4c/source/i18n/uitercollationiterator.cpp",
+        "bytes": 14407,
+        "sha256": "9d20c1474d1dad64fc1b6a15eb35936dc1d73d50791515e3831af07e20cdfdc3"
+      },
+      {
+        "path": "icu4c/source/i18n/uitercollationiterator.h",
+        "bytes": 4841,
+        "sha256": "91d60a752711f4c40c2b064fd19331bd662120021cc193c6991ae34d7b69b18c"
+      },
+      {
+        "path": "icu4c/source/i18n/ulistformatter.cpp",
+        "bytes": 5097,
+        "sha256": "9446e807726602802887dc38fbfc57ebee226632d0d19cc81908ddc7f01a6e66"
+      },
+      {
+        "path": "icu4c/source/i18n/ulocdata.cpp",
+        "bytes": 11787,
+        "sha256": "6f954359388c0d25f5576d9a0a8ca78da8679dcd947f27e4fc6161807dada5ef"
+      },
+      {
+        "path": "icu4c/source/i18n/umsg.cpp",
+        "bytes": 20333,
+        "sha256": "48d26cb5ab267e41d2257849a3772e89c66b644b746e900fd4251c8294731c27"
+      },
+      {
+        "path": "icu4c/source/i18n/umsg_imp.h",
+        "bytes": 1335,
+        "sha256": "e4380cb855b36c9076a21feee70f222fa372b1b860b6f0b6ffd462bb32225565"
+      },
+      {
+        "path": "icu4c/source/i18n/unesctrn.cpp",
+        "bytes": 9543,
+        "sha256": "97c817698d47fa170cc9f0df909c70def58a05f23118c89360eab777f10fe66e"
+      },
+      {
+        "path": "icu4c/source/i18n/unesctrn.h",
+        "bytes": 3578,
+        "sha256": "f9331b534d44c564cadc4e427d6f25d2bbd52f69c750a8a570a061bab89140e7"
+      },
+      {
+        "path": "icu4c/source/i18n/uni2name.cpp",
+        "bytes": 3650,
+        "sha256": "52cc92b43bd5851f81a33361aed00e27370750a8039a550d41c28bbf3a37f6c9"
+      },
+      {
+        "path": "icu4c/source/i18n/uni2name.h",
+        "bytes": 2506,
+        "sha256": "0d35527a765830dc7500512c12fc91b59bf490104e7f571f05cecd526fa50106"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/alphaindex.h",
+        "bytes": 27176,
+        "sha256": "e4ebb410e0d86d5506f686574e7e6a57e9a3f911e94e2fd6fed85fa1d245d8d6"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/basictz.h",
+        "bytes": 10228,
+        "sha256": "c2bbbdbd0e332099aab50c8f6461a7c279b0394480a5b0548fb7c2a73d45b713"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/calendar.h",
+        "bytes": 110260,
+        "sha256": "628cd6b46868e2ddd2e967d32b067510a15c144894cdb4a060e96a54c3f62aa2"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/choicfmt.h",
+        "bytes": 24563,
+        "sha256": "e3668a9fb58f87106aec28647b76438ce46c078cb509a2877de72ffd60bc8715"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/coleitr.h",
+        "bytes": 14101,
+        "sha256": "29128d901a2de08f592b8a0628037e75e05082e910830259e4a2094ebeb2f614"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/coll.h",
+        "bytes": 57631,
+        "sha256": "caee5eebb61afeb31cb45180c9025a39f6770f4b8120ea280e12a06af45880d6"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/compactdecimalformat.h",
+        "bytes": 7041,
+        "sha256": "d8c2ea41c5ebdf4ad0a0d012f05b6953c655e4f9f1305a93e51cbb704b7f8b50"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/curramt.h",
+        "bytes": 3756,
+        "sha256": "4f87f7cfec440d1df4756134a81d0fe72908f1dbf75e307c4af2548e4b43ae5e"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/currpinf.h",
+        "bytes": 7479,
+        "sha256": "6bdf1611b4bdaa1914ac92a7cd926702da85f06f277f54f09c2bba237ee9fd9f"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/currunit.h",
+        "bytes": 4115,
+        "sha256": "f33eee7431555b5f92115d9e29a2bdf729da1766d990d3919a52ccd082270787"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/datefmt.h",
+        "bytes": 41674,
+        "sha256": "27f7ca5db1b2c47074c694dd9d2ec10e20ad06db936999a952d69312d7006363"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/dcfmtsym.h",
+        "bytes": 21437,
+        "sha256": "ecd6e00341abcdac4a96f57736bd1f1b59de4dd2d030e5f9ad3738f5f2c4dab3"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/decimfmt.h",
+        "bytes": 89560,
+        "sha256": "1008f1e4487a3a6864764d81482678e7d1f80adf6134e1259ce55d286d5dceb2"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/displayoptions.h",
+        "bytes": 7252,
+        "sha256": "f5cd643267e806718c20546d9216e79f7b8ee612c2c68971d0d8e9fe1830a96d"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/dtfmtsym.h",
+        "bytes": 39131,
+        "sha256": "876b9f4944aac4f70b422c73561ad41ebf00f8baf3f86bba9612b7c64d467018"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/dtitvfmt.h",
+        "bytes": 50042,
+        "sha256": "e2fe5d235ed42b1611d06f93c716b277ff31aebb16614e52c6efa0a74ee5cabd"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/dtitvinf.h",
+        "bytes": 19079,
+        "sha256": "2154acc70117ed62394c347021449b730fae82c712238dcc96ef91c5de7be994"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/dtptngen.h",
+        "bytes": 28721,
+        "sha256": "8608a0cda6b6b2c2b78f074e026543cc4c856aaef265d495575d652ffa93996d"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/dtrule.h",
+        "bytes": 8864,
+        "sha256": "55ed2079e84912b88ea304afa10080630a52abbc1283c66f28612b07c80f679c"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/fieldpos.h",
+        "bytes": 8896,
+        "sha256": "1cb1abc1d60ab4240157b7aff64301c0ad8ab282db1585ef5d5b0a7c0b6dd2b0"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/fmtable.h",
+        "bytes": 24940,
+        "sha256": "7afb3278ca6034ebbb491a298185f31d7b8c0d6ca304d441c8b4881d59e5c138"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/format.h",
+        "bytes": 12802,
+        "sha256": "8fa95e6ef4c11a76f44eb48ed40db726aabd191e14dbf73e4abefce903afb989"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/formattednumber.h",
+        "bytes": 6430,
+        "sha256": "b07335baed7f3903afd61977971e54d18446a38c20fd914bb564a109b9f36f30"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/formattedvalue.h",
+        "bytes": 9987,
+        "sha256": "33c0e70172c87d3e1dcb3d656c08f23efd927d96d19d1c4f7264a757f0a5e238"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/fpositer.h",
+        "bytes": 3103,
+        "sha256": "d6d7ad9ac5cce345c5f611bad6807eca4b622bf88109b3fb81c26c42a5b02d25"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/gender.h",
+        "bytes": 3426,
+        "sha256": "60023d302e5204cbd934e216730278e91468bd20694045c5136d5d7f2420d519"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/gregocal.h",
+        "bytes": 31023,
+        "sha256": "1d4c44e7034007d8c47684784b4a9ea4a7c44cc2aa7ec4966119f08bc5749c8d"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/listformatter.h",
+        "bytes": 8799,
+        "sha256": "0c4d621f5f7b30b38f5d932f404305f55668836b89372a2d5664aafc004a48d1"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/measfmt.h",
+        "bytes": 11688,
+        "sha256": "57cd5e67808ae3c762b8232a84dc14d6dfb49a0acaa1562e7df0d0b306df971a"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/measunit.h",
+        "bytes": 110829,
+        "sha256": "85b735dfd095ff6aef425c38df5f67358b49f3be3e68b9d96d7458decf407301"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/measure.h",
+        "bytes": 4790,
+        "sha256": "dc545dea5211cd3ccdcd8cdd260c33539dec0c9710f2d7e9bce262386048a6a8"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/messageformat2.h",
+        "bytes": 18570,
+        "sha256": "126605d0bfb7939e7183c21591ff846264e1ae2a8cbb4d913455bcbece87e365"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/messageformat2_arguments.h",
+        "bytes": 4404,
+        "sha256": "af33ebc08a5effc94a5ef06b89b248145c98196b130d66be724bf09681604c20"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/messageformat2_data_model.h",
+        "bytes": 125956,
+        "sha256": "e124d78538c3b343fc31fb33d35406c57a8b1ed4cc61ca6359d2cf7001b6b2bd"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/messageformat2_data_model_names.h",
+        "bytes": 784,
+        "sha256": "bb0a47f78c1561ba3613556b32e11ce3fb922109cc20a2ab5598588e0edcf3f7"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/messageformat2_formattable.h",
+        "bytes": 39208,
+        "sha256": "3bd24dff9399e8c265b8d34fee70aa7672afa346848aa9a24000ed94ad58a842"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/messageformat2_function_registry.h",
+        "bytes": 18429,
+        "sha256": "f801dafd7fb2ccc33583bad6e3423ea3d6019b44d629372be4e34ff35a16de67"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/msgfmt.h",
+        "bytes": 45260,
+        "sha256": "65b66d9ec2205230b57aa98e8567c90f4118f378111a2066e74507e6896faabb"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/nounit.h",
+        "bytes": 2294,
+        "sha256": "1451bb22dd6e00ee945dc26740cf2714672f04563077c5cb8560d33d40ce57bf"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/numberformatter.h",
+        "bytes": 92921,
+        "sha256": "bdb32be1270001a0aea3e5c77f5465b0ce4ac7e44f4b7e2c9eff7c445c38c88c"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/numberrangeformatter.h",
+        "bytes": 26679,
+        "sha256": "cf90cf0a1432d21942339adcf5f0c99e3dac8a1501ac13f592c85596c0838950"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/numfmt.h",
+        "bytes": 51359,
+        "sha256": "1c38f10d7747ffee9bbb97d6c1a494aa636fc2433d8a319de448517e18402c98"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/numsys.h",
+        "bytes": 7397,
+        "sha256": "1ddf0e494c432adb08576763769d6771ae222312455e2c5f1b82f856d6aa4a76"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/plurfmt.h",
+        "bytes": 25667,
+        "sha256": "31bd9ab045f7bf3a91dea0b6617e892b70a38d730892383c8667c000d10960eb"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/plurrule.h",
+        "bytes": 21128,
+        "sha256": "cdfa432b21be9e868e0c253f9ce738b3fcaf70f35e2841fa972095562ae094f9"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/rbnf.h",
+        "bytes": 51738,
+        "sha256": "6b0d79a6aa9246dce23a068dbe80803345aaabaf9bb456dc7f9730889d97713e"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/rbtz.h",
+        "bytes": 16123,
+        "sha256": "372ac26952b8cb3aa5b5733d4dcb3fa53b89a11cc6c6ac9317eeab9d409e14fe"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/regex.h",
+        "bytes": 86481,
+        "sha256": "864ec4af2a23bf7ed988beb2641d465f2befd31c0ee99e6a5b6ccf3d24ee9069"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/region.h",
+        "bytes": 9417,
+        "sha256": "49caadba94d869ce3cc78e6a47d5270ab2751d95088aeea2522d136796e02465"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/reldatefmt.h",
+        "bytes": 22892,
+        "sha256": "aaf805a40eacd5f4a3eb8d5105e1d4eb07cfd073a381ce8ebb97be322f87b507"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/scientificnumberformatter.h",
+        "bytes": 6598,
+        "sha256": "72b42cde8149d05439510be75ceaa74f71c37a6d07d847fc0561b392bf51864f"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/search.h",
+        "bytes": 22741,
+        "sha256": "9bb0c0ed49d53732f3b6914914588be3db224f7ec81873e50e3d892198c7937f"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/selfmt.h",
+        "bytes": 14691,
+        "sha256": "be0ec4c9c2008be01b0e735c1d9dcc37ffa6874752c108e79bced0b1fcf4b432"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/simplenumberformatter.h",
+        "bytes": 9400,
+        "sha256": "fc126a02dfeecac7d2507592a2b2c8cc98a7e31c93d591b2f6e3a9b857667554"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/simpletz.h",
+        "bytes": 46716,
+        "sha256": "48caca80de435fd3057409495fe11e7c00cbd732b6ca90ca72bd7fc17c9754ec"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/smpdtfmt.h",
+        "bytes": 58427,
+        "sha256": "2541dc568e857f77f155d8c19a3569a6ce162fc221816ea8d5e70e3caaa9fdd2"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/sortkey.h",
+        "bytes": 11385,
+        "sha256": "0c9ad5fd1415423269efdeb5908e5a3e15bc1c858d800054482c4773ee5a1558"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/stsearch.h",
+        "bytes": 21946,
+        "sha256": "fd4e6b793ddd33e103e1faed5716456e295026cc7abc69c91ec20df8458d2d62"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/tblcoll.h",
+        "bytes": 37815,
+        "sha256": "8e60ab3427e67a45129f6856824aa186364a31e9cec58359588726f39a8d68ac"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/timezone.h",
+        "bytes": 46739,
+        "sha256": "05eabe44872d29e2a89c91c8938e09e5d3d38a7bee2d9fd4756e64868732b8dc"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/tmunit.h",
+        "bytes": 3479,
+        "sha256": "435f021396732a6f0de50843465f55ba80f80eebe225e2f11701d7c4182f9402"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/tmutamt.h",
+        "bytes": 5019,
+        "sha256": "6b5e608c55395618ffa4d715af802d73a53af7db88103aa2e575f16041c53cc4"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/tmutfmt.h",
+        "bytes": 7594,
+        "sha256": "b6505fa5bc73679994da3a8cc0a56f2d2214674ace9f3495ddf547fc2b5fce12"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/translit.h",
+        "bytes": 67375,
+        "sha256": "14d14f53672da08f796e62edb4033067e359df4a9d139cdb6e882eddc2869e51"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/tzfmt.h",
+        "bytes": 43980,
+        "sha256": "1741741b0953d28977a4a4e3180ad48ebbc7295e8c55b5ab2ce70302cedb5449"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/tznames.h",
+        "bytes": 17254,
+        "sha256": "3be9176a172bf987cbaa282a9278808f1c01a7b3076656c8ef6ee54ee673293d"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/tzrule.h",
+        "bytes": 35646,
+        "sha256": "999747ab299f959603c295f8a6708c1f6b39906ad9631a5b7d8e2afdd7dcd38d"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/tztrans.h",
+        "bytes": 6258,
+        "sha256": "dfc1367805e62e85a13494b3ca77d0d899f332e5d739f020b482dd64f023c92a"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/ucal.h",
+        "bytes": 65544,
+        "sha256": "25984768f0d324a588e7707a920ea5358ddf347bd92d95be054b324800c8d720"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/ucol.h",
+        "bytes": 64202,
+        "sha256": "edf05b3ca0afec96b1190d4bb62b5a2c93d47b810658b8671719a4d99f115198"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/ucoleitr.h",
+        "bytes": 10056,
+        "sha256": "c9636f96e2a04d5b59ec89d805151e46524fe150c32ef0a871561514e477520a"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/ucsdet.h",
+        "bytes": 15043,
+        "sha256": "927f80ff49d9997edcbfef9b5a77e972b5f77df7c6ab8045a53b4b0bb2cf3317"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/udat.h",
+        "bytes": 63852,
+        "sha256": "29fbcd43ee423a4fcd636063d2a895022f0a84997af1b51d47c3b983f98ca72a"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/udateintervalformat.h",
+        "bytes": 12218,
+        "sha256": "d77cf70386e72c9b935950e6ef7dc2935f4dc424253a00ce66259aa775e0ed01"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/udatpg.h",
+        "bytes": 30855,
+        "sha256": "033260f7ac4bf55f576f5410ccc2488baad2880f29506870fa58097955a29650"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/udisplayoptions.h",
+        "bytes": 9073,
+        "sha256": "c02c968355e45bd0182c939ab2c415cfc12ff95fe5cd5680ecf53781ea49f7bf"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/ufieldpositer.h",
+        "bytes": 4513,
+        "sha256": "8d11d66f9798b20e81921fa44278ab66345a45945aad83cebd9a501563daac58"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/uformattable.h",
+        "bytes": 11233,
+        "sha256": "29ab86f391609a1026ef6ec4753605d3dae754fa9ad453a1cf9fa7d78bcf2dbf"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/uformattednumber.h",
+        "bytes": 8281,
+        "sha256": "7b0c30394bdc621e55ea822c2c499300e6e0871c7c0a1cb8cbcc8854d2b314be"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/uformattedvalue.h",
+        "bytes": 12549,
+        "sha256": "dd20bb3e987f42107b64b8d5a287f7a2cd61e8b964696a40fe036df97c714af3"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/ugender.h",
+        "bytes": 2106,
+        "sha256": "58248eb398ac7e3985927b19eccd29d541afa684f2cd6e462d821a8ff0ac0c5a"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/ulistformatter.h",
+        "bytes": 11043,
+        "sha256": "64f1a741a64210c6e7f44dad23a2a97b864b5f58e6f6af3286c7f227d4ac7f7b"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/ulocdata.h",
+        "bytes": 11572,
+        "sha256": "84f82586bbbe950be66081d4e311308f78d9f6dc988ebda88aa1252e55b89424"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/umsg.h",
+        "bytes": 24832,
+        "sha256": "afcdc924e1de120678c0f688e769a76c24925a1d79b2dc5c991f2e1e3a7d730d"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/unirepl.h",
+        "bytes": 3464,
+        "sha256": "69f5cf697cbff3cc1e097bff33f3c2fe089ee3f33128aa897f007050a37aa604"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/unum.h",
+        "bytes": 56486,
+        "sha256": "140c398fe2f59a2cdd27edb78f517eaebfadd075b51203950d4b73c6aba87699"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/unumberformatter.h",
+        "bytes": 20153,
+        "sha256": "916709fd918ab8b0dc36f9ff805a58f61535b9b72010b62e3b0b443ef9cd3069"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/unumberoptions.h",
+        "bytes": 5360,
+        "sha256": "695da5215f3950ccc969c812cd1143f77ce880b72cdef716c96c18d907efec03"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/unumberrangeformatter.h",
+        "bytes": 15722,
+        "sha256": "833d43cb997eb1bf8507eac342fdde8eeec42a46c4ae3a65223d8aaa861b9997"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/unumsys.h",
+        "bytes": 7430,
+        "sha256": "a3ac9ab2207b898873781380498d0f371e4a99b3bf10f64aea47c0a45f329644"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/upluralrules.h",
+        "bytes": 8997,
+        "sha256": "25ca023eaef36e25fdeeac27de073a33f20f94db1f231496cd4725c46c970f06"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/uregex.h",
+        "bytes": 73719,
+        "sha256": "cb069fb56ec8807cab04560ba64ef3fde37d535e67f74b4d33b4f32be13e9b4b"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/uregion.h",
+        "bytes": 10047,
+        "sha256": "38e3fad54db2129215b3d88342b0e83a554eb19509469970ac24af9d3e122507"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/ureldatefmt.h",
+        "bytes": 17386,
+        "sha256": "c1deef931fb267eaa93cb1c39a4862221e53b2583d68549ce321b9f021cd30a0"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/usearch.h",
+        "bytes": 40153,
+        "sha256": "42209f2378dcfb8824a5488efb4dead91549d2399ed91fc3a9be2dc1571dd9a9"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/usimplenumberformatter.h",
+        "bytes": 7814,
+        "sha256": "8a08a6084b6056740774cc8a1393376cac032e4c3b9981fa6345e4820463d355"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/uspoof.h",
+        "bytes": 82245,
+        "sha256": "c8fccb73bebab81c601b0c34cee775f9bff18dae37ee20b7a3234b184f8893fa"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/utmscale.h",
+        "bytes": 14107,
+        "sha256": "fe47d8d7ec43b5b753d4a0b75fa59dad351e15a9755c2f861a5b91f52466e8f4"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/utrans.h",
+        "bytes": 26157,
+        "sha256": "344ed6e76086019e72e30ffd68fd6e49333439fc30972e1b8b6d1d11a2d9b7b1"
+      },
+      {
+        "path": "icu4c/source/i18n/unicode/vtzone.h",
+        "bytes": 21172,
+        "sha256": "8eac48f18fd22ad041242a9d87c706d4329cd4b8b24816c38b26d379f21c185b"
+      },
+      {
+        "path": "icu4c/source/i18n/units_complexconverter.cpp",
+        "bytes": 11712,
+        "sha256": "545572f059bad787d429e5e081d26f25dfb78324821546c95eef4620447ba0bd"
+      },
+      {
+        "path": "icu4c/source/i18n/units_complexconverter.h",
+        "bytes": 6286,
+        "sha256": "d8c0d475781bf5415b362bb9ef412d7564e768f90cecc2b63293148c9e364928"
+      },
+      {
+        "path": "icu4c/source/i18n/units_converter.cpp",
+        "bytes": 32874,
+        "sha256": "9049abe0874edfcf7caee28bcb637d45597dd14a788631d3d63a3ac24d633435"
+      },
+      {
+        "path": "icu4c/source/i18n/units_converter.h",
+        "bytes": 9099,
+        "sha256": "2eeed7c9d21f43cb5bec1e9572310a488cccb00acab9b3818bb08d87a4b70ead"
+      },
+      {
+        "path": "icu4c/source/i18n/units_data.cpp",
+        "bytes": 22240,
+        "sha256": "aabffcdf70fd1ebc918898c17485be9246870983cc9c5b14a13b9a84f14f2412"
+      },
+      {
+        "path": "icu4c/source/i18n/units_data.h",
+        "bytes": 8155,
+        "sha256": "c3a3bd6381da63de545bacda30f98ef3712c8036639ad7fcfe40cf3bfd5aebc6"
+      },
+      {
+        "path": "icu4c/source/i18n/units_router.cpp",
+        "bytes": 5740,
+        "sha256": "ddc5471262d089cd15bc14e769d6b7cc0ea3585bda1b49ab30d2fc0ae18168ab"
+      },
+      {
+        "path": "icu4c/source/i18n/units_router.h",
+        "bytes": 6468,
+        "sha256": "d30c5ab3c002195b111d07c6109055c24bcbca15ad2f332cc06f8af3028f6009"
+      },
+      {
+        "path": "icu4c/source/i18n/unum.cpp",
+        "bytes": 30299,
+        "sha256": "19631a10c9d48cc6a76cd69cb5ee83239f833a018e07cf1506c89b70dad6faa3"
+      },
+      {
+        "path": "icu4c/source/i18n/unumsys.cpp",
+        "bytes": 2321,
+        "sha256": "dac1d6d56a7b57aba21c901384cd4d3a78d0c06062c3355fead13a125faf6326"
+      },
+      {
+        "path": "icu4c/source/i18n/upluralrules.cpp",
+        "bytes": 5997,
+        "sha256": "a03a6b321350552e25a5d57db64941afcad02df8d310d3016a2a2d643040480e"
+      },
+      {
+        "path": "icu4c/source/i18n/uregex.cpp",
+        "bytes": 69149,
+        "sha256": "c2ef38a1399cbe9746ca99eb1ddba6cfc38f0d99926d13ba5bb29bd2dc78e745"
+      },
+      {
+        "path": "icu4c/source/i18n/uregexc.cpp",
+        "bytes": 1495,
+        "sha256": "e885c30baf16df524b0543eb376d9c5ac24bffc04408a3ece8e8e57a791bcb30"
+      },
+      {
+        "path": "icu4c/source/i18n/uregion.cpp",
+        "bytes": 3012,
+        "sha256": "63e1ea091153651a4cb26b3e6e97841427826150ea543e2279614b5777eacad2"
+      },
+      {
+        "path": "icu4c/source/i18n/usearch.cpp",
+        "bytes": 91751,
+        "sha256": "b707037bf15422cb2c33916a015f136bfe6f708f76ce44d350ef1f5a5e29e235"
+      },
+      {
+        "path": "icu4c/source/i18n/uspoof.cpp",
+        "bytes": 30771,
+        "sha256": "d9bda001fe09a2648f2acd35c53581d30991ee666f3835566ffc915303be9feb"
+      },
+      {
+        "path": "icu4c/source/i18n/uspoof_build.cpp",
+        "bytes": 3278,
+        "sha256": "bacb882e5c27e4575451a0e33f33e36945cd3bdb9a058a84c0fd7d3a692acd62"
+      },
+      {
+        "path": "icu4c/source/i18n/uspoof_conf.cpp",
+        "bytes": 17584,
+        "sha256": "e33bf5239fd27f593112b1bcdd82df0f7c539bbf81318cffab5109fabf82b2e5"
+      },
+      {
+        "path": "icu4c/source/i18n/uspoof_conf.h",
+        "bytes": 4837,
+        "sha256": "197be12462e4edcb066d76ef39e50a1b500a89e1ab951aa0289e6842918135e8"
+      },
+      {
+        "path": "icu4c/source/i18n/uspoof_impl.cpp",
+        "bytes": 31545,
+        "sha256": "6d80c16d8688ba67975c28a191b653ac9325fb6d249a33579d0593c07cf25fcd"
+      },
+      {
+        "path": "icu4c/source/i18n/uspoof_impl.h",
+        "bytes": 14178,
+        "sha256": "eea7656eb817a63ee76a3117a7729a06d045f30987722850bf4d34d2a2e3f550"
+      },
+      {
+        "path": "icu4c/source/i18n/usrchimp.h",
+        "bytes": 9013,
+        "sha256": "74c5efcc03e7413f099b519aee3b8da97c458175510d5f54ea3f9b24a1425c01"
+      },
+      {
+        "path": "icu4c/source/i18n/utf16collationiterator.cpp",
+        "bytes": 15663,
+        "sha256": "cc7da5e5ba67519489d3ae65323c6aaebd426e99b2403a8a6322e55143d31a89"
+      },
+      {
+        "path": "icu4c/source/i18n/utf16collationiterator.h",
+        "bytes": 6413,
+        "sha256": "f4b6e624b5e2eb64ae138fe3769e80bc806b243c89a217d42b0dd629ff10dc2b"
+      },
+      {
+        "path": "icu4c/source/i18n/utf8collationiterator.cpp",
+        "bytes": 17009,
+        "sha256": "41871ab106e2f7d0404502df5ebd8a9aee56342371b526f77bf6284f05bffd16"
+      },
+      {
+        "path": "icu4c/source/i18n/utf8collationiterator.h",
+        "bytes": 5343,
+        "sha256": "dba43305f871f570d1738cce5a8b56044826f0be440c7c15c07949dc7b73542a"
+      },
+      {
+        "path": "icu4c/source/i18n/utmscale.cpp",
+        "bytes": 6783,
+        "sha256": "a8c0799b1f1c58806411d722530dad988f6d5d293003d726f74b00570e15e10d"
+      },
+      {
+        "path": "icu4c/source/i18n/utrans.cpp",
+        "bytes": 15712,
+        "sha256": "000180127bfbc4b46fa15844c349a07a86f0050984a2ef269fa10fceecefff58"
+      },
+      {
+        "path": "icu4c/source/i18n/vtzone.cpp",
+        "bytes": 90753,
+        "sha256": "ce18729e46862ab525a96a30ed690571688c84b3c5d559058c8b90c49c735d11"
+      },
+      {
+        "path": "icu4c/source/i18n/vzone.cpp",
+        "bytes": 5690,
+        "sha256": "38335bd35c2485acfb7630952c1467a386410fd6cf689410352551ce8a33b2e0"
+      },
+      {
+        "path": "icu4c/source/i18n/vzone.h",
+        "bytes": 14042,
+        "sha256": "d5cbb61ebc41a3a5c20d2280026289ac938efa5598a06fcca070918b334e5cd7"
+      },
+      {
+        "path": "icu4c/source/i18n/windtfmt.cpp",
+        "bytes": 13217,
+        "sha256": "5ab92844acdc7b3866c476a1e20d79511035d3a5b697da7ddc44b344268fae9d"
+      },
+      {
+        "path": "icu4c/source/i18n/windtfmt.h",
+        "bytes": 4519,
+        "sha256": "b917c52e5146949a2c181922794260d715ad1050f2e10efeeb26331507a33c28"
+      },
+      {
+        "path": "icu4c/source/i18n/winnmfmt.cpp",
+        "bytes": 14809,
+        "sha256": "d4814b5e0dceafccfe8d2444e0ade9bc546e037911ab083cc497b0ddaa29c0b6"
+      },
+      {
+        "path": "icu4c/source/i18n/winnmfmt.h",
+        "bytes": 6058,
+        "sha256": "b6f3932f75f37c09e23e3e2ac2311677961f418cadf2c83a958d821a2d26c752"
+      },
+      {
+        "path": "icu4c/source/i18n/wintzimpl.cpp",
+        "bytes": 5879,
+        "sha256": "e6ada1d1119de74630a648f42d7d086256a2138efae8c9fc7f8e040732318646"
+      },
+      {
+        "path": "icu4c/source/i18n/wintzimpl.h",
+        "bytes": 1186,
+        "sha256": "daab35c8d029fbacbd797412adee119b831ccae295747c902fbc50381e58470c"
+      },
+      {
+        "path": "icu4c/source/i18n/zonemeta.cpp",
+        "bytes": 31447,
+        "sha256": "1be501aba67ac41c718288278e0067fe1c3c96672ef21f430997e4660ab721a7"
+      },
+      {
+        "path": "icu4c/source/i18n/zonemeta.h",
+        "bytes": 5569,
+        "sha256": "586f75daf13da795b1d342fbb0e5fb077288985a1c860cb740beacc844a96352"
+      },
+      {
+        "path": "icu4c/source/i18n/zrule.cpp",
+        "bytes": 4877,
+        "sha256": "4c23bd00d3c23cda1739a34d1b0ec1312c419095c98e65b2c2d3e75562d44f21"
+      },
+      {
+        "path": "icu4c/source/i18n/zrule.h",
+        "bytes": 10068,
+        "sha256": "2eeb17f96ae54310500d480670c90e474e469788f1637f5d104aa5dd00e4a43b"
+      },
+      {
+        "path": "icu4c/source/i18n/ztrans.cpp",
+        "bytes": 2929,
+        "sha256": "a185c04d1b81383d05c5dacae90c2ff9882435347584425a3ebde9dfaa37f2fe"
+      },
+      {
+        "path": "icu4c/source/i18n/ztrans.h",
+        "bytes": 5131,
+        "sha256": "16aab35c330c9260e2aed50adea75e67fd84f5a3d1d99bdf2014da95fde091d4"
+      },
+      {
+        "path": "icu4c/source/stubdata/Android.bp",
+        "bytes": 2257,
+        "sha256": "4c3890e60db38fd1d433348b20d46b9e9abe2a5d72dd446b12fe6d0dc550b750"
+      },
+      {
+        "path": "icu4c/source/stubdata/icudt75l.dat",
+        "bytes": 27956384,
+        "sha256": "0ee29e29eb2c29517e5d78ae8d9e8f73024678cb5f423aaf3b385bb32e802242"
+      },
+      {
+        "path": "icu4c/source/stubdata/stubdata.cpp",
+        "bytes": 1946,
+        "sha256": "97c5fdc0e356ee0bd518605f1a82f3ea0c6648475383d898859028572e0e4d59"
+      },
+      {
+        "path": "icu4c/source/stubdata/stubdata.h",
+        "bytes": 1700,
+        "sha256": "b1302821c02c578176953507d5b94ac78759698a0a92d601087732c3979d2587"
+      },
+      {
+        "path": "libandroidicuinit/Android.bp",
+        "bytes": 2255,
+        "sha256": "98f2a3ed79d1e71a14634b66de73d7e6efbc3f64abd9b3696981e6cf34dad2f8"
+      },
+      {
+        "path": "libandroidicuinit/IcuRegistration.cpp",
+        "bytes": 9462,
+        "sha256": "fac551ef13d77456254e65256de3ce018fe3c90c0b7863195cd206b9f2eb5b90"
+      },
+      {
+        "path": "libandroidicuinit/IcuRegistration.h",
+        "bytes": 5301,
+        "sha256": "97a8e80f10688d319ad80d5d8df8fa3c37bd03626c86fa2323e53f711b01e636"
+      },
+      {
+        "path": "libandroidicuinit/android_icu_init.cpp",
+        "bytes": 1904,
+        "sha256": "ec9bd209f19774e58ba3f9fffba65fc178d549b9fd03d0c33cbaed78b3d73405"
+      },
+      {
+        "path": "libandroidicuinit/include/androidicuinit/android_icu_init.h",
+        "bytes": 905,
+        "sha256": "88d267d5d8d4dbf0129e080d8984dea293567380b815454ee605b0895a5cc1be"
+      },
+      {
+        "path": "libicu/ndk_headers/uconfig_local.h",
+        "bytes": 1329,
+        "sha256": "067f231ef909ce11c396af5fc891081a97d915dadbf8e880125875902c53ffe3"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/char16ptr.h",
+        "bytes": 8186,
+        "sha256": "b6229bed71ce288eed2531d0bf209f73f5d749368ebb78811f90d8f11105f141"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/parseerr.h",
+        "bytes": 3405,
+        "sha256": "b48d270477fec080f6deb35fe8d55439968dd859251b86d5665dda89e4dde633"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/platform.h",
+        "bytes": 30985,
+        "sha256": "05daa667462f5c376f15b19b9a70fad10f8d9b80add8a30168ebc5e1a9e080d4"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/ptypes.h",
+        "bytes": 2354,
+        "sha256": "4f113e20f5581ce0c31af3766e583cb27cda3fc2c9ba035e6ca749129d1877ce"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/putil.h",
+        "bytes": 2214,
+        "sha256": "cbcedd888865e85d329f2d52241d849dbbd8f61d7fcef7045a13cf1ba74d9e99"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/stringoptions.h",
+        "bytes": 6368,
+        "sha256": "64a2c90ecce095cce7f017b3d1dd12d7336158792a8e4019276f535ce158c179"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/ubidi.h",
+        "bytes": 95147,
+        "sha256": "f1a2f9bbf093e9badf18b62588e1fb18a7bc25d62265e6a2e7f5c017ba03b050"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/ubrk.h",
+        "bytes": 19280,
+        "sha256": "88b6f52d5a036da12ce08c547b5ee0a14e76cb283f7c518e950a17ba5e934096"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/uchar.h",
+        "bytes": 176455,
+        "sha256": "d82cf28a3425309b54e784ec3cebf6f8854842da32e92dcfc68e80690013aad5"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/ucol.h",
+        "bytes": 42108,
+        "sha256": "267a9e12b61df3976e34b2e5a94cd33b91228ac6158a085dbc6a409e466b6d84"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/uconfig.h",
+        "bytes": 15485,
+        "sha256": "e4efcc951313bab1371229ea57d71f70973d0a7a2572127e54e036c5d5294276"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/ucpmap.h",
+        "bytes": 3545,
+        "sha256": "697cafd5c98b9590dcf31da7c564a8288ba70750d53c9a946c8715b314bf1b1b"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/udisplaycontext.h",
+        "bytes": 6750,
+        "sha256": "6bdb16766f76010cca7365d640524e9476527ece0b27a48d471f9f7159f46156"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/uenum.h",
+        "bytes": 8027,
+        "sha256": "edfd1710db9cc6061f1d76decb664937f6c7e19afbea18544032b73ddb058f3f"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/uldnames.h",
+        "bytes": 11739,
+        "sha256": "19884ade1ca404ac4607d414f34be504b99d978bb169072dd408199349e84453"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/uloc.h",
+        "bytes": 56399,
+        "sha256": "d8b10d99ca62522dbcf6921bccd7c581ff763b495c18a4262ac716112793f41b"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/ulocdata.h",
+        "bytes": 1619,
+        "sha256": "6ae6db206731d1ede81490be132d59dc0730464b70a5d514b436999b03858263"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/umachine.h",
+        "bytes": 16416,
+        "sha256": "01e14bdc92c9ad44f0ecba2eeb9ac98e111d12d84f94697a0049ed9635f035a9"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/unorm2.h",
+        "bytes": 21840,
+        "sha256": "22d2b7f73e6fdf3d2a98de25b8d7053a55f769cbedd2a0746c9b566efb82da87"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/urename.h",
+        "bytes": 144703,
+        "sha256": "b361fe0400dec9e763ab100ed1ba0d3dbf4b252be4c6a366f6f8b34a8cd45e44"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/urep.h",
+        "bytes": 5821,
+        "sha256": "0a1f0a8476251c0191d202fd2e396da90188efe07ebebf2f41b6e8320e234cf8"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/uscript.h",
+        "bytes": 36205,
+        "sha256": "58611b1e8f2950a2e4e594bc8475b396874a349f2516fc22f5f5005f53d7dbf4"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/ustring.h",
+        "bytes": 62442,
+        "sha256": "501bbe87da18f76b7e0b1a6f6b7e8388665316d5b2dfd2a8554279f27b56b948"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/utext.h",
+        "bytes": 24315,
+        "sha256": "7c4e80ed0dcc2c0cf65115aa58fdde50bd89e18b6de1d2848d3066ec5fb411ee"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/utf.h",
+        "bytes": 8435,
+        "sha256": "a91e37e762ee6df8ebb96017a831d3f47361a42d2fdeb23b43327293e722df41"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/utf16.h",
+        "bytes": 25141,
+        "sha256": "f1f0bfc4bcd100a8d293b236a67af2210e5e98b79cff5e839eb4b38732550fea"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/utf8.h",
+        "bytes": 31270,
+        "sha256": "0b5753827ad356c2441c9e9413f5664bab046a471f29639f53acb9ed9f49760f"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/utf_old.h",
+        "bytes": 52782,
+        "sha256": "e5aaa563fc294aac2849069c9fddb1cef70341732d2657e406327c2dfee73785"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/utrans.h",
+        "bytes": 20335,
+        "sha256": "9f89a950303e92a8c1545d32bcf1ae58b8b5ae48137ec4dc7076f52ea4e8a8b5"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/utypes.h",
+        "bytes": 37852,
+        "sha256": "107ec7800604df5933b024ff17961d8a0b2420cb76c8e8288414eadd2b14bd70"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/uvernum.h",
+        "bytes": 7212,
+        "sha256": "a70e81de03f8b417b931bb950f976251e5c0da94436e015ac9438df402aa00db"
+      },
+      {
+        "path": "libicu/ndk_headers/unicode/uversion.h",
+        "bytes": 5447,
+        "sha256": "77e0d09e90efe2a2e6b66187f293f63c7ff0417c1dd935b511abeec668e640aa"
+      },
+      {
+        "path": "libicu/src/Android.bp",
+        "bytes": 1425,
+        "sha256": "aeca356f9726e2c82dba1b7ec341dc9ae63d93ec2b4144c3e4e250c166f8512b"
+      },
+      {
+        "path": "libicu/src/shim.cpp",
+        "bytes": 57672,
+        "sha256": "510f9f9dd8bb6a7e6ecf2cdd236bc42d6205115df3fece5365031f62f7e55edb"
+      }
+    ]
+  }
+}
