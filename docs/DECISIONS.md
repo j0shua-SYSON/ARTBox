@@ -1136,7 +1136,7 @@ Apple runtime or physical-device execution.
 
 ## 0047: Encode GC forwarding addresses and preserve raw JNI dead markers
 
-Status: selected for managed-storage tests; native validation pending.
+Status: validated in native managed-storage tests; full-runtime integration pending.
 
 The original semispace collector writes an object's destination into LockWord.
 The pinned implementation truncates a native address to 32 bits on decoding;
@@ -1158,3 +1158,7 @@ same original NDK ELF must pass below 4 GiB on native Linux. Include signed iOS
 frameworks and source provenance. These tests do not execute an Apple collector;
 interpreter arguments, stack walking, the heap window and native entrypoints
 still need consistent representation. See [the storage contract](m3-managed-storage.md).
+
+At `773da40`, both hosts pass all 54 positive cases and both signed Mac controls
+fail at the expected forwarding case. Downloaded sources and binaries verify.
+The test establishes the storage encoding, not a moving Apple collector.
