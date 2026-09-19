@@ -1133,3 +1133,28 @@ shutdown warning is absent. All 18 executable mappings remain unchanged through
 shutdown. Measurements and artifact provenance are in
 [the managed acceptance record](m3-managed-checks.md); this does not establish
 Apple runtime or physical-device execution.
+
+## 0047: Encode GC forwarding addresses and preserve raw JNI dead markers
+
+Status: selected for managed-storage tests; native validation pending.
+
+The original semispace collector writes an object's destination into LockWord.
+The pinned implementation truncates a native address to 32 bits on decoding;
+changing ObjectReference alone cannot move the heap above Apple's guard region.
+Use the same checked byte-offset codec before packing a forwarding address and
+after unpacking it. Ordinary lock, hash and state-bit formats retain their tests.
+This adds checked codec calls on forwarding paths; collector overhead must be
+measured when the complete runtime uses the high heap.
+
+LocalReferenceTable writes a removed-entry marker through SetReference even in
+release builds. That value is not a pointer in the managed heap. Add a dedicated
+raw-marker setter and use it at all three removal/pruning sites, preserving the
+existing marker bits. Do not admit arbitrary low addresses into the heap codec.
+
+Test the actual pinned storage types before integrating these changes into ART:
+the original signed high-address control must fail at forwarding round-trip case
+five, adapted signed Mac code must pass 27 cases per poisoning profile, and the
+same original NDK ELF must pass below 4 GiB on native Linux. Include signed iOS
+frameworks and source provenance. These tests do not execute an Apple collector;
+interpreter arguments, stack walking, the heap window and native entrypoints
+still need consistent representation. See [the storage contract](m3-managed-storage.md).

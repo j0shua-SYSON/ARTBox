@@ -100,6 +100,9 @@ native Linux runtime. Its macOS and Linux producers emit identical DEX bytes;
 downloaded payloads and corresponding project sources verify. Next adapt
 the full managed reference/stack representation and thread/signal
 boundaries, and integrate the same runtime and DEX into signed macOS/iOS builds.
+The next [managed-storage contract](m3-managed-storage.md) covers GC forwarding
+words and JNI reference/free/serial/dead-entry representations; native validation
+of those new adaptations is pending.
 The [M3 contract](m3-contract.md) remains unmet until those execution and shared
 iOS requirements pass. AOT/OAT execution and host dex2oat are still future work;
 M3 permits interpreter-only acceptance. M4-M7 follow M3 acceptance.

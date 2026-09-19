@@ -45,7 +45,12 @@ static artbox_elf_result reject_constructor(void *context, uint64_t address) {
 }
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "ART reference host check failed at %d\n", __LINE__); return 1; } } while (0)
 int main(int argc, char **argv) {
-    if (argc != 4 || (strcmp(argv[3], "plain") && strcmp(argv[3], "poisoned"))) return 2;
+    if ((argc != 4 && argc != 5) || (strcmp(argv[3], "plain") && strcmp(argv[3], "poisoned"))) return 2;
+    int storage = argc == 5;
+    int rejection = storage && !strcmp(argv[4], "storage-negative");
+    if (storage && !rejection && strcmp(argv[4], "storage")) return 2;
+    int expected_cases = storage ? 27 : 19;
+    const char *entry_name = storage ? "artbox_art_storage_check" : "artbox_art_reference_check";
     int poison = !strcmp(argv[3], "poisoned");
     FILE *input = fopen(argv[2], "rb");
     CHECK(input && !fseek(input, 0, SEEK_END));
@@ -76,9 +81,9 @@ int main(int argc, char **argv) {
     CHECK(artbox_load_group_relocate(group) == ARTBOX_ELF_OK &&
           artbox_load_group_initialize(group, reject_constructor, NULL) == ARTBOX_ELF_OK);
     uint64_t entry;
-    CHECK(artbox_load_group_lookup(group, "artbox_art_reference_check", NULL, &entry) == ARTBOX_ELF_OK);
+    CHECK(artbox_load_group_lookup(group, entry_name, NULL, &entry) == ARTBOX_ELF_OK);
     artbox_elf_symbol symbol;
-    CHECK(artbox_dynamic_lookup(&dynamic, "artbox_art_reference_check", &symbol) == ARTBOX_ELF_OK &&
+    CHECK(artbox_dynamic_lookup(&dynamic, entry_name, &symbol) == ARTBOX_ELF_OK &&
           symbol.type == 2 && symbol.value % 4 == 0 && symbol.value < elf.segments[0].file_size &&
           symbol.size <= elf.segments[0].file_size - symbol.value);
     artbox_vm_ops ops = artbox_native_vm();
@@ -91,14 +96,25 @@ int main(int argc, char **argv) {
     uint32_t observations[4] = {0}, first_bits = (uint32_t)ops.page_size, second_bits = first_bits * 2;
     int32_t result = (int32_t)artbox_call7((void *)(uintptr_t)entry, (uintptr_t)first, (uintptr_t)second,
                                          first_bits, second_bits, (uintptr_t)observations, (uintptr_t)(first + 16), 0);
-    if (result != 19) { fprintf(stderr, "Adapted ART reference case: %d\n", result); return 1; }
-    CHECK(*(uint64_t *)first == UINT64_C(0x123456789abcdef0) && *(uint64_t *)second == UINT64_C(0xfedcba9876543210));
-    CHECK(observations[0] == (uint32_t)poison && observations[1] == (poison ? 0u-first_bits : first_bits) &&
-          observations[2] == (poison ? 0u-second_bits : second_bits) && observations[3] == second_bits);
+    if (rejection) {
+        /* The original forwarding word must lose the high address at case 5,
+         * before touching the externally supplied object or lock storage. */
+        CHECK(result == -5 && *(uint64_t *)first == 0 && *(uint64_t *)second == 0);
+        CHECK(observations[0] == 0 && observations[1] == 0 && observations[2] == 0 && observations[3] == 0);
+    } else {
+        if (result != expected_cases) { fprintf(stderr, "Adapted ART reference case: %d\n", result); return 1; }
+        CHECK(*(uint64_t *)first == UINT64_C(0x123456789abcdef0) && *(uint64_t *)second == UINT64_C(0xfedcba9876543210));
+        uint32_t fourth = storage ? ((second_bits >> 3) | UINT32_C(0xc0000000)) : second_bits;
+        CHECK(observations[0] == (uint32_t)poison && observations[1] == (poison ? 0u-first_bits : first_bits) &&
+              observations[2] == (poison ? 0u-second_bits : second_bits) && observations[3] == fourth);
+    }
     artbox_load_group_destroy(group);
     CHECK(!dlclose(library) && !ops.release(base, span));
     free(original);
-    printf("{\"cases\":19,\"native_base\":%" PRIu64 ",\"encoding\":\"heap-relative\",\"cleanup\":true,"
-           "\"observations\":[%u,%u,%u,%u]}\n", window.base, observations[0], observations[1], observations[2], observations[3]);
+    printf("{\"cases\":%d,\"result\":%d,\"native_base\":%" PRIu64 ",\"encoding\":\"%s\",\"cleanup\":true,"
+           "\"expected_rejection\":%s,\"observations\":[%u,%u,%u,%u]}\n",
+           rejection ? 5 : expected_cases, result, window.base,
+           rejection ? "absolute-rejected" : "heap-relative", rejection ? "true" : "false",
+           observations[0], observations[1], observations[2], observations[3]);
     return 0;
 }

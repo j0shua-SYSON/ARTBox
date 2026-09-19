@@ -76,6 +76,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 -B scripts/test_art_references.py
+      - name: Compare ART forwarding words and JNI storage above the native guard
+        if: matrix.os == 'macos-15'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_art_storage.py
       - name: Load and verify an original DEX with pinned AOSP code
         if: matrix.os == 'macos-15'
         env:
@@ -112,6 +117,8 @@ jobs:
             build/m3/low-address/
             artifacts/m3-art-references.json
             build/m3/art-references/
+            artifacts/m3-art-storage.json
+            build/m3/art-storage/
             artifacts/m3-dex-loader.json
             build/m3/dex-loader/*.dex
             artifacts/m1-native.json
@@ -398,6 +405,8 @@ jobs:
         run: python3 -B scripts/test_bionic_files.py --evidence-root build/oracle
       - name: Compare original AOSP reference types with the signed adaptation
         run: python3 -B scripts/test_art_references.py --evidence-root build/oracle
+      - name: Compare original ART forwarding and JNI storage with signed high-address code
+        run: python3 -B scripts/test_art_storage.py --evidence-root build/oracle
       - name: Compare AOSP DEX validation on native Linux
         env:
           GH_TOKEN: ${{ github.token }}
@@ -422,6 +431,8 @@ jobs:
             artifacts/m2-proc-linux.json
             artifacts/m3-art-references-linux.json
             build/m3/art-references/*.log
+            artifacts/m3-art-storage-linux.json
+            build/m3/art-storage/*.log
             artifacts/m3-dex-loader-linux.json
             build/m3/dex-loader/linux/*.log
             build/m3/dex-loader/linux/objects/*.log
