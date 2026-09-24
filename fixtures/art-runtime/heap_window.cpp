@@ -1,6 +1,7 @@
 // Original ARTBox contract: exercise actual AOSP MemMap and CardTable operations.
 #include "artbox_art_heap.h"
 #include "base/mem_map.h"
+#include "class_table-inl.h"
 #include "gc/accounting/card_table-inl.h"
 #include <cstdio>
 #include <cstring>
@@ -8,6 +9,56 @@
 #include <sys/mman.h>
 
 #define HEAP_CHECK(x) do { if (!(x)) { std::fprintf(stderr, "ART heap window line %d: %s\n", __LINE__, #x); return false; } } while (0)
+
+namespace {
+struct MoveClassRoot {
+  art::mirror::Object* before;
+  art::mirror::Object* after;
+  bool* visited;
+  void VisitRoot(art::mirror::CompressedReference<art::mirror::Object>* root) const {
+    *visited = root->AsMirrorPtr() == before;
+    root->Assign(after);
+  }
+};
+
+bool check_class_slots(uint8_t* storage) {
+  // Only exercise slot storage: these aligned addresses are not initialized classes.
+  // Release, no-read-barrier operations do not dereference their class contents.
+  static_assert(!art::kIsDebugBuild);
+  using Slot = art::ClassTable::TableSlot;
+  auto* first = reinterpret_cast<art::mirror::Class*>(storage);
+  auto* second = reinterpret_cast<art::mirror::Class*>(storage + 64);
+  const uint32_t encoded = artbox_art_reference_compress(first);
+  const uint32_t moved = artbox_art_reference_compress(second);
+  Slot empty;
+  HEAP_CHECK(empty.Data() == 0 && empty.IsNull());
+  for (uint32_t bits = 0; bits < art::kObjectAlignment; ++bits) {
+    const uint32_t hash = 0x9abcde00u | bits;
+    Slot slot(art::ObjPtr<art::mirror::Class>(first), hash);
+    HEAP_CHECK(slot.Data() == (encoded | bits) && slot.NonHashData() == encoded);
+    HEAP_CHECK(slot.Hash() == bits && slot.MaskedHashEquals(hash));
+    HEAP_CHECK(!slot.MaskedHashEquals(hash ^ 1u));
+    HEAP_CHECK(slot.Read<art::kWithoutReadBarrier>().Ptr() == first && !slot.IsNull());
+    Slot raw(encoded, hash), copy(slot), assigned;
+    assigned = slot;
+    HEAP_CHECK(raw.Data() == slot.Data() && copy.Data() == slot.Data() &&
+               assigned.Data() == slot.Data());
+    HEAP_CHECK(raw.Read<art::kWithoutReadBarrier>().Ptr() == first);
+    bool visited = false;
+    slot.VisitRoot(MoveClassRoot{first, second, &visited});
+    HEAP_CHECK(visited && slot.Data() == (moved | bits));
+    HEAP_CHECK(slot.Read<art::kWithoutReadBarrier>().Ptr() == second && slot.Hash() == bits);
+    visited = false;
+    slot.VisitRoot(MoveClassRoot{second, second, &visited});
+    HEAP_CHECK(visited && slot.Data() == (moved | bits));
+    visited = false;
+    slot.VisitRoot(MoveClassRoot{second, nullptr, &visited});
+    HEAP_CHECK(visited && slot.IsNull() && slot.Data() == bits);
+    HEAP_CHECK(copy.Read<art::kWithoutReadBarrier>().Ptr() == first);
+  }
+  return true;
+}
+}
 
 bool artbox_check_art_heap_window(artbox_vm* vm) {
   using art::MemMap;
@@ -43,6 +94,7 @@ bool artbox_check_art_heap_window(artbox_vm* vm) {
   HEAP_CHECK(!reused.ReplaceWith(&tail, &error) && reused.Begin() == first && tail.IsValid());
   const uint32_t reference = artbox_art_reference_compress(first);
   HEAP_CHECK(reference == page && artbox_art_reference_decompress(reference) == first);
+  HEAP_CHECK(check_class_slots(first));
   std::unique_ptr<CardTable> cards(CardTable::Create(
       reinterpret_cast<const uint8_t*>(window.base + window.guard_bytes),
       window.length - window.guard_bytes));
@@ -61,7 +113,7 @@ bool artbox_check_art_heap_window(artbox_vm* vm) {
   HEAP_CHECK(artbox_vm_reserved_bytes(vm) == window.length);
   HEAP_CHECK(!artbox_vm_access(vm, window.base + page, page * 4, 0));
   MemMap::Shutdown();
-  std::printf("ARTBox managed window: {\"base\":%llu,\"length\":%llu,\"guard\":%llu,\"memmap_contract\":true}\n",
+  std::printf("ARTBox managed window: {\"base\":%llu,\"length\":%llu,\"guard\":%llu,\"memmap_contract\":true,\"class_table_contract\":true}\n",
       static_cast<unsigned long long>(window.base), static_cast<unsigned long long>(window.length),
       static_cast<unsigned long long>(window.guard_bytes));
   return true;
