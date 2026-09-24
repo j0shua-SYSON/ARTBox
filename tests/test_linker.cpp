@@ -79,6 +79,9 @@ static void tls_tests() {
           t.init_data==reinterpret_cast<uintptr_t>(provider.rw.data()+0x800) &&
           t.init_size==8 && t.memory_size==64 && t.alignment==32 && t.skew==0);
     CHECK(artbox_load_group_tls_template(g,1,&t)==ARTBOX_ELF_NOT_FOUND);
+    artbox_link_info image{};
+    CHECK(artbox_load_group_info(g,0,&image)==ARTBOX_ELF_OK && image.tls_module_id==0);
+    CHECK(artbox_load_group_info(g,1,&image)==ARTBOX_ELF_OK && image.tls_module_id==1);
     auto before=root.rw;
     CHECK(artbox_load_group_relocate(g)==ARTBOX_ELF_UNSUPPORTED && root.rw==before);
     CHECK(artbox_load_group_tls_resolver(g,0x204800)==ARTBOX_ELF_INVALID);
@@ -91,6 +94,9 @@ static void tls_tests() {
     }
     uint64_t address=0;
     CHECK(artbox_load_group_lookup(g,"tls",nullptr,&address)==ARTBOX_ELF_UNSUPPORTED);
+    CHECK(artbox_load_group_lookup_from(g,"tls-provider.so","tls",nullptr,&address)==ARTBOX_ELF_UNSUPPORTED);
+    artbox_link_address located{};
+    CHECK(artbox_load_group_address(g,0x200008,&located)==ARTBOX_ELF_OK && !located.symbol_name);
     CHECK(artbox_load_group_tls_resolver(g,0x200200)==ARTBOX_ELF_INVALID);
     artbox_load_group_destroy(g);
     /* A late error cannot publish an earlier module's TLS descriptor. */
@@ -109,8 +115,72 @@ static artbox_elf_result invoke(void *context,uint64_t address) {
     CHECK(artbox_load_group_initialize(init.group,invoke,context)==ARTBOX_ELF_OK);
     return ARTBOX_ELF_OK;
 }
+static void query_tests() {
+    Module root("root.so",0x100000,{"left.so","right.so"},{});
+    Module left("left.so",0x200000,{"leaf.so"},{{"shared",true,true}});
+    Module right("right.so",0x300000,{"leaf.so"},{{"shared",true,false},{"right_only",true,false}});
+    Module leaf("leaf.so",0x400000,{"left.so"},{{"leaf",true,false}});
+    Module excluded("excluded.so",0x500000,{},{{"excluded",true,false}});
+    artbox_link_module modules[]={excluded.view,right.view,root.view,leaf.view,left.view};
+    artbox_load_group *g=nullptr;
+    CHECK(artbox_load_group_create(modules,5,"root.so",nullptr,nullptr,&g)==ARTBOX_ELF_OK);
+    uint64_t address=0xdead;
+    CHECK(artbox_load_group_lookup_from(g,"root.so","shared",nullptr,&address)==ARTBOX_ELF_OK && address==0x204508);
+    CHECK(artbox_load_group_lookup_from(g,"right.so","shared",nullptr,&address)==ARTBOX_ELF_OK && address==0x304508);
+    CHECK(artbox_load_group_lookup_from(g,"left.so","leaf",nullptr,&address)==ARTBOX_ELF_OK && address==0x404508);
+    address=0xdead;
+    CHECK(artbox_load_group_lookup_from(g,"left.so","right_only",nullptr,&address)==ARTBOX_ELF_NOT_FOUND && address==0xdead);
+    CHECK(artbox_load_group_lookup_from(g,"excluded.so","excluded",nullptr,&address)==ARTBOX_ELF_NOT_FOUND && address==0xdead);
+    CHECK(artbox_load_group_lookup_from(g,"absent.so","shared",nullptr,&address)==ARTBOX_ELF_NOT_FOUND);
+    CHECK(artbox_load_group_lookup_from(g,nullptr,"shared",nullptr,&address)==ARTBOX_ELF_INVALID);
+    CHECK(artbox_load_group_lookup_from(g,"left.so",nullptr,nullptr,&address)==ARTBOX_ELF_INVALID);
+    CHECK(artbox_load_group_lookup_next(g,0x100200,"shared",nullptr,&address)==ARTBOX_ELF_OK && address==0x204508);
+    CHECK(artbox_load_group_lookup_next(g,0x200200,"shared",nullptr,&address)==ARTBOX_ELF_OK && address==0x304508);
+    CHECK(artbox_load_group_lookup_next(g,0x300200,"leaf",nullptr,&address)==ARTBOX_ELF_OK && address==0x404508);
+    address=0xdead;
+    CHECK(artbox_load_group_lookup_next(g,0x400200,"shared",nullptr,&address)==ARTBOX_ELF_NOT_FOUND && address==0xdead);
+    CHECK(artbox_load_group_lookup_next(g,0x201000,"shared",nullptr,&address)==ARTBOX_ELF_NOT_FOUND);
+    CHECK(artbox_load_group_lookup_next(g,0x500200,"shared",nullptr,&address)==ARTBOX_ELF_NOT_FOUND);
+    CHECK(artbox_load_group_lookup_next(g,UINT64_MAX,"shared",nullptr,&address)==ARTBOX_ELF_NOT_FOUND);
+    CHECK(artbox_load_group_lookup_next(g,0x200200,nullptr,nullptr,&address)==ARTBOX_ELF_INVALID);
+    artbox_link_info info{};
+    const char *order[]={"root.so","left.so","right.so","leaf.so"};
+    for (unsigned i=0;i<4;++i) {
+        CHECK(artbox_load_group_info(g,i,&info)==ARTBOX_ELF_OK);
+        CHECK(!std::strcmp(info.name,order[i]) && info.load_bias==(i+1)*0x100000 && !info.tls_module_id);
+        CHECK(info.dynamic->image->program_header_count==3);
+    }
+    const auto *old_dynamic=info.dynamic;
+    CHECK(artbox_load_group_info(g,4,&info)==ARTBOX_ELF_NOT_FOUND && info.dynamic==old_dynamic);
+    CHECK(artbox_load_group_info(nullptr,0,&info)==ARTBOX_ELF_INVALID);
+    CHECK(artbox_load_group_info(g,0,nullptr)==ARTBOX_ELF_INVALID);
+    artbox_link_address found{};
+    CHECK(artbox_load_group_address(g,0x20450b,&found)==ARTBOX_ELF_OK);
+    CHECK(found.image.dynamic==&left.dynamic && found.image.load_bias==0x200000 &&
+          !std::strcmp(found.symbol_name,"shared") && found.symbol_address==0x204508);
+    CHECK(artbox_load_group_address(g,0x204510,&found)==ARTBOX_ELF_OK && !found.symbol_name && !found.symbol_address);
+    CHECK(artbox_load_group_address(g,0x200000,&found)==ARTBOX_ELF_OK && !found.symbol_name);
+    CHECK(artbox_load_group_address(g,0x201000,&found)==ARTBOX_ELF_NOT_FOUND && found.image.dynamic==&left.dynamic);
+    CHECK(artbox_load_group_address(g,0x205000,&found)==ARTBOX_ELF_NOT_FOUND);
+    CHECK(artbox_load_group_address(g,0x504508,&found)==ARTBOX_ELF_NOT_FOUND);
+    CHECK(artbox_load_group_address(g,UINT64_MAX,&found)==ARTBOX_ELF_NOT_FOUND);
+    CHECK(artbox_load_group_address(g,0x204508,nullptr)==ARTBOX_ELF_INVALID);
+    CHECK(artbox_load_group_address(nullptr,0x204508,&found)==ARTBOX_ELF_INVALID);
+    artbox_load_group_destroy(g);
+
+    Module special("special.so",0x600000,{},{{"absolute",true,false},{"zero",true,false},{"ordinary",true,false}});
+    put(special.bytes.data()+0x61e,0xfff1,2);put(special.bytes.data()+0x620,0,8);
+    put(special.bytes.data()+0x640,0,8); // second symbol has zero size
+    CHECK(artbox_load_group_create(&special.view,1,"special.so",nullptr,nullptr,&g)==ARTBOX_ELF_OK);
+    CHECK(artbox_load_group_lookup_from(g,"special.so","absolute",nullptr,&address)==ARTBOX_ELF_OK && address==0);
+    CHECK(artbox_load_group_address(g,0x600001,&found)==ARTBOX_ELF_OK && !found.symbol_name);
+    CHECK(artbox_load_group_address(g,0x604510,&found)==ARTBOX_ELF_OK && !found.symbol_name);
+    CHECK(artbox_load_group_address(g,0x604518,&found)==ARTBOX_ELF_OK && !std::strcmp(found.symbol_name,"ordinary"));
+    artbox_load_group_destroy(g);
+}
 int main() {
     tls_tests();
+    query_tests();
     Module root("root.so",0x100000,{"left.so","right.so"},{{"root",true,false},{"shared",false,false},{"optional",false,true},{"bridge",false,false}});
     Module left("left.so",0x200000,{"leaf.so"},{{"shared",true,true},{"root",false,false}});
     Module right("right.so",0x300000,{"leaf.so"},{{"shared",true,false}});

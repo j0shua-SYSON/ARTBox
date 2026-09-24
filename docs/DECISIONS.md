@@ -1394,3 +1394,20 @@ neither new nor existing failures can disappear into a changed denominator.
 Keep the iOS diagnostic runner shared with the Mac test. Compiled wrappers
 whose kernel services remain unsupported stay explicitly unsupported; source
 closure alone cannot establish directory, signal, property or process behavior.
+
+## 0059: Resolve ART loader queries within the signed startup group
+
+Status: portable queries and local tests pass; Android API integration pending.
+
+Keep the initial ART dependency set fixed for the lifetime of the runtime.
+Provide named dependency lookup, lookup after a caller, image enumeration and
+address metadata in the portable load-group engine. Android names never reach
+the host dynamic linker. This preserves the signing boundary without runtime
+code mapping or a second dependency graph.
+
+The first scope is one startup group. Explicit handles restrict lookup to their
+dependency closure; the caller-based search traverses only the remainder of
+the fixed group. Do not present these queries as general Android namespace,
+unloading or TLS-symbol support. The forthcoming ABI bridge owns its error and
+handle state and exposes valid guest metadata while the signed images remain
+alive. See [the loader service contract](m3-loader-services.md).

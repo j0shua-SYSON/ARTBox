@@ -118,6 +118,9 @@ The [Bionic dependency expansion](m3-bionic-dependencies.md) adds 50 unchanged
 source units and a separate 30-case libc client. Both 271-unit profiles and all
 four startup ELFs build locally; signed execution is pending. Compiled wrappers
 do not imply new kernel-service support.
+The [loader service queries](m3-loader-services.md) now cover named dependency
+scope, lookup after the caller and ELF address/image metadata. All 25 local
+host tests pass; the Android loader API bridge is still pending.
 The [managed-storage contract](m3-managed-storage.md) now passes 54 cases on each
 native Mac/Linux host, with two signed Mac controls confirming the original
 forwarding-address truncation. GC forwarding words and JNI reference/free/serial/
