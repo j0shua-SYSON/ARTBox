@@ -183,6 +183,7 @@ def main():
     window_valid = (not record['managed_window_profile'] or
         (isinstance(window, dict) and window.get('memmap_contract') is True and
          window.get('class_table_contract') is True and
+         window.get('large_object_bitmap_contract') is True and
          type(window.get('base')) is int and window['base'] >= 0x100000000 and
          window.get('length') == 0x100000000 and type(window.get('guard')) is int and
          4096 <= window['guard'] <= 65536))

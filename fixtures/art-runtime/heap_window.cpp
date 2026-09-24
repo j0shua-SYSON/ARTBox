@@ -3,6 +3,8 @@
 #include "base/mem_map.h"
 #include "class_table-inl.h"
 #include "gc/accounting/card_table-inl.h"
+#include "gc/accounting/space_bitmap-inl.h"
+#include "gc/space/space.h"
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -11,6 +13,43 @@
 #define HEAP_CHECK(x) do { if (!(x)) { std::fprintf(stderr, "ART heap window line %d: %s\n", __LINE__, #x); return false; } } while (0)
 
 namespace {
+class BitmapSpace final : public art::gc::space::DiscontinuousSpace {
+ public:
+  BitmapSpace() : DiscontinuousSpace("ARTBox large bitmap contract",
+      art::gc::space::kGcRetentionPolicyAlwaysCollect) {}
+  bool Contains(const art::mirror::Object* object) const override {
+    return live_bitmap_.HasAddress(object);
+  }
+  art::gc::space::SpaceType GetType() const override {
+    return art::gc::space::kSpaceTypeLargeObjectSpace;
+  }
+  bool CanMoveObjects() const override { return false; }
+};
+
+bool check_large_object_bitmaps(const artbox_reference_window& window) {
+  // Use the real DiscontinuousSpace constructor; bitmap operations only inspect addresses.
+  BitmapSpace space;
+  auto* live = space.GetLiveBitmap();
+  auto* mark = space.GetMarkBitmap();
+  auto* first = reinterpret_cast<art::mirror::Object*>(window.base + window.guard_bytes);
+  auto* last = reinterpret_cast<art::mirror::Object*>(window.base + window.length - art::kMinPageSize);
+  HEAP_CHECK(live->HeapBegin() == window.base && mark->HeapBegin() == window.base);
+  HEAP_CHECK(live->HeapLimit() == window.base + window.length &&
+             mark->HeapLimit() == window.base + window.length);
+  HEAP_CHECK(live->HasAddress(first) && live->HasAddress(last));
+  HEAP_CHECK(!live->HasAddress(reinterpret_cast<void*>(window.base - art::kMinPageSize)) &&
+             !live->HasAddress(reinterpret_cast<void*>(window.base + window.length)));
+  HEAP_CHECK(!live->Set(first) && !live->Set(last) && live->Set(first));
+  HEAP_CHECK(live->Test(first) && live->Test(last) && !mark->Test(first) && !mark->Test(last));
+  mark->CopyFrom(live);
+  HEAP_CHECK(mark->Test(first) && mark->Test(last));
+  HEAP_CHECK(live->Clear(first) && !live->Test(first) && live->Test(last) && mark->Test(first));
+  live->Clear();
+  mark->Clear();
+  HEAP_CHECK(!live->Test(first) && !live->Test(last) && !mark->Test(first) && !mark->Test(last));
+  return true;
+}
+
 struct MoveClassRoot {
   art::mirror::Object* before;
   art::mirror::Object* after;
@@ -95,6 +134,7 @@ bool artbox_check_art_heap_window(artbox_vm* vm) {
   const uint32_t reference = artbox_art_reference_compress(first);
   HEAP_CHECK(reference == page && artbox_art_reference_decompress(reference) == first);
   HEAP_CHECK(check_class_slots(first));
+  HEAP_CHECK(check_large_object_bitmaps(window));
   std::unique_ptr<CardTable> cards(CardTable::Create(
       reinterpret_cast<const uint8_t*>(window.base + window.guard_bytes),
       window.length - window.guard_bytes));
@@ -113,7 +153,7 @@ bool artbox_check_art_heap_window(artbox_vm* vm) {
   HEAP_CHECK(artbox_vm_reserved_bytes(vm) == window.length);
   HEAP_CHECK(!artbox_vm_access(vm, window.base + page, page * 4, 0));
   MemMap::Shutdown();
-  std::printf("ARTBox managed window: {\"base\":%llu,\"length\":%llu,\"guard\":%llu,\"memmap_contract\":true,\"class_table_contract\":true}\n",
+  std::printf("ARTBox managed window: {\"base\":%llu,\"length\":%llu,\"guard\":%llu,\"memmap_contract\":true,\"class_table_contract\":true,\"large_object_bitmap_contract\":true}\n",
       static_cast<unsigned long long>(window.base), static_cast<unsigned long long>(window.length),
       static_cast<unsigned long long>(window.guard_bytes));
   return true;
