@@ -18323,5 +18323,36 @@
         "sha256": "73803ba22253eaebfc48d827f6429a7b2826bda1ad93c978704af4c0da449d1a"
       }
     ]
+  },
+  "unwind-context": {
+    "repository": "llvm/llvm-project",
+    "commit": "3b5e7c83a6e226d5bd7ed2e9b67449b64812074c",
+    "revision_origin": "Android NDK r28c clang_source_info.md base revision (r530567e)",
+    "files": [
+      {
+        "path": "libunwind/LICENSE.TXT",
+        "bytes": 16706,
+        "sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d"
+      },
+      {
+        "path": "libunwind/src/UnwindRegistersRestore.S",
+        "bytes": 30582,
+        "sha256": "7c66721db60ae08b776119e0475bb4efe6aeaec79dc0386c8cd35cb4aee268f1"
+      },
+      {
+        "path": "libunwind/src/UnwindRegistersSave.S",
+        "bytes": 28775,
+        "sha256": "9c7c51e705f73bb22d8113714a47fe9f1a3b84fe5a9484bb6801578523cabc5d"
+      },
+      {
+        "path": "libunwind/src/assembly.h",
+        "bytes": 10324,
+        "sha256": "aa8bbf3a25a47749e48729785240484421391c449923d82aa6c0bc6e4ed67a5a"
+      }
+    ],
+    "notice": "libunwind/LICENSE.TXT",
+    "notice_sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d",
+    "license": "Apache-2.0 WITH LLVM-exception",
+    "scope": "Register save/restore assembly only; source text reproduces the matching NDK archive members."
   }
 }

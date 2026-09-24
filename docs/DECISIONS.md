@@ -1327,7 +1327,7 @@ required and SweepWalk's safety checks remain intact.
 
 ## 0055: Observe thread state from inside the ART runtime library
 
-Status: ARM64 compilation passes; native execution pending.
+Status: both full native Linux runtime profiles pass at 8720bc8; Apple integration pending.
 
 Apple integration must preserve Bionic's ART current-thread slot and compiler
 TLS used by the heap sampler. Test the real runtime before adapting either

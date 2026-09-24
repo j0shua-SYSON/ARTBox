@@ -401,3 +401,17 @@ original MIT ARTBox code. This profile adds no upstream component or new license
 Apache-2.0 class-table inline header at the same ART pin. Its pointer conversion
 uses the checked heap codec while retaining hash tags and atomic updates. The
 original header, notice and adapted bytes accompany the runtime artifact.
+
+## LLVM register context assembly
+
+The `unwind-context` selection in `third_party/sources.json` pins four files from
+LLVM commit `3b5e7c83a6e226d5bd7ed2e9b67449b64812074c`, the base revision recorded
+by Android NDK r28c's `clang_source_info.md`. The register save/restore assembly
+and its macro header use **Apache-2.0 WITH LLVM-exception**. The complete
+`libunwind/LICENSE.TXT` is retained; original source headers must remain intact.
+The ARTBox context test and native runners are original MIT code.
+
+Reassembling the original ARM64 routines with the pinned NDK reproduces the
+144-byte restore and 156-byte save text sections from its shipped archive.
+This establishes a source basis for adapting reserved-register restoration;
+it does not establish Apple unwinder execution or general exception support.

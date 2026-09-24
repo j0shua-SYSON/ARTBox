@@ -100,6 +100,8 @@ else()
         add_executable(artbox_native_art_references tests/native_art_references.c
             fixtures/art-references/native_delete.cpp)
         target_link_libraries(artbox_native_art_references PRIVATE artbox_platform)
+        add_executable(artbox_native_unwind_context tests/native_unwind_context.c)
+        target_link_libraries(artbox_native_unwind_context PRIVATE artbox_platform)
     endif()
     add_executable(artbox_host platform/host/main.c)
     target_link_libraries(artbox_host PRIVATE artbox_core)

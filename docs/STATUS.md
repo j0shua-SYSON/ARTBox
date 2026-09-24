@@ -100,8 +100,8 @@ and [libcore build](m3-libcore-native.md) record their source and ABI boundaries
 
 The [managed acceptance fixture](m3-managed-checks.md) passes on both original
 and high-heap native Linux runtimes. Its macOS and Linux producers emit identical
-DEX bytes; downloaded payloads and corresponding project sources verify. A new
-direct thread-state regression compiles for ARM64 and awaits native CI: it checks
+DEX bytes; downloaded payloads and corresponding project sources verify. The
+direct thread-state regression passes both native Linux profiles at `8720bc8`: it checks
 ART's current-thread/JNI relationship and the runtime's actual sampler TLS across
 three simultaneous threads and four attach/detach cycles. Next adapt the native
 thread/signal boundaries and integrate the runtime into signed macOS/iOS builds.

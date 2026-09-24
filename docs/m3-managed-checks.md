@@ -34,9 +34,9 @@ thread. Original sampler values are restored before the workers return and
 before the main thread continues.
 
 Both runtime profiles require a separate `ARTBox thread state` result containing
-three isolated TLS slots and four attachment cycles. Local ARM64 compilation
-passes; native execution of this additional regression is pending. The earlier
-verified runs below predate this direct thread-state check.
+three isolated TLS slots and four attachment cycles. Both full native Linux
+profiles pass this regression at `8720bc8`. The earlier verified runs below
+predate this direct thread-state check.
 
 The harness also reports ART's current allocated managed bytes and its own Linux
 process peak RSS through `getrusage(RUSAGE_SELF)`. Linux reports that peak in KiB;
@@ -109,3 +109,23 @@ classes and twenty methods, SHA-256
 Both producer bundles, their three payload hashes, fourteen project-source
 hashes and corresponding-source contents verify. The macOS producer executes
 the host JDK logic check; it does not run ART.
+
+## Verified thread-state execution at 8720bc8
+
+[Host CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35960231405) and
+[iOS build CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35960231393)
+pass. Both original and high-heap native Linux ARM64 processes report:
+
+```text
+ARTBox thread state: {"threads":3,"attach_cycles":4,"tls_isolated":true,"main_tls_restored":true}
+```
+
+Both still pass hello, checksum 6496, exception mask 3, GC count 0 to 1 and
+complete VM shutdown. The original runtime starts in 65.912 ms, and the high
+heap in 80.161 ms; peak RSS is 27,792 and 32,452 KiB respectively. These are
+single correctness observations on separate runners, not an overhead benchmark.
+Each run retains 18 unchanged executable mappings and passes all eleven
+code-generation denial cases. Downloaded evidence verifies all 18 payload
+hashes, 105 canonical project files and five corresponding-source archives.
+The tested merge `3aae2046be0782a37401932e1f032d9fd2f67da2` contains the branch
+head. This is a Linux thread-state baseline for the pending Apple integration.
