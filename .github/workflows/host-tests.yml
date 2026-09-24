@@ -86,6 +86,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 -B scripts/test_art_stack.py
+      - name: Preserve the platform register across real LLVM context restoration
+        if: matrix.os == 'macos-15'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_unwind_context.py
+      - name: Preserve LLVM context diagnostics
+        if: always() && matrix.os == 'macos-15'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unwind-context-diagnostics
+          path: |
+            artifacts/m3-unwind-context.json
+            build/m3/unwind-context/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Preserve interpreter argument diagnostics on failure
         if: failure() && matrix.os == 'macos-15'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -137,6 +152,8 @@ jobs:
             artifacts/m3-art-stack.json
             build/m3/art-stack/
             artifacts/m3-dex-loader.json
+            artifacts/m3-unwind-context.json
+            build/m3/unwind-context/
             build/m3/dex-loader/*.dex
             artifacts/m1-native.json
             artifacts/m2-metadata.json
@@ -448,6 +465,8 @@ jobs:
         run: python3 -B scripts/test_art_storage.py --evidence-root build/oracle
       - name: Compare original ART argument copying with signed high-address code
         run: python3 -B scripts/test_art_stack.py --evidence-root build/oracle
+      - name: Compare original and adapted LLVM contexts on native Linux
+        run: python3 -B scripts/test_unwind_context.py --evidence-root build/oracle
       - name: Compare AOSP DEX validation on native Linux
         env:
           GH_TOKEN: ${{ github.token }}
@@ -476,6 +495,8 @@ jobs:
             build/m3/art-storage/*.log
             artifacts/m3-art-stack-linux.json
             build/m3/art-stack/*.log
+            artifacts/m3-unwind-context-linux.json
+            build/m3/unwind-context/*.log
             artifacts/m3-dex-loader-linux.json
             build/m3/dex-loader/linux/*.log
             build/m3/dex-loader/linux/objects/*.log

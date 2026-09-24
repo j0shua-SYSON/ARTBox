@@ -1343,3 +1343,21 @@ and independent value across these cycles; restore the original values. Reject
 this intrusive fixture if sampling is enabled. Both full Linux runtime profiles
 must pass this contract alongside the existing Java and shutdown checks before
 using it to evaluate an Apple TLS adaptation.
+
+## 0056: Preserve the Apple platform register in LLVM context restoration
+
+Status: source-equivalent ARM64 fixtures compile; signed/native execution pending.
+
+The NDK unwinder's hand-written restore assembly loads saved x18 even when
+compiled ART C++ reserves it. Reassemble the pinned upstream save/restore source
+and first require exact text-section equality with both NDK archive members.
+Adapt the paired x18/x19 load to load only x19 at its original offset, matching
+the platform-register policy already used by ART's own long jump.
+
+Test the actual routines using a poisoned saved x18, distinct x19/d8 contents,
+and a captured stack/frame continuation. Keep a Linux-only original negative
+control which restores live x18 before returning to its caller. Require the
+adapted context checks on signed Mac code and native Linux, with an iOS 15
+framework build. Preserve original source, notices, hashes and the rejected
+unmodified behavior. This narrow prerequisite does not prove a complete unwinder
+or add exception support to the guest ART runtime. See [the boundary](m3-unwind-context.md).
