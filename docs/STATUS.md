@@ -113,9 +113,12 @@ it. Actual AOSP ShadowFrame/copying helpers and downloaded source/binaries verif
 The portable mapper's [stable managed window](m3-heap-window.md) passes native
 Mac/Linux/Windows CI at `3ad7f50`, including guards, reuse and the 4 GiB boundary.
 The extension attaching windows to the same registry as Bionic syscall buffers
-passes the 25-test local suite; its CI validation is pending. Ordinary mmap
+passes full native CI at `a700398`. Ordinary mmap
 stays outside the managed pool, while guards and holes fail syscall validation.
-Connection to ART's MemMap and card table is still pending.
+The [full high-heap runtime profile](m3-high-heap-runtime.md) now connects ART's
+actual MemMap and card table. Its changed AOSP units and fixture compile for
+ARM64; native runtime execution is pending. The original absolute-address
+runtime remains a separate required CI acceptance run.
 The [M3 contract](m3-contract.md) remains unmet until those execution and shared
 iOS requirements pass. AOT/OAT execution and host dex2oat are still future work;
 M3 permits interpreter-only acceptance. M4-M7 follow M3 acceptance.

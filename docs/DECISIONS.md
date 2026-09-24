@@ -1209,7 +1209,7 @@ standalone window on Mac, Linux and Windows; this does not execute ART in it.
 
 ## 0050: Share managed-page ownership with the syscall address space
 
-Status: implemented and locally tested; native CI and ART integration pending.
+Status: validated in native CI at a700398; ART integration execution pending.
 
 Bionic's syscall bridge validates guest pointers against its existing VM
 registry. A separate managed allocator would make valid heap buffers fail that
@@ -1229,3 +1229,28 @@ Test syscall copyout, denied I/O callbacks for holes, two distinct windows,
 borrowed ranges, limits and mutation failure before adapting ART's MemMap.
 Anonymous-only heap allocation is sufficient for the intended imageless bring-up;
 file-backed image maps require a separate tested extension.
+
+## 0051: Run the complete high-heap ART variant beside its original reference
+
+Status: source integration implemented and ARM64 compilation checked; execution pending.
+
+Focused storage tests cannot prove that every live ART caller uses the same
+representation. Build a second full runtime with the reviewed reference,
+forwarding, JNI-marker and argument-copy changes. Route actual MemMap low-address
+requests into the owned window, including direct tail remapping and protection;
+retain unmapped holes and reject mremap ownership transfer. Set the real card
+table's extent from the window. Keep the original full-runtime profile required.
+
+Bind before starting the runtime and release after its complete shutdown. Permit
+the null encoding independently of binding, since static null roots do not need
+heap storage. Non-null pointers must still pass the checked codec. The initial
+Linux profile owns its window through the same portable VM API that can attach
+to the Apple Bionic syscall registry.
+
+Compile native class libraries against each profile's actual headers/libart.
+Test real MemMap/CardTable operations before entering JNI_CreateJavaVM, then
+require the unchanged hello, GC, exception and native-thread acceptance suite.
+Archive both profiles independently with their exact source edits and binaries.
+This repeats compilation but preserves a useful comparison and catches inline
+header ABI mismatches. Codec-call cost and the 4 GiB reservation's practical
+budget remain unmeasured until execution. See [the profile](m3-high-heap-runtime.md).

@@ -29,9 +29,10 @@ regions still release normally. This prevents Scudo's ordinary mmap demand from
 consuming the managed window. The standalone convenience mode remains restricted
 to one anonymous window, with file and borrowed mappings unsupported.
 
-ART's MemMap adapter and card table still need to use the shared window. Initial
-imageless startup uses anonymous heap storage; actual runtime demand must
-determine any additional mapping support.
+The [full high-heap profile](m3-high-heap-runtime.md) connects ART's MemMap and
+card table to the window; its execution remains pending. Initial imageless
+startup uses anonymous heap storage; actual runtime demand must determine any
+additional mapping support.
 
 The `stable_managed_window` test exercises native allocation, guard exclusion,
 overlapping hints, fragmentation, zeroed reuse, protection, fixed replacement,
@@ -50,7 +51,10 @@ The additional `shared_managed_window` contract checks real syscall clock
 copyout into active heap pages, guard/hole rejection without invoking an I/O
 provider, protection and discard, two-window isolation, shared quotas, failed
 reservation output preservation, mutation-failure isolation and final cleanup.
-The updated local suite passes 25 tests; CI for this extension is pending.
+At `a700398`, [full host CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35952536999)
+and [iOS build CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35952536991)
+pass. The shared-window test passes on all three hosts; complete portable suites
+pass 26 tests on Mac and 25 on Linux/Windows.
 These tests do not execute ART in a high heap or establish an iPhone VM budget.
 The mapper stores one metadata byte per native page and searches holes linearly.
 Allocation cost and a practical device reservation size remain to be measured

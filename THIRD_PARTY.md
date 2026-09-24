@@ -390,3 +390,9 @@ complete `libc/NOTICE` at the already reviewed commit
 `361ba86734fb2821a6adcfdf775db8abd04e0de0`. The header retains its BSD-2-Clause
 notice. Its Linux `syscall` forwarding definitions are original MIT ARTBox code;
 the host's own Linux UAPI headers supply the kernel structures.
+
+The optional managed-window ART profile applies hash-checked edits from
+`third_party/art/managed-window-boundary.json` to already selected Apache-2.0
+MemMap and heap sources. It retains their original notices and archives the
+adapted files with the original source. Its heap bridge and test fixture are
+original MIT ARTBox code. This profile adds no upstream component or new license.

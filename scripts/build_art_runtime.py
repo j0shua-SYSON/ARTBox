@@ -90,6 +90,13 @@ def preserve_sources(output, sources, generated, toolchain=None):
       'fixtures/art-runtime/host_strlcpy.cpp',
       'fixtures/art-runtime/stack_initialization.cpp',
       'platform/linux/no_codegen.h','fixtures/art-runtime/codegen_policy.cpp']
+    project += ['docs/m3-high-heap-runtime.md','third_party/art/managed-storage-boundary.json',
+      'third_party/art/interpreter-arguments-boundary.json','third_party/art/managed-window-boundary.json',
+      'third_party/art/adapters/artbox_art_heap.h','third_party/art/adapters/managed_heap.cpp',
+      'fixtures/art-references/artbox_art_reference_bridge.h','fixtures/art-runtime/heap_window.cpp',
+      'core/include/artbox/vm.h','core/include/artbox/managed_reference.h',
+      'core/src/vm.cpp','core/src/managed_reference.c',
+      'platform/include/artbox/native_vm.h','platform/native_vm.c']
     project += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT/'scripts').glob('*.py'))]
     for name in project:files['artbox/'+name]=ROOT/name
     for path in generated:files['generated/'+path.relative_to(output).as_posix()]=path
@@ -117,6 +124,8 @@ def main():
     parser.add_argument('--jobs',type=int,default=2)
     parser.add_argument('--all',action='store_true',help='Compile all groups instead of a four-unit preflight')
     parser.add_argument('--link',action='store_true',help='Link the complete native Linux reference after compilation')
+    parser.add_argument('--managed-window',action='store_true',
+                        help='Use the checked heap-relative representation and owned high-address heap')
     args=parser.parse_args()
     if args.jobs<1:parser.error('--jobs must be positive')
     if args.link and (not args.all or args.profile!='linux'):
@@ -145,13 +154,17 @@ def main():
           '-ffixed-x18','-ffixed-x27','-ffixed-x28','-ffunction-sections','-fdata-sections']
     cxx_flags=['-std=c++20','-fno-exceptions','-fno-rtti','-Wno-invalid-offsetof']
     host_adaptation=[];host_probe=None;host_generated=[]
-    if args.profile=='linux':
+    if args.profile=='linux' or args.managed_window:
         selection=json.loads((ROOT/'third_party/art/runtime-sources.json').read_text(encoding='utf-8'))['art-runtime']['files']
-        patch=json.loads((ROOT/'third_party/art/host-build-boundary.json').read_text(encoding='utf-8'))
+        patch=json.loads((ROOT/'third_party/art/host-build-boundary.json').read_text(encoding='utf-8')) if args.profile=='linux' else {'files':[]}
+        if args.managed_window:
+            from art_managed_adapt import managed_boundary
+            patch['files'].extend(managed_boundary())
         host_art=output/'host-source'
         host_adaptation=adapt_sources(art,host_art,selection,patch)
         art=host_art
         host_generated=[art/item['path'] for item in host_adaptation]
+    if args.profile=='linux':
         # Test the actual compiler/libc pair, not an assumed libc version.
         fixture=ROOT/'fixtures/art-runtime/host_strlcpy.cpp'
         probe=output/'system-strlcpy'
@@ -176,6 +189,7 @@ def main():
       '-DZIPARCHIVE_DISABLE_CALLBACK_API=1','-DINCFS_SUPPORT_DISABLED=1','-DZLIB_CONST']
     defines+=['-DART_STACK_OVERFLOW_GAP_'+arch+'=8192' for arch in ['arm','arm64','riscv64','x86','x86_64']]
     if host_probe and host_probe['system_has_strlcpy']:defines.append('-DARTBOX_SYSTEM_HAS_STRLCPY')
+    if args.managed_window:defines.append('-DARTBOX_MANAGED_WINDOW')
     roots=['runtime','libartbase','libartbase/base','libdexfile','libdexfile/external/include',
       'libartpalette/include','libprofile','libelffile','libnativebridge/include','libnativeloader/include',
       'sigchainlib','cmdline','tools/cpp-define-generator','odrefresh/include','compiler/export']
@@ -187,6 +201,7 @@ def main():
       sources['art-nativehelper']/'include_platform',sources['art-unwindstack']/'libunwindstack/include',
       sources['art-lz4']/'lib',sources['art-lzma']/'C',sources['art-cpu-features']/'include']
     if args.profile=='android':paths += [sources['bionic']/'libc/platform',sources['bionic']/'libc/async_safe/include']
+    if args.managed_window:paths += [ROOT/'core/include', ROOT/'platform/include', ROOT/'fixtures/art-references']
     includes=[word for p in paths for word in ['-I',str(p)]]
     runtime_flags=[*base,*cxx_flags,*defines,*includes]
     stack_probe=check_stack_initialization(cxx,runtime_flags,output) if args.profile=='linux' else None
@@ -251,14 +266,21 @@ def main():
         add('unwind-'+Path(name).stem,demangle if name.endswith('/Demangle.cpp') else sources['art-unwindstack']/name,unwind_flags)
     add('dex-file-supp',art/'libdexfile/external/dex_file_supp.cc',unwind_flags)
     add('no-jit',ROOT/'third_party/art/adapters/no_jit.cpp',runtime_flags)
+    if args.managed_window:
+        add('artbox-managed-heap',ROOT/'third_party/art/adapters/managed_heap.cpp',runtime_flags)
+        add('artbox-vm',ROOT/'core/src/vm.cpp',[x for x in runtime_flags if x!='-fno-exceptions'])
+        for name,source in [('artbox-managed-reference','core/src/managed_reference.c'),
+                            ('artbox-native-vm','platform/native_vm.c')]:
+            add(name,ROOT/source,[*base,'-std=c11','-D_GNU_SOURCE','-I',ROOT/'core/include',
+                                '-I',ROOT/'platform/include'],cc)
     if not args.all:
         names=['runtime-app_info.cc','runtime-arch-arm64-context_arm64.cc',
                'runtime-interpreter-interpreter_switch_impl0.cc','runtime-jni-java_vm_ext.cc']
         units=[u for u in units if u[0] in names]
         if len(units)!=4:raise RuntimeError('Incomplete preflight')
     if len({u[0] for u in units})!=len(units):raise RuntimeError('Duplicate object names')
-    if args.all and len(units)!=458:raise RuntimeError('Complete runtime source count changed')
-    record={'profile':args.profile,'runtime_executed':False,
+    if args.all and len(units)!=(462 if args.managed_window else 458):raise RuntimeError('Complete runtime source count changed')
+    record={'profile':args.profile,'runtime_executed':False,'managed_window':args.managed_window,
       'project_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
       'time_include_adaptation':time_adaptation,
       'host_source_adaptation':host_adaptation,'host_strlcpy_probe':host_probe,
@@ -300,6 +322,7 @@ def main():
         harness_flags=[flag for flag in runtime_flags if flag!='-DBUILDING_LIBART']
         harness_command=[cxx,*harness_flags,'-I',ROOT/'platform/linux',
              ROOT/'fixtures/art-runtime/linux_reference.cpp',ROOT/'fixtures/art-runtime/managed_checks.cpp',
+             *([ROOT/'fixtures/art-runtime/heap_window.cpp'] if args.managed_window else []),
              library,'-Wl,-rpath,$ORIGIN','-pthread','-ldl','-o',harness]
         run(harness_command,output/'harness-link.log')
         record['link']={'seconds':time.monotonic()-start,'runtime_executed':False,

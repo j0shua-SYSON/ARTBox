@@ -12,6 +12,12 @@
 #include <string.h>
 #include <string>
 #include <sys/resource.h>
+#ifdef ARTBOX_MANAGED_WINDOW
+#include "artbox_art_heap.h"
+#include "artbox/native_vm.h"
+#include <memory>
+bool artbox_check_art_heap_window(artbox_vm* vm);
+#endif
 
 bool artbox_run_managed_checks(JavaVM* vm, JNIEnv* env);
 
@@ -51,6 +57,14 @@ int main(int argc, char** argv) {
   const std::string scratch = std::string(argv[3]) + "/scratch";
   if (!record_maps(scratch + "/maps-before.txt")) return 69;
   if (!artbox_deny_runtime_codegen()) { perror("ARTBox codegen guard"); return 66; }
+#ifdef ARTBOX_MANAGED_WINDOW
+  const auto memory_ops = artbox_native_vm();
+  if (artbox_art_reference_compress(nullptr) != 0 || artbox_art_reference_decompress(0) != nullptr) return 76;
+  std::unique_ptr<artbox_vm, decltype(&artbox_vm_destroy)> heap_owner(
+      artbox_vm_create(&memory_ops, UINT64_C(0x100000000), 1), artbox_vm_destroy);
+  if (!heap_owner || artbox_art_heap_initialize(heap_owner.get(), UINT64_C(0x100000000), memory_ops.page_size) ||
+      !artbox_check_art_heap_window(heap_owner.get())) return 76;
+#endif
   auto policy_valid = [] {
     art::Runtime* runtime = art::Runtime::Current();
     return runtime && !runtime->GetJit() && !runtime->GetJitCodeCache() &&
@@ -73,7 +87,7 @@ int main(int argc, char** argv) {
     options, JNI_FALSE};
   JavaVM* vm = nullptr;
   JNIEnv* env = nullptr;
-  puts("ARTBox: entering original ART JNI_CreateJavaVM");
+  puts("ARTBox: entering ART JNI_CreateJavaVM");
   const auto start = std::chrono::steady_clock::now();
   jint result = JNI_CreateJavaVM(&vm, &env, &args);
   const auto initialized = std::chrono::steady_clock::now();
@@ -121,6 +135,10 @@ int main(int argc, char** argv) {
   registered = nullptr;
   registered_count = -1;
   if (JNI_GetCreatedJavaVMs(&registered, 1, &registered_count) != JNI_OK || registered_count != 0) return 74;
+#ifdef ARTBOX_MANAGED_WINDOW
+  artbox_art_heap_unbind();
+  if (artbox_vm_destroy(heap_owner.release()) != 0) return 77;
+#endif
   if (!record_maps(scratch + "/maps-shutdown.txt")) return 69;
   puts("ARTBox: native ART lifecycle checks passed");
   return 0;

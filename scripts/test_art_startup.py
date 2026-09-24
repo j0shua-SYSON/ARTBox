@@ -143,6 +143,7 @@ def main():
     env = {**os.environ, **{name: str(path) for name, path in roots.items()}, 'LD_LIBRARY_PATH': str(output)}
     command = [str(harness), ':'.join(map(str, dex_files)), str(hello) + ':' + str(managed_dex), str(output)]
     record = {'project_commit': head, 'device_execution_verified': False, 'runtime_started': False,
+              'managed_window_profile': runtime_record.get('managed_window', False),
               'dex_method_executed': False, 'command': command, 'roots': {k: str(v) for k, v in roots.items()},
               'hello_sha256': digest(hello), 'boot_dex': classlib_report['dex_files'],
               'harness_sha256': digest(harness), 'native_libraries': core_bins,
@@ -167,7 +168,7 @@ def main():
     record['seconds'] = time.monotonic() - started
     stdout = (output / 'stdout.log').read_text(encoding='utf-8', errors='replace')
     stderr = (output / 'stderr.log').read_text(encoding='utf-8', errors='replace')
-    record['runtime_invocation_attempted'] = 'ARTBox: entering original ART JNI_CreateJavaVM\n' in stdout
+    record['runtime_invocation_attempted'] = 'ARTBox: entering ART JNI_CreateJavaVM\n' in stdout
     record['runtime_started'] = 'ms; switch interpreter, no JIT, no profiling cache\n' in stdout
     record['dex_method_executed'] = 'ARTBox: real ART method returned the expected string\n' in stdout
     def observation(prefix):
@@ -177,6 +178,13 @@ def main():
             except json.JSONDecodeError: pass
         return None
     record['managed_checks'] = observation('ARTBox managed checks: ')
+    record['managed_window'] = observation('ARTBox managed window: ')
+    window = record['managed_window']
+    window_valid = (not record['managed_window_profile'] or
+        (isinstance(window, dict) and window.get('memmap_contract') is True and
+         type(window.get('base')) is int and window['base'] >= 0x100000000 and
+         window.get('length') == 0x100000000 and type(window.get('guard')) is int and
+         4096 <= window['guard'] <= 65536))
     managed = record['managed_checks']
     record['managed_checks_passed'] = (isinstance(managed, dict) and
         managed.get('heap_checksum') == 6496 and managed.get('exceptions') == 3 and
@@ -189,11 +197,12 @@ def main():
             ('managed_allocated_bytes', 'process_peak_rss_kib')))
     record['lifecycle_checks_passed'] = 'ARTBox: native ART lifecycle checks passed\n' in stdout
     record['passed'] = (record['exit'] == 0 and record['runtime_started'] and record['dex_method_executed']
-                        and record['managed_checks_passed'] and record['lifecycle_checks_passed'] and memory_valid)
+                        and record['managed_checks_passed'] and record['lifecycle_checks_passed'] and memory_valid
+                        and window_valid)
     save()
     print(stdout, end='')
     print(stderr, end='', file=sys.stderr)
-    if not record['passed']: raise RuntimeError('Original ART startup failed; see ' + str(output))
+    if not record['passed']: raise RuntimeError('ART startup failed; see ' + str(output))
     print('Native Linux ART hello and managed runtime checks passed; Apple acceptance remains pending')
 
 
