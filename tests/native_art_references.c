@@ -11,6 +11,7 @@
 /* Single-process diagnostic window. A production ART runtime must establish
  * ownership, GC and thread lifetime before using these bridges. */
 static artbox_reference_window window;
+extern void artbox_reference_delete(void *pointer);
 static uint32_t compress(const void *pointer) {
     uint32_t value;
     if (artbox_reference_encode(&window, (uintptr_t)pointer, &value)) abort();
@@ -37,6 +38,12 @@ static artbox_elf_result resolve(void *context, const artbox_dynamic *dynamic, u
         memcpy(out, &entry, sizeof(entry));
         return ARTBOX_ELF_OK;
     }
+    if (!strcmp(symbol.name, "_ZdlPv")) {
+        void (*entry)(void *) = artbox_reference_delete;
+        _Static_assert(sizeof(entry) == sizeof(*out), "native address width");
+        memcpy(out, &entry, sizeof(entry));
+        return ARTBOX_ELF_OK;
+    }
     return ARTBOX_ELF_NOT_FOUND;
 }
 static artbox_elf_result reject_constructor(void *context, uint64_t address) {
@@ -46,11 +53,15 @@ static artbox_elf_result reject_constructor(void *context, uint64_t address) {
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "ART reference host check failed at %d\n", __LINE__); return 1; } } while (0)
 int main(int argc, char **argv) {
     if ((argc != 4 && argc != 5) || (strcmp(argv[3], "plain") && strcmp(argv[3], "poisoned"))) return 2;
-    int storage = argc == 5;
-    int rejection = storage && !strcmp(argv[4], "storage-negative");
-    if (storage && !rejection && strcmp(argv[4], "storage")) return 2;
-    int expected_cases = storage ? 27 : 19;
-    const char *entry_name = storage ? "artbox_art_storage_check" : "artbox_art_reference_check";
+    const char *contract = argc == 5 ? argv[4] : "reference";
+    int storage = !strcmp(contract, "storage") || !strcmp(contract, "storage-negative");
+    int stack = !strcmp(contract, "stack") || !strcmp(contract, "stack-negative");
+    int rejection = !strcmp(contract, "storage-negative") || !strcmp(contract, "stack-negative");
+    if (!storage && !stack && strcmp(contract, "reference")) return 2;
+    int expected_cases = stack ? 18 : storage ? 27 : 19;
+    int rejected_case = stack ? 4 : 5;
+    const char *entry_name = stack ? "artbox_art_stack_check" :
+                            storage ? "artbox_art_storage_check" : "artbox_art_reference_check";
     int poison = !strcmp(argv[3], "poisoned");
     FILE *input = fopen(argv[2], "rb");
     CHECK(input && !fseek(input, 0, SEEK_END));
@@ -90,31 +101,36 @@ int main(int argc, char **argv) {
     size_t span = ops.page_size * 4;
     void *base = NULL;
     CHECK(ops.reserve(span, &base) == 0 && (uintptr_t)base >= UINT64_C(0x100000000));
-    CHECK(!artbox_reference_window_init(&window, (uintptr_t)base, span, ops.page_size));
-    unsigned char *first = (unsigned char *)base + ops.page_size, *second = first + ops.page_size;
+    /* The argument control must distinguish offsets from truncated pointers. */
+    size_t shift = stack && !((uintptr_t)base & UINT64_C(0xffffffff)) ? ops.page_size : 0;
+    unsigned char *heap_base = (unsigned char *)base + shift;
+    CHECK(!artbox_reference_window_init(&window, (uintptr_t)heap_base, span - shift, ops.page_size));
+    unsigned char *first = heap_base + ops.page_size, *second = first + ops.page_size;
     CHECK(!ops.protect(first, ops.page_size * 2, 3));
     uint32_t observations[4] = {0}, first_bits = (uint32_t)ops.page_size, second_bits = first_bits * 2;
     int32_t result = (int32_t)artbox_call7((void *)(uintptr_t)entry, (uintptr_t)first, (uintptr_t)second,
                                          first_bits, second_bits, (uintptr_t)observations, (uintptr_t)(first + 16), 0);
     if (rejection) {
-        /* The original forwarding word must lose the high address at case 5,
-         * before touching the externally supplied object or lock storage. */
-        CHECK(result == -5 && *(uint64_t *)first == 0 && *(uint64_t *)second == 0);
+        /* Stop at the unadapted forwarding or argument-classification boundary
+         * before touching the externally supplied object storage. */
+        CHECK(result == -rejected_case && *(uint64_t *)first == 0 && *(uint64_t *)second == 0);
         CHECK(observations[0] == 0 && observations[1] == 0 && observations[2] == 0 && observations[3] == 0);
     } else {
         if (result != expected_cases) { fprintf(stderr, "Adapted ART reference case: %d\n", result); return 1; }
         CHECK(*(uint64_t *)first == UINT64_C(0x123456789abcdef0) && *(uint64_t *)second == UINT64_C(0xfedcba9876543210));
-        uint32_t fourth = storage ? ((second_bits >> 3) | UINT32_C(0xc0000000)) : second_bits;
-        CHECK(observations[0] == (uint32_t)poison && observations[1] == (poison ? 0u-first_bits : first_bits) &&
-              observations[2] == (poison ? 0u-second_bits : second_bits) && observations[3] == fourth);
+        uint32_t fourth = stack ? (uint32_t)expected_cases :
+                          storage ? ((second_bits >> 3) | UINT32_C(0xc0000000)) : second_bits;
+        CHECK(observations[0] == (uint32_t)poison && observations[1] == (poison && !stack ? 0u-first_bits : first_bits) &&
+              observations[2] == (poison && !stack ? 0u-second_bits : second_bits) && observations[3] == fourth);
     }
     artbox_load_group_destroy(group);
     CHECK(!dlclose(library) && !ops.release(base, span));
     free(original);
     printf("{\"cases\":%d,\"result\":%d,\"native_base\":%" PRIu64 ",\"encoding\":\"%s\",\"cleanup\":true,"
            "\"expected_rejection\":%s,\"observations\":[%u,%u,%u,%u]}\n",
-           rejection ? 5 : expected_cases, result, window.base,
-           rejection ? "absolute-rejected" : "heap-relative", rejection ? "true" : "false",
+           rejection ? rejected_case : expected_cases, result, window.base,
+           rejection ? (stack ? "reference-only-rejected" : "absolute-rejected") : "heap-relative",
+           rejection ? "true" : "false",
            observations[0], observations[1], observations[2], observations[3]);
     return 0;
 }

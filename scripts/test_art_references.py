@@ -74,6 +74,7 @@ def build_reference(build, artifacts, args):
             raise RuntimeError('Reference notice hash mismatch: ' + name)
         (build / name).write_bytes(path.read_bytes())
     project_sources = ['fixtures/art-references/check.cpp', 'fixtures/art-references/linux.c',
+                       'fixtures/art-references/native_delete.cpp', 'CMakeLists.txt',
                        'fixtures/art-references/artbox_art_reference_bridge.h', 'fixtures/bionic-dynamic/image.ld',
                        'tests/native_art_references.c', 'scripts/art_reference_adapt.py',
                        'core/src/managed_reference.c', 'core/include/artbox/managed_reference.h']

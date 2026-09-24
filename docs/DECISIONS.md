@@ -1162,3 +1162,21 @@ still need consistent representation. See [the storage contract](m3-managed-stor
 At `773da40`, both hosts pass all 54 positive cases and both signed Mac controls
 fail at the expected forwarding case. Downloaded sources and binaries verify.
 The test establishes the storage encoding, not a moving Apple collector.
+
+## 0048: Classify interpreter arguments using their encoded reference value
+
+Status: selected for native argument-copy tests; execution validation pending.
+
+After ObjectReference becomes heap-relative, AssignRegister must compare a raw
+vreg with the encoding of its reference slot. Comparing with a truncated native
+pointer loses the callee's GC root. Use the existing checked codec, preserving
+the original handling of nulls and primitives beside stale references. This adds
+codec calls to argument copying; measure their cost after full-runtime integration.
+
+Compile the real interpreter_common.cc in the test, retaining the actual
+ShadowFrame and copying helpers. Test the original ELF on native Linux and
+signed Mac payloads with only the reference change and with both changes. The
+partial adaptation must fail at the first copied reference; both fully matching
+representations must pass. Keep both heap-poisoning profiles and an iOS 15 build.
+This validates one interpreter boundary, not complete managed execution or GC.
+See [the argument-copy contract](m3-interpreter-arguments.md).
