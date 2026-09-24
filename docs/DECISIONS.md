@@ -1378,3 +1378,19 @@ Require the actual dependency group to execute through signed Mac wrappers and
 the identical ELF libraries to pass on native Linux alongside system libm.
 Preserve every original notice and source input. The fixture covers selected
 results, not full libm accuracy, floating-point state or ART startup.
+
+## 0058: Extend the existing Bionic source library for ART dependencies
+
+Status: both source profiles and startup ELFs build; shared native execution pending.
+
+Reuse Bionic's original implementations for the additional libc functions in
+the ART dependency graph. Build the 50-unit closure with its pinned AOSP flags
+and hash-check each new source. Keep the same guest TLS and syscall boundaries,
+and retain the native/upstream instruction and symbol comparisons.
+
+Exercise an original 30-case libc client in both signed allocator modes and
+against native Linux libc. Add its result alongside the fixed M2 score so
+neither new nor existing failures can disappear into a changed denominator.
+Keep the iOS diagnostic runner shared with the Mac test. Compiled wrappers
+whose kernel services remain unsupported stay explicitly unsupported; source
+closure alone cannot establish directory, signal, property or process behavior.

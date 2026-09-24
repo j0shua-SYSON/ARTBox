@@ -196,6 +196,7 @@ jobs:
             build/m2/bionic-startup/tls-abi.o
             build/m2/bionic-startup/vm-check.o
             build/m2/bionic-startup/proc-check.o
+            build/m2/bionic-startup/art-libc-check.o
             build/m2/dynamic-wrapper/libartbox_bionic_slice.so
             build/m2/dynamic-wrapper/vm-check.o
             build/m2/dynamic-wrapper/system-check.o
@@ -476,6 +477,8 @@ jobs:
         run: python3 -B scripts/test_proc.py --evidence-root build/oracle
       - name: Compare signed Bionic file operations with both original Linux paths
         run: python3 -B scripts/test_bionic_files.py --evidence-root build/oracle
+      - name: Compare ART libc dependency calls with native Linux
+        run: python3 -B scripts/test_art_bionic.py --evidence-root build/oracle
       - name: Compare original AOSP reference types with the signed adaptation
         run: python3 -B scripts/test_art_references.py --evidence-root build/oracle
       - name: Compare original ART forwarding and JNI storage with signed high-address code
@@ -518,6 +521,8 @@ jobs:
             build/m3/unwind-context/*.log
             artifacts/m3-art-math-linux.json
             build/m3/art-math/*.log
+            artifacts/m3-art-bionic-linux.json
+            build/m3/art-bionic/*.log
             artifacts/m3-dex-loader-linux.json
             build/m3/dex-loader/linux/*.log
             build/m3/dex-loader/linux/objects/*.log

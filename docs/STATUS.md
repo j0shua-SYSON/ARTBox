@@ -114,6 +114,10 @@ needed by ART, with a separate 78-case dynamic client. All cases pass on signed
 Mac code, the identical Android libraries on Linux, and Linux system libm at
 `236625c`. Downloaded sources, objects, ELF files and four signed framework
 layouts verify; the full Apple runtime still needs its remaining Bionic and loader APIs.
+The [Bionic dependency expansion](m3-bionic-dependencies.md) adds 50 unchanged
+source units and a separate 30-case libc client. Both 271-unit profiles and all
+four startup ELFs build locally; signed execution is pending. Compiled wrappers
+do not imply new kernel-service support.
 The [managed-storage contract](m3-managed-storage.md) now passes 54 cases on each
 native Mac/Linux host, with two signed Mac controls confirming the original
 forwarding-address truncation. GC forwarding words and JNI reference/free/serial/

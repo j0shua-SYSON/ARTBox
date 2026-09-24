@@ -21,6 +21,15 @@ and client framework includes complete Bionic libm/libc, ARM, NDK and ARTBox
 license files. This dependency is currently a temporary M3 test artifact,
 not part of the integrated M2 IPA.
 
+The M3 libc dependency expansion adds 50 unchanged units from the existing
+Bionic pin. Their paths, SHA-256 hashes and per-source AOSP flags are recorded
+in `third_party/bionic/m2-objects.json`. The selection includes Bionic wrappers,
+BSD libc routines and Bionic's time-zone sources, retaining their original BSD,
+permissive and public-domain notices. The complete existing Bionic libc NOTICE
+continues to accompany every Bionic framework; the code is not relicensed.
+No additional repository is imported for this expansion. See
+[the dependency contract](docs/m3-bionic-dependencies.md) for execution scope.
+
 M0 vendors no third-party runtime source, binaries, Android images, or APKs.
 ARTBox's MIT license covers its original code, not future dependencies.
 

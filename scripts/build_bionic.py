@@ -113,6 +113,9 @@ def main():
         original = source / relative
         if not original.resolve().is_relative_to(source.resolve()) or not original.is_file():
             raise RuntimeError(f"Invalid Bionic source selection: {relative}")
+        expected = manifest.get("art_runtime_sources", {}).get(relative)
+        if expected is not None and digest(original) != expected:
+            raise RuntimeError(f"ART Bionic dependency source changed: {relative}")
         path = overlay / relative if any(a["path"] == relative for a in adaptations) else original
         output = build / "objects" / (relative + ".o")
         output.parent.mkdir(parents=True, exist_ok=True)
