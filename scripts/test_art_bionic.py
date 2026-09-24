@@ -34,6 +34,11 @@ def main():
     obj = args.evidence_root / 'build/m2/bionic-startup/art-libc-check.o'
     if digest(obj) != report['art_libc']['object_sha256']:
         raise RuntimeError('Signed libc client object changed')
+    helper = args.evidence_root / 'build/m2/bionic/native/comparetf2.c.o'
+    pin = json.loads((ROOT / 'third_party/bionic/builtins.json').read_text(encoding='utf-8'))
+    if digest(helper) != pin['members'][helper.name] or report['art_libc']['compiler_runtime'] != {
+            'member': helper.name, 'sha256': digest(helper)}:
+        raise RuntimeError('Signed client comparison helper differs from the reviewed NDK')
     output = Path(os.environ['ARTBOX_BUILD_DIR']) / 'm3/art-bionic'
     output.mkdir(parents=True, exist_ok=True)
     binary = output / 'check'

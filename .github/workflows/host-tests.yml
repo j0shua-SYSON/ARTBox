@@ -150,6 +150,7 @@ jobs:
             artifacts/m2-bionic-startup.json
             artifacts/m2-acceptance.json
             build/m2/bionic-startup/
+            build/m2/bionic/native/comparetf2.c.o
           if-no-files-found: warn
           retention-days: 7
       - name: Upload host evidence
@@ -212,6 +213,7 @@ jobs:
             build/m2/bionic/*/PROPERTY-INFO-NOTICE.txt
             build/m2/bionic/*/COMPILER-RT-NOTICE.txt
             build/m2/bionic/*/binary128-test.o
+            build/m2/bionic/native/comparetf2.c.o
             build/m2/bionic/*/strings-test.o
             build/m2/bionic/*/allocator-tls-test.o
             build/m2/bionic/*/bionic_inline_raise.h

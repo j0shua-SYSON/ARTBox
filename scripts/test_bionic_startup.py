@@ -154,8 +154,14 @@ def main():
     command("ld.lld", *link, "-soname", libc.name, partial, bootstrap, tls_resolver, "-o", libc)
     versions = build / "libartbox_versions.so"
     command("ld.lld", *link, "-soname", versions.name, "--version-script=" + str(ROOT / "fixtures/dynamic/versions.map"), version_object, "-o", versions)
-    command("ld.lld", *tls_link, "-soname", app.name, client, futex_object, thread_object, file_object, mapping_object,
-            version_client_object, tls_access, tls_abi, vm_object, timeout_object, proc_object, art_libc_object,
+    # Android long double comparisons use local compiler-rt helpers. Bionic's
+    # hidden copy cannot satisfy a separately linked client's __netf2 import.
+    comparison = inputs / "comparetf2.c.o"
+    builtins_pin = json.loads((ROOT / "third_party/bionic/builtins.json").read_text(encoding="utf-8"))
+    if digest(comparison) != builtins_pin["members"][comparison.name]:
+        raise RuntimeError("Client binary128 helper differs from the reviewed NDK member")
+    command("ld.lld", *tls_link, "-z", "defs", "-soname", app.name, client, futex_object, thread_object, file_object, mapping_object,
+            version_client_object, tls_access, tls_abi, vm_object, timeout_object, proc_object, art_libc_object, comparison,
             "--no-as-needed", libc, versions, tls_library, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator through a manifest load group; not full M2",
               "project_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
@@ -168,7 +174,8 @@ def main():
                            "object_sha256": digest(timeout_object)},
               "proc": {"cases": 22, "source_sha256": digest(ROOT / "fixtures/bionic-files/proc.c"), "object_sha256": digest(proc_object)},
               "art_libc": {"cases": 30, "source_sha256": digest(ROOT / "fixtures/art-bionic/check.c"),
-                           "object_sha256": digest(art_libc_object)},
+                           "object_sha256": digest(art_libc_object),
+                           "compiler_runtime": {"member": comparison.name, "sha256": digest(comparison)}},
               "threads": {"source_sha256": digest(thread_source), "object_sha256": digest(thread_object),
                           "joined": 4, "detached": 2, "iterations_per_thread": 32},
               "versions": {"result": 46, "provider_source_sha256": digest(ROOT / "fixtures/dynamic/versions.c"),

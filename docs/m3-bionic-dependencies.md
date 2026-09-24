@@ -32,3 +32,9 @@ definitions. The adapted profile contains no direct syscall, thread-register
 or reserved-register instructions. All four startup ELF images link and pass
 their instruction and layout checks locally. Signed Mac execution and the new
 native Linux comparison remain pending.
+
+The first signed run caught a missing `__netf2` in the separate client: its
+Android binary128 comparisons need a local compiler-rt helper, while Bionic's
+copy is hidden. Link the already reviewed, hash-checked NDK comparison member
+into that client as well. The client now requires all imports to resolve at
+link time, which reproduces the original failure locally before packaging.
