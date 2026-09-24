@@ -393,7 +393,7 @@ the host's own Linux UAPI headers supply the kernel structures.
 
 The optional managed-window ART profile applies hash-checked edits from
 `third_party/art/managed-window-boundary.json` to already selected Apache-2.0
-MemMap and heap sources. It retains their original notices and archives the
+MemMap, heap and DiscontinuousSpace sources. It retains their original notices and archives the
 adapted files with the original source. Its heap bridge and test fixture are
 original MIT ARTBox code. This profile adds no upstream component or new license.
 

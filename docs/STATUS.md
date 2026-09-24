@@ -119,10 +119,14 @@ The [full high-heap runtime profile](m3-high-heap-runtime.md) now connects ART's
 actual MemMap and card table. At `0979faf`, all 463 runtime/support/test units
 build and the MemMap/CardTable preflight passes on native Linux ARM64. Startup
 then aborts in the checked encoder during class-table lookup: that slot still
-stores truncated absolute pointers. An actual AOSP slot regression now covers
-all hash tags, copies and root updates; its heap-relative adaptation awaits
-native validation. The original absolute-address runtime passes in the same
-CI run and remains a separate required acceptance run.
+stores truncated absolute pointers. At `5acd098`, the actual AOSP slot regression
+passes for all hash tags, copies and root updates. The high-heap runtime starts
+in 77.128 ms and executes the real hello DEX, then fails its explicit GC check
+because the large-object bitmaps still describe the low 4 GiB. Their extent
+adaptation and constructor/bit-operation regression await native validation.
+Downloaded build and startup payloads and sources verify. The original
+absolute-address runtime passes in the same CI run and remains separately
+required; high-heap GC/lifecycle and Apple execution are still incomplete.
 The [M3 contract](m3-contract.md) remains unmet until those execution and shared
 iOS requirements pass. AOT/OAT execution and host dex2oat are still future work;
 M3 permits interpreter-only acceptance. M4-M7 follow M3 acceptance.

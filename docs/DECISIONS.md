@@ -1235,7 +1235,7 @@ file-backed image maps require a separate tested extension.
 
 ## 0051: Run the complete high-heap ART variant beside its original reference
 
-Status: native MemMap/CardTable preflight passes at 0979faf; VM startup fails at class-table lookup.
+Status: high-heap hello passes at 5acd098; explicit GC fails at large-object bitmap extent.
 
 Focused storage tests cannot prove that every live ART caller uses the same
 representation. Build a second full runtime with the reviewed reference,
@@ -1284,7 +1284,7 @@ license requirement or CI acceptance test is removed.
 
 ## 0053: Keep class-table hash tags while encoding heap-relative roots
 
-Status: regression and source adaptation implemented; native execution pending.
+Status: native slot regression, full startup and hello DEX pass at 5acd098; GC needs a separate fix.
 
 The first full high-heap startup at `0979faf` aborts in the checked reference
 encoder during `ClassTable::Lookup`. Its four-byte TableSlot combines a native
@@ -1305,3 +1305,22 @@ Keep the original source and notices, and pin these three textual edits in
 serialized image tables and compiled-code consumers still need their own
 acceptance before enabling those paths. Fatal codec diagnostics report the
 offending value and window so subsequent representation failures are traceable.
+
+## 0054: Place large-object live and mark bitmaps over the owned heap window
+
+Status: regression and source adaptation implemented; native execution pending.
+
+After the class-table fix, `5acd098` starts the high-heap VM and runs the hello
+DEX, then fails the existing managed fixture's explicit collection.
+`LargeObjectSpace::Sweep` supplies high native addresses to bitmaps constructed
+by DiscontinuousSpace for the low 4 GiB. The original SweepWalk bound check
+rejects that mismatch. The issue is bitmap extent, not reference decoding.
+
+Keep the real space and bitmap algorithms. Initialize both bitmaps with the
+bound window's native base and capacity. Cover the complete reservation so its
+size stays a bitmap-word multiple; the allocation guard remains reserved and
+its unused bitmap bits stay clear. This does not make guards or freed holes
+valid VM buffers. Add an actual constructor regression for extent and first/
+last-page coverage, excluded outside addresses, live/mark independence, copying
+and clearing before adapting the pinned source. The full managed GC test stays
+required and SweepWalk's safety checks remain intact.
