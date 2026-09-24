@@ -31,7 +31,23 @@ test sources, object hashes and source-equivalence results accompany the fixture
 python -B scripts/test_unwind_context.py
 ```
 
-The builder is cross-platform; signed execution requires macOS/Xcode. Windows
-compilation and source/machine-code equivalence pass; native CI is pending.
+The builder is cross-platform; signed execution requires macOS/Xcode.
 This tests the context-transfer boundary only. The complete guest ART link,
 general C++ exception unwinding and ART execution on Apple remain incomplete.
+
+## Verified execution at bba15cd
+
+[Host CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35962273330) and
+[iOS build CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35962273333)
+pass. The original Linux control reports failure mask **1**, identifying only
+the poisoned x18 restore. Both the adapted Linux ELF and signed Mac wrapper
+report mask **0**, with four checks and successful cleanup.
+
+Downloaded artifacts verify 17 canonical project files, four pinned LLVM files,
+the source adaptation, both ELF/fixture hashes and both source-equivalent NDK
+members. In this build, the complete original object files also match the NDK
+members, beyond the required text-section equality. The Mac and iOS framework
+layouts and license hashes verify against their CI signing records; both use
+empty entitlements. The Linux result references the exact Mac producer report.
+The tested merge `c8cef34cb0b23d75c97074742fa4d813ffb17218` contains branch head
+`bba15cd5486e6291b61e8b80836646561d4a3af2`. Physical execution remains unverified.

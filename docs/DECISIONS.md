@@ -1346,7 +1346,7 @@ using it to evaluate an Apple TLS adaptation.
 
 ## 0056: Preserve the Apple platform register in LLVM context restoration
 
-Status: source-equivalent ARM64 fixtures compile; signed/native execution pending.
+Status: signed Mac and native Linux checks, including the original negative control, pass at bba15cd.
 
 The NDK unwinder's hand-written restore assembly loads saved x18 even when
 compiled ART C++ reserves it. Reassemble the pinned upstream save/restore source

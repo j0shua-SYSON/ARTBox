@@ -105,9 +105,10 @@ direct thread-state regression passes both native Linux profiles at `8720bc8`: i
 ART's current-thread/JNI relationship and the runtime's actual sampler TLS across
 three simultaneous threads and four attach/detach cycles. Next adapt the native
 thread/signal boundaries and integrate the runtime into signed macOS/iOS builds.
-The [LLVM context boundary](m3-unwind-context.md) now has source-equivalent
-ARM64 fixtures for the NDK unwinder's reserved-register restore. Signed Mac and
-native Linux execution are pending; the full guest runtime is not linked yet.
+The [LLVM context boundary](m3-unwind-context.md) passes four checks on signed Mac
+and native Linux at `bba15cd`; the original Linux control changes the reserved
+register as expected. Both source-built objects match their NDK counterparts,
+and the adapted iOS 15 framework is verified. The full guest runtime is not linked yet.
 The [managed-storage contract](m3-managed-storage.md) now passes 54 cases on each
 native Mac/Linux host, with two signed Mac controls confirming the original
 forwarding-address truncation. GC forwarding words and JNI reference/free/serial/
