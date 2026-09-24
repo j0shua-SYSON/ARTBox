@@ -1364,7 +1364,7 @@ or add exception support to the guest ART runtime. See [the boundary](m3-unwind-
 
 ## 0057: Keep ART math inside the Android ABI
 
-Status: source-built dependency and dynamic-client regression; native validation pending.
+Status: signed Mac, Android-on-Linux and system-libm checks pass at 236625c.
 
 The current Android ART link needs 20 math functions beyond the M2 libc subset.
 Build their original pinned Bionic/ARM implementations as a separate signed
