@@ -18354,5 +18354,70 @@
     "notice_sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d",
     "license": "Apache-2.0 WITH LLVM-exception",
     "scope": "Register save/restore assembly only; source text reproduces the matching NDK archive members."
+  },
+  "arm-math": {
+    "repository": "aosp-mirror-neo/platform_external_arm-optimized-routines",
+    "upstream": "https://android.googlesource.com/platform/external/arm-optimized-routines",
+    "tag": "android-15.0.0_r1",
+    "commit": "514df029da8aa4146726f6a020ddc69cf34a007d",
+    "notice": "LICENSE",
+    "notice_sha256": "650afbf29f214451e02241adc42534e82c9d6ae2b38e2444b92b5a1ffcaf9346",
+    "files": [
+      {
+        "path": "LICENSE",
+        "bytes": 13491,
+        "sha256": "650afbf29f214451e02241adc42534e82c9d6ae2b38e2444b92b5a1ffcaf9346"
+      },
+      {
+        "path": "Android.bp",
+        "bytes": 7389,
+        "sha256": "f11bf4f9656b2850aa2996d684bcbb5d00ed6eb2e3785fbc923e18fbfd83a0e7"
+      },
+      {
+        "path": "math/math_config.h",
+        "bytes": 11594,
+        "sha256": "8fcde1b1c5f64f7a624b398639b33215f5e76c1ab5be55e3d26b011e51c3bfb1"
+      },
+      {
+        "path": "math/math_err.c",
+        "bytes": 1576,
+        "sha256": "202a5f0b4983da16567bf707b8da02f9c1aa84bfaf1e9e2931009153b4a86676"
+      },
+      {
+        "path": "math/exp.c",
+        "bytes": 5771,
+        "sha256": "2234cb61aa91b1baeb3c197c245f0b14e7aad7faf4444a5785f7a93effa9a754"
+      },
+      {
+        "path": "math/exp_data.c",
+        "bytes": 42543,
+        "sha256": "6c93f800d0d3fdbbc8a1c3a623043800ffc3cd9306c6cfc98351e66be75799a3"
+      },
+      {
+        "path": "math/log.c",
+        "bytes": 4582,
+        "sha256": "3e32f4f619cc0ebf1492cfecdc05cc15fbfdf4257198f90000c2774170560a3e"
+      },
+      {
+        "path": "math/log_data.c",
+        "bytes": 21332,
+        "sha256": "327cf1819870930486eecb5491c68d5887a712b954e5ec82f3f70bfd9e46fdd3"
+      },
+      {
+        "path": "math/pow.c",
+        "bytes": 11875,
+        "sha256": "f1cf5dc6462e2f18b90ddedb918b77b5f0b420c38e57a00f993f813838947da2"
+      },
+      {
+        "path": "math/pow_log_data.c",
+        "bytes": 10559,
+        "sha256": "d28818bd95355e6854766a3818a6ec0866f7afcef592fe1e836d05d3f465392e"
+      },
+      {
+        "path": "math/include/mathlib.h",
+        "bytes": 2991,
+        "sha256": "2bf092e5863c1c75a94694f8874c3aafdb5fd6baf58f4dd9217324a902d311ca"
+      }
+    ]
   }
 }

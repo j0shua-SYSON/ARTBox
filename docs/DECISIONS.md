@@ -1361,3 +1361,20 @@ adapted context checks on signed Mac code and native Linux, with an iOS 15
 framework build. Preserve original source, notices, hashes and the rejected
 unmodified behavior. This narrow prerequisite does not prove a complete unwinder
 or add exception support to the guest ART runtime. See [the boundary](m3-unwind-context.md).
+
+## 0057: Keep ART math inside the Android ABI
+
+Status: source-built dependency and dynamic-client regression; native validation pending.
+
+The current Android ART link needs 20 math functions beyond the M2 libc subset.
+Build their original pinned Bionic/ARM implementations as a separate signed
+library. Retain AOSP's no-errno setting and Android binary128 compiler helpers;
+do not bridge long double to Darwin or replace algorithms with approximation
+stubs. Select only this dependency closure and expand it when callers demand
+more entry points.
+
+Use a separate NDK client with 78 fixed vectors before runtime integration.
+Require the actual dependency group to execute through signed Mac wrappers and
+the identical ELF libraries to pass on native Linux alongside system libm.
+Preserve every original notice and source input. The fixture covers selected
+results, not full libm accuracy, floating-point state or ART startup.

@@ -1,5 +1,26 @@
 # Third-party provenance
 
+## M3 ART math dependency
+
+The [math subset](docs/m3-math.md) selects 28 unchanged source units from
+Bionic `android-15.0.0_r1`, commit `361ba86734fb2821a6adcfdf775db8abd04e0de0`,
+and seven unchanged math units from AOSP arm-optimized-routines at that tag,
+commit `514df029da8aa4146726f6a020ddc69cf34a007d`. The latter has a separate
+`arm-math` exact-file pin in `third_party/sources.json`; the Bionic selection
+and full libm notice hash are in `third_party/bionic/art-math.json`.
+
+The BSD math sources retain Sun permission notices and BSD terms, including
+attribution and non-endorsement where present. AOSP compatibility headers and
+builtins carry their Apache-2.0 or BSD notices. Selected ARM sources offer
+MIT or Apache-2.0 WITH LLVM-exception; this import uses the MIT option and
+preserves the complete original LICENSE. Internal binary128 arithmetic links
+from the already pinned NDK r28c compiler-rt archive under its bundled notice.
+No upstream source is modified or relicensed. Corresponding-source archives
+retain original selected source/header texts and notices; every signed library
+and client framework includes complete Bionic libm/libc, ARM, NDK and ARTBox
+license files. This dependency is currently a temporary M3 test artifact,
+not part of the integrated M2 IPA.
+
 M0 vendors no third-party runtime source, binaries, Android images, or APKs.
 ARTBox's MIT license covers its original code, not future dependencies.
 

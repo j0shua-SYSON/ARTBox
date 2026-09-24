@@ -109,6 +109,9 @@ The [LLVM context boundary](m3-unwind-context.md) passes four checks on signed M
 and native Linux at `bba15cd`; the original Linux control changes the reserved
 register as expected. Both source-built objects match their NDK counterparts,
 and the adapted iOS 15 framework is verified. The full guest runtime is not linked yet.
+The [source-built math dependency](m3-math.md) now selects the 20 math imports
+needed by ART, with a separate 78-case dynamic client. Native CI validation is
+pending; the full Apple runtime still needs its remaining Bionic and loader APIs.
 The [managed-storage contract](m3-managed-storage.md) now passes 54 cases on each
 native Mac/Linux host, with two signed Mac controls confirming the original
 forwarding-address truncation. GC forwarding words and JNI reference/free/serial/
