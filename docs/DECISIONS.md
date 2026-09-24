@@ -1258,6 +1258,11 @@ This repeats compilation but preserves a useful comparison and catches inline
 header ABI mismatches. Codec-call cost and the 4 GiB reservation's practical
 budget remain unmeasured until execution. See [the profile](m3-high-heap-runtime.md).
 
+The first native build compiles all 462 units and links libart, then rejects
+the separate fixture's references to hidden CardTable symbols. Compile the
+acceptance helper inside the test runtime library as a 463rd unit. This tests
+the actual private implementation without changing AOSP's export policy.
+
 ## 0052: Fetch pinned public source bytes without consuming the REST quota
 
 Status: live transport and local integrity tests pass; CI revalidation pending.

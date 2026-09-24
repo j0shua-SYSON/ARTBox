@@ -268,6 +268,9 @@ def main():
     add('no-jit',ROOT/'third_party/art/adapters/no_jit.cpp',runtime_flags)
     if args.managed_window:
         add('artbox-managed-heap',ROOT/'third_party/art/adapters/managed_heap.cpp',runtime_flags)
+        # CardTable is private to libart. Keep the acceptance helper beside the
+        # real implementation; do not widen AOSP's dynamic symbol visibility.
+        add('artbox-heap-contract',ROOT/'fixtures/art-runtime/heap_window.cpp',runtime_flags)
         add('artbox-vm',ROOT/'core/src/vm.cpp',[x for x in runtime_flags if x!='-fno-exceptions'])
         for name,source in [('artbox-managed-reference','core/src/managed_reference.c'),
                             ('artbox-native-vm','platform/native_vm.c')]:
@@ -279,7 +282,7 @@ def main():
         units=[u for u in units if u[0] in names]
         if len(units)!=4:raise RuntimeError('Incomplete preflight')
     if len({u[0] for u in units})!=len(units):raise RuntimeError('Duplicate object names')
-    if args.all and len(units)!=(462 if args.managed_window else 458):raise RuntimeError('Complete runtime source count changed')
+    if args.all and len(units)!=(463 if args.managed_window else 458):raise RuntimeError('Complete runtime source count changed')
     record={'profile':args.profile,'runtime_executed':False,'managed_window':args.managed_window,
       'project_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
       'time_include_adaptation':time_adaptation,
@@ -322,7 +325,6 @@ def main():
         harness_flags=[flag for flag in runtime_flags if flag!='-DBUILDING_LIBART']
         harness_command=[cxx,*harness_flags,'-I',ROOT/'platform/linux',
              ROOT/'fixtures/art-runtime/linux_reference.cpp',ROOT/'fixtures/art-runtime/managed_checks.cpp',
-             *([ROOT/'fixtures/art-runtime/heap_window.cpp'] if args.managed_window else []),
              library,'-Wl,-rpath,$ORIGIN','-pthread','-ldl','-o',harness]
         run(harness_command,output/'harness-link.log')
         record['link']={'seconds':time.monotonic()-start,'runtime_executed':False,

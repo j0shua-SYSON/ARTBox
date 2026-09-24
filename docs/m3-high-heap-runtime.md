@@ -2,7 +2,7 @@
 
 The `--managed-window` runtime-build profile combines the pinned reference,
 forwarding/JNI-storage and interpreter-argument changes with actual ART MemMap
-and card-table integration. It builds all 462 runtime/support units, including
+and card-table integration. It builds all 463 runtime/support/test units, including
 the portable mapper, native memory provider and original ARTBox bridge. The
 existing 458-unit absolute-address reference remains a separate required build.
 
@@ -37,8 +37,12 @@ acceptance still requires the original managed graph to survive an observed GC,
 expected exceptions, four thread-attachment cycles, detachment and destruction.
 The executable-memory/process-execution denial filter remains active throughout.
 
-The changed AOSP units, fixture and bridge compile for ARM64 locally. Native
-execution of this profile is pending. Compile success does not establish startup,
+The changed AOSP units, fixture and bridge compile for ARM64 locally. At
+`385a02d`, all 462 runtime/support units compile and libart links on native Linux;
+the separately linked preflight fails because CardTable symbols are private to
+libart. The helper now builds as the 463rd unit inside the test runtime library,
+preserving AOSP's symbol visibility. Native execution remains pending.
+Compile success does not establish startup,
 GC correctness or performance. The expected next failures to investigate are
 remaining raw-reference/native argument transitions, additional allocation
 callers and shutdown lifetime assumptions. No iPhone is needed for this step.

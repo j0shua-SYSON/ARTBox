@@ -116,8 +116,9 @@ The extension attaching windows to the same registry as Bionic syscall buffers
 passes full native CI at `a700398`. Ordinary mmap
 stays outside the managed pool, while guards and holes fail syscall validation.
 The [full high-heap runtime profile](m3-high-heap-runtime.md) now connects ART's
-actual MemMap and card table. Its changed AOSP units and fixture compile for
-ARM64; native runtime execution is pending. The original absolute-address
+actual MemMap and card table. All 462 runtime units compile and libart links on
+native Linux at `385a02d`; the preflight link exposed private card-table symbols.
+The helper now builds inside the test library, pending native execution. The original absolute-address
 runtime remains a separate required CI acceptance run.
 The [M3 contract](m3-contract.md) remains unmet until those execution and shared
 iOS requirements pass. AOT/OAT execution and host dex2oat are still future work;
