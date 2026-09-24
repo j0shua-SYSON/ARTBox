@@ -40,7 +40,27 @@ python -B scripts/test_art_stack.py
 
 First build the host runner with `scripts/build.py host` on ARM64 macOS. Linux
 consumes the Mac host artifact with `--evidence-root PATH`. Windows can compile
-and inspect all six ARM64 payloads. Native validation is pending.
+and inspect all six ARM64 payloads.
+
+## Verified argument copying
+
+At `5472832789c328cb1f45f04c965c7a7f4b5c20f4`, the Mac and native Linux jobs in
+[this CI run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35950207574)
+each pass 36 positive cases. Both partial-adaptation Mac controls return exactly
+`-4` with untouched output/object storage. The adapted Mac bases are 4,330,307,584
+and 4,329,340,928; Linux uses 1,073,741,824. Both profiles preserve unpoisoned
+reference words in the callee's stack slots.
+
+Downloaded Mac artifact `10788416724` has SHA-256
+`064e378868ff81e08e9e55345c60f3045f3e2a9524685f3d60b04dab6da6bcfe`;
+Linux artifact `10788042876` has SHA-256
+`bdbe6278e3fcc2581db9c18bfb0cf7c7f047a178299c320df4c9e5a9ed4af187`.
+The reports identify tested merge `7f12b864fa6030e61dfbd1abd90e27df85fc7d6e`,
+whose parents include that code revision. Verification covers 28 canonical
+project inputs, 1,003 original source entries, the source archive, both overlay
+variants, all 12 object/ELF hashes and six signed framework binaries. Mac CI
+verifies signatures and empty entitlements. The two iOS 15 frameworks remain
+build artifacts. No interpreter-throughput or collector timing was measured.
 
 These tests do not start ART, execute DEX or run a collector. Full-runtime heap
 allocation/card coverage, other raw-reference call paths, native transitions

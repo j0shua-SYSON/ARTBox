@@ -1165,7 +1165,7 @@ The test establishes the storage encoding, not a moving Apple collector.
 
 ## 0048: Classify interpreter arguments using their encoded reference value
 
-Status: selected for native argument-copy tests; execution validation pending.
+Status: validated in native argument-copy tests; full-runtime integration pending.
 
 After ObjectReference becomes heap-relative, AssignRegister must compare a raw
 vreg with the encoding of its reference slot. Comparing with a truncated native
@@ -1180,3 +1180,26 @@ partial adaptation must fail at the first copied reference; both fully matching
 representations must pass. Keep both heap-poisoning profiles and an iOS 15 build.
 This validates one interpreter boundary, not complete managed execution or GC.
 See [the argument-copy contract](m3-interpreter-arguments.md).
+
+At `5472832`, the original Linux and fully adapted signed Mac payloads each pass
+36 cases. Both partial-adaptation controls fail at case four as required. The
+downloaded source, ELF and framework hashes verify. No collector runs in this test.
+
+## 0049: Keep managed heap holes inside one owned native reservation
+
+Status: implemented in the portable mapper; native CI and ART integration pending.
+
+A stable reference base requires allocation and unmapping to agree on ownership.
+Add a window mode to the existing VM mapper instead of a separate allocator with
+different permission and failure rules. Reserve at most 4 GiB once, exclude the
+leading guard, allocate contiguous holes under the mapping lock, and retain
+freed pages as inaccessible reserved storage until destruction. Fixed replacement
+cannot escape that reservation. Reuse the existing mutation-failure poisoning.
+
+Initially support anonymous storage for imageless startup. Reject file mappings
+and borrowed ranges explicitly until their actual ART callers and ownership
+requirements are covered. Test real high-address accesses, concurrent reuse and
+the codec's final eight-byte slot before adapting ART's MemMap and card table.
+Linear hole search and the per-page metadata cost require runtime measurements;
+a successful host reservation does not establish an iPhone memory budget.
+See [the heap-window contract](m3-heap-window.md).

@@ -106,9 +106,13 @@ forwarding-address truncation. GC forwarding words and JNI reference/free/serial
 dead-entry representations pass above 4 GiB with the checked codec. Downloaded
 sources, binaries and signed iOS 15 framework build artifacts verify. Full ART
 integration and moving collection in a high heap remain pending.
-The next [interpreter argument-copy contract](m3-interpreter-arguments.md)
-compiles actual AOSP ShadowFrame/copying helpers and checks whether references
-remain classified as roots across calls. Native validation is pending.
+The [interpreter argument-copy contract](m3-interpreter-arguments.md) passes 36
+cases on each native Mac/Linux host. Both partial-adaptation controls lose the
+callee's reference slot at the expected case; the checked comparison preserves
+it. Actual AOSP ShadowFrame/copying helpers and downloaded source/binaries verify.
+The portable mapper now has a [stable managed-window mode](m3-heap-window.md).
+Its local tests pass for reuse, guards, concurrency and the 4 GiB boundary; native
+CI validation and connection to ART's MemMap/card table are pending.
 The [M3 contract](m3-contract.md) remains unmet until those execution and shared
 iOS requirements pass. AOT/OAT execution and host dex2oat are still future work;
 M3 permits interpreter-only acceptance. M4-M7 follow M3 acceptance.
