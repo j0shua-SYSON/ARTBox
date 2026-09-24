@@ -21,6 +21,7 @@ struct Region {
     uintptr_t base = 0;
     size_t length = 0;
     size_t live = 0;
+    size_t guard_bytes = 0;  // Nonzero for a window retained until VM destruction.
     bool owned = true;
     bool protectable = true;
     std::vector<unsigned char> pages;
@@ -58,6 +59,11 @@ struct artbox_vm {
         for (auto &region : regions)
             if (address >= region.base && address - region.base <= region.length &&
                 length <= region.length - (address - region.base)) return &region;
+        return nullptr;
+    }
+    Region *managed_window(uint64_t base) {
+        for (auto &region : regions)
+            if (region.base == base && region.guard_bytes) return &region;
         return nullptr;
     }
     bool present(const Region &region, size_t first, size_t count) const {
@@ -100,28 +106,48 @@ artbox_vm *artbox_vm_create(const artbox_vm_ops *ops, uint64_t limit, size_t reg
 
 artbox_vm *artbox_vm_create_window(const artbox_vm_ops *ops, uint64_t length,
     size_t guard_bytes, artbox_reference_window *window) {
-    if (!ops || !ops->page_size || !window || length > UINT64_C(0x100000000) ||
-        length % ops->page_size || !guard_bytes || guard_bytes % ops->page_size ||
-        guard_bytes >= length) return nullptr;
-    std::unique_ptr<artbox_vm> space(artbox_vm_create(ops, length, 1));
+    if (!window) return nullptr;
+    std::unique_ptr<artbox_vm, decltype(&artbox_vm_destroy)> space(
+        artbox_vm_create(ops, length, 1), artbox_vm_destroy);
     if (!space) return nullptr;
-    Region region;
-    region.length = static_cast<size_t>(length);
-    try { region.pages.assign(region.length / ops->page_size, 0); }
-    catch (const std::exception &) { return nullptr; }
-    void *storage = nullptr;
-    if (ops->reserve(region.length, &storage)) return nullptr;
-    region.base = reinterpret_cast<uintptr_t>(storage);
-    if (region.base > INT64_MAX || length > static_cast<uint64_t>(INT64_MAX) - region.base ||
-        !space->range(region.base, region.length) ||
-        artbox_reference_window_init(&space->window, region.base, length, guard_bytes)) {
-        if (storage) ops->release(storage, region.length);
-        return nullptr;
-    }
-    space->reserved = length;
-    space->regions.push_back(std::move(region));
+    if (artbox_vm_reserve_window(space.get(), length, guard_bytes, &space->window)) return nullptr;
     *window = space->window;
     return space.release();
+}
+
+int artbox_vm_reserve_window(artbox_vm *space, uint64_t length,
+    size_t guard_bytes, artbox_reference_window *window) {
+    if (!space || !window || length > UINT64_C(0x100000000) ||
+        length % space->ops.page_size || !guard_bytes || guard_bytes % space->ops.page_size ||
+        guard_bytes >= length) return -22;
+    std::lock_guard<std::mutex> guard(space->lock);
+    if (space->poisoned) return -5;
+    if (space->regions.size() == space->region_limit || length > space->limit - space->reserved) return -12;
+    Region region;
+    region.length = static_cast<size_t>(length);
+    region.guard_bytes = guard_bytes;
+    try { region.pages.assign(region.length / space->ops.page_size, 0); }
+    catch (const std::exception &) { return -12; }
+    void *storage = nullptr;
+    int result = space->ops.reserve(region.length, &storage);
+    if (result) return result;
+    region.base = reinterpret_cast<uintptr_t>(storage);
+    artbox_reference_window descriptor{};
+    if (region.base > INT64_MAX || length > static_cast<uint64_t>(INT64_MAX) - region.base ||
+        !space->range(region.base, region.length) ||
+        artbox_reference_window_init(&descriptor, region.base, length, guard_bytes)) {
+        if (storage && space->ops.release(storage, region.length)) {
+            // Failed rollback still owns storage. Deny use and retry at destroy.
+            space->poisoned = true;
+            space->reserved += length;
+            space->regions.push_back(std::move(region));
+        }
+        return -12;
+    }
+    space->reserved += length;
+    space->regions.push_back(std::move(region));
+    *window = descriptor;
+    return 0;
 }
 
 int artbox_vm_destroy(artbox_vm *space) {
@@ -133,10 +159,8 @@ int artbox_vm_destroy(artbox_vm *space) {
     return result;
 }
 
-int64_t artbox_vm_mmap(artbox_vm *space, uint64_t address, uint64_t length, uint64_t prot,
-                      uint64_t flags, int64_t fd, uint64_t offset) {
-    if (!space) return -22;
-    std::lock_guard<std::mutex> guard(space->lock);
+static int64_t mmap_locked(artbox_vm *space, Region *window, uint64_t address,
+    uint64_t length, uint64_t prot, uint64_t flags, int64_t fd, uint64_t offset) {
     if (space->poisoned) return -5;
     size_t size = space->rounded(length);
     if (!size || (offset & (space->ops.page_size - 1))) return -22;
@@ -144,14 +168,14 @@ int64_t artbox_vm_mmap(artbox_vm *space, uint64_t address, uint64_t length, uint
     if (permissions < 0) return permissions;
     if ((flags & ~UINT64_C(0x4010)) != 0x22) return -95;
     (void)fd; // Ignored for MAP_ANONYMOUS, as on Linux.
-    if (space->window.base && !(flags & 0x10)) {
-        Region &region = space->regions[0];
+    if (window && !(flags & 0x10)) {
+        Region &region = *window;
         const size_t page = space->ops.page_size, count = size / page;
-        const size_t guard_pages = static_cast<size_t>(space->window.guard_bytes) / page;
+        const size_t guard_pages = region.guard_bytes / page;
         if (count > region.pages.size() - guard_pages) return -12;
         size_t first = region.pages.size();
         // Honor a free, aligned in-window hint; otherwise find a contiguous hole.
-        if (space->range(address, size) && address >= region.base + space->window.guard_bytes &&
+        if (space->range(address, size) && address >= region.base + region.guard_bytes &&
             address <= region.base + region.length - size) {
             size_t candidate = static_cast<size_t>(address - region.base) / page;
             bool free = true;
@@ -174,8 +198,9 @@ int64_t artbox_vm_mmap(artbox_vm *space, uint64_t address, uint64_t length, uint
         if (!space->range(address, size)) return -22;
         Region *region = space->containing(address, size);
         if (!region) return -95;
+        if (window && region != window) return -95;
         if (!region->owned) return -1;
-        if (space->window.base && address < space->window.base + space->window.guard_bytes) return -1;
+        if (address < region->base + region->guard_bytes) return -1;
         int result = space->mutation(space->ops.reset(reinterpret_cast<void *>(address), size, static_cast<unsigned>(permissions)));
         if (result) return result;
         size_t first = static_cast<size_t>(address - region->base) / space->ops.page_size;
@@ -212,6 +237,24 @@ int64_t artbox_vm_mmap(artbox_vm *space, uint64_t address, uint64_t length, uint
     space->reserved += size;
     space->regions.push_back(std::move(region));
     return static_cast<int64_t>(reinterpret_cast<uintptr_t>(storage));
+}
+
+int64_t artbox_vm_mmap(artbox_vm *space, uint64_t address, uint64_t length, uint64_t prot,
+    uint64_t flags, int64_t fd, uint64_t offset) {
+    if (!space) return -22;
+    std::lock_guard<std::mutex> guard(space->lock);
+    Region *window = space->window.base ? space->managed_window(space->window.base) : nullptr;
+    return mmap_locked(space, window, address, length, prot, flags, fd, offset);
+}
+
+int64_t artbox_vm_mmap_window(artbox_vm *space, uint64_t window_base,
+    uint64_t address, uint64_t length, uint64_t prot, uint64_t flags, int64_t fd, uint64_t offset) {
+    if (!space) return -22;
+    std::lock_guard<std::mutex> guard(space->lock);
+    if (space->poisoned) return -5;
+    Region *window = space->managed_window(window_base);
+    if (!window) return -95;
+    return mmap_locked(space, window, address, length, prot, flags, fd, offset);
 }
 
 int64_t artbox_vm_map_file(artbox_vm *space, uint64_t address, uint64_t length,
@@ -308,7 +351,7 @@ int artbox_vm_munmap(artbox_vm *space, uint64_t address, uint64_t length) {
         size_t count = static_cast<size_t>(end - begin) / space->ops.page_size;
         size_t removed = 0;
         for (size_t n = first; n < first + count; ++n) removed += !!(region.pages[n] & mapped);
-        if (removed == region.live && !space->window.base) {
+        if (removed == region.live && !region.guard_bytes) {
             int result = space->mutation(space->ops.release(reinterpret_cast<void *>(region.base), region.length));
             if (result) return result;
             space->reserved -= region.length;

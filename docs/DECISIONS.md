@@ -1187,7 +1187,7 @@ downloaded source, ELF and framework hashes verify. No collector runs in this te
 
 ## 0049: Keep managed heap holes inside one owned native reservation
 
-Status: implemented in the portable mapper; native CI and ART integration pending.
+Status: standalone window validated in native CI; ART integration pending.
 
 A stable reference base requires allocation and unmapping to agree on ownership.
 Add a window mode to the existing VM mapper instead of a separate allocator with
@@ -1203,3 +1203,29 @@ the codec's final eight-byte slot before adapting ART's MemMap and card table.
 Linear hole search and the per-page metadata cost require runtime measurements;
 a successful host reservation does not establish an iPhone memory budget.
 See [the heap-window contract](m3-heap-window.md).
+
+At `3ad7f50`, full host and iOS build CI pass. Native portable tests cover the
+standalone window on Mac, Linux and Windows; this does not execute ART in it.
+
+## 0050: Share managed-page ownership with the syscall address space
+
+Status: implemented and locally tested; native CI and ART integration pending.
+
+Bionic's syscall bridge validates guest pointers against its existing VM
+registry. A separate managed allocator would make valid heap buffers fail that
+validation. Registering an entire reservation as borrowed data would instead
+admit inaccessible guards and freed holes. Attach retained windows to the
+existing registry, and keep mapped-page metadata under the same lock as I/O,
+protection and unmap operations.
+
+Select the managed window explicitly when allocating heap pages. Ordinary
+non-fixed Bionic mmap remains outside it; Scudo's reservations must not consume
+the managed reference range. Keep retention and guard size on each region so
+ordinary mappings still release when empty. An explicit fixed window allocation
+must stay inside that selected window, while the normal syscall dispatcher can
+replace mapped or free pages inside any owned range except its guard.
+
+Test syscall copyout, denied I/O callbacks for holes, two distinct windows,
+borrowed ranges, limits and mutation failure before adapting ART's MemMap.
+Anonymous-only heap allocation is sufficient for the intended imageless bring-up;
+file-backed image maps require a separate tested extension.
