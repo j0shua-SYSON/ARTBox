@@ -1,0 +1,15 @@
+{
+  "scope": "Interpreter register-copy classification using the checked reference codec",
+  "files": [
+    {
+      "path": "runtime/interpreter/interpreter_common.cc",
+      "sha256": "e98b1ae74f3fb6b74b8c51d36c95df47f69e05df8577f5065bdabd6bc3ad1823",
+      "replacements": [
+        {
+          "before": "if (src_value == reinterpret_cast32<uint32_t>(o.Ptr())) {",
+          "after": "if (src_value == artbox_art_reference_compress(o.Ptr())) {"
+        }
+      ]
+    }
+  ]
+}

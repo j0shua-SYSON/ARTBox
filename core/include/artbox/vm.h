@@ -2,6 +2,7 @@
 #define ARTBOX_VM_H
 #include <stddef.h>
 #include <stdint.h>
+#include "artbox/managed_reference.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -31,6 +32,28 @@ typedef struct artbox_vm_file_ops {
 } artbox_vm_file_ops;
 
 artbox_vm *artbox_vm_create(const artbox_vm_ops *ops, uint64_t reservation_limit, size_t region_limit);
+/* Reserve one stable, non-executable managed-reference window, at most 4 GiB.
+ * length and guard_bytes must be native-page multiples. Anonymous maps reuse
+ * holes within this reservation; unmap retains ownership until destroy. Fixed
+ * maps cannot replace the leading guard or escape the window. File mappings
+ * and borrowed ranges are unsupported in this mode. Output is unchanged on
+ * failure; its base must remain stable until every managed reference is dead. */
+artbox_vm *artbox_vm_create_window(const artbox_vm_ops *ops, uint64_t length,
+    size_t guard_bytes, artbox_reference_window *window);
+/* Attach a retained window to an existing address space, sharing its limits,
+ * lock and syscall buffer validation. The reservation counts against the byte
+ * and region limits even when no pages are mapped. Output is unchanged on
+ * failure. Ordinary non-fixed mmap continues to allocate outside the window.
+ * Destroy releases it; there is no early release while references may exist. */
+int artbox_vm_reserve_window(artbox_vm *space, uint64_t length,
+    size_t guard_bytes, artbox_reference_window *window);
+/* Anonymous allocation confined to the window identified by its base. Hints
+ * may fall back to a hole in that window; fixed maps must target that same
+ * window and exclude its guard. Protect/unmap and validated I/O use the normal
+ * address-space operations, including the Linux syscall dispatcher. */
+int64_t artbox_vm_mmap_window(artbox_vm *space, uint64_t window_base,
+    uint64_t address, uint64_t length, uint64_t protection, uint64_t flags,
+    int64_t fd, uint64_t offset);
 /* The caller must stop guest access before destroying the address space. */
 int artbox_vm_destroy(artbox_vm *space);
 int64_t artbox_vm_mmap(artbox_vm *space, uint64_t address, uint64_t length,

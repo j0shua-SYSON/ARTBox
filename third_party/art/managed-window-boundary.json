@@ -1,0 +1,81 @@
+{
+  "scope": "Imageless ART managed-window allocation, card-table and large-object bitmap extents; no file-backed heap images or mremap ownership transfer",
+  "files": [
+    {
+      "path": "libartbase/base/mem_map.cc",
+      "sha256": "3431835509f725a01f3e1fe45ec82d1b717a0755c197574d4a89327c0963707b",
+      "replacements": [
+        {
+          "before": "#include \"mem_map.h\"",
+          "after": "#include \"mem_map.h\"\n#include \"artbox_art_heap.h\""
+        },
+        {
+          "before": "                          bool low_4gb) {\n#ifdef __LP64__\n  // When requesting low_4g",
+          "after": "                          bool low_4gb) {\n  // ARTBox: compressed references address the owned heap window.\n  if (low_4gb) return artbox_art_heap_map(addr, length, prot, flags, fd, offset);\n#ifdef __LP64__\n  // When requesting low_4g"
+        },
+        {
+          "before": "  if (mprotect(base_begin_, base_size_, prot) == 0) {",
+          "after": "  if ((artbox_art_heap_overlaps(base_begin_, base_size_)\n           ? artbox_art_heap_protect(base_begin_, base_size_, prot)\n           : mprotect(base_begin_, base_size_, prot)) == 0) {"
+        },
+        {
+          "before": "  CHECK(source->IsValid());\n  if (!MemMap::kCanReplaceMapping) {",
+          "after": "  CHECK(source->IsValid());\n  if (artbox_art_heap_overlaps(BaseBegin(), BaseSize()) ||\n      artbox_art_heap_overlaps(source->BaseBegin(), source->BaseSize())) {\n    *error = \"ARTBox managed mappings cannot be moved with mremap\";\n    return false;\n  }\n  if (!MemMap::kCanReplaceMapping) {"
+        }
+      ]
+    },
+    {
+      "path": "libartbase/base/mem_map_unix.cc",
+      "sha256": "88c555d74c0996c84f6571b750cc312f2f1652f8412e0a17fd9fb37107508633",
+      "replacements": [
+        {
+          "before": "#include \"mem_map.h\"",
+          "after": "#include \"mem_map.h\"\n#include \"artbox_art_heap.h\""
+        },
+        {
+          "before": "  return mmap(start, len, prot, flags, fd, fd_off);",
+          "after": "  if (artbox_art_heap_overlaps(start, len))\n    return artbox_art_heap_map(start, len, prot, flags, fd, fd_off);\n  return mmap(start, len, prot, flags, fd, fd_off);"
+        },
+        {
+          "before": "  return munmap(start, len);",
+          "after": "  if (artbox_art_heap_overlaps(start, len)) return artbox_art_heap_unmap(start, len);\n  return munmap(start, len);"
+        }
+      ]
+    },
+    {
+      "path": "runtime/gc/heap.cc",
+      "sha256": "9b4d119986cd2db1e3cc26cd1ce8483b1a08c946208006c5b8360d40e9bc11f6",
+      "replacements": [
+        {
+          "before": "#include \"heap.h\"",
+          "after": "#include \"heap.h\"\n#include \"artbox_art_heap.h\""
+        },
+        {
+          "before": "  // Since we don't know where in the low_4gb the app image will be located, make the card table\n  // cover the whole low_4gb. TODO: Extend the card table in AddSpace.\n  UNUSED(heap_capacity);\n  // Start at 4 KB, we can be sure there are no spaces mapped this low since the address range is\n  // reserved by the kernel.\n  static constexpr size_t kMinHeapAddress = 4 * KB;\n  card_table_.reset(accounting::CardTable::Create(reinterpret_cast<uint8_t*>(kMinHeapAddress),\n                                                  4 * GB - kMinHeapAddress));\n",
+          "after": "  // ARTBox: cover the owned managed window, excluding its null guard.\n  UNUSED(heap_capacity);\n  const auto window = artbox_art_heap_window();\n  CHECK_NE(window.base, 0u);\n  card_table_.reset(accounting::CardTable::Create(\n      reinterpret_cast<uint8_t*>(window.base + window.guard_bytes),\n      window.length - window.guard_bytes));\n"
+        }
+      ]
+    },
+    {
+      "path": "runtime/gc/space/space.cc",
+      "sha256": "33e770b8ceab67cb99ac0583749077818ee57b14ce6cc9095bf36f5a4c48d160",
+      "replacements": [
+        {
+          "before": "#include \"space.h\"",
+          "after": "#include \"space.h\"\n#include \"artbox_art_heap.h\""
+        },
+        {
+          "before": "  // TODO: Fix this if we ever support objects not in the low 32 bit.\n  const size_t capacity = static_cast<size_t>(std::numeric_limits<uint32_t>::max());",
+          "after": "  // ARTBox: large objects share the owned managed window. The guard bit stays clear.\n  const auto window = artbox_art_heap_window();\n  CHECK_NE(window.base, 0u);\n  auto* heap_begin = reinterpret_cast<uint8_t*>(window.base);\n  const size_t capacity = window.length;"
+        },
+        {
+          "before": "accounting::LargeObjectBitmap::Create(\"large live objects\", nullptr, capacity)",
+          "after": "accounting::LargeObjectBitmap::Create(\"large live objects\", heap_begin, capacity)"
+        },
+        {
+          "before": "accounting::LargeObjectBitmap::Create(\"large marked objects\", nullptr, capacity)",
+          "after": "accounting::LargeObjectBitmap::Create(\"large marked objects\", heap_begin, capacity)"
+        }
+      ]
+    }
+  ]
+}

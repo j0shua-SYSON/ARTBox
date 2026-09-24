@@ -1,5 +1,5 @@
 {
-  "description": "Partial Bionic objects needed for M2 bring-up; not a complete or runnable libc",
+  "description": "Selected Bionic sources for native startup and ART dependencies; not a complete Android libc",
   "source_commit": "361ba86734fb2821a6adcfdf775db8abd04e0de0",
   "source_flags": {
     "libc/arch-arm64/bionic/__set_tls.c": [
@@ -330,6 +330,156 @@
       "-include",
       "openbsd-compat.h",
       "-Wno-sign-compare"
+    ],
+    "libc/bionic/fts.c": [
+      "-include",
+      "openbsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-openbsd/lib/libc/locale/mbtowc.c": [
+      "-include",
+      "openbsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-openbsd/lib/libc/locale/wcscoll.c": [
+      "-include",
+      "openbsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-openbsd/lib/libc/locale/wcsxfrm.c": [
+      "-include",
+      "openbsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-openbsd/lib/libc/string/strcoll.c": [
+      "-include",
+      "openbsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-openbsd/lib/libc/string/strxfrm.c": [
+      "-include",
+      "openbsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-openbsd/lib/libc/stdio/mktemp.c": [
+      "-include",
+      "openbsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-freebsd/lib/libc/stdlib/qsort.c": [
+      "-include",
+      "freebsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-freebsd/lib/libc/string/wmemchr.c": [
+      "-include",
+      "freebsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-freebsd/lib/libc/string/wmemcmp.c": [
+      "-include",
+      "freebsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-freebsd/lib/libc/string/wcscasecmp.c": [
+      "-include",
+      "freebsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-freebsd/lib/libc/string/wcscmp.c": [
+      "-include",
+      "freebsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-openbsd/lib/libc/string/wcslcpy.c": [
+      "-include",
+      "openbsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-freebsd/lib/libc/string/wcsncasecmp.c": [
+      "-include",
+      "freebsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/upstream-netbsd/common/lib/libc/stdlib/random.c": [
+      "-include",
+      "netbsd-compat.h",
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter"
+    ],
+    "libc/tzcode/localtime.c": [
+      "-Wno-unused-parameter",
+      "-DALL_STATE",
+      "-DSTD_INSPIRED",
+      "-DTHREAD_SAFE=1",
+      "-DTM_GMTOFF=tm_gmtoff",
+      "-DTZDEFAULT=NULL",
+      "-DTZDIR=\"/system/usr/share/zoneinfo\"",
+      "-DHAVE_POSIX_DECLS=0",
+      "-DUSG_COMPAT=2",
+      "-DHAVE_TZNAME=2",
+      "-DHAVE_STDBOOL_H",
+      "-DWILDABBR=\"\"",
+      "-Dlint"
+    ],
+    "libc/tzcode/strftime.c": [
+      "-Wno-unused-parameter",
+      "-DALL_STATE",
+      "-DSTD_INSPIRED",
+      "-DTHREAD_SAFE=1",
+      "-DTM_GMTOFF=tm_gmtoff",
+      "-DTZDEFAULT=NULL",
+      "-DTZDIR=\"/system/usr/share/zoneinfo\"",
+      "-DHAVE_POSIX_DECLS=0",
+      "-DUSG_COMPAT=2",
+      "-DHAVE_TZNAME=2",
+      "-DHAVE_STDBOOL_H",
+      "-DWILDABBR=\"\"",
+      "-Dlint"
+    ],
+    "libc/tzcode/asctime.c": [
+      "-Wno-unused-parameter",
+      "-DALL_STATE",
+      "-DSTD_INSPIRED",
+      "-DTHREAD_SAFE=1",
+      "-DTM_GMTOFF=tm_gmtoff",
+      "-DTZDEFAULT=NULL",
+      "-DTZDIR=\"/system/usr/share/zoneinfo\"",
+      "-DHAVE_POSIX_DECLS=0",
+      "-DUSG_COMPAT=2",
+      "-DHAVE_TZNAME=2",
+      "-DHAVE_STDBOOL_H",
+      "-DWILDABBR=\"\"",
+      "-Dlint"
+    ],
+    "libc/tzcode/bionic.cpp": [
+      "-Wno-unused-parameter",
+      "-DALL_STATE",
+      "-DSTD_INSPIRED",
+      "-DTHREAD_SAFE=1",
+      "-DTM_GMTOFF=tm_gmtoff",
+      "-DTZDEFAULT=NULL",
+      "-DTZDIR=\"/system/usr/share/zoneinfo\"",
+      "-DHAVE_POSIX_DECLS=0",
+      "-DUSG_COMPAT=2",
+      "-DHAVE_TZNAME=2",
+      "-DHAVE_STDBOOL_H",
+      "-DWILDABBR=\"\"",
+      "-Dlint"
     ]
   },
   "sources": [
@@ -514,7 +664,57 @@
     "libc/system_properties/contexts_serialized.cpp",
     "libc/system_properties/prop_area.cpp",
     "libc/system_properties/prop_info.cpp",
-    "libc/system_properties/system_properties.cpp"
+    "libc/system_properties/system_properties.cpp",
+    "libc/bionic/__libc_current_sigrtmin.cpp",
+    "libc/bionic/system_property_set.cpp",
+    "libc/bionic/get_device_api_level.cpp",
+    "libc/bionic/libgen.cpp",
+    "libc/bionic/clock.cpp",
+    "libc/bionic/dirent.cpp",
+    "libc/bionic/syslog.cpp",
+    "libc/bionic/fchmod.cpp",
+    "libc/bionic/fork.cpp",
+    "libc/bionic/sys_statfs.cpp",
+    "libc/bionic/getpriority.cpp",
+    "libc/bionic/ftw.cpp",
+    "libc/bionic/pidfd.cpp",
+    "libc/bionic/poll.cpp",
+    "libc/bionic/ptrace.cpp",
+    "libc/bionic/rand.cpp",
+    "libc/bionic/readlink.cpp",
+    "libc/bionic/realpath.cpp",
+    "libc/bionic/rename.cpp",
+    "libc/bionic/sleep.cpp",
+    "libc/bionic/string_l.cpp",
+    "libc/bionic/stdlib_l.cpp",
+    "libc/bionic/strsignal.cpp",
+    "libc/bionic/tmpfile.cpp",
+    "libc/bionic/wait.cpp",
+    "libc/bionic/wchar_l.cpp",
+    "libc/bionic/__libc_current_sigrtmax.cpp",
+    "libc/bionic/chmod.cpp",
+    "libc/bionic/fchmodat.cpp",
+    "libc/bionic/recv.cpp",
+    "libc/bionic/send.cpp",
+    "libc/bionic/fts.c",
+    "libc/upstream-openbsd/lib/libc/locale/mbtowc.c",
+    "libc/upstream-openbsd/lib/libc/locale/wcscoll.c",
+    "libc/upstream-openbsd/lib/libc/locale/wcsxfrm.c",
+    "libc/upstream-openbsd/lib/libc/string/strcoll.c",
+    "libc/upstream-openbsd/lib/libc/string/strxfrm.c",
+    "libc/upstream-openbsd/lib/libc/stdio/mktemp.c",
+    "libc/upstream-freebsd/lib/libc/stdlib/qsort.c",
+    "libc/upstream-freebsd/lib/libc/string/wmemchr.c",
+    "libc/upstream-freebsd/lib/libc/string/wmemcmp.c",
+    "libc/upstream-freebsd/lib/libc/string/wcscasecmp.c",
+    "libc/upstream-freebsd/lib/libc/string/wcscmp.c",
+    "libc/upstream-openbsd/lib/libc/string/wcslcpy.c",
+    "libc/upstream-freebsd/lib/libc/string/wcsncasecmp.c",
+    "libc/upstream-netbsd/common/lib/libc/stdlib/random.c",
+    "libc/tzcode/localtime.c",
+    "libc/tzcode/strftime.c",
+    "libc/tzcode/asctime.c",
+    "libc/tzcode/bionic.cpp"
   ],
   "generated_sources": [
     "generated/syscalls-arm64.S"
@@ -526,6 +726,60 @@
     "upstream-openbsd/lib/libc/stdio",
     "upstream-openbsd/lib/libc/gdtoa",
     "system_properties/include",
-    "upstream-freebsd/android/include"
-  ]
+    "upstream-freebsd/android/include",
+    "tzcode",
+    "upstream-netbsd/android/include"
+  ],
+  "art_runtime_sources": {
+    "libc/bionic/__libc_current_sigrtmin.cpp": "256cb271b24771230fef0f71ffaf934f7264a20ea480b45983ab77bf4bcb9324",
+    "libc/bionic/system_property_set.cpp": "5e30ca6402d95eda8681cee85d8cf691b41f717c9c748c0fd4120e830612dae2",
+    "libc/bionic/get_device_api_level.cpp": "16d77a5cba766d470da748c738c477b6f6f480e47a25b4cdc5a61e50f33e64c3",
+    "libc/bionic/libgen.cpp": "d1fbc18fdcdf4e7b5272d419bf0aad8e37b3fdccf085c998b5f9daa977d7f484",
+    "libc/bionic/clock.cpp": "b1ddbae9a8549321e64a0bbff8fe0e94a587642138e372e5b5af892e70aa5416",
+    "libc/bionic/dirent.cpp": "2f4d9c0b1a4e9f63b92c531e3810732d3123450e2acd66381973fc09dcb1328b",
+    "libc/bionic/syslog.cpp": "3b546fef34cf96f6ee4d90fc9efad5aab37afcead119331fd232e98616a3d49f",
+    "libc/bionic/fchmod.cpp": "588b266241b6297de968ed1b40244616739bb80e937a8b6d2e62b1ba378b1f05",
+    "libc/bionic/fork.cpp": "bccf700dca41f6d9d2fea0adc24f6cbfb86f3edfe50738b1bfd3b4fb981b7c30",
+    "libc/bionic/sys_statfs.cpp": "6c5bcca8eaa973bb826a0f2892f1de1ae019f10e743cc626929d51a790e0b2c7",
+    "libc/bionic/getpriority.cpp": "9d87460540deae1a1a133fc113ee0eeb4e0dfb0ae4d204b36c8cf314349ee04c",
+    "libc/bionic/ftw.cpp": "8ffd2e951f8f85d694eda7be831654d33e40cf00fb00819d3b273a867724e1ec",
+    "libc/bionic/pidfd.cpp": "7e9e5d8d3f45b7d3093017c496fd14c619e5118cea33cc706d4b055363b978d9",
+    "libc/bionic/poll.cpp": "3ca952944048f64bfce4f8d79a7cf4d63e4cd3fce0eb76f977f3e214ab059437",
+    "libc/bionic/ptrace.cpp": "9f78b65c68ac4393e5d510c6836c51d539d94b5a0d0e8f6c9581eca41951cac2",
+    "libc/bionic/rand.cpp": "ed77affcf9d9102044328edd4050563eab6f39c13fefe97a10bcd088b3af8337",
+    "libc/bionic/readlink.cpp": "2f948bbd4d2c5ae3f2c829554e9b3f4d8c9f868640ae8ae250d439eb3d2e9743",
+    "libc/bionic/realpath.cpp": "b7795c2e186d3be6fab66464da059a7c188f1a3a4360a91e854a8c445686c6ec",
+    "libc/bionic/rename.cpp": "7b8df5cd29f1311e135122ee0c6aa1a8c7470d0fe712fe668d466bc8b279a053",
+    "libc/bionic/sleep.cpp": "4831daa06311ef4c9280cd18eba284e1d360c20a31aec1131bc96d123cd7a3b3",
+    "libc/bionic/string_l.cpp": "1ca9d44f6eceec4ea52b614eb8e1cffc1c33ace34a3cba83edaddafc3f992eaf",
+    "libc/bionic/stdlib_l.cpp": "7399803737fc7c004f4af3a12be5d77a3c52846b3a8519a172fa275cfea857a6",
+    "libc/bionic/strsignal.cpp": "46c0f39c4894b96de984f2ebc310db4e334f5f0e3414d72d7e8fec78715e8498",
+    "libc/bionic/tmpfile.cpp": "6882ea3ced977d39b72c7e35c4c76d65b5785c5030cb67a0a6900d0551d04868",
+    "libc/bionic/wait.cpp": "af86e67822396ad400736883dac3c9adc33d98f562c02cd9f9235b239ae79133",
+    "libc/bionic/wchar_l.cpp": "e8774b9387f1d32d6602bc1c994b5ebb066e62eb28bd9dcb669a4f2329dc6e02",
+    "libc/bionic/__libc_current_sigrtmax.cpp": "92b1da02b512c92b11bfd6cd85f8b569d6f85096e341fac1a23860ade76b10ce",
+    "libc/bionic/chmod.cpp": "61a566f29e385cf0a774b59cf77fde3d6e677113c1f2a5bbd8cd6b8cad727cc3",
+    "libc/bionic/fchmodat.cpp": "2520def5692d46249165bed32685f5fcf51a466722b8cf71d720c004c6bf7f55",
+    "libc/bionic/recv.cpp": "534eae057e18591b81ffcafbfe24eaea58d255260723dbb21203176acad9c305",
+    "libc/bionic/send.cpp": "05df5257dee77f246300a8ae4e67f83f3234b36ee51b8981d8da988110ff1a5e",
+    "libc/bionic/fts.c": "2d1d166da820e376ab744cad952a612be6fe3fb8a3e4a820e11fb8e475fe0903",
+    "libc/upstream-openbsd/lib/libc/locale/mbtowc.c": "fbddd2a5a4095b40ac80f3997414e89617399f25dfcd089b3abe84e81b87b399",
+    "libc/upstream-openbsd/lib/libc/locale/wcscoll.c": "cd0071eba7c870564b0802a6eee7e525a53a142eda8c45a49bca89d5c31e305a",
+    "libc/upstream-openbsd/lib/libc/locale/wcsxfrm.c": "600a67b9dc3cac860c3f5638344011896a5d18b701a7ce5cd1a2b814c14eea33",
+    "libc/upstream-openbsd/lib/libc/string/strcoll.c": "627aaafe64af591049d21aa8084bea3a48dd7a7f0f01a08ba35fc3585e2ec6b9",
+    "libc/upstream-openbsd/lib/libc/string/strxfrm.c": "851c5debe2c2e52cb8a8868aa5c38f44e01a01bc450cd747664f5048415096f7",
+    "libc/upstream-openbsd/lib/libc/stdio/mktemp.c": "26558842ac854eb5840c025c6e9c476a9a44bacdc30d679fca9d1305adb7ba25",
+    "libc/upstream-freebsd/lib/libc/stdlib/qsort.c": "8a86d714c7109d324d30e3d551c60fcd7e4cd019977592dea178615fea8db86c",
+    "libc/upstream-freebsd/lib/libc/string/wmemchr.c": "c4d185889eee6d3374bb56341ced40a8fc37fd135bc1e577da3a1873969501ae",
+    "libc/upstream-freebsd/lib/libc/string/wmemcmp.c": "219fb7038972031e4d881ee0dbbab5e925977150fdee0ae460f48c6c8e520d9f",
+    "libc/upstream-freebsd/lib/libc/string/wcscasecmp.c": "21f8b7d1230e7f76b55b32980145972f466ae69840295f1d19d6f374307594e8",
+    "libc/upstream-freebsd/lib/libc/string/wcscmp.c": "bcb0d78dcd287fdce96a66f940a50c6be8ea3e7293073afc091a8c6bfb52c811",
+    "libc/upstream-openbsd/lib/libc/string/wcslcpy.c": "31c6e0f1488025f6f61d361933da36f4ed96371a2c366b02f26a1494ce9645a0",
+    "libc/upstream-freebsd/lib/libc/string/wcsncasecmp.c": "045cf4815d632fdbd2e8c5f4f1ff7469736e4ee5c6eb88e3700e9ae0a5270cb8",
+    "libc/upstream-netbsd/common/lib/libc/stdlib/random.c": "568d7659fb4b44570f826b0a6bd2bdfab2b83bd776f62ad07313e9c91092941b",
+    "libc/tzcode/localtime.c": "94734ca974ae7205dccef40dfcface2c3520ae67c932fb3af7aec1fd47e35b92",
+    "libc/tzcode/strftime.c": "74f31a121aa8bcff9d09655d3f160bc2195cb5ebe563dda390cab1be62dafbde",
+    "libc/tzcode/asctime.c": "9d7501e944a38ef3cbf82ece46c59c41db1c7cbab76d271a0d3fc7dc16455fb9",
+    "libc/tzcode/bionic.cpp": "2e6e56ae6be660610af310948f02d121d208abae96343869c505601035ea2856"
+  }
 }

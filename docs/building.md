@@ -72,10 +72,18 @@ python scripts/sources.py bionic
 
 This optional development command requires an authenticated GitHub CLI (`gh`).
 It verifies the archive and notice hashes in `third_party/sources.json` and
-extracts the selected source into `ARTBOX_CACHE_DIR/sources`. Existing GitHub
-credentials are used; CI can provide `GH_TOKEN` through its normal secret
-environment. Original source archives stay in the configured download cache.
+extracts the selected source into `ARTBOX_CACHE_DIR/sources`. Public source
+downloads use pinned GitHub raw-content and codeload URLs through `gh`.
+Original source archives stay in the configured download cache.
 This fetch command does not build or claim a working Bionic runtime.
+
+A source pin can combine an archive hash with an explicit file list. This
+downloads the archive once and extracts only the pinned regular files, checking
+each file before installing the source tree. Cached selections are revalidated
+on reuse. This mode is useful for larger class-library source selections.
+Pinned binary tools can additionally name an exact Git blob. The fetcher
+preserves raw binary bytes and verifies both their Git identity and SHA-256
+before use, including on cache reuse.
 
 ## Paths and environment
 

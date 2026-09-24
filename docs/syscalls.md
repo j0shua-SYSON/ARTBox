@@ -174,3 +174,16 @@ The 22-case original NDK caller passes Linux at `2125b46`; portable snapshot
 ownership and fault tests pass. Both signed Bionic profiles and Linux comparisons
 pass all 22 cases at `e50ec7f`, completing [M2 acceptance](acceptance/m2.md).
 See [the proc scope](files.md#initial-process-command-line) for explicit limits.
+
+### M3 retained managed windows
+
+The runtime can attach an anonymous managed heap window to the existing VM
+registry. Active pages participate in the same syscall buffer checks and memory
+operations as ordinary mappings. mmap (222) with a fixed owned address cannot
+replace a window guard; mprotect (226) rejects guards and holes; munmap (215)
+retains managed reservation ownership even after its last page is freed.
+Ordinary non-fixed mmap continues to allocate outside the pool. This retained-VA
+policy deliberately differs from Linux, preventing other host allocations from
+occupying future managed heap pages. The explicit window allocator is a host API,
+not a new Linux syscall. See [the window contract](m3-heap-window.md) for validation
+and remaining ART integration work.
