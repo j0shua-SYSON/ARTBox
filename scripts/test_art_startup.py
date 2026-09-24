@@ -178,6 +178,9 @@ def main():
             except json.JSONDecodeError: pass
         return None
     record['managed_checks'] = observation('ARTBox managed checks: ')
+    record['thread_state_checks'] = observation('ARTBox thread state: ')
+    record['thread_state_checks_passed'] = record['thread_state_checks'] == {
+        'threads': 3, 'attach_cycles': 4, 'tls_isolated': True, 'main_tls_restored': True}
     record['managed_window'] = observation('ARTBox managed window: ')
     window = record['managed_window']
     window_valid = (not record['managed_window_profile'] or
@@ -199,7 +202,8 @@ def main():
             ('managed_allocated_bytes', 'process_peak_rss_kib')))
     record['lifecycle_checks_passed'] = 'ARTBox: native ART lifecycle checks passed\n' in stdout
     record['passed'] = (record['exit'] == 0 and record['runtime_started'] and record['dex_method_executed']
-                        and record['managed_checks_passed'] and record['lifecycle_checks_passed'] and memory_valid
+                        and record['managed_checks_passed'] and record['thread_state_checks_passed']
+                        and record['lifecycle_checks_passed'] and memory_valid
                         and window_valid)
     save()
     print(stdout, end='')

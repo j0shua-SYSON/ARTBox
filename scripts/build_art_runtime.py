@@ -86,6 +86,7 @@ def preserve_sources(output, sources, generated, toolchain=None):
       'third_party/art/adapters/no_jit.cpp','third_party/art/adapters/artbox_host_stack.h',
       'third_party/art/host-build-boundary.json','third_party/bionic/builtins.json',
       'fixtures/art-runtime/linux_reference.cpp','fixtures/art-runtime/managed_checks.cpp',
+      'fixtures/art-runtime/thread_state.cpp','fixtures/art-runtime/thread_state.h',
       'fixtures/art-runtime/RuntimeChecks.java','fixtures/art-runtime/RuntimeChecksHost.java',
       'fixtures/art-runtime/host_strlcpy.cpp',
       'fixtures/art-runtime/stack_initialization.cpp',
@@ -267,6 +268,8 @@ def main():
         add('unwind-'+Path(name).stem,demangle if name.endswith('/Demangle.cpp') else sources['art-unwindstack']/name,unwind_flags)
     add('dex-file-supp',art/'libdexfile/external/dex_file_supp.cc',unwind_flags)
     add('no-jit',ROOT/'third_party/art/adapters/no_jit.cpp',runtime_flags)
+    # Keep the hidden inline HeapSampler TLS instance inside the runtime DSO.
+    add('artbox-thread-state',ROOT/'fixtures/art-runtime/thread_state.cpp',runtime_flags)
     if args.managed_window:
         add('artbox-managed-heap',ROOT/'third_party/art/adapters/managed_heap.cpp',runtime_flags)
         # CardTable is private to libart. Keep the acceptance helper beside the
@@ -283,7 +286,7 @@ def main():
         units=[u for u in units if u[0] in names]
         if len(units)!=4:raise RuntimeError('Incomplete preflight')
     if len({u[0] for u in units})!=len(units):raise RuntimeError('Duplicate object names')
-    if args.all and len(units)!=(463 if args.managed_window else 458):raise RuntimeError('Complete runtime source count changed')
+    if args.all and len(units)!=(464 if args.managed_window else 459):raise RuntimeError('Complete runtime source count changed')
     record={'profile':args.profile,'runtime_executed':False,'managed_window':args.managed_window,
       'project_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
       'time_include_adaptation':time_adaptation,

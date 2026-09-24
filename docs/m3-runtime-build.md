@@ -15,7 +15,8 @@ python -B scripts/build_art_runtime.py --profile android --all
 python -B scripts/build_art_runtime.py --profile linux --all --link
 ```
 
-The default is a four-unit compilation preflight. `--all` selects 458 units;
+The default is a four-unit compilation preflight. `--all` selects 459 units,
+including the original ARTBox thread-state acceptance helper inside libart;
 the Linux `--link` option additionally builds `libart.so` and a JNI invocation
 harness. The Linux configuration requires native ARM64 Linux with Clang C/C++.
 The Android configuration uses the pinned NDK on Windows, macOS or Linux.

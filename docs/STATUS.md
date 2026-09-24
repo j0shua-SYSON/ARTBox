@@ -82,7 +82,7 @@ observations, not interpreter throughput or iPhone measurements. All 18 executab
 mappings remain unchanged through shutdown, with no writable executable mapping.
 Time-zone data is still incomplete. See [managed evidence](m3-managed-checks.md).
 
-The build selects 458 ART/support units, 480 nativehelper/ICU units and 209 native
+The build now selects 459 ART/support/test units, 480 nativehelper/ICU units and 209 native
 libcore/bridge units. Eight ICU cases and 21 native libcore cases pass. The
 implementation class library compiles 3,227 pinned Java inputs to two DEX files
 with 7,309 classes. Original sources and notices accompany the outputs. The first
@@ -98,17 +98,20 @@ full ART's managed ABI, garbage collection or JNI behavior on Apple platforms.
 The [runtime build](m3-runtime-build.md), [native dependencies](m3-native-libraries.md)
 and [libcore build](m3-libcore-native.md) record their source and ABI boundaries.
 
-The [managed acceptance fixture](m3-managed-checks.md) now passes on the original
-native Linux runtime. Its macOS and Linux producers emit identical DEX bytes;
-downloaded payloads and corresponding project sources verify. Next adapt
-the full managed reference/stack representation and thread/signal
-boundaries, and integrate the same runtime and DEX into signed macOS/iOS builds.
+The [managed acceptance fixture](m3-managed-checks.md) passes on both original
+and high-heap native Linux runtimes. Its macOS and Linux producers emit identical
+DEX bytes; downloaded payloads and corresponding project sources verify. A new
+direct thread-state regression compiles for ARM64 and awaits native CI: it checks
+ART's current-thread/JNI relationship and the runtime's actual sampler TLS across
+three simultaneous threads and four attach/detach cycles. Next adapt the native
+thread/signal boundaries and integrate the runtime into signed macOS/iOS builds.
 The [managed-storage contract](m3-managed-storage.md) now passes 54 cases on each
 native Mac/Linux host, with two signed Mac controls confirming the original
 forwarding-address truncation. GC forwarding words and JNI reference/free/serial/
 dead-entry representations pass above 4 GiB with the checked codec. Downloaded
 sources, binaries and signed iOS 15 framework build artifacts verify. Full ART
-integration and moving collection in a high heap remain pending.
+moving collection now also passes in the Linux high heap; Apple integration
+remains pending.
 The [interpreter argument-copy contract](m3-interpreter-arguments.md) passes 36
 cases on each native Mac/Linux host. Both partial-adaptation controls lose the
 callee's reference slot at the expected case; the checked comparison preserves

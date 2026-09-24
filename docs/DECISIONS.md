@@ -1324,3 +1324,22 @@ valid VM buffers. Add an actual constructor regression for extent and first/
 last-page coverage, excluded outside addresses, live/mark independence, copying
 and clearing before adapting the pinned source. The full managed GC test stays
 required and SweepWalk's safety checks remain intact.
+
+## 0055: Observe thread state from inside the ART runtime library
+
+Status: ARM64 compilation passes; native execution pending.
+
+Apple integration must preserve Bionic's ART current-thread slot and compiler
+TLS used by the heap sampler. Test the real runtime before adapting either
+boundary. Compile the acceptance accessor inside libart so its inline hidden
+sampler variable belongs to the runtime instead of a separate harness DSO.
+Do not replace ART's actual attach/detach paths with fixture state.
+
+Keep three native threads alive simultaneously while comparing distinct sampler
+slots and temporary values. Verify null thread state before attachment, the
+actual matching JNI environment while attached, and cleared state after each
+of two detach/reattach cycles per worker. Preserve each thread's sampler address
+and independent value across these cycles; restore the original values. Reject
+this intrusive fixture if sampling is enabled. Both full Linux runtime profiles
+must pass this contract alongside the existing Java and shutdown checks before
+using it to evaluate an Apple TLS adaptation.

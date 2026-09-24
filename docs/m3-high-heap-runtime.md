@@ -2,9 +2,11 @@
 
 The `--managed-window` runtime-build profile combines the pinned reference,
 forwarding/JNI-storage and interpreter-argument changes with actual ART MemMap
-and card-table integration. It builds all 463 runtime/support/test units, including
+and card-table integration. It builds all 464 runtime/support/test units, including
 the portable mapper, native memory provider and original ARTBox bridge. The
-existing 458-unit absolute-address reference remains a separate required build.
+existing 459-unit absolute-address reference remains a separate required build.
+Both include the direct [thread-state acceptance helper](m3-managed-checks.md)
+inside libart; historical build counts below predate that additional unit.
 
 Both profiles build their own native dependencies against the matching libart
 and headers, then execute the same hello DEX and managed acceptance fixture on

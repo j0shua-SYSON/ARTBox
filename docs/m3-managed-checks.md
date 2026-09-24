@@ -21,6 +21,23 @@ destruction and checks that no VM remains registered afterward. Mapping snapshot
 cover entry, completed managed calls and shutdown. The executable-memory denial
 filter remains active for the entire process.
 
+The native fixture also checks ART's actual current-thread pointer and heap
+sampler TLS. A helper compiled inside `libart` reads both: instantiating the
+inline sampler accessor in the harness could create a separate hidden TLS
+variable and test the wrong storage. With sampling disabled, the main thread
+and both workers place distinct temporary values in their own sampler slots.
+The workers rendezvous before attachment so the main thread can compare three
+live, distinct slots. Each worker requires null ART thread state before attach,
+the matching JNI environment after attach, and null state after detach, twice.
+Its TLS address and value must survive those cycles independently of the main
+thread. Original sampler values are restored before the workers return and
+before the main thread continues.
+
+Both runtime profiles require a separate `ARTBox thread state` result containing
+three isolated TLS slots and four attachment cycles. Local ARM64 compilation
+passes; native execution of this additional regression is pending. The earlier
+verified runs below predate this direct thread-state check.
+
 The harness also reports ART's current allocated managed bytes and its own Linux
 process peak RSS through `getrusage(RUSAGE_SELF)`. Linux reports that peak in KiB;
 see the [Linux interface documentation](https://man7.org/linux/man-pages/man2/getrusage.2.html).
