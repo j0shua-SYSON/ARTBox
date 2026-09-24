@@ -396,3 +396,8 @@ The optional managed-window ART profile applies hash-checked edits from
 MemMap and heap sources. It retains their original notices and archives the
 adapted files with the original source. Its heap bridge and test fixture are
 original MIT ARTBox code. This profile adds no upstream component or new license.
+
+`third_party/art/class-table-boundary.json` also adapts the already selected
+Apache-2.0 class-table inline header at the same ART pin. Its pointer conversion
+uses the checked heap codec while retaining hash tags and atomic updates. The
+original header, notice and adapted bytes accompany the runtime artifact.

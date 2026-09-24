@@ -1,0 +1,23 @@
+{
+  "scope": "Heap-relative class-table slots; preserve descriptor hash tags and atomic root updates",
+  "files": [
+    {
+      "path": "runtime/class_table-inl.h",
+      "sha256": "0cc209a951a26cfeb3b7fdf1bf621a01d9bd72aca4b34328b3a78c6d0dbd4b8c",
+      "replacements": [
+        {
+          "before": "#include \"class_table.h\"",
+          "after": "#include \"class_table.h\"\n#include \"artbox_art_reference_bridge.h\""
+        },
+        {
+          "before": "  return reinterpret_cast<mirror::Class*>(data & ~kHashMask);",
+          "after": "  return static_cast<mirror::Class*>(artbox_art_reference_decompress(data & ~kHashMask));"
+        },
+        {
+          "before": "  return reinterpret_cast<uintptr_t>(klass.Ptr()) | hash_bits;",
+          "after": "  return artbox_art_reference_compress(klass.Ptr()) | hash_bits;"
+        }
+      ]
+    }
+  ]
+}

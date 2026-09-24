@@ -37,12 +37,27 @@ acceptance still requires the original managed graph to survive an observed GC,
 expected exceptions, four thread-attachment cycles, detachment and destruction.
 The executable-memory/process-execution denial filter remains active throughout.
 
+The same preflight tests actual class-table slots for all eight low-bit hash
+tags: checked encoding, decoding, raw encoded construction, copying, assignment,
+empty entries, unchanged roots, moved roots and cleared roots. These tests use
+aligned storage addresses without dereferencing class contents. The class table
+stores checked heap offsets alongside its existing hash tags; its atomic root
+update and descriptor comparison logic remain upstream implementations.
+
 The changed AOSP units, fixture and bridge compile for ARM64 locally. At
 `385a02d`, all 462 runtime/support units compile and libart links on native Linux;
 the separately linked preflight fails because CardTable symbols are private to
 libart. The helper now builds as the 463rd unit inside the test runtime library,
-preserving AOSP's symbol visibility. Native execution remains pending.
-Compile success does not establish startup,
-GC correctness or performance. The expected next failures to investigate are
+preserving AOSP's symbol visibility. At `0979faf`, both full libraries build and
+the managed-window MemMap/CardTable preflight passes on native Linux ARM64.
+The process enters `JNI_CreateJavaVM`, then aborts in the checked encoder from
+class-table lookup. The original class-table slot truncates native pointers and
+reconstructs them as absolute 32-bit addresses. The original absolute-address
+runtime passes in the same [CI run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35954934951).
+This failure is retained in the startup artifact. The subsequent slot regression
+and hash-checked adaptation still need native execution validation.
+
+Compile success does not establish startup, GC correctness or performance.
+The expected next failures to investigate are
 remaining raw-reference/native argument transitions, additional allocation
 callers and shutdown lifetime assumptions. No iPhone is needed for this step.

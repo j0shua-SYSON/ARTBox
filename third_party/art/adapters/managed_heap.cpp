@@ -1,6 +1,7 @@
 // Original ARTBox adapter. MIT. Compiled with the Linux/Android errno ABI.
 #include "artbox_art_heap.h"
 #include <cerrno>
+#include <cstdio>
 #include <cstdlib>
 #include <sys/mman.h>
 
@@ -56,13 +57,22 @@ uint32_t artbox_art_reference_compress(const void* address) {
   // Static ART roots may be initialized before the runtime binds its heap.
   if (!address) return 0;
   uint32_t reference = 0;
-  if (!owner || artbox_reference_encode(&window, reinterpret_cast<uintptr_t>(address), &reference))
+  if (!owner || artbox_reference_encode(&window, reinterpret_cast<uintptr_t>(address), &reference)) {
+    std::fprintf(stderr, "ARTBox invalid heap encode: address=0x%llx base=0x%llx length=0x%llx\n",
+        static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(address)),
+        static_cast<unsigned long long>(window.base), static_cast<unsigned long long>(window.length));
     std::abort();
+  }
   return reference;
 }
 void* artbox_art_reference_decompress(uint32_t reference) {
   if (!reference) return nullptr;
   uint64_t address = 0;
-  if (!owner || artbox_reference_decode(&window, reference, &address)) std::abort();
+  if (!owner || artbox_reference_decode(&window, reference, &address)) {
+    std::fprintf(stderr, "ARTBox invalid heap decode: reference=0x%x base=0x%llx length=0x%llx\n",
+        reference, static_cast<unsigned long long>(window.base),
+        static_cast<unsigned long long>(window.length));
+    std::abort();
+  }
   return reinterpret_cast<void*>(static_cast<uintptr_t>(address));
 }

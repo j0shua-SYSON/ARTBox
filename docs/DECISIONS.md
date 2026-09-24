@@ -1235,7 +1235,7 @@ file-backed image maps require a separate tested extension.
 
 ## 0051: Run the complete high-heap ART variant beside its original reference
 
-Status: source integration implemented and ARM64 compilation checked; execution pending.
+Status: native MemMap/CardTable preflight passes at 0979faf; VM startup fails at class-table lookup.
 
 Focused storage tests cannot prove that every live ART caller uses the same
 representation. Build a second full runtime with the reviewed reference,
@@ -1265,7 +1265,7 @@ the actual private implementation without changing AOSP's export policy.
 
 ## 0052: Fetch pinned public source bytes without consuming the REST quota
 
-Status: live transport and local integrity tests pass; CI revalidation pending.
+Status: live transport, local integrity tests and both native class-library CI jobs pass at 0979faf.
 
 At `385a02d`, Mac host and class-library jobs fail during source downloads with
 GitHub installation API rate-limit errors. The larger runtime matrix increases
@@ -1281,3 +1281,27 @@ compat archive and the 16,688,724-byte R8 binary including its Git blob identity
 Eleven extraction/transport tests retain corruption, traversal, incomplete install,
 binary-byte and cache checks and add encoded-path coverage. No source selection,
 license requirement or CI acceptance test is removed.
+
+## 0053: Keep class-table hash tags while encoding heap-relative roots
+
+Status: regression and source adaptation implemented; native execution pending.
+
+The first full high-heap startup at `0979faf` aborts in the checked reference
+encoder during `ClassTable::Lookup`. Its four-byte TableSlot combines a native
+pointer truncated to 32 bits with three descriptor-hash bits, then reconstructs
+an absolute pointer before constructing a GcRoot. The original runtime passes
+in the same CI run, while the adapted MemMap/CardTable preflight already passes.
+
+Add a preflight regression using the actual TableSlot implementation before
+changing this representation. Cover all eight hash tags, empty and raw-encoded
+slots, copy/assignment, no-barrier reads, and visitor-driven unchanged, relocated
+and cleared roots. Encode pointers with the checked heap codec before applying
+the hash bits; strip the bits before decoding. The eight-byte object alignment
+leaves the same tag space in the offset. Preserve slot width, atomic update,
+hash comparison and null handling. Do not accept truncated pointers in the codec.
+
+Keep the original source and notices, and pin these three textual edits in
+`class-table-boundary.json`. The current scope is imageless interpreter startup;
+serialized image tables and compiled-code consumers still need their own
+acceptance before enabling those paths. Fatal codec diagnostics report the
+offending value and window so subsequent representation failures are traceable.

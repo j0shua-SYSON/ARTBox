@@ -92,6 +92,7 @@ def preserve_sources(output, sources, generated, toolchain=None):
       'platform/linux/no_codegen.h','fixtures/art-runtime/codegen_policy.cpp']
     project += ['docs/m3-high-heap-runtime.md','third_party/art/managed-storage-boundary.json',
       'third_party/art/interpreter-arguments-boundary.json','third_party/art/managed-window-boundary.json',
+      'third_party/art/class-table-boundary.json',
       'third_party/art/adapters/artbox_art_heap.h','third_party/art/adapters/managed_heap.cpp',
       'fixtures/art-references/artbox_art_reference_bridge.h','fixtures/art-runtime/heap_window.cpp',
       'core/include/artbox/vm.h','core/include/artbox/managed_reference.h',
