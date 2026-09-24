@@ -4,7 +4,6 @@ import sys
 sys.dont_write_bytecode = True
 
 import argparse
-import base64
 import hashlib
 import json
 import os
@@ -43,7 +42,8 @@ def source_archive(spec, cache):
         raise RuntimeError("Source archive cache files must not be symlinks")
     if not archive.is_file():
         with partial.open("wb") as output:
-            subprocess.run(["gh", "api", f"repos/{spec['repository']}/tarball/{spec['commit']}"],
+            subprocess.run(["gh", "api", f"https://codeload.github.com/{spec['repository']}/legacy.tar.gz/{spec['commit']}",
+                            "-H", "Authorization:"],
                            stdout=output, check=True)
         verify_archive(partial, spec)
         partial.replace(archive)
@@ -178,8 +178,13 @@ def obtain_files(name, spec, cache):
                 raise RuntimeError("Cached source file is missing or escapes its tree")
             if path.stat().st_size != entry["bytes"]:
                 raise RuntimeError("Source file size differs from the pin")
-            if hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"]:
+            data = path.read_bytes()
+            if hashlib.sha256(data).hexdigest() != entry["sha256"]:
                 raise RuntimeError("Source file SHA-256 differs from the pin")
+            if "git_blob" in entry:
+                identity = hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
+                if identity != entry["git_blob"]:
+                    raise RuntimeError("Git blob content differs from the pin")
 
     parent = cache / "sources"
     parent.mkdir(parents=True, exist_ok=True)
@@ -200,24 +205,11 @@ def obtain_files(name, spec, cache):
                 for entry in selected.values():
                     path = stage / entry["path"]
                     path.parent.mkdir(parents=True, exist_ok=True)
-                    if "git_blob" in entry:
-                        endpoint = f"repos/{spec['repository']}/git/blobs/{entry['git_blob']}"
-                        blob = json.loads(subprocess.check_output(["gh", "api", endpoint]))
-                        if blob.get("encoding") != "base64" or blob.get("size") != entry["bytes"] or \
-                                blob.get("sha") != entry["git_blob"]:
-                            raise RuntimeError("Git blob metadata differs from the pin")
-                        try:
-                            data = base64.b64decode("".join(blob["content"].split()), validate=True)
-                        except ValueError as error:
-                            raise RuntimeError("Invalid Git blob encoding") from error
-                        identity = hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
-                        if len(data) != entry["bytes"] or identity != entry["git_blob"]:
-                            raise RuntimeError("Git blob content differs from the pin")
-                        path.write_bytes(data)
-                        continue
-                    endpoint = f"repos/{spec['repository']}/contents/{quote(entry['path'], safe='/')}?ref={spec['commit']}"
+                    # Public pinned files do not need the installation's REST
+                    # quota. Keep gh transport and verify every byte below.
+                    endpoint = f"https://raw.githubusercontent.com/{spec['repository']}/{spec['commit']}/{quote(entry['path'], safe='/')}"
                     with path.open("wb") as output:
-                        subprocess.run(["gh", "api", endpoint, "-H", "Accept: application/vnd.github.raw+json"],
+                        subprocess.run(["gh", "api", endpoint, "-H", "Authorization:"],
                                        stdout=output, check=True)
             verify(stage)
             (stage / ".artbox-source.json").write_text(json.dumps(spec, indent=2) + "\n", encoding="utf-8")

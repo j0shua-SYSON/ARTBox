@@ -846,6 +846,9 @@ bytes through CLI output, then check the Git identity and SHA-256. A binary
 fixture containing invalid UTF-8 and zero bytes tests this path and rejects
 corrupted content before installation.
 
+ADR 0052 later replaces the REST transport with public raw/codeload downloads;
+the pinned binary identity and file-integrity requirements remain unchanged.
+
 ## 0035: Build implementation class libraries from selected AOSP Java sources
 
 Status: accepted for the M3 class-library prerequisite; runtime boot pending.
@@ -1254,3 +1257,22 @@ Archive both profiles independently with their exact source edits and binaries.
 This repeats compilation but preserves a useful comparison and catches inline
 header ABI mismatches. Codec-call cost and the 4 GiB reservation's practical
 budget remain unmeasured until execution. See [the profile](m3-high-heap-runtime.md).
+
+## 0052: Fetch pinned public source bytes without consuming the REST quota
+
+Status: live transport and local integrity tests pass; CI revalidation pending.
+
+At `385a02d`, Mac host and class-library jobs fail during source downloads with
+GitHub installation API rate-limit errors. The larger runtime matrix increases
+concurrent fresh source acquisition. Use `gh api` with GitHub's public raw-content
+URLs for selected files and codeload legacy archives for pinned tarballs. Keep
+the immutable commit, file sizes, SHA-256, reviewed notices, safe staging and
+cache revalidation. For binary pins, compute and check the recorded Git blob
+identity from the raw bytes as well. Public source requests use an explicit empty
+Authorization header; repository operations retain the configured credentials.
+
+Live probes verify a complete 27-file liblog selection, the exact pinned 50,151-byte
+compat archive and the 16,688,724-byte R8 binary including its Git blob identity.
+Eleven extraction/transport tests retain corruption, traversal, incomplete install,
+binary-byte and cache checks and add encoded-path coverage. No source selection,
+license requirement or CI acceptance test is removed.
