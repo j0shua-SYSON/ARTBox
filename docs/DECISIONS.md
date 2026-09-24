@@ -1235,7 +1235,7 @@ file-backed image maps require a separate tested extension.
 
 ## 0051: Run the complete high-heap ART variant beside its original reference
 
-Status: high-heap hello passes at 5acd098; explicit GC fails at large-object bitmap extent.
+Status: full high-heap hello, GC, exception and lifecycle acceptance passes at 71f398e on native Linux.
 
 Focused storage tests cannot prove that every live ART caller uses the same
 representation. Build a second full runtime with the reviewed reference,
@@ -1284,7 +1284,7 @@ license requirement or CI acceptance test is removed.
 
 ## 0053: Keep class-table hash tags while encoding heap-relative roots
 
-Status: native slot regression, full startup and hello DEX pass at 5acd098; GC needs a separate fix.
+Status: native slot regression passes at 5acd098; full high-heap GC/lifecycle also passes at 71f398e.
 
 The first full high-heap startup at `0979faf` aborts in the checked reference
 encoder during `ClassTable::Lookup`. Its four-byte TableSlot combines a native
@@ -1308,7 +1308,7 @@ offending value and window so subsequent representation failures are traceable.
 
 ## 0054: Place large-object live and mark bitmaps over the owned heap window
 
-Status: regression and source adaptation implemented; native execution pending.
+Status: constructor/bitmap regression and full high-heap managed acceptance pass at 71f398e.
 
 After the class-table fix, `5acd098` starts the high-heap VM and runs the hello
 DEX, then fails the existing managed fixture's explicit collection.

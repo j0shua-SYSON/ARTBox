@@ -28,6 +28,9 @@ execution remains unverified. Runtime milestones take priority over launcher UI.
   through the switch interpreter with JIT and profiling caches disabled. Its
   managed graph survives explicit collection; exceptions and native-thread
   attachment, detachment and VM shutdown checks pass.
+- M3 high heap: the adapted full runtime also passes that suite on native Linux
+  ARM64 at `71f398e`, with checked references and an owned 4 GiB heap window.
+  This validates managed allocation and collection before Apple ABI integration.
 
 See [M2 acceptance](acceptance/m2.md) for exact revisions, CI links, artifact
 hashes, counts and limitations. One traced Mac process takes 17.503 ms for
@@ -122,11 +125,15 @@ then aborts in the checked encoder during class-table lookup: that slot still
 stores truncated absolute pointers. At `5acd098`, the actual AOSP slot regression
 passes for all hash tags, copies and root updates. The high-heap runtime starts
 in 77.128 ms and executes the real hello DEX, then fails its explicit GC check
-because the large-object bitmaps still describe the low 4 GiB. Their extent
-adaptation and constructor/bit-operation regression await native validation.
-Downloaded build and startup payloads and sources verify. The original
-absolute-address runtime passes in the same CI run and remains separately
-required; high-heap GC/lifecycle and Apple execution are still incomplete.
+because the large-object bitmaps still describe the low 4 GiB. At `71f398e`,
+their extent adaptation and constructor/bit-operation regression pass, and the
+full high-heap suite passes GC, exceptions, four attachment cycles and shutdown.
+All required host and iOS build CI is green. Downloaded build/startup payloads,
+sources and unchanged executable mappings verify. High-heap startup takes
+79.516 ms with peak RSS 32,624 KiB in this one Linux correctness run; see the
+linked profile for the paired original-runtime observations and their limits.
+The original runtime remains separately required. Apple ART execution still
+needs native ABI/TLS, signal, dependency and signed-package integration.
 The [M3 contract](m3-contract.md) remains unmet until those execution and shared
 iOS requirements pass. AOT/OAT execution and host dex2oat are still future work;
 M3 permits interpreter-only acceptance. M4-M7 follow M3 acceptance.

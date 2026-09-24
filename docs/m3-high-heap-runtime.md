@@ -68,14 +68,49 @@ At `5acd098`, the class-table preflight passes, the high-heap runtime starts in
 managed suite then aborts in `LargeObjectSpace::Sweep`: its live/mark bitmaps
 still start at address zero and cover only the low 4 GiB. The original runtime
 passes in the same [CI run](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35956754203).
-The bitmap regression and extent adaptation now await native validation. Do not
-count this hello result as complete GC, lifecycle or Apple runtime acceptance.
+The bitmap regression and extent adaptation pass at `71f398e`, including the
+complete managed GC, exception, thread and shutdown suite. Both full runtime
+profiles and all other [host checks](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35958186945)
+pass; the [iOS build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35958186934)
+also passes. This is native Linux evidence; the iOS app still contains earlier diagnostics.
 
 Downloaded build evidence verifies 90 project inputs, 1,425 upstream files,
 16 source adaptations, 463 compiled sources/objects and both linked binaries.
 Startup evidence verifies 18 payload hashes, 103 canonical project files across
 five source archives, all eleven code-generation denial cases and the failure
 log. These are single-run correctness observations, not throughput measurements.
+
+## Verified managed execution at 71f398e
+
+Both runtime profiles execute the same DEX, preserve the rooted cyclic graph and
+virtual-dispatch checksum 6496 across GC count 0 to 1, catch both expected
+exceptions, complete four attachment cycles and destroy the VM with no remaining
+registration. The high profile passes all three preflight contracts. Its window
+starts at native address 280588879659008 with a 4096-byte guard. All eleven
+code-generation denial cases pass, and all 18 executable mappings remain
+unchanged through shutdown with no writable executable mapping.
+
+| Observation | Original references | Managed window |
+| --- | ---: | ---: |
+| VM startup | 63.948 ms | 79.516 ms |
+| Full diagnostic process | 116.086 ms | 116.107 ms |
+| Peak process RSS | 27,808 KiB | 32,624 KiB |
+| Observed managed allocation | 637,920 bytes | 637,920 bytes |
+| Mapped virtual bytes after checks | 1,102,565,376 | 4,928,974,848 |
+| Mapped virtual bytes after shutdown | 549,445,632 | 549,601,280 |
+
+The high run reports a 1.458 ms explicit semispace collection, including a
+1.418 ms pause. These are single correctness runs on separate Linux CI runners;
+they do not isolate codec overhead, establish steady-state performance or prove
+an iPhone memory budget.
+
+The downloaded high-runtime build verifies 90 project inputs, 1,425 upstream
+files, 17 adaptations and 463 compiled sources/objects. Both startup artifacts
+verify their 18 payload hashes, five corresponding-source archives, canonical
+project inputs, denial tests and complete mapping records. The high runtime
+library SHA-256 is `c9aa28ef0e77029cb83dff0083079c80d0ea9692602a3c18eaf8c9b6e832c312`.
+The next integration boundary is source-built Bionic TLS, signals and native
+dependencies inside the existing signed Apple library packaging.
 
 Compile success does not establish startup, GC correctness or performance.
 The expected next failures to investigate are
