@@ -135,14 +135,18 @@ verified inputs; it is not yet a signed or executed ICU artifact.
 The public ICU pipeline now requires all producers to share a Git revision,
 checks the actual dependency closure and packages five libraries as Mac/iOS 15
 frameworks. At `d68dd3e`, signing and the complete host/iOS workflows pass,
-including both Linux ART startup profiles. A separate guest test image now
-connects the original eight ICU groups to the shared ten-image runtime; its
-first execution is pending. It stages pinned data through the rooted filesystem
-and releases ICU data/caches before teardown, without invoking JNI_OnLoad.
+including both Linux ART startup profiles. At `ecf9000`, a separate guest image
+passes the original eight ICU groups through the shared ten-image Mac runtime.
+It loads pinned data through the rooted filesystem and releases ICU data/caches
+before teardown, without invoking JNI_OnLoad. All 33 constructors return.
+Independent checks verify 480 upstream objects plus the caller, twelve signed
+framework layouts and the execution report. The ICU check takes 1.381 ms in one
+Mac run; see [scope and timings](m3-native-libraries.md). Apple JavaVM/DEX
+acceptance remains incomplete, and the integrated IPA is still the M1/M2 diagnostic.
 Source review identified ICU's required `MADV_RANDOM` call. Anonymous/file
 regressions reproduce its rejection; the portable implementation now accepts
-the nonbinding hint after validation. All 25 local tests pass, with native Linux
-comparisons pending. Read-ahead tuning remains unchanged.
+the nonbinding hint after validation. All 25 local tests and the native Linux
+ARM64 comparisons pass at `ecf9000`. Read-ahead tuning remains unchanged.
 The [loader service queries](m3-loader-services.md) now cover named dependency
 scope, lookup after the caller and ELF address/image metadata. All 25 local
 host tests pass. The portable handle/error context also passes concurrent tests,

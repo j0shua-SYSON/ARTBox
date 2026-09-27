@@ -1569,8 +1569,8 @@ semantics tests. The full signed constructor test remains required in CI.
 ## 0068: Package Android ICU with the existing guest C++ runtime
 
 Status: local Android link and instruction inventory pass; public CI packaging
-and the complete workflows pass at `d68dd3e`. ICU execution through the Apple
-runtime is pending.
+and the complete workflows pass at `d68dd3e`. Eight ICU test groups execute
+through the signed Mac runtime at `ecf9000`; physical iOS execution is unverified.
 
 Keep nativehelper, ICU common, internationalization, shim and JNI registration
 as five ELF libraries wrapped in signed frameworks. Link their base/log/C++
@@ -1598,7 +1598,8 @@ Continue to run the existing four-image ART and M2 acceptance paths separately.
 ## 0069: Accept ICU's random-access hint without changing memory semantics
 
 Status: both anonymous and file regression tests fail before implementation;
-all 25 local host tests pass afterward. Native Linux comparisons are pending.
+all 25 local host tests pass afterward. Native Linux ARM64 comparisons pass at
+`ecf9000`, as does the unchanged ICU data loader through the signed Mac runtime.
 
 The unchanged ICU data loader maps its pinned data read-only/shared and then
 calls MADV_RANDOM. Rejecting that advice aborts initialization. Unlike DONTNEED,

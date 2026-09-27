@@ -191,8 +191,8 @@ ENOTSUP. This follows the distinction between caching hints and DONTNEED in
 the [Linux madvise contract](https://man7.org/linux/man-pages/man2/madvise.2.html).
 Anonymous range/error checks run through the same portable/Linux test sequence;
 injected private and read-only shared-file tests check absence of remapping,
-writeback and permission changes. Local regression tests pass; the new native
-Linux comparisons are pending CI.
+writeback and permission changes. Local regression tests and native Linux ARM64
+comparisons pass at `ecf9000`; the actual ICU data loader also passes on Mac ARM64.
 
 ### Initial proc snapshot
 

@@ -80,8 +80,23 @@ I18N and timezone environment variables are set before constructors run.
 python -B scripts/test_icu_guest.py --icu-dir build/m3/icu-guest-link --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
 ```
 
-The new guest caller compiles, links and passes instruction/layout checks locally;
-its first signed execution result is pending. Its report measures the ICU test
-entry including data initialization and cleanup, separately from total bootstrap
-time. The test looks up `JNI_OnLoad` without invoking it. JavaVM/DEX startup
-remains a separate M3 requirement.
+At `ecf9000`, the signed Mac ARM64 execution passes all eight groups, with 33
+constructors, ten loaded images, one TLS module and successful cleanup. Independent
+downloaded checks verify 141 canonical project inputs, 480 upstream objects plus
+the caller, 1,149 upstream source files, 639,501 decoded instructions, twelve
+framework layouts and 84 notice hashes. The 27,956,384-byte ICU data matches its
+pinned hash. The execution report additionally verifies the runner and its 64
+source inputs against the producer revision.
+
+| Mac diagnostic phase | One observed run |
+| --- | ---: |
+| Load, relocate and establish loader services | 41.313 ms |
+| Stack/thread setup, constructors, pre-start checks, ICU and join | 2.173 ms |
+| ICU test entry, including data initialization and cleanup, within the preceding phase | 1.381 ms |
+
+These are single-run diagnostics, not cold-start benchmarks or iPhone results.
+The [signed execution job](https://github.com/j0shua-SYSON/ARTBox/actions/runs/36298158383/job/108561531133)
+also retains the original four-image ART bootstrap and both M2 modes. The test
+looks up `JNI_OnLoad` without invoking it. No JavaVM starts and no DEX runs on
+Apple as part of this check; those remain M3 requirements. The integrated IPA
+still contains M1/M2 diagnostics without ART or ICU.
