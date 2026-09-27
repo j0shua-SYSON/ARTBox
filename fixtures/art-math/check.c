@@ -12,9 +12,10 @@
 
 enum operation {
     ACOS, ASIN, ATAN, ATAN2, CBRT, COS, COSH, EXP, EXPM1, FMOD,
-    FMODF, HYPOT, LOG, LOG10, NEXTAFTER, POW, SIN, SINH, TAN, TANH
+    FMODF, HYPOT, LOG, LOG10, NEXTAFTER, POW, SIN, SINH, TAN, TANH,
+    EXPF, TANHF, MODF_FRACTION, MODF_INTEGER
 };
-enum expectation { EXACT, CLOSE, NAN_RESULT };
+enum expectation { EXACT, CLOSE, NAN_RESULT, FLOAT_CLOSE };
 struct vector {
     enum operation op;
     enum expectation kind;
@@ -23,6 +24,7 @@ struct vector {
 #define E(op, a, b, value) {op, EXACT, a, b, value}
 #define C(op, a, b, value) {op, CLOSE, a, b, value}
 #define N(op, a, b) {op, NAN_RESULT, a, b, 0}
+#define F(op, a, value) {op, FLOAT_CLOSE, a, 0, value}
 static const struct vector vectors[] = {
     E(ACOS, 1, 0, 0), C(ACOS, 0, 0, 0x1.921fb54442d18p+0), N(ACOS, 2, 0),
     E(ASIN, -0.0, 0, -0.0), C(ASIN, 1, 0, 0x1.921fb54442d18p+0), N(ASIN, 2, 0),
@@ -58,7 +60,20 @@ static const struct vector vectors[] = {
     E(SINH, -INFINITY, 0, -INFINITY),
     E(TAN, -0.0, 0, -0.0), C(TAN, 1, 0, 0x1.8eb245cbee3a6p+0), N(TAN, INFINITY, 0),
     E(TANH, -0.0, 0, -0.0), C(TANH, 1, 0, 0x1.85efab514f394p-1),
-    E(TANH, INFINITY, 0, 1), E(TANH, -INFINITY, 0, -1), N(TANH, NAN, 0)
+    E(TANH, INFINITY, 0, 1), E(TANH, -INFINITY, 0, -1), N(TANH, NAN, 0),
+    E(EXPF, 0, 0, 1), E(EXPF, -0.0, 0, 1), E(EXPF, -INFINITY, 0, 0),
+    E(EXPF, INFINITY, 0, INFINITY), N(EXPF, NAN, 0),
+    F(EXPF, 1, 0x1.5bf0a8p+1), F(EXPF, -1, 0x1.78b564p-2), E(EXPF, 0x1p-149, 0, 1),
+    E(TANHF, -0.0, 0, -0.0), E(TANHF, 0, 0, 0),
+    E(TANHF, INFINITY, 0, 1), E(TANHF, -INFINITY, 0, -1), N(TANHF, NAN, 0),
+    F(TANHF, 1, 0x1.85efacp-1), F(TANHF, -1, -0x1.85efacp-1), E(TANHF, 0x1p-149, 0, 0x1p-149),
+    E(MODF_FRACTION, 3.75, 0, 0.75), E(MODF_INTEGER, 3.75, 0, 3),
+    E(MODF_FRACTION, -3.75, 0, -0.75), E(MODF_INTEGER, -3.75, 0, -3),
+    E(MODF_FRACTION, 4, 0, 0), E(MODF_INTEGER, 4, 0, 4),
+    E(MODF_FRACTION, -4, 0, -0.0), E(MODF_INTEGER, -4, 0, -4),
+    E(MODF_FRACTION, INFINITY, 0, 0), E(MODF_INTEGER, INFINITY, 0, INFINITY),
+    E(MODF_FRACTION, -INFINITY, 0, -0.0), E(MODF_INTEGER, -INFINITY, 0, -INFINITY),
+    N(MODF_FRACTION, NAN, 0), N(MODF_INTEGER, NAN, 0)
 };
 
 static uint64_t bits(double value) {
@@ -74,6 +89,12 @@ static double evaluate(enum operation op, double a, double b) {
     case HYPOT: return hypot(a, b); case LOG: return log(a); case LOG10: return log10(a);
     case NEXTAFTER: return nextafter(a, b); case POW: return pow(a, b);
     case SIN: return sin(a); case SINH: return sinh(a); case TAN: return tan(a); case TANH: return tanh(a);
+    case EXPF: return expf((float)a); case TANHF: return tanhf((float)a);
+    case MODF_FRACTION: case MODF_INTEGER: {
+        double integer;
+        double fraction = modf(a, &integer);
+        return op == MODF_FRACTION ? fraction : integer;
+    }
     }
     return NAN;
 }
@@ -90,6 +111,12 @@ uint32_t artbox_math_check(void) {
         } else if (v->kind == CLOSE && (actual >> 63) == (expected >> 63) &&
                    (actual > expected ? actual - expected : expected - actual) <= 2) {
             continue;
+        } else if (v->kind == FLOAT_CLOSE) {
+            union { double value; uint64_t bits; } converted = { .bits = actual };
+            union { float value; uint32_t bits; } a = { .value = (float)converted.value },
+                                                e = { .value = (float)v->expected };
+            if ((a.bits >> 31) == (e.bits >> 31) &&
+                (a.bits > e.bits ? a.bits - e.bits : e.bits - a.bits) <= 2) continue;
         }
         return i + 1;
     }

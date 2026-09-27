@@ -472,3 +472,9 @@ Apache-2.0 `runtime/gc/collector/mark_compact.cc` at the same ART pin. Original
 and adapted source, notices and the extracted feature-probe test input accompany
 native guest build artifacts. The injected-syscall fixture is original MIT code;
 no additional upstream dependency is introduced.
+
+The ICU dependency expansion selects unchanged `strcat`, `strncat` and `div`
+sources from Bionic's OpenBSD subtree (BSD-3-Clause), plus FreeBSD-subtree
+`expf`, `tanhf`, `expm1f` and `modf` sources carrying Sun's permissive
+notice-preservation terms. All remain at the existing Bionic pin. Their source
+headers and the complete Bionic libc/libm notices accompany the artifacts.

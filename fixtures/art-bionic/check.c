@@ -79,5 +79,24 @@ int artbox_art_bionic_check(void) {
     for (unsigned i = 0; i < 4; ++i) same &= rand() == sequence[i];
     CHECK(same);
     CHECK(sequence[0] >= 0 && sequence[0] <= RAND_MAX);
+
+    char joined[16];
+    memset(joined, '?', sizeof(joined));
+    joined[0] = 0;
+    CHECK(strcat(joined, "ART") == joined && !strcmp(joined, "ART") && joined[4] == '?');
+    CHECK(strcat(joined, "Box") == joined && !strcmp(joined, "ARTBox") && joined[7] == '?');
+    CHECK(strcat(joined, "") == joined && !strcmp(joined, "ARTBox") && joined[7] == '?');
+    const char nonterminated[] = {'x', 'y', 'z'};
+    CHECK(strncat(joined, nonterminated, 2) == joined && !strcmp(joined, "ARTBoxxy") && joined[9] == '?');
+    CHECK(strncat(joined, nonterminated, 0) == joined && !strcmp(joined, "ARTBoxxy") && joined[9] == '?');
+    CHECK(strncat(joined, "!", 3) == joined && !strcmp(joined, "ARTBoxxy!") && joined[10] == '?');
+    const int divisions[][4] = {
+        {17, 5, 3, 2}, {-17, 5, -3, -2}, {17, -5, -3, 2}, {-17, -5, 3, -2},
+        {INT_MIN, 2, INT_MIN / 2, 0}, {INT_MAX, INT_MAX, 1, 0}
+    };
+    for (unsigned i = 0; i < sizeof(divisions) / sizeof(divisions[0]); ++i) {
+        div_t value = div(divisions[i][0], divisions[i][1]);
+        CHECK(value.quot == divisions[i][2] && value.rem == divisions[i][3]);
+    }
     return cases;
 }

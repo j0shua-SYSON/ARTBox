@@ -480,6 +480,18 @@
       "-DHAVE_STDBOOL_H",
       "-DWILDABBR=\"\"",
       "-Dlint"
+    ],
+    "libc/upstream-openbsd/lib/libc/string/strcat.c": [
+      "-include",
+      "openbsd-compat.h"
+    ],
+    "libc/upstream-openbsd/lib/libc/string/strncat.c": [
+      "-include",
+      "openbsd-compat.h"
+    ],
+    "libc/upstream-openbsd/lib/libc/stdlib/div.c": [
+      "-include",
+      "openbsd-compat.h"
     ]
   },
   "sources": [
@@ -714,7 +726,10 @@
     "libc/tzcode/localtime.c",
     "libc/tzcode/strftime.c",
     "libc/tzcode/asctime.c",
-    "libc/tzcode/bionic.cpp"
+    "libc/tzcode/bionic.cpp",
+    "libc/upstream-openbsd/lib/libc/string/strcat.c",
+    "libc/upstream-openbsd/lib/libc/string/strncat.c",
+    "libc/upstream-openbsd/lib/libc/stdlib/div.c"
   ],
   "generated_sources": [
     "generated/syscalls-arm64.S"
@@ -780,6 +795,9 @@
     "libc/tzcode/localtime.c": "94734ca974ae7205dccef40dfcface2c3520ae67c932fb3af7aec1fd47e35b92",
     "libc/tzcode/strftime.c": "74f31a121aa8bcff9d09655d3f160bc2195cb5ebe563dda390cab1be62dafbde",
     "libc/tzcode/asctime.c": "9d7501e944a38ef3cbf82ece46c59c41db1c7cbab76d271a0d3fc7dc16455fb9",
-    "libc/tzcode/bionic.cpp": "2e6e56ae6be660610af310948f02d121d208abae96343869c505601035ea2856"
+    "libc/tzcode/bionic.cpp": "2e6e56ae6be660610af310948f02d121d208abae96343869c505601035ea2856",
+    "libc/upstream-openbsd/lib/libc/string/strcat.c": "5e06fef7f93b127632998a68932fe4262e13abb236ef9eeecb47d5e3e64d7045",
+    "libc/upstream-openbsd/lib/libc/string/strncat.c": "489dce0c14b973e604b770c99b63f5ca6e33ed33f5a804c39854fd21e1d3d277",
+    "libc/upstream-openbsd/lib/libc/stdlib/div.c": "a5fefd9e613f3eb8fc1184a624c8999b3acae2e4725d18b8c817b18b611f8b09"
   }
 }

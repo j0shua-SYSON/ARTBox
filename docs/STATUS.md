@@ -111,7 +111,8 @@ thread/signal boundaries and integrate the runtime into signed macOS/iOS builds.
 The [LLVM context boundary](m3-unwind-context.md) passes four checks on signed Mac
 and native Linux at `bba15cd`; the original Linux control changes the reserved
 register as expected. Both source-built objects match their NDK counterparts,
-and the adapted iOS 15 framework is verified. The full guest runtime is not linked yet.
+and the adapted iOS 15 framework is verified. The full guest link includes that
+reviewed restore object.
 The [source-built math dependency](m3-math.md) now selects the 20 math imports
 needed by ART, with a separate 78-case dynamic client. All cases pass on signed
 Mac code, the identical Android libraries on Linux, and Linux system libm at
@@ -122,6 +123,14 @@ source units and a separate 30-case libc client. Both signed Mac modes and
 native Linux pass at `a3e46d6`, with the M2 scores unchanged at 328/328.
 The complete workflows and downloaded iOS 15 diagnostic IPA verify. Compiled
 wrappers do not imply new kernel-service support; the IPA still contains no ART.
+All 480 Android ICU/JNI units now compile locally. A diagnostic link identifies
+six additional math/libc imports. Expanded 108-case math and 42-case libc clients
+reproduce their missing-symbol failures before the unchanged AOSP implementations
+are added. Native execution of those expanded suites and signed ICU integration
+are pending; this does not replace the previously verified dependency results.
+The updated local link resolves all strong imports of the five ICU/JNI libraries
+against the guest dependency set. This diagnostic uses local objects and earlier
+verified inputs; it is not yet a signed or executed ICU artifact.
 The [loader service queries](m3-loader-services.md) now cover named dependency
 scope, lookup after the caller and ELF address/image metadata. All 25 local
 host tests pass. The portable handle/error context also passes concurrent tests,

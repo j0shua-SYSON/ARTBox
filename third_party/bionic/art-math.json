@@ -30,7 +30,11 @@
     "libm/upstream-freebsd/lib/msun/src/s_tanh.c": "e5fa6548b28d252eee832195c5a648e530b885ca174ecc4ddd353d6a3574d32b",
     "libm/upstream-freebsd/lib/msun/src/s_creal.c": "dce6d910f23e579a24717d16ac3ad4312942baa886bb498394a2e499ca08a471",
     "libm/upstream-freebsd/lib/msun/src/s_cimag.c": "757d621dde9ee148fa6227081fe3c10b90fbfa212aa3f5efd2759a061997476a",
-    "libm/builtins.cpp": "8f0fb4deea3195fa28ce04941b2f7e48df7fa0ff9a4b21720fbef629c4b1691b"
+    "libm/builtins.cpp": "8f0fb4deea3195fa28ce04941b2f7e48df7fa0ff9a4b21720fbef629c4b1691b",
+    "libm/upstream-freebsd/lib/msun/src/e_expf.c": "8f879672975daad57859781fea01f2be9462c53b7382c1e4586bb08f77eadbda",
+    "libm/upstream-freebsd/lib/msun/src/s_tanhf.c": "ed0e5f55028e1546df1187c948a705a97ff99660d649adde836109188594b56e",
+    "libm/upstream-freebsd/lib/msun/src/s_expm1f.c": "5151d6f3b80b7ea9c25d61bd2c09648564c0335450c241689b5ef0fe6ad9be7a",
+    "libm/upstream-freebsd/lib/msun/src/s_modf.c": "4264aa888158d81ab6690f8a688bf69b1e667bb22bd8e85159c96ed09e296047"
   },
   "arm_math_sources": [
     "math/exp.c",

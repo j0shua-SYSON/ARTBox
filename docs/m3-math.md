@@ -1,18 +1,20 @@
 # M3 source-built math dependency
 
-ART's current Android build imports 20 math entry points absent from the M2
+ART and its ICU dependencies import 23 math entry points absent from the M2
 Bionic subset. Build those functions from the pinned Android 15 Bionic libm
 and ARM optimized routines. Keep the original algorithms and AOSP compiler
 settings, including the BSD no-errno policy. Do not forward Android long double
 arguments into Apple's different ABI.
 
-The selection contains 28 Bionic units and seven ARM units. Android compiler-rt
+The selection contains 32 Bionic units and seven ARM units. Android compiler-rt
 provides binary128 arithmetic used internally by the BSD implementation. The
 result is a `libm.so` subset with no external imports; it is not a complete
-Android math library. The separate original NDK client imports all 20 functions
-through `DT_NEEDED`. Its 78 vectors cover ordinary values, signed zeros,
+Android math library. The separate original NDK client imports all 23 functions
+through `DT_NEEDED`. Its 108 vectors cover ordinary values, signed zeros,
 NaN/infinity, subnormal boundaries and large trigonometric arguments. Normal
-transcendental results allow two ULP; exact cases require identical bits.
+transcendental results allow two ULP in the function's result precision; exact
+cases require identical bits. The ICU additions exercise expf/tanhf and both
+outputs of modf, including negative integral inputs and infinities.
 This is not exhaustive accuracy, errno or floating-point-environment coverage.
 
 `scripts/test_art_math.py` builds both libraries, checks their instructions and
@@ -47,3 +49,11 @@ Mach-O layout, payloads and hashes. Device execution remains unverified.
 
 This dependency does not establish ART startup on Apple platforms, and the
 integrated M2 IPA does not yet contain it.
+
+The ICU dependency link exposed expf, tanhf and modf as missing imports. The new
+108-vector client fails to link against the prior subset before their addition.
+Four unchanged files at the existing AOSP pin add those functions and tanhf's
+expm1f dependency, retaining their Sun permission notices. The expanded Android
+libraries compile and pass instruction/layout checks locally; their signed Mac
+and native Linux execution results are still pending. The 78-case evidence above
+describes the earlier revision, not validation of the new vectors.

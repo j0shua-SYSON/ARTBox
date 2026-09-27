@@ -77,10 +77,10 @@ int main(int argc, char **argv) {
               symbol.type == 2 && symbol.value % 4 == 0 && symbol.value < elf[0].segments[0].file_size &&
               symbol.size <= elf[0].segments[0].file_size - symbol.value);
         uint32_t observed = (uint32_t)artbox_call7((void *)(uintptr_t)entry, 0, 0, 0, 0, 0, 0, 0);
-        if (observed != (i ? 0 : 78)) { fprintf(stderr, "%s returned %u\n", checks[i], observed); return 1; }
+        if (observed != (i ? 0 : 108)) { fprintf(stderr, "%s returned %u\n", checks[i], observed); return 1; }
     }
     artbox_load_group_destroy(group);
     for (unsigned i = 0; i < 2; ++i) { CHECK(!dlclose(library[i])); free(original[i]); }
-    puts("{\"cases\":78,\"first_failure\":0,\"cleanup\":true}");
+    puts("{\"cases\":108,\"first_failure\":0,\"cleanup\":true}");
     return 0;
 }

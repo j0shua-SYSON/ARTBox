@@ -356,7 +356,7 @@ static void *run(void *context) {
     fprintf(stderr, "NDK allocator client entry\n");
     result = (int32_t)artbox_call7(entry(&images[1], "artbox_startup_check"), 0, 0, 0, 0, 0, 0, 0);
     art_libc_cases = (int32_t)artbox_call7(entry(&images[1], "artbox_art_bionic_check"), 0, 0, 0, 0, 0, 0, 0);
-    if (art_libc_cases != 30) {
+    if (art_libc_cases != 42) {
         fprintf(stderr, "ART libc caller: %" PRId64 "\n", art_libc_cases);
         fail("ART libc dependency acceptance");
     }

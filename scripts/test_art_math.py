@@ -16,8 +16,8 @@ from ndk import obtain as obtain_ndk
 from bionic_adapt import inventory
 from dynamic_bundle import prepare
 
-EXPECTED = {'cases': 78, 'first_failure': 0, 'cleanup': True}
-IMPORTS = sorted('acos asin atan atan2 cbrt cos cosh exp expm1 fmod fmodf hypot log log10 nextafter pow sin sinh tan tanh'.split())
+EXPECTED = {'cases': 108, 'first_failure': 0, 'cleanup': True}
+IMPORTS = sorted('acos asin atan atan2 cbrt cos cosh exp expf expm1 fmod fmodf hypot log log10 modf nextafter pow sin sinh tan tanh tanhf'.split())
 
 
 def digest(path):
@@ -165,8 +165,8 @@ def build(args, output, artifacts):
                 runner = Path(os.environ['ARTBOX_BUILD_DIR']) / 'host/artbox_native_art_math'
                 report['native'] = execute(runner, [frameworks['client'], client, frameworks['library'], library], output / 'native.log')
             save(artifacts / 'm3-art-math.json', report)
-    print('Source-built math: 35 units and 20 client imports linked; ' +
-          ('78 signed Mac cases pass, iOS 15 frameworks verified' if sys.platform == 'darwin' else 'native execution pending'))
+    print(f'Source-built math: {len(records)} units and {len(IMPORTS)} client imports linked; ' +
+          ('108 signed Mac cases pass, iOS 15 frameworks verified' if sys.platform == 'darwin' else 'native execution pending'))
 
 
 def linux(args, output, artifacts):
@@ -197,7 +197,7 @@ def linux(args, output, artifacts):
     save(artifacts / 'm3-art-math-linux.json', {'project_commit': record['project_commit'],
          'guest': observed, 'system_reference': native,
          'mac_report_sha256': digest(evidence / 'artifacts/m3-art-math.json')})
-    print('Native Linux: 78 Android math cases and 78 system-libm reference cases pass')
+    print('Native Linux: 108 Android math cases and 108 system-libm reference cases pass')
 
 
 def main():
