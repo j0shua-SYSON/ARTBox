@@ -113,14 +113,23 @@ binary, stdout and framework checks verify this result. All 17 host CI jobs and
 the iOS build pass. The integrated 1,138,166-byte diagnostic IPA verifies seven
 iOS 15 images and empty entitlements; it still does not contain ART.
 
-The next change adds portable alternate-stack registration and an Apple stack
-switch for returning handlers. A guarded host alternate stack holds conversion
-work while the Linux frame and Android callback use the guest-selected stack.
-Local stack tests cover Linux wire layout, publication, clone reset and active
-stack rejection. A native caller checks SA_ONSTACK selection, its absence,
-handler queries and a separate Bionic worker; native execution is pending CI.
-Other fault signals, handler mask changes and unblocked queued delivery remain
-incomplete. JavaVM/JNI/DEX execution on Apple remains the M3 acceptance target.
+At `e7e1647`, alternate-stack registration and delivery pass on signed ARM64 Mac
+and native Linux: 17 shared wire cases, 24 handler/worker checks, a near-guard SP
+and a missing-SA_ONSTACK control. Both Bionic modes and the identical Linux wire
+object pass. All 17 host CI jobs and the iOS build are green. The independently
+verified 1,145,107-byte diagnostic IPA has seven iOS 15 images, four ELF layouts,
+32 notices and empty entitlements. It contains no ART runtime. Compiled snapshots
+have no function calls; the signed stack bridge restores host SP and preserves x18.
+
+The next change makes mask/pending transitions coherent so a handler can change
+its mask while another thread queues a signal. Local tests pass 4,096 enqueue/
+unmask races and exercise the handler API while the mapper lock is held. Apple
+ARM64 uses lock-free 128-bit transitions; other targets retain ordinary-context
+support without advertising handler mutation. The new signed/native Linux
+caller tests action masks, handler mask changes, stable image buffers and an
+edited return mask that preserves a queued signal. Native validation is pending.
+Other fault signals, supported-action-flag negotiation and unblocked queued
+delivery remain incomplete. JavaVM/JNI/DEX execution on Apple is still required.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

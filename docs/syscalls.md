@@ -222,7 +222,7 @@ registration, Linux siginfo, TLS/errno and PC/x0/SIMD resume. Both signed Bionic
 modes, native Linux and complete CI pass at `2aa064f`. Other fault signals and
 asynchronous unblocked delivery remain open; see [the signal contract](m3-signals.md).
 
-### Alternate stacks (native CI pending)
+### Alternate stacks (verified at e7e1647)
 
 | ARM64 call | Implemented subset | Deliberate limits |
 | --- | --- | --- |
@@ -233,7 +233,20 @@ asynchronous unblocked delivery remain open; see [the signal contract](m3-signal
 Local tests cover the 17-case shared wire contract, immutable snapshots, bounds,
 clone reset and capacity. The native caller adds 24 handler/worker checks and a
 missing-SA_ONSTACK control. Its Linux comparison uses the identical wire object
-and the same handler source with Linux libc. Native execution is pending.
+and the same handler source with Linux libc. Both Bionic modes, native Linux and
+all CI jobs pass at `e7e1647`; downloaded hashes and stdout verify independently.
+
+### Handler masks (native CI pending)
+
+| ARM64 call | Implemented subset | Deliberate limits |
+| --- | --- | --- |
+| rt_sigprocmask 135 in handler | BLOCK/UNBLOCK/SETMASK and query; unmaskable filtering; Linux input and copyout ordering; coherent mask/pending publication | Requires the lock-free ARM64 backend. Copies use attached stacks and stable image ranges, with RO input only. Pending signals that would become unblocked return ENOTSUP without mutation. |
+| rt_sigaction 134 extension | Action mask is published along with automatic self-blocking before the guest callback | Initial delivery still requires a returning SIGTRAP handler; flag negotiation and other fault transports remain open. |
+| signal return | Validated ucontext mask edits restore shared state after the callback | Unsupported pending-unblock delivery returns an error while retaining the queue. No guest rt_sigreturn syscall or nonlocal handler exit is provided. |
+
+Local tests cover 4,096 enqueue/unmask races and the mapper-lock-held update path.
+The signed Android and same-source Linux caller add 18 handler checks, a queued
+signal across return and an omitted-unblock control. Native validation is pending.
 
 ### File-backed data mapping extension (native CI green at b1a94c5)
 

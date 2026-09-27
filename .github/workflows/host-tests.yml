@@ -224,6 +224,7 @@ jobs:
             build/m2/bionic-startup/signal-handler.o
             build/m2/bionic-startup/signal-stack.o
             build/m2/bionic-startup/signal-stack-handler.o
+            build/m2/bionic-startup/signal-mask-handler.o
             build/m2/bionic-startup/libartbox_versions.so
             build/m2/bionic-startup/version-client.o
             build/m2/bionic-startup/libartbox_tls.so
@@ -498,6 +499,8 @@ jobs:
         run: python3 -B scripts/test_signal_handler.py
       - name: Establish alternate-stack layout and native handler stack selection
         run: python3 -B scripts/test_signal_stack.py
+      - name: Establish handler mask mutation and pending-signal return behavior
+        run: python3 -B scripts/test_signal_mask.py
       - name: Compare portable kernel services with native Linux ARM64
         run: python3 -B scripts/build.py host
       - name: Preserve the loader reference binaries and result
@@ -513,6 +516,7 @@ jobs:
             build/m3/signal-wait-reference/
             build/m3/signal-handler-reference/
             build/m3/signal-stack-reference/
+            build/m3/signal-mask-reference/
             build/host/signal-context/
             build/host/test_signal_context_linux
             build/host/Testing/Temporary/LastTest.log
@@ -570,6 +574,8 @@ jobs:
         run: python3 -B scripts/test_signal_handler.py --evidence-root build/oracle
       - name: Compare signed Bionic alternate-stack behavior with native Linux
         run: python3 -B scripts/test_signal_stack.py --evidence-root build/oracle
+      - name: Compare signed Bionic handler masks with native Linux
+        run: python3 -B scripts/test_signal_mask.py --evidence-root build/oracle
       - name: Compare ART libc dependency calls with native Linux
         run: python3 -B scripts/test_art_bionic.py --evidence-root build/oracle
       - name: Compare numeric resolver and bounded string calls with native Linux
@@ -607,6 +613,7 @@ jobs:
             build/m3/signal-wait-oracle/
             build/m3/signal-handler-oracle/
             build/m3/signal-stack-oracle/
+            build/m3/signal-mask-oracle/
             artifacts/m2-futex-linux.json
             artifacts/m2-files-linux.json
             artifacts/m2-versioned-linux.json

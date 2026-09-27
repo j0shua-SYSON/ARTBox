@@ -98,8 +98,8 @@ M2 denominator is unchanged.
 This first transport accepts SA_SIGINFO with optional SA_RESTART, no action
 mask, and SIG_DFL restoration. Default/fatal handling remains with the owner;
 the diagnostic runner exits on unsupported faults. SA_NODEFER, SA_RESETHAND,
-custom restorers, changed return masks and handler-time mask
-mutation return errors. No ART sigchain or JavaVM startup is claimed. Action
+custom restorers and unsupported pending-signal delivery return errors. No ART
+sigchain or JavaVM startup is claimed. Action
 records remain allocated until process destruction, with explicit ENOMEM on
 capacity exhaustion; the diagnostic owner allows 4,096 nontrivial publications.
 
@@ -117,8 +117,9 @@ computed from guest execution, not the private host stack. A handler without
 SA_ONSTACK stays on the interrupted stack, even when alternate storage exists.
 The source test includes SP near the normal stack's lower bound, handler-time
 query/error ordering, separate pthread storage and a missing-flag negative
-control. There are 17 shared wire cases and 24 handler/worker checks; native
-validation is pending CI. The extra worker has its own reported count, separate
+control. At `e7e1647`, all 17 shared wire cases and 24 handler/worker checks pass
+on signed Bionic and native Linux, with independently verified artifacts and
+complete green CI. The extra worker has its own reported count, separate
 from M2's six-worker acceptance group.
 
 ARTBox advertises an 8 KiB AT_MINSIGSTKSZ for its frame/bridge budget; this is
@@ -128,6 +129,23 @@ are data-only; no runtime code generation occurs. SS_AUTODISARM, nonlocal exits,
 alternate-stack changes from a handler on the normal stack, and changed stack
 metadata in a return context remain unsupported. No other fault transport or
 ART startup is implied by this extension.
+
+The next extension publishes mask and pending bits in one coherent state. Apple
+ARM64 requires lock-free 128-bit updates without outlined library calls; other
+targets retain ordinary-context transitions and explicitly reject handler-time
+mutation. Local tests cover 4,096 enqueue/unmask races, pending-unblock rejection
+and mask calls while the VM mapper lock is held. A successful enqueue and an
+unblock that strands it cannot both commit.
+
+Delivery publishes the action mask and automatic self-blocking. Handler mask
+syscalls now update shared state, while the ucontext retains the interrupted
+mask. A validated return-mask edit is accepted if queued signals stay blocked.
+The new native caller checks 18 assertions, including a cross-thread queue during
+the handler and a subsequent wait after return. Omitting UNBLOCK must fail;
+native CI is pending. Stable signed RO input and guest image RW output are
+accepted alongside attached stacks; dynamic heap buffers are not yet supported
+by the handler copy path. Restoring a mask that requires unblocked queued delivery
+still fails explicitly, preserving the pending bits.
 
 The pinned ART sources require a real boundary before JavaVM startup on Apple:
 

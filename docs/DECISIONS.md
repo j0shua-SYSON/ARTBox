@@ -1898,7 +1898,7 @@ identical-object oracle. Do not change M2's fixed acceptance denominator.
 
 ## 0080: Separate host conversion storage from the guest signal stack
 
-Status: implemented; local stack tests pass; native validation pending CI.
+Status: verified at e7e1647; both signed Bionic modes, Linux and complete CI pass.
 
 Install a guarded host alternate stack before guest execution on each Apple
 thread, preserving any earlier host registration. The execution owner requests
@@ -1936,3 +1936,44 @@ assertion. The extra signal worker is reported separately from M2's six-worker
 group; the fixed 328-expectation acceptance denominator remains unchanged.
 The native caller also places SP 512 bytes above the normal stack's lower bound
 for a deliberate BRK, then restores it after alternate-stack delivery returns.
+
+## 0081: Publish signal masks and pending bits as one transition
+
+Status: local tests pass; native handler-mask validation pending CI.
+
+A mask kept only in the handler's local scope hides it from other guest threads.
+Separate atomic mask/pending words also permit an enqueue accepted under an old
+mask to become stranded by a concurrent unblock. Use one 128-bit state containing
+both words. Enqueue, wait consumption and mask changes compare/exchange that
+state; standard signals still coalesce. A mask transition that would expose
+pending signals returns ENOTSUP without mutation until unblocked delivery exists.
+Never silently drop a pending signal on handler return.
+
+On ARM64 Clang targets, require always-lock-free, aligned 16-byte operations and
+disable outlined atomics for the signal implementation. The handler path must
+contain native exclusive-pair loops, not library locks or runtime dispatch.
+Other targets use an ordinary-context mutex and a separately published lock-free
+query, and explicitly reject handler-time mutation. This preserves portable
+host functionality without claiming asynchronous guarantees that its compiler
+has not provided. The lock-free loop can retry under contention; it is not a
+wait-free operation. No executable allocation or private platform API is used.
+
+Publish the action mask plus the delivered signal before calling Android code.
+Handler BLOCK/UNBLOCK/SETMASK operates on the shared state, preserving Linux
+unmaskable bits and mutation-before-copyout ordering. The saved ucontext mask
+remains independent and controls restoration; validated guest edits are accepted
+when they do not require an unsupported pending-signal delivery.
+
+ART sigchain passes masks from image globals as well as stack locals. Snapshot
+stable signed RX and owned RW image ranges before delivery, allowing reads from
+both and writes only to RW storage or attached stacks. Do not consult the VM
+mapper in a handler, and do not expand SP validation to ordinary image data.
+Dynamic heap buffers remain outside this fast copy contract.
+
+Test 4,096 enqueue/unmask races and mapper-lock-held mask calls, with positive
+handler capability required on Apple ARM64. The same-source Linux/Bionic caller
+checks 18 handler assertions, RO input/RW output, copyout failure after mutation,
+a worker's queued SIGUSR2 and an edited return mask. Omitting UNBLOCK must fail.
+The two worker instances are counted separately from the fixed M2 denominator.
+Action flag probing, other fault transports and actual ART sigchain execution
+remain separate acceptance work; this change does not establish Apple JavaVM.

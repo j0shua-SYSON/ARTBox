@@ -26,6 +26,7 @@ static int restore_host_stack(const host_stack *state) {
 }
 int artbox_native_signal_thread_attach(artbox_native_signal_thread *thread) {
     if(!thread || !thread->kernel || !thread->guest_tls || thread->platform_state) return -22;
+    if(!artbox_signals_handler_mask_support()) return -95;
     if(artbox_native_signal_thread_context()) return -17;
     size_t page=artbox_vm_page_size(thread->kernel->vm);
     if(!page || page>65536 || (page&(page-1))) return -22;
@@ -82,19 +83,27 @@ static int executable(const artbox_native_signal_thread *thread,uint64_t address
 int artbox_native_signal_validate_trap(void *context,unsigned number,const artbox_signal_action *action) {
     const artbox_native_signal_thread *thread=context;
     if(!thread || !action) return -22;
-    if(number!=5 || action->flags&~UINT64_C(0x18000004) || action->restorer || action->mask) return -95;
+    if(number!=5 || action->flags&~UINT64_C(0x18000004) || action->restorer) return -95;
     if(!action->handler) return 0;
     if(action->handler==1 || !(action->flags&4)) return -95;
     return executable(thread,action->handler) ? 0 : -22;
 }
 typedef struct delivery_scope {
     const artbox_native_signal_thread *thread;
-    uint64_t mask;
     artbox_signal_stack alternate;
 } delivery_scope;
-static int guest_buffer(const delivery_scope *delivery,uint64_t address,uint64_t size) {
+static int guest_stack(const delivery_scope *delivery,uint64_t address,uint64_t size) {
     return within(delivery->thread->stack_address,delivery->thread->stack_size,address,size) ||
         (delivery->alternate.size && within(delivery->alternate.address,delivery->alternate.size,address,size));
+}
+static int guest_buffer(const delivery_scope *delivery,uint64_t address,uint64_t size,int write) {
+    if(guest_stack(delivery,address,size)) return 1;
+    const artbox_native_signal_thread *thread=delivery->thread;
+    for(size_t i=0;i<thread->data_count;++i)
+        if(within(thread->data[i].address,thread->data[i].size,address,size)) return 1;
+    if(!write) for(size_t i=0;i<thread->code_count;++i)
+        if(within(thread->code[i].address,thread->code[i].size,address,size)) return 1;
+    return 0;
 }
 static void word(unsigned char *bytes,uint64_t value,unsigned size) {
     for(unsigned i=0;i<size;++i) bytes[i]=(unsigned char)(value>>(8*i));
@@ -113,25 +122,29 @@ static int64_t signal_call(void *raw,uint64_t number,uint64_t a0,uint64_t a1,
     if(number==178) return thread->kernel->tid;
     if(number==132) {
         // Linux copies the input before checking whether the stack is active.
-        if(a0 && !guest_buffer(delivery,a0,24)) return -14;
+        if(a0 && !guest_buffer(delivery,a0,24,0)) return -14;
         unsigned char marker;
         artbox_signal_stack stack;
         int error=artbox_signals_stack_snapshot(thread->kernel,(uintptr_t)&marker,&stack);
         if(error) return error;
         if(a0) return stack.flags==1?-1:-95; // No allocating updates from a handler.
         if(!a1) return 0;
-        if(!guest_buffer(delivery,a1,24)) return -14;
+        if(!guest_buffer(delivery,a1,24,1)) return -14;
         unsigned char *bytes=(void *)(uintptr_t)a1;
         word(bytes,stack.address,8); word(bytes+8,stack.flags,8); word(bytes+16,stack.size,8);
         return 0;
     }
     if(number!=135) return -38;
     if(a3!=8) return -22;
-    if(a1) return -95; // Mask changes require pending-delivery integration.
-    if(!a2) return 0;
-    if(!guest_buffer(delivery,a2,8)) return -14;
-    unsigned char *bytes=(void *)(uintptr_t)a2;
-    for(unsigned i=0;i<8;++i) bytes[i]=(unsigned char)(delivery->mask>>(8*i));
+    uint64_t requested=0,previous;
+    if(a1) {
+        if(!guest_buffer(delivery,a1,8,0)) return -14;
+        requested=read_word((const void *)(uintptr_t)a1,8);
+    }
+    int error=artbox_signals_mask_update(thread->kernel,(uint32_t)a0,a1?&requested:NULL,&previous);
+    if(error || !a2) return error;
+    if(!guest_buffer(delivery,a2,8,1)) return -14; // Mutation precedes copyout failure.
+    word((void *)(uintptr_t)a2,previous,8);
     return 0;
 }
 static int deliver(artbox_native_signal_thread *thread,void *host_context) {
@@ -151,8 +164,8 @@ static int deliver(artbox_native_signal_thread *thread,void *host_context) {
     artbox_signal_stack alternate;
     error=artbox_signals_stack_snapshot(thread->kernel,interrupted.sp,&alternate);
     if(error) return error;
-    const delivery_scope delivery={thread,0,alternate};
-    if(!executable(thread,interrupted.pc) || !guest_buffer(&delivery,interrupted.sp,0)) return -22;
+    const delivery_scope delivery={thread,alternate};
+    if(!executable(thread,interrupted.pc) || !guest_stack(&delivery,interrupted.sp,0)) return -22;
     uint32_t instruction;
     memcpy(&instruction,(const void *)(uintptr_t)interrupted.pc,sizeof(instruction));
     if((instruction&UINT32_C(0xffe0001f))!=UINT32_C(0xd4200000)) return -95;
@@ -178,21 +191,28 @@ static int deliver(artbox_native_signal_thread *thread,void *host_context) {
     if(error) return error;
     memset(info,0,128);
     word(info,5,4); word(info+8,1,4); word(info+16,interrupted.pc,8); // Linux TRAP_BRKPT.
-    const delivery_scope active={thread,original_mask|16,alternate};
+    uint64_t added_mask=action.mask|16,return_mask=original_mask;
+    error=artbox_signals_mask_update(thread->kernel,0,&added_mask,NULL);
+    if(error) return error;
+    const delivery_scope active={thread,alternate};
     const artbox_native_signal_scope scope={{signal_call,(void *)&active},thread->guest_tls};
     const artbox_native_signal_scope *previous,*replaced;
     error=artbox_native_signal_scope_swap(&scope,&previous);
-    if(error) return error;
+    if(error) goto restore_mask;
     artbox_call_on_stack((void *)(uintptr_t)action.handler,5,(uintptr_t)info,(uintptr_t)frame,frame_address);
     error=artbox_native_signal_scope_swap(previous,&replaced);
-    if(error || replaced!=&scope) return -22;
+    if(error || replaced!=&scope) { error=-22; goto restore_mask; }
     uint64_t mask;
     if(read_word(frame+16,8)!=meta.stack_address || read_word(frame+24,4)!=meta.stack_flags ||
-        read_word(frame+32,8)!=meta.stack_size) return -95; // Edited return-stack metadata is not implemented.
+        read_word(frame+32,8)!=meta.stack_size) { error=-95; goto restore_mask; }
     error=artbox_signal_context_resume(frame,ARTBOX_ARM64_UCONTEXT_BYTES,&interrupted,&resumed,&mask);
+    if(error) goto restore_mask;
+    if(!executable(thread,resumed.pc) || !guest_stack(&delivery,resumed.sp,0)) { error=-22; goto restore_mask; }
+    return_mask=mask;
+restore_mask:;
+    int restored=artbox_signals_mask_update(thread->kernel,2,&return_mask,NULL);
+    if(restored) return restored; // Never discard a signal queued while the handler ran.
     if(error) return error;
-    if(mask!=original_mask) return -95;
-    if(!executable(thread,resumed.pc) || !guest_buffer(&delivery,resumed.sp,0)) return -22;
     return artbox_native_signal_apply(host_context,&resumed);
 }
 int artbox_native_signal_deliver_trap(artbox_native_signal_thread *thread,void *host_context) {

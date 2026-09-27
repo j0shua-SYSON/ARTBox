@@ -59,11 +59,13 @@ static int64_t libcore_frontend_cases;
 static int64_t unlink_cases;
 static int64_t signal_wait_cases;
 static artbox_signals *process_signals;
-static artbox_signal_code_range signal_code[IMAGE_CAPACITY];
+static artbox_signal_memory_range signal_code[IMAGE_CAPACITY],signal_data[IMAGE_CAPACITY];
 static artbox_native_signal_thread signal_template;
 static int32_t signal_handler_cases,signal_handler_mutation;
 static int32_t signal_stack_cases,signal_stack_handler_cases,signal_stack_mutation;
 static uint64_t signal_stack_threads;
+static int32_t signal_mask_cases,signal_mask_mutation;
+static uint64_t signal_mask_threads;
 static uint64_t file_ns;
 static artbox_futex *futex;
 static artbox_threads *threads;
@@ -478,6 +480,14 @@ static void *run(void *context) {
     }
     if(artbox_threads_drain(threads,5000) || (signal_stack_threads=artbox_threads_reaped(threads))!=1)
         fail("alternate-stack worker cleanup");
+    signal_mask_cases=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_mask_handler_check"),0,0,0,0,0,0,0);
+    signal_mask_mutation=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_mask_handler_check"),1,0,0,0,0,0,0);
+    if(signal_mask_cases!=18 || signal_mask_mutation!=-1004) {
+        fprintf(stderr,"signal mask caller: %d mutation: %d\n",signal_mask_cases,signal_mask_mutation);
+        fail("signed Android handler masks");
+    }
+    if(artbox_threads_drain(threads,5000) || (signal_mask_threads=artbox_threads_reaped(threads)-signal_stack_threads)!=2)
+        fail("handler-mask worker cleanup");
     int64_t scratch = artbox_vm_mmap(vm, 0, artbox_vm_page_size(vm), 3, 0x22, -1, 0);
     if (scratch < 0) fail("futex fixture storage");
     futex_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_futex_check"), (uint64_t)scratch, 0, 0, 0, 0, 0, 0);
@@ -510,7 +520,7 @@ static void *run(void *context) {
     thread_guarded_samples = artbox_call7(entry(&images[1], "artbox_pthread_guarded_samples"), 0, 0, 0, 0, 0, 0, 0);
     tls_queries = artbox_call7(entry(&images[1], "artbox_pthread_tls_queries"), 0, 0, 0, 0, 0, 0, 0);
     if (tls_queries != 14) fail("existing static TLS queries");
-    reaped = artbox_threads_reaped(threads)-signal_stack_threads;
+    reaped = artbox_threads_reaped(threads)-signal_stack_threads-signal_mask_threads;
     if (reaped != 6) fail("child thread count");
     gwp_enabled = artbox_call7(entry(&images[0], "artbox_bootstrap_gwp_enabled"), 0, 0, 0, 0, 0, 0, 0);
     guarded_samples = artbox_call7(entry(&images[0], "artbox_bootstrap_guarded_samples"), 0, 0, 0, 0, 0, 0, 0);
@@ -554,9 +564,12 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     if (!threads) fail("native thread manager");
     uint64_t start = now();
     for (unsigned i = 0; i < image_count; ++i) load(&images[i], input->frameworks[i], input->elfs[i]);
-    for(unsigned i=0;i<image_count;++i)
-        signal_code[i]=(artbox_signal_code_range){(uintptr_t)images[i].rx,images[i].elf.segments[0].file_size};
+    for(unsigned i=0;i<image_count;++i) {
+        signal_code[i]=(artbox_signal_memory_range){(uintptr_t)images[i].rx,images[i].elf.segments[0].file_size};
+        signal_data[i]=(artbox_signal_memory_range){(uintptr_t)images[i].rw,images[i].elf.segments[1].memory_size};
+    }
     signal_template.code=signal_code; signal_template.code_count=image_count;
+    signal_template.data=signal_data; signal_template.data_count=image_count;
     if(artbox_signals_enable_actions(process_signals,4096,artbox_native_signal_validate_trap,&signal_template) ||
         artbox_signals_enable_stacks(process_signals,ARTBOX_SIGNAL_STACK_MINIMUM,4096) ||
         artbox_signals_attach(process_signals,&thread)) fail("signal action owner");
@@ -651,9 +664,11 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
            ",\"thread_guarded_samples\":%" PRIu64 ",\"process_peak_rss_bytes\":%ld,"
            "\"linked_images\":4,\"tls_modules\":2,\"tls_threads\":7,\"tls_result\":0,\"tls_queries\":%" PRIu64 ",\"version_result\":%" PRId64 ",\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64
            ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"art_libc_cases\":%" PRId64 ",\"vfork_cases\":%" PRId64 ",\"libcore_frontend_cases\":%" PRId64 ",\"unlink_cases\":%" PRId64 ",\"signal_wait_cases\":%" PRId64 ",\"signal_handler_cases\":%d,\"signal_handler_mutation\":%d,"
-           "\"signal_stack_cases\":%d,\"signal_stack_handler_cases\":%d,\"signal_stack_mutation\":%d,\"signal_stack_threads\":%" PRIu64 ",\"unsupported_syscalls\":{",
+           "\"signal_stack_cases\":%d,\"signal_stack_handler_cases\":%d,\"signal_stack_mutation\":%d,\"signal_stack_threads\":%" PRIu64 ","
+           "\"signal_mask_cases\":%d,\"signal_mask_mutation\":%d,\"signal_mask_threads\":%" PRIu64 ",\"unsupported_syscalls\":{",
            constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases, unlink_cases, signal_wait_cases,signal_handler_cases,signal_handler_mutation,
-           signal_stack_cases,signal_stack_handler_cases,signal_stack_mutation,signal_stack_threads);
+           signal_stack_cases,signal_stack_handler_cases,signal_stack_mutation,signal_stack_threads,
+           signal_mask_cases,signal_mask_mutation,signal_mask_threads);
     if (length < 0 || (size_t)length >= sizeof(report)) fail("result formatting");
     size_t used_bytes = (size_t)length;
     unsigned printed = 0;
