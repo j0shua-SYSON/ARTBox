@@ -29,7 +29,7 @@ def main():
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     if report['project_commit'] != head or report['art_libc']['source_sha256'] != digest(source):
         raise RuntimeError('ART libc producer differs from the checked-out source')
-    if report['art_libc']['cases'] != 42 or any(report[m]['art_libc_cases'] != 42 for m in ['native', 'sampled_native']):
+    if report['art_libc']['cases'] != 73 or any(report[m]['art_libc_cases'] != 73 for m in ['native', 'sampled_native']):
         raise RuntimeError('Both signed Bionic modes must pass the ART libc checks')
     obj = args.evidence_root / 'build/m2/bionic-startup/art-libc-check.o'
     if digest(obj) != report['art_libc']['object_sha256']:
@@ -53,7 +53,7 @@ def main():
     (output / 'reference.log').write_bytes(result.stdout + result.stderr)
     result.check_returncode()
     observed = json.loads(result.stdout)
-    if observed != {'cases': 42, 'result': 42}:
+    if observed != {'cases': 73, 'result': 73}:
         raise RuntimeError('Native Linux libc checks differ from signed Bionic')
     record = {'project_commit': head, 'native_linux': observed, 'signed_bionic_modes': ['native', 'sampled_native'],
               'producer_sha256': digest(producer), 'source_sha256': digest(source),
@@ -61,7 +61,7 @@ def main():
     artifacts = Path(os.environ['ARTBOX_ARTIFACTS_DIR'])
     artifacts.mkdir(parents=True, exist_ok=True)
     (artifacts / 'm3-art-bionic-linux.json').write_text(json.dumps(record, indent=2) + '\n', encoding='utf-8')
-    print('ART libc dependency checks: 42 native Linux cases match both signed Bionic modes')
+    print('ART libc dependency checks: 73 native Linux cases match both signed Bionic modes')
 
 
 if __name__ == '__main__':

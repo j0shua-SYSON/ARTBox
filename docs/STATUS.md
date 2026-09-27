@@ -147,6 +147,13 @@ Source review identified ICU's required `MADV_RANDOM` call. Anonymous/file
 regressions reproduce its rejection; the portable implementation now accepts
 the nonbinding hint after validation. All 25 local tests and the native Linux
 ARM64 comparisons pass at `ecf9000`. Read-ahead tuning remains unchanged.
+All 208 Android native libcore units compile in a local diagnostic. Its link
+identifies further libc/compiler-runtime dependencies; that result does not
+establish signed execution. The next dependency expansion adds six unchanged
+libc units and two libm units, with 73-case libc and 130-vector math callers.
+Both callers reproduce the missing-symbol failures against the previous
+libraries before the source selection changes. Their new native execution
+checks are pending; Apple JavaVM startup remains the M3 acceptance target.
 The [loader service queries](m3-loader-services.md) now cover named dependency
 scope, lookup after the caller and ELF address/image metadata. All 25 local
 host tests pass. The portable handle/error context also passes concurrent tests,

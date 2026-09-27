@@ -3,6 +3,7 @@
 // graph. Filesystem mutations, signal delivery and process creation have their
 // own kernel contracts; compiling their Bionic wrappers does not implement them.
 #define _GNU_SOURCE
+#include <arpa/inet.h>
 #include <errno.h>
 #include <libgen.h>
 #include <limits.h>
@@ -10,6 +11,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/utsname.h>
+#include <unistd.h>
 #include <wchar.h>
 
 #define CHECK(condition) do { if (!(condition)) return -__LINE__; ++cases; } while (0)
@@ -101,5 +105,73 @@ int artbox_art_bionic_check(void) {
         div_t value = div(divisions[i][0], divisions[i][1]);
         CHECK(value.quot == divisions[i][2] && value.rem == divisions[i][3]);
     }
+
+    int key = 7;
+    CHECK(bsearch(&key, values, 6, sizeof(int), compare) == values + 4);
+    key = 5;
+    CHECK(bsearch(&key, values, 6, sizeof(int), compare) == NULL);
+    comparisons = 0;
+    CHECK(bsearch(&key, values, 0, sizeof(int), compare) == NULL && comparisons == 0);
+
+    struct utsname system_name;
+    CHECK(uname(&system_name) == 0);
+    char hostname[66];
+    memset(hostname, '?', sizeof(hostname));
+    CHECK(gethostname(hostname, 65) == 0 && !strcmp(hostname, system_name.nodename) && hostname[65] == '?');
+    size_t hostname_length = strlen(system_name.nodename);
+    errno = 0;
+    CHECK(gethostname(hostname, 0) == -1 && errno == ENAMETOOLONG && hostname[65] == '?');
+    memset(hostname, '?', sizeof(hostname));
+    errno = 0;
+    // Bionic and glibc may leave different bytes inside the failed output.
+    CHECK(gethostname(hostname, hostname_length) == -1 && errno == ENAMETOOLONG && hostname[hostname_length] == '?');
+    CHECK(gethostname(hostname, hostname_length + 1) == 0 && !strcmp(hostname, system_name.nodename) && hostname[hostname_length + 1] == '?');
+
+    char tokens[] = ",,ART::Box,,", other_tokens[] = "one/two";
+    char *saved = NULL, *other_saved = NULL;
+    CHECK(!strcmp(strtok_r(tokens, ",:", &saved), "ART"));
+    CHECK(!strcmp(strtok_r(other_tokens, "/", &other_saved), "one"));
+    CHECK(!strcmp(strtok_r(NULL, ",:", &saved), "Box"));
+    CHECK(strtok_r(NULL, ",:", &saved) == NULL);
+    CHECK(!strcmp(strtok_r(NULL, "/", &other_saved), "two"));
+    CHECK(strtok_r(NULL, "/", &other_saved) == NULL);
+
+    const char *environment_key = "ARTBOX_LIBCORE_ENV_TEST";
+    CHECK(setenv(environment_key, "first", 1) == 0 && !strcmp(getenv(environment_key), "first"));
+    CHECK(setenv(environment_key, "ignored", 0) == 0 && !strcmp(getenv(environment_key), "first"));
+    CHECK(setenv(environment_key, "second", 1) == 0 && !strcmp(getenv(environment_key), "second"));
+    CHECK(unsetenv(environment_key) == 0 && getenv(environment_key) == NULL);
+    CHECK(unsetenv(environment_key) == 0);
+    errno = 0;
+    CHECK(setenv("", "value", 1) == -1 && errno == EINVAL);
+    errno = 0;
+    CHECK(setenv("invalid=name", "value", 1) == -1 && errno == EINVAL);
+    errno = 0;
+    CHECK(unsetenv("invalid=name") == -1 && errno == EINVAL);
+
+    unsigned char address[17];
+    memset(address, '?', sizeof(address));
+    const unsigned char ipv4[] = {192, 0, 2, 1};
+    const unsigned char ipv6[] = {0x20, 1, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
+    CHECK(inet_pton(AF_INET, "192.0.2.1", address) == 1 && !memcmp(address, ipv4, 4) && address[4] == '?');
+    CHECK(inet_pton(AF_INET, "256.0.2.1", address) == 0 && address[4] == '?');
+    CHECK(inet_pton(AF_INET6, "2001:db8::1", address) == 1 && !memcmp(address, ipv6, 16) && address[16] == '?');
+    CHECK(inet_pton(AF_INET6, "2001::db8::1", address) == 0 && address[16] == '?');
+    errno = 0;
+    CHECK(inet_pton(AF_UNSPEC, "192.0.2.1", address) == -1 && errno == EAFNOSUPPORT && address[16] == '?');
+
+    union { uint64_t alignment; unsigned char bytes[2 * CMSG_SPACE(sizeof(int))]; } control = {0};
+    struct msghdr message = {0};
+    message.msg_control = control.bytes;
+    message.msg_controllen = sizeof(control.bytes);
+    struct cmsghdr *first = CMSG_FIRSTHDR(&message);
+    CHECK(first == (struct cmsghdr *)control.bytes);
+    first->cmsg_len = CMSG_LEN(sizeof(int));
+    struct cmsghdr *second = CMSG_NXTHDR(&message, first);
+    CHECK(second == (struct cmsghdr *)(control.bytes + CMSG_SPACE(sizeof(int))));
+    second->cmsg_len = CMSG_LEN(sizeof(int));
+    CHECK(CMSG_NXTHDR(&message, second) == NULL);
+    message.msg_controllen = CMSG_SPACE(sizeof(int));
+    CHECK(CMSG_NXTHDR(&message, first) == NULL);
     return cases;
 }

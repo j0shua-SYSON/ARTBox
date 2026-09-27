@@ -2,6 +2,10 @@
   "description": "Selected Bionic sources for native startup and ART dependencies; not a complete Android libc",
   "source_commit": "361ba86734fb2821a6adcfdf775db8abd04e0de0",
   "source_flags": {
+    "libc/upstream-netbsd/lib/libc/stdlib/bsearch.c": [
+      "-include",
+      "netbsd-compat.h"
+    ],
     "libc/arch-arm64/bionic/__set_tls.c": [
       "-fno-stack-protector",
       "-ffreestanding"
@@ -492,6 +496,18 @@
     "libc/upstream-openbsd/lib/libc/stdlib/div.c": [
       "-include",
       "openbsd-compat.h"
+    ],
+    "libc/upstream-openbsd/lib/libc/string/strtok.c": [
+      "-include",
+      "openbsd-compat.h"
+    ],
+    "libc/upstream-openbsd/lib/libc/stdlib/setenv.c": [
+      "-include",
+      "openbsd-compat.h"
+    ],
+    "libc/upstream-openbsd/lib/libc/net/inet_pton.c": [
+      "-include",
+      "openbsd-compat.h"
     ]
   },
   "sources": [
@@ -729,7 +745,13 @@
     "libc/tzcode/bionic.cpp",
     "libc/upstream-openbsd/lib/libc/string/strcat.c",
     "libc/upstream-openbsd/lib/libc/string/strncat.c",
-    "libc/upstream-openbsd/lib/libc/stdlib/div.c"
+    "libc/upstream-openbsd/lib/libc/stdlib/div.c",
+    "libc/bionic/gethostname.cpp",
+    "libc/bionic/__cmsg_nxthdr.cpp",
+    "libc/upstream-netbsd/lib/libc/stdlib/bsearch.c",
+    "libc/upstream-openbsd/lib/libc/string/strtok.c",
+    "libc/upstream-openbsd/lib/libc/stdlib/setenv.c",
+    "libc/upstream-openbsd/lib/libc/net/inet_pton.c"
   ],
   "generated_sources": [
     "generated/syscalls-arm64.S"
@@ -798,6 +820,12 @@
     "libc/tzcode/bionic.cpp": "2e6e56ae6be660610af310948f02d121d208abae96343869c505601035ea2856",
     "libc/upstream-openbsd/lib/libc/string/strcat.c": "5e06fef7f93b127632998a68932fe4262e13abb236ef9eeecb47d5e3e64d7045",
     "libc/upstream-openbsd/lib/libc/string/strncat.c": "489dce0c14b973e604b770c99b63f5ca6e33ed33f5a804c39854fd21e1d3d277",
-    "libc/upstream-openbsd/lib/libc/stdlib/div.c": "a5fefd9e613f3eb8fc1184a624c8999b3acae2e4725d18b8c817b18b611f8b09"
+    "libc/upstream-openbsd/lib/libc/stdlib/div.c": "a5fefd9e613f3eb8fc1184a624c8999b3acae2e4725d18b8c817b18b611f8b09",
+    "libc/bionic/gethostname.cpp": "13dcb22082c1e3c451daf5682470710406f72787fc0d6c7fea39d6430e574956",
+    "libc/bionic/__cmsg_nxthdr.cpp": "1d18ee2317a699cc72c57f6ad5c11d3c546c26cd61ad251c220452f7febe519e",
+    "libc/upstream-netbsd/lib/libc/stdlib/bsearch.c": "a6c608a43685b4e6ae3e84a1c647e469083ce1eae435691601bb23b5d4c86c62",
+    "libc/upstream-openbsd/lib/libc/string/strtok.c": "dc050c1f494744e4353305cc7dbd57b3c17ae9f3c0215824344443ba68057e36",
+    "libc/upstream-openbsd/lib/libc/stdlib/setenv.c": "5d5e79af9546a63f7eafdb76cbef97d496f933b82b3578cb88674e8c288ad917",
+    "libc/upstream-openbsd/lib/libc/net/inet_pton.c": "52f738433bd4d5969909b2b1858a8392fac1041e055ceb1113ce2015b54dbd25"
   }
 }

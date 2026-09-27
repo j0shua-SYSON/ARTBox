@@ -89,10 +89,10 @@ def main():
         producer_sources(record.get('project_sources', {}))
         reports[name] = record
     bionic, math, libdl, context = [reports[n] for n in ('bionic', 'math', 'libdl', 'context')]
-    if any(bionic[mode]['art_libc_cases'] != 42 or bionic['acceptance'][mode]['passed'] != 328 or
+    if any(bionic[mode]['art_libc_cases'] != 73 or bionic['acceptance'][mode]['passed'] != 328 or
            not bionic['acceptance'][mode]['success'] for mode in ('native', 'sampled_native')):
         raise RuntimeError('Bionic runtime acceptance is incomplete')
-    if math['native'] != {'cases': 108, 'first_failure': 0, 'cleanup': True} or libdl['native'] != {
+    if math['native'] != {'cases': 130, 'first_failure': 0, 'cleanup': True} or libdl['native'] != {
             'cases': 32, 'thread_error_checks': 6, 'cleanup': True}:
         raise RuntimeError('Native math or loader acceptance is incomplete')
     if context['native'] != {'checks': 4, 'failure_mask': 0, 'expected_rejection': False, 'cleanup': True}:

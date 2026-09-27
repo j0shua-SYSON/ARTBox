@@ -1,20 +1,22 @@
 # M3 source-built math dependency
 
-ART and its ICU dependencies import 23 math entry points absent from the M2
+ART and its native class-library dependencies import 25 math entry points absent from the M2
 Bionic subset. Build those functions from the pinned Android 15 Bionic libm
 and ARM optimized routines. Keep the original algorithms and AOSP compiler
 settings, including the BSD no-errno policy. Do not forward Android long double
 arguments into Apple's different ABI.
 
-The selection contains 32 Bionic units and seven ARM units. Android compiler-rt
+The selection contains 34 Bionic units and seven ARM units. Android compiler-rt
 provides binary128 arithmetic used internally by the BSD implementation. The
 result is a `libm.so` subset with no external imports; it is not a complete
-Android math library. The separate original NDK client imports all 23 functions
-through `DT_NEEDED`. Its 108 vectors cover ordinary values, signed zeros,
+Android math library. The separate original NDK client imports all 25 functions
+through `DT_NEEDED`. Its 130 vectors cover ordinary values, signed zeros,
 NaN/infinity, subnormal boundaries and large trigonometric arguments. Normal
 transcendental results allow two ULP in the function's result precision; exact
 cases require identical bits. The ICU additions exercise expf/tanhf and both
 outputs of modf, including negative integral inputs and infinities.
+The libcore additions exercise log1p near zero and its domain boundary, and
+remainder's nearest-even quotient and signed-zero behavior.
 This is not exhaustive accuracy, errno or floating-point-environment coverage.
 
 `scripts/test_art_math.py` builds both libraries, checks their instructions and
@@ -59,3 +61,9 @@ all 108 vectors pass through the signed Mac framework and both native Linux
 guest/system references. Independent artifact checks verify 39 objects, 292
 upstream inputs, two ELF binaries, four framework layouts and 20 notice hashes.
 The 78-case evidence above describes the earlier revision.
+
+The native libcore link also requires log1p and remainder. The 130-vector caller
+fails to link against the previous subset at precisely those two symbols. Two
+unchanged files from the same Bionic pin provide them, retaining their Sun
+permission notices. All 41 units and the 25-import client link and pass local
+instruction/layout checks. Signed Mac and paired Linux execution is pending.

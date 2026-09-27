@@ -13,7 +13,7 @@
 enum operation {
     ACOS, ASIN, ATAN, ATAN2, CBRT, COS, COSH, EXP, EXPM1, FMOD,
     FMODF, HYPOT, LOG, LOG10, NEXTAFTER, POW, SIN, SINH, TAN, TANH,
-    EXPF, TANHF, MODF_FRACTION, MODF_INTEGER
+    EXPF, TANHF, MODF_FRACTION, MODF_INTEGER, LOG1P, REMAINDER
 };
 enum expectation { EXACT, CLOSE, NAN_RESULT, FLOAT_CLOSE };
 struct vector {
@@ -73,7 +73,17 @@ static const struct vector vectors[] = {
     E(MODF_FRACTION, -4, 0, -0.0), E(MODF_INTEGER, -4, 0, -4),
     E(MODF_FRACTION, INFINITY, 0, 0), E(MODF_INTEGER, INFINITY, 0, INFINITY),
     E(MODF_FRACTION, -INFINITY, 0, -0.0), E(MODF_INTEGER, -INFINITY, 0, -INFINITY),
-    N(MODF_FRACTION, NAN, 0), N(MODF_INTEGER, NAN, 0)
+    N(MODF_FRACTION, NAN, 0), N(MODF_INTEGER, NAN, 0),
+    E(LOG1P, -0.0, 0, -0.0), E(LOG1P, 0, 0, 0),
+    E(LOG1P, 0x1p-60, 0, 0x1p-60), E(LOG1P, 0x1p-1074, 0, 0x1p-1074),
+    C(LOG1P, 1, 0, 0x1.62e42fefa39efp-1), C(LOG1P, 3, 0, 0x1.62e42fefa39efp+0),
+    C(LOG1P, -0.5, 0, -0x1.62e42fefa39efp-1), E(LOG1P, -1, 0, -INFINITY),
+    N(LOG1P, -2, 0), E(LOG1P, INFINITY, 0, INFINITY),
+    E(REMAINDER, 5, 2, 1), E(REMAINDER, 7, 2, -1),
+    E(REMAINDER, -5, 2, -1), E(REMAINDER, -7, 2, 1),
+    E(REMAINDER, 6, 4, -2), E(REMAINDER, 2, 4, 2),
+    E(REMAINDER, -4, 2, -0.0), E(REMAINDER, 0, -2, 0), E(REMAINDER, -0.0, 2, -0.0),
+    E(REMAINDER, 5, INFINITY, 5), N(REMAINDER, 1, 0), N(REMAINDER, INFINITY, 1)
 };
 
 static uint64_t bits(double value) {
@@ -90,6 +100,7 @@ static double evaluate(enum operation op, double a, double b) {
     case NEXTAFTER: return nextafter(a, b); case POW: return pow(a, b);
     case SIN: return sin(a); case SINH: return sinh(a); case TAN: return tan(a); case TANH: return tanh(a);
     case EXPF: return expf((float)a); case TANHF: return tanhf((float)a);
+    case LOG1P: return log1p(a); case REMAINDER: return remainder(a, b);
     case MODF_FRACTION: case MODF_INTEGER: {
         double integer;
         double fraction = modf(a, &integer);

@@ -478,3 +478,10 @@ sources from Bionic's OpenBSD subtree (BSD-3-Clause), plus FreeBSD-subtree
 `expf`, `tanhf`, `expm1f` and `modf` sources carrying Sun's permissive
 notice-preservation terms. All remain at the existing Bionic pin. Their source
 headers and the complete Bionic libc/libm notices accompany the artifacts.
+
+The native libcore dependency expansion adds unchanged gethostname and
+__cmsg_nxthdr (AOSP BSD terms), bsearch (NetBSD BSD-3-Clause), strtok and setenv
+(OpenBSD BSD-3-Clause), and inet_pton (Internet Software Consortium permissive
+terms). Bionic's FreeBSD log1p and remainder retain Sun's notice-preservation
+terms. All use the existing Bionic pin. Original per-file notices and the full
+libc/libm notices remain in corresponding-source and binary artifacts.

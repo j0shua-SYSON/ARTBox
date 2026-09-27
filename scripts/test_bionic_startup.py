@@ -173,7 +173,7 @@ def main():
               "timeouts": {"cases": 18, "source_sha256": digest(ROOT / "fixtures/bionic-startup/timeouts.c"),
                            "object_sha256": digest(timeout_object)},
               "proc": {"cases": 22, "source_sha256": digest(ROOT / "fixtures/bionic-files/proc.c"), "object_sha256": digest(proc_object)},
-              "art_libc": {"cases": 42, "source_sha256": digest(ROOT / "fixtures/art-bionic/check.c"),
+              "art_libc": {"cases": 73, "source_sha256": digest(ROOT / "fixtures/art-bionic/check.c"),
                            "object_sha256": digest(art_libc_object),
                            "compiler_runtime": {"member": comparison.name, "sha256": digest(comparison)}},
               "threads": {"source_sha256": digest(thread_source), "object_sha256": digest(thread_object),
@@ -235,7 +235,7 @@ def main():
                 raise RuntimeError("NDK anonymous memory or pthread timeout client did not complete")
             if result[key]["proc_cases"] != 22:
                 raise RuntimeError("NDK proc snapshot client did not complete")
-            if result[key]["art_libc_cases"] != 42:
+            if result[key]["art_libc_cases"] != 73:
                 raise RuntimeError("ART libc dependency client did not complete")
             if result[key]["pthread_result"] != 0 or result[key]["threads_reaped"] != 6:
                 raise RuntimeError("NDK pthread client did not complete")

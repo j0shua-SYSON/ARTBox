@@ -1,10 +1,10 @@
 # Bionic dependencies for ART
 
 The M3 Android ART link needs libc entry points outside the M2 startup subset.
-Extend the same source-built Bionic with 53 unchanged units from its pinned
+Extend the same source-built Bionic with 59 unchanged units from its pinned
 Android 15 revision. `third_party/bionic/m2-objects.json` records these sources,
 their hashes and the corresponding AOSP build flags. This brings the shared
-source selection to 274 units, including its existing support components.
+source selection to 280 units, including its existing support components.
 
 The added closure includes BSD sorting/string routines, locale adapters,
 path/directory and syscall wrappers, system-property writing, and time-zone
@@ -14,9 +14,10 @@ enumeration, filesystem mutation, process creation, property-service sockets
 and signal delivery still require their own implementations and acceptance.
 The syscall compatibility matrix remains authoritative for those limits.
 
-An original NDK client checks 42 sorting, basename/dirname, C-locale collation,
+An original NDK client checks 73 sorting, basename/dirname, C-locale collation,
 integer overflow/conversion, Android long-double conversion, wide-string,
-multibyte, random-sequence, string concatenation and integer-division behaviors.
+multibyte, random-sequence, string concatenation, integer division, hostname,
+environment, tokenization, numeric-address parsing and ancillary-header behaviors.
 It runs inside the existing signed
 Bionic process in both normal and forced GWP-ASan modes. The M2 suite's fixed
 328-case denominator remains unchanged; this regression has its own required
@@ -24,7 +25,7 @@ result. Native Linux compiles the same client against system libc and compares
 that result with both signed runs.
 
 The iOS diagnostic package uses the same shared runner and libraries. Staging
-requires the new 42-case result as well as the existing M2 acceptance. Compiler
+requires the new 73-case result as well as the existing M2 acceptance. Compiler
 objects, source hashes and complete upstream notices accompany the CI evidence.
 This work adds dependency coverage; it does not establish Apple ART startup.
 
@@ -70,3 +71,16 @@ diagnosed the intentionally bounded copy as truncation; calling the public
 symbol through a volatile function pointer preserves the test and strict
 warnings. Independent downloaded checks verify the caller, four ELF images,
 eight framework layouts and 56 notices. Both M2 scores remain 328/328.
+
+The native libcore link additionally requires gethostname, bsearch, strtok_r,
+setenv/unsetenv, inet_pton and __cmsg_nxthdr. The expanded 73-case caller fails
+against the previous library with precisely those seven missing symbols. Six
+unchanged pinned source files provide them. Tests cover exact/short hostname
+buffers, empty searches, independent token streams, environment replacement and
+invalid names, IPv4/IPv6 parsing, and bounded ancillary-header traversal. Failed
+gethostname output is intentionally unspecified inside its buffer, matching the
+different Bionic/glibc behavior. No socket is opened by these tests.
+Both 280-unit profiles compile locally with 1,552 shared global definitions;
+the native instruction scan passes. The NetBSD bsearch source retains AOSP's
+forced `netbsd-compat.h` include. Signed Mac and native Linux execution of this
+expansion is pending.
