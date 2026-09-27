@@ -1587,3 +1587,20 @@ This isolates signing and dependency failures before runtime initialization.
 The cost is five additional signed frameworks and their startup relocations;
 measure load/constructor time when the native ICU acceptance runner is wired.
 Packaging alone does not satisfy that execution test or M3.
+
+## 0069: Accept ICU's random-access hint without changing memory semantics
+
+Status: both anonymous and file regression tests fail before implementation;
+all 25 local host tests pass afterward. Native Linux comparisons are pending.
+
+The unchanged ICU data loader maps its pinned data read-only/shared and then
+calls MADV_RANDOM. Rejecting that advice aborts initialization. Unlike DONTNEED,
+it is a caching hint, so retain range/ownership validation and leave contents,
+protections, file references and host read-ahead behavior unchanged.
+
+Forwarding an equivalent hint to Darwin is an optional later optimization.
+For now the cost is potentially unnecessary read-ahead; this does not promise
+any performance improvement. Keep the existing DONTNEED implementation and
+explicit errors for other unsupported advice. Compare alignment, page rounding,
+zero length, overflow, inaccessible pages and holes against Linux, and use
+injected file backing to detect accidental remapping or writeback.

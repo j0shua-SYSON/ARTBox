@@ -41,6 +41,10 @@ int main() {
     bytes[0] = 0x99;
     CHECK(file.data[page] == 0x31);
     CHECK(artbox_vm_mprotect(vm, address, page, 1) == 0);
+    unsigned maps_before_hint = file.maps;
+    CHECK(artbox_vm_madvise(vm, address, page - 1, 1) == 0 && bytes[0] == 0x99);
+    CHECK(file.maps == maps_before_hint && file.syncs == 0 && file.refs == 1);
+    CHECK(!artbox_vm_access(vm, address, 1, 2));
     CHECK(artbox_vm_madvise(vm, address, page, 4) == 0 && bytes[0] == 0x31);
     CHECK(!artbox_vm_access(vm, address, 1, 2));
     CHECK(artbox_vm_munmap(vm, address + page, page) == 0 && file.refs == 1);
@@ -54,6 +58,11 @@ int main() {
     CHECK(artbox_vm_munmap(vm, address, page * 3) == 0 && file.refs == 0);
     result = artbox_vm_map_file(vm, 0, page, 1, 1, 0, &file, &ops, 1);
     CHECK(result > 0); address = static_cast<uint64_t>(result);
+    maps_before_hint = file.maps;
+    CHECK(artbox_vm_madvise(vm, address, page - 1, 1) == 0);
+    CHECK(*reinterpret_cast<unsigned char*>(address) == 0x31);
+    CHECK(file.maps == maps_before_hint && file.syncs == 0 && file.refs == 1);
+    CHECK(!artbox_vm_access(vm, address, 1, 2));
     CHECK(artbox_vm_mprotect(vm, address, page, 0) == 0);
     CHECK(artbox_vm_mprotect(vm, address, page, 3) == -13);
     CHECK(artbox_vm_mprotect(vm, address, page, 1) == 0);

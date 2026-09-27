@@ -135,6 +135,10 @@ verified inputs; it is not yet a signed or executed ICU artifact.
 The public ICU pipeline now requires all producers to share a Git revision,
 checks the actual dependency closure and packages five Mac/iOS 15 frameworks.
 Its first CI signing result and execution through the shared runtime are pending.
+Source review identified ICU's required `MADV_RANDOM` call. Anonymous/file
+regressions reproduce its rejection; the portable implementation now accepts
+the nonbinding hint after validation. All 25 local tests pass, with native Linux
+comparisons pending. Read-ahead tuning remains unchanged.
 The [loader service queries](m3-loader-services.md) now cover named dependency
 scope, lookup after the caller and ELF address/image metadata. All 25 local
 host tests pass. The portable handle/error context also passes concurrent tests,

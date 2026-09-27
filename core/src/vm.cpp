@@ -373,7 +373,7 @@ int artbox_vm_madvise(artbox_vm *space, uint64_t address, uint64_t length, int a
     if (!space) return -22;
     std::lock_guard<std::mutex> guard(space->lock);
     if (space->poisoned) return -5;
-    if (advice != 0 && advice != 4) return -95;
+    if (advice != 0 && advice != 1 && advice != 4) return -95;
     size_t size = space->rounded(length);
     if (!space->range(address, size) || (!size && length)) return -22;
     if (!length) return 0;
@@ -383,7 +383,10 @@ int artbox_vm_madvise(artbox_vm *space, uint64_t address, uint64_t length, int a
     size_t first = static_cast<size_t>(address - region->base) / space->ops.page_size;
     size_t count = size / space->ops.page_size;
     if (!space->present(*region, first, count)) return -12;
-    if (!advice) return 0;
+    // NORMAL/RANDOM are nonbinding caching hints. Validate the owned mapping
+    // without discarding, remapping or changing permissions. Host read-ahead
+    // tuning is deliberately left unchanged on all portable backends.
+    if (advice != 4) return 0;
     for (size_t n = first; n < first + count;) {
         size_t end = n + 1;
         while (end < first + count && region->pages[end] == region->pages[n]) ++end;

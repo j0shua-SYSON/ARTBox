@@ -42,6 +42,12 @@ struct Calls {
 #endif
         return artbox_vm_madvise(vm, address, size, 4);
     }
+    int advise(uint64_t address, size_t size, int advice) {
+#if defined(__linux__)
+        if (linux_oracle) return madvise(reinterpret_cast<void *>(address), size, advice) ? -errno : 0;
+#endif
+        return artbox_vm_madvise(vm, address, size, advice);
+    }
 };
 
 static Calls fixture_calls;
@@ -128,9 +134,21 @@ static int semantics(Calls calls, size_t page) {
     CHECK(calls.protect(base + 1, page, 1) == -22);
     CHECK(calls.protect(base + page, page - 1, 1) == 0);
     CHECK(bytes[page] == 0x22 && bytes[page * 2 - 1] == 0x22);
+    // MADV_RANDOM is a caching hint: it preserves contents and permissions.
+    CHECK(calls.advise(base + page, page - 1, 1) == 0);
+    CHECK(bytes[page] == 0x22 && bytes[page * 2 - 1] == 0x22);
+    CHECK(calls.advise(base, page * 3, 1) == 0);
+    CHECK(bytes[0] == 0x11 && bytes[page] == 0x22 && bytes[page * 2] == 0x33);
+    CHECK(calls.advise(base, 0, 1) == 0);
+    CHECK(calls.advise(base + 1, page, 1) == -22);
+    CHECK(calls.advise(base + 1, 0, 1) == -22);
+    CHECK(calls.advise(base, SIZE_MAX, 1) == -22);
     CHECK(calls.protect(base, page, 0) == 0);
+    CHECK(calls.advise(base, page, 1) == 0); // No read permission is required.
     CHECK(calls.protect(base, page, 3) == 0 && bytes[0] == 0x11);
     CHECK(calls.unmap(base + page, page) == 0);
+    CHECK(calls.advise(base + page, page, 1) == -12);
+    CHECK(calls.advise(base, page * 3, 1) == -12);
     CHECK(calls.protect(base + page, page, 1) == -12);
     CHECK(bytes[0] == 0x11 && bytes[2 * page] == 0x33);
     CHECK(calls.map(base + page, page, 3, 0x4032) == address + static_cast<int64_t>(page));
@@ -219,6 +237,7 @@ int main() {
     CHECK(artbox_vm_mmap(vm, base, page, 3, 0x32, -1, 0) == -1);
     CHECK(artbox_vm_munmap(vm, base, page) == -1);
     CHECK(artbox_vm_madvise(vm, base, page, 4) == -1);
+    CHECK(artbox_vm_madvise(vm, base, page, 1) == -1);
     CHECK(artbox_vm_mprotect(vm, base, page, 3) == 0);
     CHECK(artbox_vm_reserved_bytes(vm) == 0);
 

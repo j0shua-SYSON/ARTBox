@@ -182,6 +182,18 @@ mutable directories and multiple guest users remain unsupported.
 real Linux ARM64 file oracle exposed the initial generic-layout error; the
 correction passes at `ce6c6eb` without removing any file tests.
 
+ICU's data loader also requires `MADV_RANDOM` (advice 1). ARTBox validates the
+owned, mapped range and accepts this nonbinding hint without changing host
+read-ahead policy, bytes, protections or file references. Partial lengths round
+to pages; misalignment/overflow return EINVAL and holes return ENOMEM. Borrowed
+host storage stays outside this operation. Other unsupported advice remains
+ENOTSUP. This follows the distinction between caching hints and DONTNEED in
+the [Linux madvise contract](https://man7.org/linux/man-pages/man2/madvise.2.html).
+Anonymous range/error checks run through the same portable/Linux test sequence;
+injected private and read-only shared-file tests check absence of remapping,
+writeback and permission changes. Local regression tests pass; the new native
+Linux comparisons are pending CI.
+
 ### Initial proc snapshot
 
 Openat/read/fstat/newfstatat/lseek/close now route `/proc/self/cmdline` through
