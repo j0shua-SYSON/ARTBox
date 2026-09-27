@@ -1,6 +1,7 @@
 // Original portable pending-signal queues. SPDX-License-Identifier: MIT
 #include "artbox/signals.h"
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <exception>
@@ -15,11 +16,15 @@ struct artbox_signals {
     size_t capacity, waiters = 0;
     std::mutex lock;
     std::vector<artbox_signal_thread*> threads;
+    artbox_signal_actions *actions=nullptr;
+    artbox_signal_action_validator validate=nullptr;
+    void *validation_context=nullptr;
 };
 struct artbox_signal_thread {
     artbox_signals *owner;
     artbox_kernel_thread *kernel;
-    uint64_t mask, pending = 0, wait_mask = 0;
+    std::atomic<uint64_t> mask{0};
+    uint64_t pending = 0, wait_mask = 0;
     bool waiting = false;
     std::condition_variable changed;
 };
@@ -41,6 +46,24 @@ extern "C" artbox_signals *artbox_signals_create(artbox_vm *vm,int32_t pid,uint3
     catch (const std::exception&) { delete signals; return nullptr; }
     return signals;
 }
+extern "C" int artbox_signals_enable_actions(artbox_signals *signals,size_t capacity,
+    artbox_signal_action_validator validate,void *context) {
+    if(!signals || !validate || !capacity || capacity>65536) return -22;
+    std::lock_guard<std::mutex> guard(signals->lock);
+    if(signals->actions || !signals->threads.empty()) return -16;
+    auto *actions=artbox_signal_actions_create(capacity);
+    if(!actions) return -12;
+    signals->validation_context=context; signals->validate=validate; signals->actions=actions;
+    return 0;
+}
+extern "C" artbox_signal_actions *artbox_signals_action_table(artbox_signals *signals) {
+    return signals ? signals->actions : nullptr;
+}
+extern "C" int artbox_signals_mask_snapshot(const artbox_kernel_thread *kernel,uint64_t *mask) {
+    if(!kernel || !kernel->signal_state || !mask) return -22;
+    *mask=kernel->signal_state->mask.load(std::memory_order_acquire);
+    return 0;
+}
 static int attach(artbox_signals *signals,artbox_kernel_thread *kernel,uint64_t mask) {
     if (!kernel || kernel->vm!=signals->vm || kernel->pid!=signals->pid ||
         kernel->tid<=0 || kernel->signal_state) return -22;
@@ -48,6 +71,7 @@ static int attach(artbox_signals *signals,artbox_kernel_thread *kernel,uint64_t 
     if (signals->threads.size()==signals->capacity) return -11;
     auto *thread=new(std::nothrow) artbox_signal_thread;
     if (!thread) return -12;
+    if (!thread->mask.is_lock_free()) { delete thread; return -95; }
     thread->owner=signals; thread->kernel=kernel; thread->mask=mask&~unmaskable;
     signals->threads.push_back(thread); // Capacity was reserved before publication.
     kernel->blocked_signals=thread->mask;
@@ -84,6 +108,7 @@ extern "C" int artbox_signals_destroy(artbox_signals *signals) {
         std::lock_guard<std::mutex> guard(signals->lock);
         if (!signals->threads.empty()) return -16;
     }
+    artbox_signal_actions_destroy(signals->actions);
     delete signals; return 0;
 }
 extern "C" size_t artbox_signals_thread_count(artbox_signals *signals) {
@@ -95,6 +120,29 @@ extern "C" size_t artbox_signals_waiter_count(artbox_signals *signals) {
     if (!signals) return 0;
     std::lock_guard<std::mutex> guard(signals->lock);
     return signals->waiters;
+}
+static int64_t action(artbox_signal_thread *thread,uint64_t number,uint64_t in,uint64_t out,uint64_t size) {
+    auto *owner=thread->owner;
+    if(!owner->actions) return -38;
+    if(size!=8) return -22;
+    unsigned char bytes[32];
+    artbox_signal_action requested{},previous{};
+    if(in) {
+        int error=artbox_vm_read(owner->vm,in,bytes,sizeof(bytes));
+        if(error) return error;
+        requested={get64(bytes),get64(bytes+8),get64(bytes+16),get64(bytes+24)&~unmaskable};
+    }
+    unsigned signal=static_cast<uint32_t>(number);
+    if(signal<1 || signal>64 || (in && (signal==9 || signal==19))) return -22;
+    if(in) {
+        int error=owner->validate(owner->validation_context,signal,&requested);
+        if(error) return error;
+    }
+    int error=artbox_signal_actions_set(owner->actions,signal,in?&requested:nullptr,&previous);
+    if(error || !out) return error;
+    put(bytes,previous.handler,8); put(bytes+8,previous.flags,8);
+    put(bytes+16,previous.restorer,8); put(bytes+24,previous.mask,8);
+    return artbox_vm_write(owner->vm,out,bytes,sizeof(bytes));
 }
 static int64_t mask(artbox_signal_thread *thread,uint64_t how,uint64_t in,uint64_t out,uint64_t size) {
     if (size!=8) return -22;
@@ -198,6 +246,7 @@ extern "C" int64_t artbox_signals_call(artbox_kernel_thread *kernel,uint64_t num
     if (!kernel || !kernel->signal_state) return -38;
     switch (number) {
         case 131: return send(kernel->signal_state,a0,a1,a2);
+        case 134: return action(kernel->signal_state,a0,a1,a2,a3);
         case 135: return mask(kernel->signal_state,a0,a1,a2,a3);
         case 137: return wait(kernel->signal_state,a0,a1,a2,a3);
         default: return -38;

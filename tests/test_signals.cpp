@@ -21,6 +21,10 @@ static int64_t call(artbox_kernel_thread &t, uint64_t n, uint64_t a=0, uint64_t 
     return artbox_kernel_call(&t,n,a,b,c,d,0,0);
 }
 static bool reject_start;
+static int validate_action(void *,unsigned number,const artbox_signal_action *action) {
+    if(number!=5 || action->flags&~UINT64_C(4) || action->restorer || action->mask) return -95;
+    return !action->handler || (action->handler>=0x1000 && action->handler<0x2000 && !(action->handler&3)) ? 0 : -22;
+}
 static int start(void *,size_t,void (*entry)(void *),void *argument,void **handle) {
     if (reject_start) return -11;
     *handle = new std::thread(entry,argument); return 0;
@@ -42,7 +46,9 @@ int main() {
     CHECK(vm && artbox_kernel_thread_init(&parent,vm,&system,100,100)==0);
     main_thread=&parent;
     artbox_signals *signals=artbox_signals_create(vm,100,10000,4);
+    CHECK(signals && artbox_signals_enable_actions(signals,8,validate_action,nullptr)==0);
     CHECK(signals && artbox_signals_attach(signals,&parent)==0);
+    CHECK(artbox_signals_enable_actions(signals,8,validate_action,nullptr)==-16);
     CHECK(artbox_signals_attach(signals,&parent)==-22);
     artbox_kernel_thread duplicate;
     CHECK(artbox_kernel_thread_init(&duplicate,vm,&system,100,100)==0);
@@ -54,6 +60,29 @@ int main() {
     uint64_t buffer=static_cast<uint64_t>(artbox_vm_mmap(vm,0,memory.page_size,3,0x22,-1,0));
     CHECK(buffer<INT64_MAX);
     auto *words=reinterpret_cast<uint64_t*>(buffer);
+    const artbox_signal_action action{0x1000,4,0,0};
+    CHECK(artbox_vm_write(vm,buffer+1,&action,sizeof(action))==0);
+    CHECK(call(parent,134,5,buffer+1,buffer+65,8)==0); // Unaligned Linux copyin/out.
+    artbox_signal_action observed;
+    CHECK(artbox_vm_read(vm,buffer+65,&observed,sizeof(observed))==0 && observed.handler==0);
+    CHECK(call(parent,134,5,0,buffer+65,8)==0);
+    CHECK(artbox_vm_read(vm,buffer+65,&observed,sizeof(observed))==0 && observed.handler==0x1000);
+    CHECK(call(parent,134,5,1,0,0)==-22); // Size precedes copyin.
+    CHECK(call(parent,134,0,1,0,8)==-14); // Copyin precedes signal validation.
+    CHECK(call(parent,134,0,0,0,8)==-22);
+    CHECK(call(parent,134,65,0,0,8)==-22);
+    CHECK(call(parent,134,9,buffer+1,0,8)==-22);
+    CHECK(call(parent,134,19,buffer+1,0,8)==-22);
+    CHECK(call(parent,134,9,0,buffer+65,8)==0);
+    CHECK(call(parent,134,11,buffer+1,0,8)==-95); // No delivery owner for SIGSEGV yet.
+    observed=action; observed.handler=0x3000;
+    CHECK(artbox_vm_write(vm,buffer+1,&observed,sizeof(observed))==0);
+    CHECK(call(parent,134,5,buffer+1,0,8)==-22);
+    CHECK(artbox_signal_actions_snapshot(artbox_signals_action_table(signals),5,&observed)==0 && observed.handler==0x1000);
+    observed=action; observed.handler=0x1004;
+    CHECK(artbox_vm_write(vm,buffer+1,&observed,sizeof(observed))==0);
+    CHECK(call(parent,134,5,buffer+1,1,8)==-14); // Publication precedes copyout failure.
+    CHECK(artbox_signal_actions_snapshot(artbox_signals_action_table(signals),5,&observed)==0 && observed.handler==0x1004);
     words[0]=UINT64_C(0x200);
     words[1]=UINT64_MAX;
     CHECK(call(parent,135,2,buffer+8,1,8)==-14);
