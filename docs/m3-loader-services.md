@@ -31,4 +31,12 @@ caller selection, TLS IDs, symbol boundaries and missing/invalid inputs. All
 25 local host tests pass. This is loader infrastructure, not Apple ART startup.
 The signed math runner also checks these queries against its actual client and
 libm images, including library-handle isolation and an address inside `sin`.
-That native check is pending CI.
+That native check passes at `1239be6`; the downloaded runner source, library
+bytes and signed framework layouts verify against the same revision.
+
+Before implementing the guest ABI, a separate fixture establishes 32 Linux
+loader results and six interleaved thread-error checks. It covers explicit and
+default handles, `RTLD_NEXT`, missing names, exact-path rejection, `dladdr`,
+program-header callbacks with reentry and early termination, and balanced
+repeated opens. The same original caller compiles for Android ARM64. Native
+Linux execution is pending; this reference does not test a guest loader bridge.

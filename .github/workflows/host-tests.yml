@@ -435,6 +435,28 @@ jobs:
           path: build/m3/runtime-policy/
           if-no-files-found: warn
           retention-days: 7
+  loader-api-reference:
+    name: Loader API reference (native Linux ARM64)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Establish native Linux behavior for the guest loader API
+        run: python3 -B scripts/test_loader_reference.py
+      - name: Preserve the loader reference binaries and result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: loader-api-reference
+          path: |
+            artifacts/m3-loader-reference.json
+            build/m3/loader-reference/
+          if-no-files-found: warn
+          retention-days: 7
   linux-oracle:
     name: unchanged ELF on native Linux ARM64
     needs: host
