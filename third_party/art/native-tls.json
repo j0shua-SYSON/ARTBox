@@ -1,0 +1,20 @@
+{
+  "runtime-gc-heap.cc": {
+    "source_sha256": "877b16e8690e6372efc0c59b40a99d6e1851a4156754ab09dc090a48e2477d0b",
+    "tls_symbols": ["_ZZN3art11HeapSampler19GetBytesUntilSampleEvE18bytes_until_sample"],
+    "tlsdesc_calls": 2,
+    "tp_reads_replaced": 2
+  },
+  "runtime-javaheapprof-javaheapsampler.cc": {
+    "source_sha256": "4ddc3536d6c6b4f61f130263c0f1b1929398a7551093681ebdd0a75ccb2d0e7a",
+    "tls_symbols": ["_ZZN3art11HeapSampler19GetBytesUntilSampleEvE18bytes_until_sample"],
+    "tlsdesc_calls": 2,
+    "tp_reads_replaced": 2
+  },
+  "artbox-thread-state": {
+    "source_sha256": "d25102cbd3d9a8b0fb9a6d370d4b06b0df07c6ac2649a714474cccbbad508caf",
+    "tls_symbols": ["_ZZN3art11HeapSampler19GetBytesUntilSampleEvE18bytes_until_sample"],
+    "tlsdesc_calls": 1,
+    "tp_reads_replaced": 1
+  }
+}

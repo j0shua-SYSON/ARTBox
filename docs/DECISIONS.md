@@ -1435,7 +1435,8 @@ startup-group contract.
 
 ## 0061: Marshal loader metadata through the shared guest mapper
 
-Status: portable tests and Android builds pass; signed native execution pending.
+Status: portable tests, signed Mac API execution and iOS 15 framework packaging
+pass at `10eb3b6`; full Apple ART startup remains pending.
 
 Keep AOSP's original libdl frontend and implement its seven explicit loader
 imports behind a thin native binding. Use host TLS to select the guest thread's
@@ -1452,3 +1453,19 @@ The native acceptance runner owns guarded guest stacks until pthread join.
 Compare its unchanged Android fixture with the native Linux 32-case and six
 thread-error reference. Preserve source, object, ELF, signing and notice evidence
 for both Mac execution and iOS 15 packaging. Physical execution remains unverified.
+
+## 0062: Make the full native guest ART object build reproducible
+
+Status: compiler-boundary tests pass; the first public full build is in progress.
+
+Add an explicit Android managed-window guest profile to the shared Python
+builder. Apply the existing hash-checked Bionic TLS header boundary before
+compilation, and retain every changed header with the original notices. Keep
+the VM implementation host-owned by excluding its two units from the guest.
+
+For three pinned HeapSampler units, require the compiler's original assembly to
+reproduce its object before replacing the five reviewed thread-pointer reads.
+Verify source hashes, exact descriptor symbols/counts and the adapted instruction
+inventory. Unrecognized accesses require investigation, never a broader rewrite.
+The existing real Linux ART thread-state regression remains the behavior
+reference. A build does not establish signed full-runtime execution.

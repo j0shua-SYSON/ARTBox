@@ -49,10 +49,22 @@ and preserve the requested size; five native copy/truncation cases check the
 selected `strlcpy`. The original cache and notices remain intact, and changed
 sources are included in the corresponding-source archive. See ADR 0038.
 
-The Android build still uses original Bionic TLS and absolute ART references.
-It is an ABI build input, and cannot yet run through the Apple boundary. The
-Linux configuration uses its native host ABI and original ART reference
-representation. These configurations must keep their C++ dependencies separate.
+The default Android build uses original Bionic TLS and absolute ART references.
+The optional `--managed-window --native-guest` profile builds the checked
+reference representation with the reviewed Bionic TLS header bridge. It also
+adapts the three pinned HeapSampler compiler-output units to absolute TLSDESC
+addresses. The original assembly must reproduce each unmodified object before
+the adapted object is accepted; source hashes, descriptor names, access counts
+and instruction checks reject drift. Original and adapted assembly and objects
+are retained. This is a reproducible build input; linking, signing and full Apple
+runtime execution remain separate acceptance work.
+
+The native guest profile compiles 462 units and excludes the host-owned VM and
+native VM implementation, which must be shared with Bionic's syscall mapper.
+Use `python -B scripts/build_art_runtime.py --profile android --managed-window
+--native-guest --all --jobs 2`. Its initial full local build and dedicated macOS
+CI validation are pending. The Linux configurations retain their native host
+ABI. These configurations must keep their C++ dependencies separate.
 See ADR 0037 for the static Bionic and public NDK link limitations.
 
 Build outputs preserve source and object hashes, complete compiler commands,

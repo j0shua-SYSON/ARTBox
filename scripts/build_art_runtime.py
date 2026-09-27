@@ -93,7 +93,8 @@ def preserve_sources(output, sources, generated, toolchain=None):
       'platform/linux/no_codegen.h','fixtures/art-runtime/codegen_policy.cpp']
     project += ['docs/m3-high-heap-runtime.md','third_party/art/managed-storage-boundary.json',
       'third_party/art/interpreter-arguments-boundary.json','third_party/art/managed-window-boundary.json',
-      'third_party/art/class-table-boundary.json',
+      'third_party/art/class-table-boundary.json','third_party/art/native-tls.json',
+      'third_party/bionic/native-boundary.json',
       'third_party/art/adapters/artbox_art_heap.h','third_party/art/adapters/managed_heap.cpp',
       'fixtures/art-references/artbox_art_reference_bridge.h','fixtures/art-runtime/heap_window.cpp',
       'core/include/artbox/vm.h','core/include/artbox/managed_reference.h',
@@ -128,14 +129,18 @@ def main():
     parser.add_argument('--link',action='store_true',help='Link the complete native Linux reference after compilation')
     parser.add_argument('--managed-window',action='store_true',
                         help='Use the checked heap-relative representation and owned high-address heap')
+    parser.add_argument('--native-guest',action='store_true',
+                        help='Build the Android managed-window guest with host TLS and reviewed sampler TLSDESC accesses')
     args=parser.parse_args()
     if args.jobs<1:parser.error('--jobs must be positive')
     if args.link and (not args.all or args.profile!='linux'):
         parser.error('--link requires --all --profile linux')
+    if args.native_guest and (args.profile!='android' or not args.managed_window):
+        parser.error('--native-guest requires --profile android --managed-window')
     if args.profile=='linux' and (sys.platform!='linux' or platform.machine().lower() not in ['arm64','aarch64']):
         parser.error('The Linux reference requires a native ARM64 Linux host')
     os.environ.update(environment())
-    output=args.build_dir or Path(os.environ['ARTBOX_BUILD_DIR'])/'m3/runtime-build'/args.profile
+    output=args.build_dir or Path(os.environ['ARTBOX_BUILD_DIR'])/'m3/runtime-build'/('native-guest' if args.native_guest else args.profile)
     output.mkdir(parents=True,exist_ok=True)
     sources=obtain_runtime_sources()
     for name in ['libbase-dex','liblog-dex','ziparchive-dex','fmtlib-references','jni-dex','property-info']:
@@ -152,7 +157,17 @@ def main():
         abi=['--target=aarch64-linux-android35','-U__ANDROID__']
         sources['bionic']=obtain('bionic')
     else:cxx,cc=args.cxx,args.cc
-    base=[*abi,'-O1','-DNDEBUG','-fPIC','-ftrivial-auto-var-init=zero','-march=armv8-a','-mno-outline-atomics',
+    native_flags=[];native_generated=[];native_adaptation=[];native_tls={}
+    if args.native_guest:
+        from bionic_adapt import adapt_sources as adapt_bionic
+        patch=json.loads((ROOT/'third_party/bionic/native-boundary.json').read_text(encoding='utf-8'))
+        entry=next(p for p in patch['files'] if p['path']=='libc/platform/bionic/tls.h')
+        overlay=output/'bionic-overlay'
+        native_adaptation=adapt_bionic(sources['bionic'],overlay,{'files':[entry]})
+        native_flags=['-DARTBOX_NATIVE_HOST','-I',str(overlay/'libc/platform')]
+        native_generated=sorted(p for p in overlay.rglob('*') if p.is_file())
+        native_tls=json.loads((ROOT/'third_party/art/native-tls.json').read_text(encoding='utf-8'))
+    base=[*native_flags,*abi,'-O1','-DNDEBUG','-fPIC','-ftrivial-auto-var-init=zero','-march=armv8-a','-mno-outline-atomics',
           '-ffixed-x18','-ffixed-x27','-ffixed-x28','-ffunction-sections','-fdata-sections']
     cxx_flags=['-std=c++20','-fno-exceptions','-fno-rtti','-Wno-invalid-offsetof']
     host_adaptation=[];host_probe=None;host_generated=[]
@@ -212,7 +227,7 @@ def main():
     run([cxx,*runtime_flags,'-UNDEBUG','-S',generator/'asm_defines.cc','-o',assembly],output/'asm-defines.log')
     header=run([sys.executable,'-B',generator/'make_header.py',assembly],output/'asm-header.log')
     (output/'asm_defines.h').write_text(header,encoding='utf-8')
-    generated_sources=[assembly,output/'asm_defines.h',*host_generated]
+    generated_sources=[assembly,output/'asm_defines.h',*host_generated,*native_generated]
     units=[]
     def add(name,source,flags,driver=cxx):units.append((name,source,flags,driver))
     time_unit,time_adaptation=time_source(art,output)
@@ -275,9 +290,11 @@ def main():
         # CardTable is private to libart. Keep the acceptance helper beside the
         # real implementation; do not widen AOSP's dynamic symbol visibility.
         add('artbox-heap-contract',ROOT/'fixtures/art-runtime/heap_window.cpp',runtime_flags)
-        add('artbox-vm',ROOT/'core/src/vm.cpp',[x for x in runtime_flags if x!='-fno-exceptions'])
+        if not args.native_guest:
+            add('artbox-vm',ROOT/'core/src/vm.cpp',[x for x in runtime_flags if x!='-fno-exceptions'])
         for name,source in [('artbox-managed-reference','core/src/managed_reference.c'),
                             ('artbox-native-vm','platform/native_vm.c')]:
+            if args.native_guest and name=='artbox-native-vm':continue
             add(name,ROOT/source,[*base,'-std=c11','-D_GNU_SOURCE','-I',ROOT/'core/include',
                                 '-I',ROOT/'platform/include'],cc)
     if not args.all:
@@ -286,8 +303,11 @@ def main():
         units=[u for u in units if u[0] in names]
         if len(units)!=4:raise RuntimeError('Incomplete preflight')
     if len({u[0] for u in units})!=len(units):raise RuntimeError('Duplicate object names')
-    if args.all and len(units)!=(464 if args.managed_window else 459):raise RuntimeError('Complete runtime source count changed')
+    expected_units=462 if args.native_guest else 464 if args.managed_window else 459
+    if args.all and len(units)!=expected_units:raise RuntimeError('Complete runtime source count changed')
     record={'profile':args.profile,'runtime_executed':False,'managed_window':args.managed_window,
+      'native_guest':args.native_guest,'native_tls_header_adaptation':native_adaptation,
+      'excluded_host_owned_units':['artbox-vm','artbox-native-vm'] if args.native_guest else [],
       'project_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
       'time_include_adaptation':time_adaptation,
       'host_source_adaptation':host_adaptation,'host_strlcpy_probe':host_probe,
@@ -303,11 +323,20 @@ def main():
         start=time.monotonic();result=subprocess.run(command,capture_output=True,encoding='utf-8')
         obj.with_suffix('.log').write_text(result.stdout+result.stderr,encoding='utf-8')
         record={'unit':name,'source_sha256':digest(source),'command':command,'exit':result.returncode,'seconds':time.monotonic()-start}
-        if not result.returncode:record['object_sha256']=digest(obj)
+        if not result.returncode:
+            if name in native_tls:
+                from art_native_tls import compile_adaptation
+                record['compiler_tls']=compile_adaptation(command,Path(source),obj,output/'compiler-tls',name,native_tls[name])
+            record['object_sha256']=digest(obj)
         else:print(result.stderr,flush=True)
         print(name,'PASS' if not result.returncode else 'FAIL',flush=True)
         return record
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:results=list(pool.map(compile_one,units))
+    if args.native_guest:
+        if args.all and {r['unit'] for r in results if 'compiler_tls' in r}!=set(native_tls):
+            raise RuntimeError('Missing reviewed ART TLS unit')
+        generated_sources.extend(sorted((output/'compiler-tls').glob('*.s')))
+        record.update(preserve_sources(output,sources,generated_sources,toolchain))
     record['results']=results
     results_path=output/('all-results.json' if args.all else 'preflight-results.json')
     save(results_path,record)

@@ -124,9 +124,13 @@ scope, lookup after the caller and ELF address/image metadata. All 25 local
 host tests pass. The portable handle/error context also passes concurrent tests,
 and a native Linux reference passes 32 loader calls and six thread-error checks.
 The Android loader API bridge now validates guest pointers, marshals metadata
-and owns per-thread error storage. Its unchanged AOSP libdl frontend and signed
-Mac acceptance runner are implemented; local tests and Android compilation pass.
-Signed execution and full Apple ART startup remain pending.
+and owns per-thread error storage. Its unchanged AOSP libdl frontend passes the
+32-case/six-thread-error fixture in signed Mac execution at `10eb3b6`. Downloaded
+sources, objects, ELF files, six Mac/iOS framework layouts and notices verify.
+Full Apple ART startup remains pending.
+The full Android guest object build now has an explicit `--native-guest` profile:
+462 units share the host-owned VM and use the reviewed Bionic/HeapSampler TLS
+boundaries. Its first full local compile and dedicated CI validation are pending.
 The [managed-storage contract](m3-managed-storage.md) now passes 54 cases on each
 native Mac/Linux host, with two signed Mac controls confirming the original
 forwarding-address truncation. GC forwarding words and JNI reference/free/serial/

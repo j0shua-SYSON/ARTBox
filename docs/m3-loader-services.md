@@ -63,5 +63,10 @@ caller-address capture for `RTLD_NEXT`. A thin native binding connects its
 explicit `__loader_*` imports using host TLS. The original 32-case fixture and
 six thread-error checks now have a signed Mac runner and iOS 15 framework
 packaging in CI. Guest threads use VM-owned guarded stacks, which remain live
-until join. Local portable tests and Android compilation pass; signed execution
-of this bridge is pending. This does not establish Apple ART startup.
+until join. All 32 cases, six thread-error checks and cleanup pass in signed Mac
+execution at `10eb3b6`. The artifact independently verifies against 79 project
+files, three upstream files, three objects, three ELFs, six framework layouts
+and 18 notices. The complete test process took 10.078 ms including launch and
+teardown; this is one correctness run, not a per-call or iPhone benchmark.
+`dlvsym` also has a portable binding test; the signed fixture imports the other
+six APIs. Full Apple ART startup and physical execution remain unverified.
