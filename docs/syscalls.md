@@ -101,6 +101,21 @@ EACCES 13, EFAULT 14, EINVAL 22, ENOSYS 38, ENOTSUP 95. Guest flags and host
 `errno` are translated at the platform boundary. An unsupported syscall returns
 ENOSYS; it is never forwarded to Darwin using the Linux syscall number.
 
+`uname` (160) now writes the Linux ARM64 390-byte structure: six zero-padded
+65-byte fields. The virtual identity is `Linux`, `artbox`, `0.0.0-artbox`,
+`ARTBox Linux ABI`, `aarch64`, `(none)`. It describes the guest ABI; it does not
+expose the host hostname or claim a running Linux kernel. Version zero keeps
+ART's kernel-version checks on their conservative path. The identity is fixed
+across guest threads; hostname/domain mutation is unsupported.
+
+Portable tests check every field, padding, unaligned output, canaries and invalid,
+read-only and out-of-range destinations. Linux builds also call the real uname
+syscall to check the structure size, unaligned output and EFAULT behavior. The
+suite runs on native Linux ARM64 as well as the existing host matrix. Destination
+contents after EFAULT are unspecified; the shared mapper validates the complete
+write before copying. This syscall was demanded by an actual ART constructor;
+the new local regression fails before implementation and passes afterward.
+
 The native page size comes from the host (supported contract: power of two,
 4 KiB through 64 KiB). The fixture requests 16 KiB and both packaging routes
 use 16 KiB Mach-O alignment. Memory allocated for the guest never requests

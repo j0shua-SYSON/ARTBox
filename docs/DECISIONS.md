@@ -1523,3 +1523,20 @@ Fixed-word invocation APIs can cross the native boundary directly; variadic
 JNI method calls must remain in an Android-compiled acceptance entry because
 Apple's variadic ABI differs. This is a one-shot diagnostic, with the existing
 fatal-error policy and no general unloading, not a production launcher API.
+
+## 0066: Report an explicit virtual identity through Linux uname
+
+Status: regression fails before implementation and passes locally afterward;
+native Linux comparisons and the ART constructor retry await CI.
+
+ART's cache-operation constructor requires uname, a Linux sysname and a parseable
+kernel release. Encode the six 65-byte Linux fields in the portable syscall
+layer. Use a fixed `artbox` hostname and `aarch64` guest machine, without copying
+host structures or exposing host identity. Release `0.0.0-artbox` makes kernel
+feature/version predicates false. Accept conservative fallback behavior rather
+than advertise kernel features merely because the host has a high version.
+
+Test layout, padding, unaligned writes and memory errors, and compare the wire
+layout and error cases with actual Linux on both existing hosts and native
+ARM64 CI. Continue to test JIT/code-cache absence independently: this identity
+is not the mechanism that prevents runtime code generation.

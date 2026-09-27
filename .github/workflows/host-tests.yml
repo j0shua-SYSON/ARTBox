@@ -453,7 +453,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
   loader-api-reference:
-    name: Loader API reference (native Linux ARM64)
+    name: Loader/kernel API references (native Linux ARM64)
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     env:
@@ -464,6 +464,8 @@ jobs:
           persist-credentials: false
       - name: Establish native Linux behavior for the guest loader API
         run: python3 -B scripts/test_loader_reference.py
+      - name: Compare portable kernel services with native Linux ARM64
+        run: python3 -B scripts/build.py host
       - name: Preserve the loader reference binaries and result
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -471,7 +473,9 @@ jobs:
           name: loader-api-reference
           path: |
             artifacts/m3-loader-reference.json
+            artifacts/host-metrics.json
             build/m3/loader-reference/
+            build/host/Testing/Temporary/LastTest.log
           if-no-files-found: warn
           retention-days: 7
   linux-oracle:

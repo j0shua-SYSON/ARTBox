@@ -101,9 +101,15 @@ Bionic platform services as M2, with the real guest libdl binding installed
 before constructors and Bionic's existing static TLS blocks exposed for loader
 metadata. It executes the complete group's constructors, checks ART's empty
 pre-start VM registry and unsupported default-arguments API, and binds/unbinds
-the ART heap through the shared host mapper. This test is pending its first CI
-execution. It does not invoke `JNI_CreateJavaVM` or execute DEX; those require
-the remaining signal and native class-library integration.
+the ART heap through the shared host mapper. The first run rejected the small
+libm/libdl data segments because the old Bionic fixture required a page-sized
+ELF memory span. The corrected loader validates the signed wrapper's zero
+padding and registers complete pages while retaining the original ELF spans
+for relocations. At `6d80787`, native execution initializes Bionic and reaches
+ART constructors, then stops at ART's required `uname` query. Its new tested
+syscall implementation awaits CI. The bootstrap test does not invoke
+`JNI_CreateJavaVM` or execute DEX; those require the remaining signal and native
+class-library integration.
 
 Build outputs preserve source and object hashes, complete compiler commands,
 generated inputs, notices and `corresponding-source.zip`. A successful link

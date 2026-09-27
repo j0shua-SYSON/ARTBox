@@ -16,6 +16,14 @@ int64_t artbox_kernel_call(void *context, uint64_t number, uint64_t a0, uint64_t
     artbox_kernel_thread *thread = context;
     if (!thread) return -22;
     switch (number) {
+        case 160: {
+            /* Virtual Linux ABI identity, not the host's uname structure or
+             * hostname. Version zero avoids advertising kernel capabilities
+             * that this userspace runtime has not implemented. */
+            static const char identity[6][65] = {
+                "Linux", "artbox", "0.0.0-artbox", "ARTBox Linux ABI", "aarch64", "(none)"};
+            return artbox_vm_write(thread->vm, a0, identity, sizeof(identity));
+        }
         case 172: return thread->pid;
         case 178: return thread->tid;
         case 96:

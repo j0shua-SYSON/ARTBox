@@ -134,8 +134,11 @@ boundaries. All units compile in macOS CI at `44008be`; source, object, generate
 input and notice hashes verify independently. Both full Linux startup profiles
 and the complete workflows pass. The full-runtime link passes the instruction
 and import checks with eight intentional VM/TLS host imports. Signed Mac/iOS 15
-framework layouts and empty entitlements pass in CI at `5b570af`. The next step
-is executing that guest with the shared Bionic loader/TLS and VM services;
+framework layouts and empty entitlements pass in CI at `5b570af`. The shared
+Bionic loader/TLS and VM services now initialize Bionic and enter ART
+constructors on the Mac CPU at `6d80787`. That run fails at the unimplemented
+`uname` query; its new portable implementation and Linux reference tests await
+CI. Full bootstrap, JavaVM startup and DEX execution remain incomplete, and
 the iOS app still contains no ART runtime.
 The [managed-storage contract](m3-managed-storage.md) now passes 54 cases on each
 native Mac/Linux host, with two signed Mac controls confirming the original
