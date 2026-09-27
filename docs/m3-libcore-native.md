@@ -78,8 +78,8 @@ return value, so use Bionic's POSIX declaration and existing `strerror_r` symbol
 do not bind it to the pointer-returning GNU variant. A strict local compile/link
 probe reproduces the missing glibc alias before this flag and resolves against
 the real guest libc afterward. All 208 Android units compile with this selection.
-Linux retains its original compiler flags. Execution of the Android-built
-helper through the signed Apple runtime remains pending.
+Linux retains its original compiler flags. The Android-built helper passes
+through the signed Apple runtime at `c3fd5aa`.
 
 OpenJDK also imports vfork. The selected AOSP frontend now resolves from the
 281-unit Bionic build, with its TLS read and kernel entry adapted to the existing
@@ -122,8 +122,25 @@ but an unnecessary dependency on libicu_jni exposes ICU's public cache copy.
 Use `--as-needed` for the five production libraries, retaining the caller's
 explicit full manifest. A dependency-scope check rejects both direct and transitive
 JniConstants exposure from javacore. Keep the existing runtime assertion; neither
-the class cache nor dlsym behavior is special-cased. Complete signed execution
-is still pending.
+the class cache nor dlsym behavior is special-cased.
+
+At `c3fd5aa`, the signed Mac runner passes all 17 native groups and 228 integer
+vectors, returns from 38 constructors, joins/reaps one worker and releases its
+resources. Independent downloaded-artifact checks verify all 208 objects plus
+the caller, 1,666 upstream inputs, 154 canonical project files, 131,813 native
+instructions, twelve Mac/iOS framework layouts and 204 notice hashes. All nine
+base-library ELF hashes and dynamic metadata match the execution inputs.
+Signature verification runs in Apple CI; local verification checks bytes,
+layouts and signature presence. Physical device execution remains unverified.
+
+One traced run records 48.201 ms for load/relocation, 1.560 ms for bootstrap,
+0.577 ms for the native groups and 0.039 ms for integer vectors. These are
+correctness observations, not application throughput or iPhone measurements.
+Neither JNI_OnLoad nor JavaVM startup is exercised by this result.
+The complete [host workflow](https://github.com/j0shua-SYSON/ARTBox/actions/runs/36308398246)
+and [iOS build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/36308398345)
+pass. The integrated IPA still contains the M1/M2 diagnostics; the new class
+libraries are separate signed framework artifacts until Apple JavaVM acceptance.
 
 Artifacts preserve source/object hashes, compiler and link commands, native test
 output, original notices, all selected corresponding source, and the verified

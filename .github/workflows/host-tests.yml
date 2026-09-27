@@ -475,6 +475,8 @@ jobs:
           persist-credentials: false
       - name: Establish native Linux behavior for the guest loader API
         run: python3 -B scripts/test_loader_reference.py
+      - name: Establish native Linux signal registration and delivery before guest translation
+        run: python3 -B scripts/test_signal_reference.py
       - name: Compare portable kernel services with native Linux ARM64
         run: python3 -B scripts/build.py host
       - name: Preserve the loader reference binaries and result
@@ -486,6 +488,7 @@ jobs:
             artifacts/m3-loader-reference.json
             artifacts/host-metrics.json
             build/m3/loader-reference/
+            build/m3/signal-reference/
             build/host/Testing/Temporary/LastTest.log
           if-no-files-found: warn
           retention-days: 7

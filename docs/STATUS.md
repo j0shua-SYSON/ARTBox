@@ -34,6 +34,10 @@ execution remains unverified. Runtime milestones take priority over launcher UI.
 - M3 native bootstrap: all 31 constructors in the signed four-library ART group
   return on Mac ARM64 at `d43ceaf`. Pre-start JNI registration, shared heap
   binding and resource cleanup pass. This does not start a JavaVM or execute DEX.
+- M3 native class libraries: the signed 15-image group at `c3fd5aa` returns from
+  38 constructors, passes all 17 native groups and 228 integer-division vectors,
+  joins/reaps its monitor worker and releases resources. JNI_OnLoad and JavaVM
+  startup are not invoked.
 
 See [M2 acceptance](acceptance/m2.md) for exact revisions, CI links, artifact
 hashes, counts and limitations. One traced Mac process takes 17.503 ms for
@@ -63,18 +67,22 @@ ID-generator tests pass on Mac. Both complete CI workflows are green.
 DNS/network services, interface discovery and the other newly
 imported syscall families remain outside the implemented kernel subset.
 
-The next integration links the five Android native class-library dependencies
-and their caller from 208 original units. A 15-image signed runtime test is
-being added for 17 native groups and 228 unsigned-integer division vectors.
-At `3505832`, all six libraries link and sign, but native execution fails at
-the JVM fixture's temporary-file removal: syscall 35 (`unlinkat`) is ENOSYS.
-At `c211a46`, rooted non-directory unlink passes the separate 29-case lifetime/error
-contract in both signed Mac modes and both original/adapted native Linux paths.
-The class-library rerun passes JVM cleanup and the monitor worker, then finds
-an unnecessary DT_NEEDED edge exposing ICU's class cache through javacore lookup.
-The corrected link retains only needed dependencies and adds direct/transitive
-cache-scope regression checks. Complete signed class-library validation is pending.
-This integration does not start JavaVM or invoke JNI_OnLoad.
+The five Android native class libraries and their caller now execute on Mac
+ARM64 through signed frameworks at `c3fd5aa`. Independent artifact checks
+verify 208 original objects plus the caller, 1,666 upstream inputs, 131,813
+instructions, twelve Mac/iOS framework layouts and 204 notice hashes. The
+17-group native call takes 0.577 ms and 228 integer vectors take 0.039 ms in one
+traced correctness run; load/relocation takes 48.201 ms and bootstrap 1.560 ms.
+These are not steady-state or iPhone performance measurements.
+
+This required rooted unlink with a separate 29-case lifetime/error contract
+and removal of unnecessary JNI dependency edges. Both signed Mac allocator
+modes and both native Linux profiles pass all 29 unlink cases. The original
+JVM cleanup and hidden-cache assertions remain mandatory.
+
+Next is [signal registration and delivery](m3-signals.md), followed by actual
+Apple JavaVM startup, JNI_OnLoad and DEX acceptance. The new Linux signal
+reference compiles locally; its execution is pending CI.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

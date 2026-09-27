@@ -1698,7 +1698,7 @@ artifact; do not infer network support or JavaVM startup from successful linking
 
 ## 0073: Sign native class libraries before registering JNI
 
-Status: implementation added; signed execution pending CI.
+Status: all 17 native groups and 228 integer vectors pass signed Mac execution at c3fd5aa.
 
 Link the 208 selected Android native class-library objects against ART, ICU,
 Bionic, math and libdl from the same clean producer revision. Preserve the
@@ -1751,7 +1751,7 @@ M2's existing 328-case denominator remains unchanged.
 
 ## 0075: Keep unrelated JNI libraries outside javacore's dependency scope
 
-Status: local link and regression checks pass; signed execution pending.
+Status: local link, regression checks and signed execution pass at c3fd5aa.
 
 At `c211a46`, the native class-library fixture passes file cleanup and monitor
 join, then finds JniConstants through javacore's handle. The original export map
