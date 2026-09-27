@@ -16,7 +16,7 @@ int64_t artbox_kernel_call(void *context, uint64_t number, uint64_t a0, uint64_t
                           uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5) {
     artbox_kernel_thread *thread = context;
     if (!thread) return -22;
-    if (thread->signal_state && (number == 131 || number == 134 || number == 135 || number == 137))
+    if (thread->signal_state && (number == 131 || number == 132 || number == 134 || number == 135 || number == 137))
         return artbox_signals_call(thread, number, a0, a1, a2, a3);
     switch (number) {
         case 160: {

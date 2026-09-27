@@ -19,7 +19,9 @@ struct artbox_signals {
     artbox_signal_actions *actions=nullptr;
     artbox_signal_action_validator validate=nullptr;
     void *validation_context=nullptr;
+    size_t stack_minimum=0,stack_capacity=0;
 };
+struct StackRecord { artbox_signal_stack value; StackRecord *next; };
 struct artbox_signal_thread {
     artbox_signals *owner;
     artbox_kernel_thread *kernel;
@@ -27,6 +29,10 @@ struct artbox_signal_thread {
     uint64_t pending = 0, wait_mask = 0;
     bool waiting = false;
     std::condition_variable changed;
+    const StackRecord disabled{{0,0,2},nullptr};
+    std::atomic<const StackRecord*> stack{&disabled};
+    StackRecord *stack_records=nullptr;
+    size_t stack_records_used=0;
 };
 static const uint64_t unmaskable = UINT64_C(0x40100);
 static uint64_t get64(const unsigned char *bytes) {
@@ -64,6 +70,56 @@ extern "C" int artbox_signals_mask_snapshot(const artbox_kernel_thread *kernel,u
     *mask=kernel->signal_state->mask.load(std::memory_order_acquire);
     return 0;
 }
+extern "C" int artbox_signals_enable_stacks(artbox_signals *signals,size_t minimum,size_t capacity) {
+    if(!signals || !minimum || !capacity || capacity>65536) return -22;
+    std::lock_guard<std::mutex> guard(signals->lock);
+    if(signals->stack_minimum || !signals->threads.empty()) return -16;
+    signals->stack_minimum=minimum; signals->stack_capacity=capacity;
+    return 0;
+}
+static uint32_t stack_flags(const artbox_signal_stack &stack,uint64_t sp) {
+    return !stack.size ? 2u : sp>stack.address && sp-stack.address<=stack.size ? 1u : 0u;
+}
+extern "C" int artbox_signals_stack_snapshot(const artbox_kernel_thread *kernel,uint64_t sp,
+    artbox_signal_stack *output) {
+    if(!kernel || !kernel->signal_state || !output) return -22;
+    const auto *thread=kernel->signal_state;
+    if(!thread->owner->stack_minimum) return -38;
+    auto result=thread->stack.load(std::memory_order_acquire)->value;
+    result.flags=stack_flags(result,sp);
+    *output=result;
+    return 0;
+}
+extern "C" int artbox_signals_stack_update(artbox_kernel_thread *kernel,uint64_t sp,
+    const artbox_signal_stack *input,artbox_signal_stack *previous) {
+    artbox_signal_stack old;
+    int error=artbox_signals_stack_snapshot(kernel,sp,&old);
+    if(error) return error;
+    auto *thread=kernel->signal_state;
+    if(input) {
+        if(old.flags==1) return -1;
+        auto requested=*input;
+        const uint32_t mode=requested.flags&~UINT32_C(0x80000000);
+        if(mode!=0 && mode!=1 && mode!=2) return -22;
+        if(requested.flags&UINT32_C(0x80000000)) return -95; // SS_AUTODISARM needs return integration.
+        if(requested.flags==2) thread->stack.store(&thread->disabled,std::memory_order_release);
+        else {
+            requested.flags=0; // SS_ONSTACK input is accepted; queries derive the live state.
+            if(requested.size<thread->owner->stack_minimum) return -12;
+            if(!artbox_vm_access(thread->owner->vm,requested.address,requested.size,3)) return -14;
+            const auto current=thread->stack.load(std::memory_order_acquire)->value;
+            if(current.address!=requested.address || current.size!=requested.size || current.flags!=requested.flags) {
+                if(thread->stack_records_used==thread->owner->stack_capacity) return -12;
+                auto *record=new(std::nothrow) StackRecord{requested,thread->stack_records};
+                if(!record) return -12;
+                thread->stack_records=record; ++thread->stack_records_used;
+                thread->stack.store(record,std::memory_order_release);
+            }
+        }
+    }
+    if(previous) *previous=old;
+    return 0;
+}
 static int attach(artbox_signals *signals,artbox_kernel_thread *kernel,uint64_t mask) {
     if (!kernel || kernel->vm!=signals->vm || kernel->pid!=signals->pid ||
         kernel->tid<=0 || kernel->signal_state) return -22;
@@ -71,7 +127,7 @@ static int attach(artbox_signals *signals,artbox_kernel_thread *kernel,uint64_t 
     if (signals->threads.size()==signals->capacity) return -11;
     auto *thread=new(std::nothrow) artbox_signal_thread;
     if (!thread) return -12;
-    if (!thread->mask.is_lock_free()) { delete thread; return -95; }
+    if (!thread->mask.is_lock_free() || !thread->stack.is_lock_free()) { delete thread; return -95; }
     thread->owner=signals; thread->kernel=kernel; thread->mask=mask&~unmaskable;
     signals->threads.push_back(thread); // Capacity was reserved before publication.
     kernel->blocked_signals=thread->mask;
@@ -99,6 +155,10 @@ extern "C" int artbox_signals_detach(artbox_kernel_thread *kernel) {
     signals->threads.erase(std::find(signals->threads.begin(),signals->threads.end(),thread));
     kernel->blocked_signals=thread->mask;
     kernel->signal_state=nullptr;
+    while(thread->stack_records) {
+        auto *next=thread->stack_records->next;
+        delete thread->stack_records; thread->stack_records=next;
+    }
     delete thread;
     return 0;
 }
@@ -120,6 +180,20 @@ extern "C" size_t artbox_signals_waiter_count(artbox_signals *signals) {
     if (!signals) return 0;
     std::lock_guard<std::mutex> guard(signals->lock);
     return signals->waiters;
+}
+static int64_t alternate_stack(artbox_kernel_thread *kernel,uint64_t in,uint64_t out,uint64_t sp) {
+    if(!kernel->signal_state->owner->stack_minimum) return -38;
+    unsigned char bytes[24];
+    artbox_signal_stack requested{},previous;
+    if(in) {
+        int error=artbox_vm_read(kernel->vm,in,bytes,sizeof(bytes));
+        if(error) return error;
+        requested={get64(bytes),get64(bytes+16),static_cast<uint32_t>(get64(bytes+8))};
+    }
+    int error=artbox_signals_stack_update(kernel,sp,in?&requested:nullptr,&previous);
+    if(error || !out) return error;
+    put(bytes,previous.address,8); put(bytes+8,previous.flags,8); put(bytes+16,previous.size,8);
+    return artbox_vm_write(kernel->vm,out,bytes,sizeof(bytes));
 }
 static int64_t action(artbox_signal_thread *thread,uint64_t number,uint64_t in,uint64_t out,uint64_t size) {
     auto *owner=thread->owner;
@@ -244,8 +318,10 @@ static int64_t wait(artbox_signal_thread *thread,uint64_t set,uint64_t info,uint
 extern "C" int64_t artbox_signals_call(artbox_kernel_thread *kernel,uint64_t number,
     uint64_t a0,uint64_t a1,uint64_t a2,uint64_t a3) {
     if (!kernel || !kernel->signal_state) return -38;
+    unsigned char stack_marker;
     switch (number) {
         case 131: return send(kernel->signal_state,a0,a1,a2);
+        case 132: return alternate_stack(kernel,a0,a1,(uintptr_t)&stack_marker);
         case 134: return action(kernel->signal_state,a0,a1,a2,a3);
         case 135: return mask(kernel->signal_state,a0,a1,a2,a3);
         case 137: return wait(kernel->signal_state,a0,a1,a2,a3);
