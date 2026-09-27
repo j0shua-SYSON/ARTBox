@@ -64,5 +64,9 @@ nonterminated inputs, zero-length concatenation and signed quotient/remainder
 behavior. The 274-unit native profile and startup client compile and pass local
 instruction/layout checks. The new OpenBSD units retain AOSP's forced
 `openbsd-compat.h` include, which supplies its DEF_STRONG compatibility macro.
-Native execution of the expanded 42-case suite is pending; the results
-above remain evidence for the original 30-case version.
+At `4abb7b1`, the expanded 42-case suite passes in both signed Mac allocator
+modes and against native Linux ARM64 libc. GCC's fortified inline strncat
+diagnosed the intentionally bounded copy as truncation; calling the public
+symbol through a volatile function pointer preserves the test and strict
+warnings. Independent downloaded checks verify the caller, four ELF images,
+eight framework layouts and 56 notices. Both M2 scores remain 328/328.

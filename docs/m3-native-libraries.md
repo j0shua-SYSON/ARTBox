@@ -42,3 +42,27 @@ Source/object hashes, compiler commands, link diagnostics, test output, notices
 and complete selected corresponding source are retained. ART has not booted or
 executed DEX as part of this check. The Android object profile still requires
 Apple TLS, managed-reference, signal and signed-library integration.
+
+The Android build now feeds `scripts/link_icu_guest.py`. Its inputs are the
+480-object native dependency build, full ART link and Bionic/math/libdl evidence
+from one Git revision. The script verifies producer source and object hashes,
+links the five libraries with strong imports required, and checks each library's
+actual `DT_NEEDED` closure. A symbol exported by an unrelated image cannot
+satisfy an import. Base/log/C++ symbols come from the same guest ART library;
+no Apple C++ runtime objects enter the Android libraries.
+
+These ICU objects have no compiler TLS. Their linker script asserts that TLS
+sections stay empty instead of emitting an invalid empty `PT_TLS`. Instruction
+checks reject SVC, thread-pointer accesses, x18/x27/x28 use and undecoded
+instructions. The existing wrapper checks the RX/RW layout before signing
+separate Mac ARM64 and iOS 15 frameworks with no entitlements. Original ICU
+data, dependency source archives and notices accompany the result.
+
+```console
+python -B scripts/link_icu_guest.py --native-dir build/m3/guest-icu-inputs --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+```
+
+The initial packaging validation is pending CI. This stage does not load ICU,
+run its constructors or invoke `JNI_OnLoad`. Native ICU acceptance through the
+rooted filesystem and Bionic services is the next execution test; JavaVM/DEX
+startup remains a separate M3 requirement.

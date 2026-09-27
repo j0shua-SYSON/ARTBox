@@ -43,6 +43,7 @@ jobs:
           ${{ matrix.python }} -B tests/test_tls_adapt.py
           ${{ matrix.python }} -B tests/test_art_native_tls.py
           ${{ matrix.python }} -B tests/test_art_guest_link.py
+          ${{ matrix.python }} -B tests/test_icu_guest_link.py
           ${{ matrix.python }} -B tests/test_m2_acceptance.py
           ${{ matrix.python }} -B scripts/build.py host
       - name: Check ART's native low-address heap requirement
@@ -593,6 +594,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 -B scripts/build_art_runtime.py --profile android --managed-window --native-guest --all --jobs 3
+      - name: Compile the pinned Android ICU and nativehelper dependencies
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_art_native_libraries.py --profile android --all --jobs 3
+      - name: Preserve Android ICU objects and corresponding source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: icu-native-guest-build
+          path: |
+            build/m3/native-libraries/android/*.json
+            build/m3/native-libraries/android/*.log
+            build/m3/native-libraries/android/*.zip
+            build/m3/native-libraries/android/objects/
+            build/m3/native-libraries/android/notices/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Preserve guest objects and corresponding source
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -625,6 +643,10 @@ jobs:
           path: build/m3/guest-runtime-inputs
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
+          name: icu-native-guest-build
+          path: build/m3/guest-icu-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
           name: bionic-startup
           path: build/m3/guest-dependency-inputs
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -647,6 +669,20 @@ jobs:
         run: python3 -B scripts/build.py host
       - name: Execute full guest constructors and the pre-start JNI boundary
         run: python3 -B scripts/test_art_guest_bootstrap.py --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+      - name: Link ICU dependencies and verify their signed Apple frameworks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/link_icu_guest.py --native-dir build/m3/guest-icu-inputs --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+      - name: Preserve signed ICU packaging and provenance
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: icu-guest-link
+          path: |
+            artifacts/m3-icu-guest-link.json
+            build/m3/icu-guest-link/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Preserve the full guest link and signature evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

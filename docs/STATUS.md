@@ -126,11 +126,15 @@ wrappers do not imply new kernel-service support; the IPA still contains no ART.
 All 480 Android ICU/JNI units now compile locally. A diagnostic link identifies
 six additional math/libc imports. Expanded 108-case math and 42-case libc clients
 reproduce their missing-symbol failures before the unchanged AOSP implementations
-are added. Native execution of those expanded suites and signed ICU integration
-are pending; this does not replace the previously verified dependency results.
+are added. At `4abb7b1`, all 108 math vectors and 42 libc checks pass through
+signed Bionic on Mac ARM64 and their native Linux references. Downloaded source,
+object, framework and notice checks pass; both M2 modes remain at 328/328.
 The updated local link resolves all strong imports of the five ICU/JNI libraries
 against the guest dependency set. This diagnostic uses local objects and earlier
 verified inputs; it is not yet a signed or executed ICU artifact.
+The public ICU pipeline now requires all producers to share a Git revision,
+checks the actual dependency closure and packages five Mac/iOS 15 frameworks.
+Its first CI signing result and execution through the shared runtime are pending.
 The [loader service queries](m3-loader-services.md) now cover named dependency
 scope, lookup after the caller and ELF address/image metadata. All 25 local
 host tests pass. The portable handle/error context also passes concurrent tests,

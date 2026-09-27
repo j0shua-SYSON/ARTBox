@@ -54,6 +54,8 @@ The ICU dependency link exposed expf, tanhf and modf as missing imports. The new
 108-vector client fails to link against the prior subset before their addition.
 Four unchanged files at the existing AOSP pin add those functions and tanhf's
 expm1f dependency, retaining their Sun permission notices. The expanded Android
-libraries compile and pass instruction/layout checks locally; their signed Mac
-and native Linux execution results are still pending. The 78-case evidence above
-describes the earlier revision, not validation of the new vectors.
+libraries compile and pass instruction/layout checks locally. At `4abb7b1`,
+all 108 vectors pass through the signed Mac framework and both native Linux
+guest/system references. Independent artifact checks verify 39 objects, 292
+upstream inputs, two ELF binaries, four framework layouts and 20 notice hashes.
+The 78-case evidence above describes the earlier revision.

@@ -1565,3 +1565,25 @@ outcomes before building the guest. Check unsupported mappings, allocation
 failures, remap failure, successful remap and both unmap failure paths, including
 call ordering and arguments. These are control-flow tests, not Linux memory
 semantics tests. The full signed constructor test remains required in CI.
+
+## 0068: Package Android ICU with the existing guest C++ runtime
+
+Status: local Android link and instruction inventory pass; public CI packaging
+and execution through the Apple runtime are pending.
+
+Keep nativehelper, ICU common, internationalization, shim and JNI registration
+as five ELF libraries wrapped in signed frameworks. Link their base/log/C++
+imports to the same guest ART image that provides those symbols, avoiding
+duplicate C++ runtime state or cross-ABI calls into Apple's C++ library. Validate
+the actual dependency closure, not a union of every image's exports.
+
+The 480 pinned source units retain their existing AOSP host data-loading path
+and Android ABI. Package the pinned ICU data as data, and preserve all notices
+and source archives. Require the ART and ICU producers to match one Git
+revision. Assert absent TLS sections and reject kernel or reserved-register
+instructions before using the existing 16 KiB signed wrapper pipeline.
+
+This isolates signing and dependency failures before runtime initialization.
+The cost is five additional signed frameworks and their startup relocations;
+measure load/constructor time when the native ICU acceptance runner is wired.
+Packaging alone does not satisfy that execution test or M3.
