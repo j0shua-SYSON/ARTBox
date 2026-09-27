@@ -49,6 +49,25 @@ int main(int argc, char **argv) {
     CHECK(artbox_load_group_create(module, 2, names[0], NULL, NULL, &group) == ARTBOX_ELF_OK);
     CHECK(artbox_load_group_count(group) == 2 && artbox_load_group_relocate(group) == ARTBOX_ELF_OK &&
           artbox_load_group_initialize(group, reject_constructor, NULL) == ARTBOX_ELF_OK);
+    for (unsigned i = 0; i < 2; ++i) {
+        artbox_link_info info;
+        CHECK(artbox_load_group_info(group, i, &info) == ARTBOX_ELF_OK &&
+              info.dynamic == &dynamic[i] && info.load_bias == module[i].load_bias &&
+              !strcmp(info.name, names[i]) && info.tls_module_id == 0);
+    }
+    artbox_elf_symbol sine, caller;
+    uint64_t address, expected;
+    CHECK(artbox_dynamic_lookup(&dynamic[1], "sin", &sine) == ARTBOX_ELF_OK && sine.size > 4);
+    CHECK(artbox_dynamic_lookup(&dynamic[0], "artbox_math_check", &caller) == ARTBOX_ELF_OK);
+    expected = module[1].load_bias + sine.value;
+    CHECK(artbox_load_group_lookup_from(group, names[1], "sin", NULL, &address) == ARTBOX_ELF_OK && address == expected);
+    CHECK(artbox_load_group_lookup_from(group, names[1], "artbox_math_check", NULL, &address) == ARTBOX_ELF_NOT_FOUND);
+    CHECK(artbox_load_group_lookup_next(group, module[0].load_bias + caller.value, "sin", NULL, &address) == ARTBOX_ELF_OK && address == expected);
+    CHECK(artbox_load_group_lookup_next(group, expected, "sin", NULL, &address) == ARTBOX_ELF_NOT_FOUND);
+    artbox_link_address location;
+    CHECK(artbox_load_group_address(group, expected + 4, &location) == ARTBOX_ELF_OK &&
+          location.image.dynamic == &dynamic[1] && location.symbol_address == expected &&
+          location.symbol_name && !strcmp(location.symbol_name, "sin"));
     const char *checks[2] = {"artbox_math_case_count", "artbox_math_check"};
     for (unsigned i = 0; i < 2; ++i) {
         uint64_t entry;

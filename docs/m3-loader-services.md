@@ -29,3 +29,6 @@ callback ABI, guest-visible metadata storage and native execution tests.
 Portable tests cover scope isolation, weak-symbol order, cycle termination,
 caller selection, TLS IDs, symbol boundaries and missing/invalid inputs. All
 25 local host tests pass. This is loader infrastructure, not Apple ART startup.
+The signed math runner also checks these queries against its actual client and
+libm images, including library-handle isolation and an address inside `sin`.
+That native check is pending CI.
