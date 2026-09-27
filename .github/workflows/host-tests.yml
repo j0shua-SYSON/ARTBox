@@ -605,7 +605,7 @@ jobs:
           retention-days: 7
 
   art-guest-link:
-    name: Full ART guest link and signed Mac/iOS frameworks
+    name: Full ART guest link, signed frameworks and native bootstrap
     needs: [host, art-native-guest-build]
     runs-on: macos-15
     timeout-minutes: 20
@@ -639,6 +639,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 -B scripts/link_art_guest.py --runtime-dir build/m3/guest-runtime-inputs --dependency-dir build/m3/guest-dependency-inputs
+      - name: Build the shared native bootstrap runner
+        run: python3 -B scripts/build.py host
+      - name: Execute full guest constructors and the pre-start JNI boundary
+        run: python3 -B scripts/test_art_guest_bootstrap.py --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
       - name: Preserve the full guest link and signature evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -646,7 +650,10 @@ jobs:
           name: art-guest-link
           path: |
             artifacts/m3-art-guest-link.json
+            artifacts/m3-art-guest-bootstrap.json
             build/m3/art-guest-link/
+            build/m3/art-guest-bootstrap/
+            build/host/artbox_native_art_bootstrap
           if-no-files-found: warn
           retention-days: 7
 

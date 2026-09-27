@@ -1473,8 +1473,8 @@ reference. A build does not establish signed full-runtime execution.
 
 ## 0063: Link the full guest from one verified dependency revision
 
-Status: boundary tests and a local full-runtime link from verified `44008be`
-objects pass; Apple signing/layout validation is pending.
+Status: full-runtime linking, instruction checks and signed Mac/iOS 15 framework
+layout validation pass in CI at `5b570af`; runtime execution remains pending.
 
 Consume the full native guest and already exercised Bionic, math, libdl and LLVM
 context artifacts from the same producer revision. Verify their original source
@@ -1489,3 +1489,37 @@ extraction of its original x18-restoring member. Inspect the final linked code,
 including extracted archive members, before signing. Existing Mach-O wrappers
 carry the immutable code and writable ELF data layout. Packaging alone does not
 establish constructor execution, signal behavior, ART startup or DEX invocation.
+
+## 0064: Query Bionic's existing static TLS for loader metadata
+
+Status: Android build and boundary checks pass locally; signed execution pending.
+
+Keep private Bionic TLS layouts in the Android bootstrap. Expose a fixed-word
+module-ID-to-address entry for the guest loader's metadata callback. The startup
+group is immutable and all of its TLS is static, so a query needs no allocation,
+module-table mutation or allocating `__tls_get_addr` call. Invalid IDs, unbound
+threads and calls before bootstrap return zero. Do not claim dynamic module
+support: that will need generation-aware DTV lookup and additional tests.
+
+Compare both existing block addresses with Bionic's real resolver on the main
+thread and six workers, before and after their TLS workload. Keep these checks
+inside both existing signed normal and sampled Bionic runs, alongside the
+original Linux TLS reference. Do not substitute a host TLS layout for Bionic's.
+
+## 0065: Execute full ART bootstrap through the existing Bionic services
+
+Status: shared runner and CI test added; native execution pending.
+
+Use the same VM, rooted filesystem, syscall translator, futex and pthread
+manager as the Bionic acceptance runner. Register libc, ART, libm and libdl in
+one signed group, provide ART's seven VM imports plus the existing TLS bridge,
+and bind each executing thread to the guest loader before constructors.
+ART loader calls must resolve through AOSP libdl, without the M2 fixture's
+optional-library failure hooks. Derive the TLS module count from the group.
+
+First test real constructors, pre-start JNI registration and shared heap
+binding. Keep that result separate from JavaVM startup and DEX acceptance.
+Fixed-word invocation APIs can cross the native boundary directly; variadic
+JNI method calls must remain in an Android-compiled acceptance entry because
+Apple's variadic ABI differs. This is a one-shot diagnostic, with the existing
+fatal-error policy and no general unloading, not a production launcher API.

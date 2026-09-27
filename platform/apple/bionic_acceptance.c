@@ -1,5 +1,7 @@
 // Signed Bionic fixture using the portable manifest-scoped load-group engine.
 #include "artbox/native_bionic.h"
+#include "artbox/native_art.h"
+#include "artbox/native_dlfcn.h"
 #include "artbox/dynamic.h"
 #include "artbox/relocation.h"
 #include "artbox/linker.h"
@@ -50,12 +52,17 @@ static _Thread_local jmp_buf *exit_boundary;
 static _Thread_local artbox_thread_finish *thread_finish;
 static int32_t pthread_result;
 static uint64_t reaped, pthread_ns, thread_guarded_samples;
+static uint64_t tls_queries;
 static artbox_kernel_thread thread;
 static _Atomic unsigned calls;
 static unsigned absent_netd, constructors;
 static _Atomic unsigned unsupported[512];
 static int64_t result;
 static unsigned force_sampling;
+static unsigned art_bootstrap;
+static unsigned tls_count;
+static artbox_dlfcn *guest_loader;
+static artbox_guest_dlfcn *guest_dl_service;
 static uint64_t gwp_enabled, guarded_samples;
 static int64_t futex_cases;
 static const char *loader_error;
@@ -113,6 +120,10 @@ static artbox_elf_result resolve(void *context, const artbox_dynamic *dynamic, u
     artbox_elf_symbol symbol;
     (void)context;
     if (artbox_dynamic_symbol(dynamic, index, &symbol) != ARTBOX_ELF_OK) return ARTBOX_ELF_INVALID;
+    if (art_bootstrap) {
+        artbox_elf_result loader = artbox_native_dlfcn_resolve(NULL, dynamic, index, address);
+        if (loader != ARTBOX_ELF_NOT_FOUND) return loader;
+    }
 #define HOST(import_name, entry) if (!strcmp(symbol.name, import_name)) { \
     void (*p)(void) = (void (*)(void))(entry); \
     _Static_assert(sizeof(p) == sizeof(*address), "ARM64 code pointer"); \
@@ -120,17 +131,28 @@ static artbox_elf_result resolve(void *context, const artbox_dynamic *dynamic, u
     HOST("artbox_bionic_syscall", artbox_bionic_syscall)
     HOST("artbox_bionic_get_tls", artbox_bionic_get_tls)
     HOST("artbox_bionic_set_tls", artbox_bionic_set_tls)
+    if (art_bootstrap && dynamic->soname && !strcmp(dynamic->soname, "libart.so")) {
+        HOST("artbox_vm_access", artbox_vm_access)
+        HOST("artbox_vm_mmap_window", artbox_vm_mmap_window)
+        HOST("artbox_vm_mprotect", artbox_vm_mprotect)
+        HOST("artbox_vm_munmap", artbox_vm_munmap)
+        HOST("artbox_vm_page_size", artbox_vm_page_size)
+        HOST("artbox_vm_reserve_window", artbox_vm_reserve_window)
+        HOST("artbox_vm_reserved_bytes", artbox_vm_reserved_bytes)
+    }
     HOST("android_get_application_target_sdk_version", target_sdk)
-    HOST("dlopen", missing_netd)
-    HOST("dlerror", guest_dlerror)
+    if (!art_bootstrap) {
+        HOST("dlopen", missing_netd)
+        HOST("dlerror", guest_dlerror)
+        HOST("dlsym", unexpected)
+        HOST("dlclose", unexpected)
+    }
     HOST("artbox_host_pthread_clone", host_pthread_clone)
     HOST("_exit_with_stack_teardown", exit_with_stack_teardown)
     // Unsupported loader/process interfaces still fail the controlled test.
     HOST("vfork", unexpected)
     HOST("android_dlopen_ext", unexpected)
     HOST("android_get_exported_namespace", unexpected)
-    HOST("dlsym", unexpected)
-    HOST("dlclose", unexpected)
 #undef HOST
     if (symbol.binding != 2) fprintf(stderr, "unresolved: %s\n", symbol.name);
     return ARTBOX_ELF_NOT_FOUND;
@@ -141,6 +163,17 @@ static const void *entry(module *m, const char *name) {
         s.value % 4 || s.value >= m->elf.segments[0].file_size ||
         s.size > m->elf.segments[0].file_size - s.value) fail(name);
     return m->rx + s.value;
+}
+static artbox_elf_result loader_invoke(void *context, uint64_t address,
+                                     const uint64_t args[3], uint64_t *value) {
+    (void)context;
+    *value = artbox_call7((void *)(uintptr_t)address, args[0], args[1], args[2], 0, 0, 0, 0);
+    return ARTBOX_ELF_OK;
+}
+static artbox_elf_result loader_tls(void *context, uint64_t id, uint64_t *address) {
+    (void)context;
+    *address = artbox_call7(entry(&images[0], "artbox_bootstrap_tls_data"), id, 0, 0, 0, 0, 0, 0);
+    return ARTBOX_ELF_OK;
 }
 static void load(module *m, const char *framework, const char *file) {
     FILE *f = fopen(file, "rb");
@@ -205,6 +238,11 @@ static void run_child(void *context, artbox_kernel_thread *kernel, const artbox_
     const artbox_syscall_binding binding = {dispatch, kernel};
     const artbox_syscall_binding *previous = artbox_native_syscall_swap(&binding);
     void **old_tls = artbox_native_tls_swap((void **)(uintptr_t)start->tls);
+    artbox_guest_dl_thread *dl_thread = NULL, *old_dl = NULL;
+    if (guest_dl_service) {
+        if (artbox_guest_dl_thread_create(guest_dl_service, &dl_thread) != ARTBOX_ELF_OK) fail("child loader state");
+        old_dl = artbox_native_dlfcn_swap(dl_thread);
+    }
     jmp_buf boundary;
     exit_boundary = &boundary; thread_finish = finish;
     if (!setjmp(boundary)) {
@@ -212,6 +250,10 @@ static void run_child(void *context, artbox_kernel_thread *kernel, const artbox_
         finish->error = -5; // Bionic __pthread_start must end through guest exit.
     }
     exit_boundary = NULL; thread_finish = NULL; current_kernel = NULL;
+    if (dl_thread) {
+        artbox_native_dlfcn_swap(old_dl);
+        artbox_guest_dl_thread_destroy(dl_thread);
+    }
     artbox_native_tls_swap(old_tls);
     artbox_native_syscall_swap(previous);
     // Return normally; the portable reaper joins before clear-TID or unmap.
@@ -222,6 +264,25 @@ static artbox_elf_result construct(void *context, uint64_t address) {
     artbox_call7((void *)(uintptr_t)address, 0, 0, 0, 0, 0, 0, 0);
     ++constructors;
     return ARTBOX_ELF_OK;
+}
+static void check_art_bootstrap(void) {
+    // Fixed-word JNI invocation APIs only. JNI variadic method calls belong in
+    // an NDK-compiled guest entry, never in the Apple calling convention.
+    uint64_t registered = UINT64_MAX;
+    int32_t count = -1;
+    if ((int32_t)artbox_call7(entry(&images[1], "JNI_GetCreatedJavaVMs"),
+            (uintptr_t)&registered, 1, (uintptr_t)&count, 0, 0, 0, 0) || count != 0 || registered != UINT64_MAX)
+        fail("ART pre-start VM registration");
+    // The pinned ART explicitly returns JNI_ERR for this unsupported API.
+    if ((int32_t)artbox_call7(entry(&images[1], "JNI_GetDefaultJavaVMInitArgs"), 0, 0, 0, 0, 0, 0, 0) != -1)
+        fail("ART default initialization contract");
+    if ((int32_t)artbox_call7(entry(&images[1], "artbox_art_heap_initialize"),
+            (uintptr_t)vm, UINT64_C(0x100000000), artbox_vm_page_size(vm), 0, 0, 0, 0)) fail("ART shared heap binding");
+    if (artbox_call7(entry(&images[1], "artbox_art_reference_compress"), 0, 0, 0, 0, 0, 0, 0) ||
+        artbox_call7(entry(&images[1], "artbox_art_reference_decompress"), 0, 0, 0, 0, 0, 0, 0))
+        fail("ART null reference contract");
+    artbox_call7(entry(&images[1], "artbox_art_heap_unbind"), 0, 0, 0, 0, 0, 0, 0);
+    result = 0;
 }
 static void *run(void *context) {
     (void)context;
@@ -251,10 +312,17 @@ static void *run(void *context) {
     const artbox_syscall_binding binding = {dispatch, &thread};
     const artbox_syscall_binding *previous = artbox_native_syscall_swap(&binding);
     void **old_tls = artbox_native_tls_swap(NULL);
+    artbox_guest_dl_thread *dl_thread = NULL, *old_dl = NULL;
+    if (guest_dl_service) {
+        if (artbox_guest_dl_thread_create(guest_dl_service, &dl_thread) != ARTBOX_ELF_OK) fail("primary loader state");
+        old_dl = artbox_native_dlfcn_swap(dl_thread);
+    }
+    if (artbox_call7(entry(&images[0], "artbox_bootstrap_tls_data"), 1, 0, 0, 0, 0, 0, 0))
+        fail("TLS query before bootstrap");
     fprintf(stderr, "bootstrap entry\n");
     artbox_tls_template templates[64];
-    unsigned tls_count = artbox_load_group_tls_count(load_group);
-    if (tls_count != 2) fail("ELF TLS template count");
+    tls_count = artbox_load_group_tls_count(load_group);
+    if (!tls_count || tls_count > 64 || (!art_bootstrap && tls_count != 2)) fail("ELF TLS template count");
     for (unsigned i = 0; i < tls_count; ++i)
         if (artbox_load_group_tls_template(load_group, i, &templates[i]) != ARTBOX_ELF_OK) fail("ELF TLS template");
     if (artbox_call7(entry(&images[0], "artbox_bootstrap_main"), (uintptr_t)args,
@@ -265,6 +333,15 @@ static void *run(void *context) {
     unsigned initialized = constructors;
     if (artbox_load_group_initialize(load_group, construct, NULL) != ARTBOX_ELF_OK || constructors != initialized)
         fail("constructor idempotence");
+    if (art_bootstrap) {
+        check_art_bootstrap();
+        artbox_native_dlfcn_swap(old_dl);
+        artbox_guest_dl_thread_destroy(dl_thread);
+        artbox_native_tls_swap(old_tls);
+        artbox_native_syscall_swap(previous);
+        current_kernel = NULL;
+        return NULL;
+    }
     for (unsigned i = 0; i < 2; ++i)
         if (artbox_call7(entry(&images[1], "artbox_tls_abi_check"), 0, 0, 0, 0, 0, 0, 0)) fail("TLSDESC register preservation");
     version_result = (int64_t)artbox_call7(entry(&images[1], "version_client"), 0, 0, 0, 0, 0, 0, 0);
@@ -306,6 +383,8 @@ static void *run(void *context) {
     if (artbox_threads_drain(threads, 5000)) fail("child thread reaper");
     pthread_ns = now() - thread_start;
     thread_guarded_samples = artbox_call7(entry(&images[1], "artbox_pthread_guarded_samples"), 0, 0, 0, 0, 0, 0, 0);
+    tls_queries = artbox_call7(entry(&images[1], "artbox_pthread_tls_queries"), 0, 0, 0, 0, 0, 0, 0);
+    if (tls_queries != 14) fail("existing static TLS queries");
     reaped = artbox_threads_reaped(threads);
     if (reaped != 6) fail("child thread count");
     gwp_enabled = artbox_call7(entry(&images[0], "artbox_bootstrap_gwp_enabled"), 0, 0, 0, 0, 0, 0, 0);
@@ -316,12 +395,13 @@ static void *run(void *context) {
     current_kernel = NULL;
     return NULL;
 }
-int artbox_run_native_bionic(const artbox_bionic_input *input, const artbox_host *host) {
+static int run_native(const artbox_bionic_input *input, const artbox_host *host, unsigned art_mode) {
     static atomic_flag used = ATOMIC_FLAG_INIT;
     if (!input || !input->root || !host || !host->log || input->sampled > 1) return -22;
     for (unsigned i = 0; i < IMAGE_COUNT; ++i)
         if (!input->frameworks[i] || !input->elfs[i]) return -22;
     if (atomic_flag_test_and_set(&used)) return -114;
+    art_bootstrap = art_mode;
     force_sampling = input->sampled;
     for (unsigned i = 0; i < 4; ++i) {
         const int signals[] = {SIGSEGV, SIGBUS, SIGILL, SIGABRT};
@@ -349,10 +429,20 @@ int artbox_run_native_bionic(const artbox_bionic_input *input, const artbox_host
         memory[i] = (artbox_relocation_memory){1, images[i].rw, (size_t)images[i].elf.segments[1].memory_size};
         modules[i] = (artbox_link_module){images[i].dynamic.soname, &images[i].dynamic, (uintptr_t)images[i].rx, &memory[i], 1};
     }
-    artbox_elf_result linked = artbox_load_group_create(modules, IMAGE_COUNT, "libstartup_client.so", resolve, NULL, &load_group);
+    artbox_elf_result linked = artbox_load_group_create(modules, IMAGE_COUNT,
+        art_bootstrap ? "libart.so" : "libstartup_client.so", resolve, NULL, &load_group);
     if (linked == ARTBOX_ELF_OK) linked = artbox_load_group_tls_resolver(load_group, (uintptr_t)entry(&images[0], "artbox_tlsdesc_absolute"));
     if (linked == ARTBOX_ELF_OK) linked = artbox_load_group_relocate(load_group);
     if (linked != ARTBOX_ELF_OK) { fprintf(stderr, "load group result %d\n", linked); fail("manifest load group"); }
+    if (art_bootstrap) {
+        const char *names[] = {"libc.so", "libart.so", "libm.so", "libdl.so"};
+        for (unsigned i = 0; i < IMAGE_COUNT; ++i)
+            if (!modules[i].name || strcmp(modules[i].name, names[i])) fail("ART bootstrap image order");
+        const artbox_guest_dl_ops loader_ops = {NULL, loader_invoke, loader_tls};
+        if (artbox_dlfcn_create(load_group, NULL, 0, &guest_loader) != ARTBOX_ELF_OK ||
+            artbox_guest_dlfcn_create(guest_loader, load_group, vm, &loader_ops, &guest_dl_service) != ARTBOX_ELF_OK)
+            fail("ART guest loader service");
+    }
     for (unsigned i = 0; i < IMAGE_COUNT; ++i)
         if (artbox_load_group_stats(load_group, modules[i].name, &images[i].relocations) != ARTBOX_ELF_OK) fail("relocation statistics");
     uint64_t loaded = now();
@@ -364,27 +454,42 @@ int artbox_run_native_bionic(const artbox_bionic_input *input, const artbox_host
     if (pthread_attr_init(&attr) || pthread_attr_setstack(&attr, (void *)(uintptr_t)((uint64_t)stack + page), stack_size) ||
         pthread_create(&worker, &attr, run, NULL) || pthread_attr_destroy(&attr) || pthread_join(worker, NULL)) fail("host execution thread");
     uint64_t finished = now(), reserved = artbox_vm_reserved_bytes(vm);
-    if (result != 146 || absent_netd != 1 || !constructors) {
+    if (!art_bootstrap && (result != 146 || absent_netd != 1 || !constructors)) {
         fprintf(stderr, "client result: %" PRId64 ", absent netd: %u, constructors: %u\n", result, absent_netd, constructors);
         fail("allocator acceptance");
     }
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) || usage.ru_maxrss <= 0) fail("native resident-memory measurement");
     if (artbox_threads_destroy(threads)) fail("thread manager cleanup");
+    artbox_guest_dlfcn_destroy(guest_dl_service);
+    artbox_dlfcn_destroy(guest_loader);
     if (artbox_vfs_destroy(filesystem) || artbox_native_files_close(backing_files)) fail("filesystem cleanup");
     if (artbox_futex_destroy(futex)) fail("futex cleanup");
     if (artbox_vm_destroy(vm)) fail("release reservations");
     if (artbox_load_group_count(load_group) != IMAGE_COUNT) fail("reachable load-group size");
     artbox_load_group_destroy(load_group);
     char report[16384];
-    int length = snprintf(report, sizeof(report), "{\"cases\":146,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
+    int length;
+    if (art_bootstrap) {
+        if (result || !constructors || artbox_bionic_get_tls()) fail("ART bootstrap completion");
+        length = snprintf(report, sizeof(report),
+            "{\"constructors\":%u,\"tls_modules\":%u,\"linked_images\":4,\"registered_vms\":0,"
+            "\"heap_binding_verified\":true,\"runtime_started\":false,\"dex_executed\":false,"
+            "\"load_relocate_ns\":%" PRIu64 ",\"bootstrap_ns\":%" PRIu64 ",\"cleanup\":true}",
+            constructors, tls_count, loaded-start, finished-loaded);
+        if (length < 0 || (size_t)length >= sizeof(report)) fail("ART result formatting");
+        host->log(host->context, report, (size_t)length);
+        for (unsigned i = 0; i < IMAGE_COUNT; ++i) { dlclose(images[i].handle); free(images[i].original); }
+        return 0;
+    }
+    length = snprintf(report, sizeof(report), "{\"cases\":146,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
            ",\"startup_client_ns\":%" PRIu64 ",\"reserved_bytes\":%" PRIu64 ",\"gwp_enabled\":%" PRIu64
            ",\"guarded_samples\":%" PRIu64 ",\"futex_cases\":%" PRId64
            ",\"pthread_result\":%d,\"threads_reaped\":%" PRIu64 ",\"pthread_client_ns\":%" PRIu64
            ",\"thread_guarded_samples\":%" PRIu64 ",\"process_peak_rss_bytes\":%ld,"
-           "\"linked_images\":4,\"tls_modules\":2,\"tls_threads\":7,\"tls_result\":0,\"version_result\":%" PRId64 ",\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64
+           "\"linked_images\":4,\"tls_modules\":2,\"tls_threads\":7,\"tls_result\":0,\"tls_queries\":%" PRIu64 ",\"version_result\":%" PRId64 ",\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64
            ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"art_libc_cases\":%" PRId64 ",\"unsupported_syscalls\":{",
-           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases);
+           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases);
     if (length < 0 || (size_t)length >= sizeof(report)) fail("result formatting");
     size_t used_bytes = (size_t)length;
     unsigned printed = 0;
@@ -398,4 +503,16 @@ int artbox_run_native_bionic(const artbox_bionic_input *input, const artbox_host
     host->log(host->context, report, used_bytes);
     for (unsigned i = 0; i < IMAGE_COUNT; ++i) { dlclose(images[i].handle); free(images[i].original); }
     return 0;
+}
+int artbox_run_native_bionic(const artbox_bionic_input *input, const artbox_host *host) {
+    return run_native(input, host, 0);
+}
+int artbox_run_native_art_bootstrap(const artbox_art_input *input, const artbox_host *host) {
+    if (!input) return -22;
+    artbox_bionic_input shared_input = {{0}, {0}, input->root, 0};
+    for (unsigned i = 0; i < IMAGE_COUNT; ++i) {
+        shared_input.frameworks[i] = input->frameworks[i];
+        shared_input.elfs[i] = input->elfs[i];
+    }
+    return run_native(&shared_input, host, 1);
 }

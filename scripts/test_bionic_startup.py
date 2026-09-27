@@ -241,6 +241,8 @@ def main():
                 raise RuntimeError("NDK pthread client did not complete")
             if result[key]["tls_modules"] != 2 or result[key]["tls_threads"] != 7 or result[key]["tls_result"] != 0:
                 raise RuntimeError("NDK ELF TLS client did not complete")
+            if result[key]["tls_queries"] != 14:
+                raise RuntimeError("Existing Bionic TLS queries did not match the real resolver")
             if key == "sampled_native" and result[key]["thread_guarded_samples"] < 6:
                 raise RuntimeError("GWP-ASan sampling did not reach every guest worker")
             if result[key]["process_peak_rss_bytes"] <= 0 or result[key]["pthread_client_ns"] <= 0:

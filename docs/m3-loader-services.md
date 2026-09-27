@@ -70,3 +70,16 @@ and 18 notices. The complete test process took 10.078 ms including launch and
 teardown; this is one correctness run, not a per-call or iPhone benchmark.
 `dlvsym` also has a portable binding test; the signed fixture imports the other
 six APIs. Full Apple ART startup and physical execution remain unverified.
+
+The Bionic bootstrap now exposes `artbox_bootstrap_tls_data(module_id)` for
+that metadata callback. Its fixed startup group places every module in static
+TLS. The query uses Bionic's private TCB and static layout on the Android side;
+it returns zero before bootstrap, without a bound guest TCB, or for an invalid
+module. It neither calls the allocating TLS resolver nor creates a DTV.
+On-demand dynamic TLS remains outside this interface's contract.
+
+The native Bionic fixture compares both module bases with the actual
+`__tls_get_addr` result before and after the TLS workload on seven threads,
+including invalid IDs. CI requires all 14 query rounds in both normal and
+forced GWP sampling processes. This supplies the missing TLS metadata callback;
+connecting it to the full ART load group remains the next integration step.

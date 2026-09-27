@@ -14,6 +14,24 @@
 #define CHECK(c) do { if (!(c)) return -__LINE__; } while (0)
 extern uint64_t artbox_bootstrap_is_guarded(const void *);
 extern int artbox_tls_check(unsigned, unsigned);
+extern uintptr_t artbox_bootstrap_tls_data(uint64_t module_id);
+struct tls_index { uint64_t module_id, offset; };
+extern void *__tls_get_addr(const struct tls_index *index);
+static _Atomic unsigned tls_queries;
+
+static int check_tls_query(void) {
+    // Query before invoking the allocating resolver. Startup modules already
+    // own static TLS; this loader metadata query must find the existing block.
+    if (artbox_bootstrap_tls_data(0) || artbox_bootstrap_tls_data(3) ||
+        artbox_bootstrap_tls_data(UINT64_MAX)) return -1;
+    uintptr_t first = artbox_bootstrap_tls_data(1);
+    uintptr_t second = artbox_bootstrap_tls_data(2);
+    const struct tls_index a = {1, 0}, b = {2, 0};
+    if (!first || !second || first == second ||
+        first != (uintptr_t)__tls_get_addr(&a) || second != (uintptr_t)__tls_get_addr(&b)) return -2;
+    atomic_fetch_add_explicit(&tls_queries, 1, memory_order_relaxed);
+    return 0;
+}
 enum { JOINED = 4, DETACHED = 2, ITERATIONS = 32 };
 static pthread_mutex_t lock;
 static pthread_cond_t changed;
@@ -33,6 +51,7 @@ static void destroy_value(void *value) {
 }
 static void *worker(void *value) {
     struct argument *a = value;
+    ASSERT(check_tls_query() == 0);
     ASSERT(artbox_tls_check(a->index, 0) == 0);
     a->tid = gettid(); a->self = (void *)pthread_self(); a->errno_address = &errno;
     ASSERT(a->tid > 10000 && getpid() == 10000 && a->self != NULL);
@@ -84,11 +103,13 @@ static void *worker(void *value) {
     }
     ASSERT(close(fd) == 0);
     ASSERT(artbox_tls_check(a->index, 1) == 0);
+    ASSERT(check_tls_query() == 0);
     void *result = (void *)(uintptr_t)(a->index + 1);
     if (a->index & 1) pthread_exit(result);
     return result;
 }
 int artbox_pthread_check(unsigned require_guarded) {
+    CHECK(check_tls_query() == 0);
     CHECK(artbox_tls_check(77, 0) == 0);
     pthread_t handles[JOINED];
     sigset_t previous_mask, mask;
@@ -137,7 +158,13 @@ int artbox_pthread_check(unsigned require_guarded) {
     CHECK(pthread_sigmask(SIG_SETMASK, &previous_mask, NULL) == 0);
     CHECK(pthread_key_delete(key) == 0 && pthread_cond_destroy(&changed) == 0 && pthread_mutex_destroy(&lock) == 0);
     CHECK(artbox_tls_check(77, 1) == 0);
+    CHECK(check_tls_query() == 0);
+    CHECK(atomic_load_explicit(&tls_queries, memory_order_relaxed) == 14);
     return 0;
+}
+
+uint64_t artbox_pthread_tls_queries(void) {
+    return atomic_load_explicit(&tls_queries, memory_order_relaxed);
 }
 
 uint64_t artbox_pthread_guarded_samples(void) {

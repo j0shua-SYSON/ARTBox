@@ -83,11 +83,27 @@ instruction boundary check, not a proof of all runtime ABI behavior.
 frameworks. The CI job preserves inputs, corresponding source, notices and
 signature/layout evidence. `--input-revision` supports locally fetched CI merge
 commits; input provenance and the current link producer are recorded separately.
-The local consumer links the verified `44008be` objects to a 21,482,824-byte ELF
-and passes the import/instruction checks. Its wrapper input contains 11,255,808
-RX bytes and 278,528 RW bytes. Apple signing/layout validation is pending in the
-new CI job. The pipeline does not invoke ART constructors, JNI startup or a DEX
-method; these sizes are build results, not runtime memory measurements.
+At `5b570af`, the [full guest CI job](https://github.com/j0shua-SYSON/ARTBox/actions/runs/36291318393/job/108542537809)
+links the 462 objects and verifies signed frameworks for Mac and iOS 15 with
+empty entitlements. Its 21,482,824-byte ELF has SHA-256
+`0c2caa923c1bd0942b4eef9d4a14da8ed2031e160307b8b9d66351c760aba54f`.
+The wrapper contains 11,255,808 RX bytes and 278,528 RW bytes, identical to the
+local consumer's mapped bytes from the prior verified `44008be` build. The
+signed frameworks are 11,659,440 bytes for Mac and 11,659,456 bytes for iOS.
+The pipeline does not invoke ART constructors, JNI startup or a DEX method;
+these sizes are build results, not runtime memory measurements.
+The downloaded artifact independently verifies against 171 project inputs,
+nested source archives, all 2,059,754 decoded instructions, both framework
+layouts and 44 packaged notice hashes.
+
+A separate native bootstrap test now follows the link job. It uses the same
+Bionic platform services as M2, with the real guest libdl binding installed
+before constructors and Bionic's existing static TLS blocks exposed for loader
+metadata. It executes the complete group's constructors, checks ART's empty
+pre-start VM registry and unsupported default-arguments API, and binds/unbinds
+the ART heap through the shared host mapper. This test is pending its first CI
+execution. It does not invoke `JNI_CreateJavaVM` or execute DEX; those require
+the remaining signal and native class-library integration.
 
 Build outputs preserve source and object hashes, complete compiler commands,
 generated inputs, notices and `corresponding-source.zip`. A successful link

@@ -97,6 +97,8 @@ else()
         target_link_libraries(artbox_native_dynamic PRIVATE artbox_platform)
         add_executable(artbox_native_bionic_startup tests/native_bionic_startup.c)
         target_link_libraries(artbox_native_bionic_startup PRIVATE artbox_platform)
+        add_executable(artbox_native_art_bootstrap tests/native_art_bootstrap.c)
+        target_link_libraries(artbox_native_art_bootstrap PRIVATE artbox_platform)
         add_executable(artbox_native_art_references tests/native_art_references.c
             fixtures/art-references/native_delete.cpp)
         target_link_libraries(artbox_native_art_references PRIVATE artbox_platform)
