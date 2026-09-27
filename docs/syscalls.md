@@ -158,7 +158,9 @@ cached PID/vfork state and errno handling; do not call host fork/vfork. The
 added acceptance checks cover 28 injected replies/modes and two real guest
 rejection checks. The Linux oracle also requires a missing-register-save
 mutation to fail. These checks validate the frontend and explicit rejection,
-not Linux process creation; native execution of the new checks is pending CI.
+not Linux process creation. At `3826391`, both signed Mac modes pass all 30
+checks; native Linux passes the 28 captured cases and detects the deliberate
+mutation. The unchanged M2 pthread suite still passes 328/328 in both modes.
 
 The rt_sigprocmask (135) implementation stores an independent guest
 64-bit mask per thread and inherits it at clone. Size must be eight bytes; how

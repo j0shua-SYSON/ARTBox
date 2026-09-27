@@ -81,6 +81,15 @@ the real guest libc afterward. All 208 Android units compile with this selection
 Linux retains its original compiler flags. Execution of the Android-built
 helper through the signed Apple runtime remains pending.
 
+OpenJDK also imports vfork. The selected AOSP frontend now resolves from the
+281-unit Bionic build, with its TLS read and kernel entry adapted to the existing
+bridges. Preserve the original cached PID/vfork bits and errno behavior while
+returning ENOSYS for raw process clone. At `3826391`, both signed Mac modes pass
+28 injected-state cases and two real guest rejection checks; native Linux
+confirms the captured cases and detects a missing-register-save mutation.
+This satisfies the frontend contract, not subprocess support. Additional
+Bionic dependencies and signed execution of these class libraries remain open.
+
 Artifacts preserve source/object hashes, compiler and link commands, native test
 output, original notices, all selected corresponding source, and the verified
 runtime/ICU source bundles. This is a Linux reference dependency build. Apple

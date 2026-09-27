@@ -1636,8 +1636,9 @@ runtime-generated instruction or entitlement.
 
 Status: the original object fails the native instruction gate as expected.
 Both 281-unit Bionic profiles and the linked diagnostic client build locally;
-the adapted objects contain no forbidden instructions. Native execution of the
-new regression checks is pending CI.
+the adapted objects contain no forbidden instructions. At `3826391`, both signed
+Mac modes pass all 30 checks, and native Linux passes 28 captured cases plus the
+required failing mutation control. Both complete host and iOS workflows pass.
 
 OpenJDK's native process helper imports vfork even when no process is launched.
 Select the pinned AOSP frontend and replace only its TPIDR_EL0 read and kernel
