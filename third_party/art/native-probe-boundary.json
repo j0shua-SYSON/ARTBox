@@ -1,0 +1,19 @@
+{
+  "scope": "Native guest capability detection when mmap is unsupported; preserve allocation and cleanup failures",
+  "files": [
+    {
+      "path": "runtime/gc/collector/mark_compact.cc",
+      "sha256": "a1a5fb20b6914525e573bb1ed00135733e979643647ceb6332b69fdf53052506",
+      "replacements": [
+        {
+          "before": "#include <fcntl.h>",
+          "after": "#include <errno.h>\n#include <fcntl.h>"
+        },
+        {
+          "before": "  CHECK_NE(old, MAP_FAILED);",
+          "after": "  // ARTBox: an unavailable prerequisite means this capability is absent.\n  if (old == MAP_FAILED && (errno == ENOSYS || errno == EOPNOTSUPP)) return false;\n  CHECK_NE(old, MAP_FAILED);"
+        }
+      ]
+    }
+  ]
+}

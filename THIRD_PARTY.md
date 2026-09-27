@@ -466,3 +466,9 @@ other per-component terms as listed there. The already reviewed source-built
 context restore replaces the archive's platform-register restore; its original
 and adapted source and license accompany the link artifact. Original ARTBox
 glue remains MIT, and Android/host C++ runtime objects are not shared.
+
+`third_party/art/native-probe-boundary.json` adapts the already selected
+Apache-2.0 `runtime/gc/collector/mark_compact.cc` at the same ART pin. Original
+and adapted source, notices and the extracted feature-probe test input accompany
+native guest build artifacts. The injected-syscall fixture is original MIT code;
+no additional upstream dependency is introduced.

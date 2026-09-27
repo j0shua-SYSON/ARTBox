@@ -89,11 +89,12 @@ def preserve_sources(output, sources, generated, toolchain=None):
       'fixtures/art-runtime/thread_state.cpp','fixtures/art-runtime/thread_state.h',
       'fixtures/art-runtime/RuntimeChecks.java','fixtures/art-runtime/RuntimeChecksHost.java',
       'fixtures/art-runtime/host_strlcpy.cpp',
-      'fixtures/art-runtime/stack_initialization.cpp',
+      'fixtures/art-runtime/stack_initialization.cpp','fixtures/art-runtime/mremap_probe.cpp',
       'platform/linux/no_codegen.h','fixtures/art-runtime/codegen_policy.cpp']
     project += ['docs/m3-high-heap-runtime.md','third_party/art/managed-storage-boundary.json',
       'third_party/art/interpreter-arguments-boundary.json','third_party/art/managed-window-boundary.json',
       'third_party/art/class-table-boundary.json','third_party/art/native-tls.json',
+      'third_party/art/native-probe-boundary.json',
       'third_party/bionic/native-boundary.json',
       'third_party/art/adapters/artbox_art_heap.h','third_party/art/adapters/managed_heap.cpp',
       'fixtures/art-references/artbox_art_reference_bridge.h','fixtures/art-runtime/heap_window.cpp',
@@ -170,17 +171,24 @@ def main():
     base=[*native_flags,*abi,'-O1','-DNDEBUG','-fPIC','-ftrivial-auto-var-init=zero','-march=armv8-a','-mno-outline-atomics',
           '-ffixed-x18','-ffixed-x27','-ffixed-x28','-ffunction-sections','-fdata-sections']
     cxx_flags=['-std=c++20','-fno-exceptions','-fno-rtti','-Wno-invalid-offsetof']
-    host_adaptation=[];host_probe=None;host_generated=[]
+    host_adaptation=[];host_probe=None;host_generated=[];native_probe=None
     if args.profile=='linux' or args.managed_window:
         selection=json.loads((ROOT/'third_party/art/runtime-sources.json').read_text(encoding='utf-8'))['art-runtime']['files']
         patch=json.loads((ROOT/'third_party/art/host-build-boundary.json').read_text(encoding='utf-8')) if args.profile=='linux' else {'files':[]}
         if args.managed_window:
             from art_managed_adapt import managed_boundary
             patch['files'].extend(managed_boundary())
+        if args.native_guest:
+            patch['files'].extend(json.loads((ROOT/'third_party/art/native-probe-boundary.json').read_text(encoding='utf-8'))['files'])
         host_art=output/'host-source'
         host_adaptation=adapt_sources(art,host_art,selection,patch)
         art=host_art
         host_generated=[art/item['path'] for item in host_adaptation]
+        if args.native_guest:
+            from art_mremap_probe import check_probe
+            native_probe=check_probe(sources['art-runtime'],art,output/'mremap-probe',args.cxx)
+            save(output/'mremap-probe.json',native_probe)
+            host_generated += sorted((output/'mremap-probe').glob('*/mremap_probe.inc'))
     if args.profile=='linux':
         # Test the actual compiler/libc pair, not an assumed libc version.
         fixture=ROOT/'fixtures/art-runtime/host_strlcpy.cpp'
@@ -311,6 +319,7 @@ def main():
       'project_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
       'time_include_adaptation':time_adaptation,
       'host_source_adaptation':host_adaptation,'host_strlcpy_probe':host_probe,
+      'native_mremap_probe':native_probe,
       'stack_initialization_probe':stack_probe,
       'compiler_version':run([cxx,'--version'],output/'compiler-version.log')}
     record.update(preserve_sources(output,sources,generated_sources,toolchain))

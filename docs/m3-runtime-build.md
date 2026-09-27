@@ -106,8 +106,15 @@ libm/libdl data segments because the old Bionic fixture required a page-sized
 ELF memory span. The corrected loader validates the signed wrapper's zero
 padding and registers complete pages while retaining the original ELF spans
 for relocations. At `6d80787`, native execution initializes Bionic and reaches
-ART constructors, then stops at ART's required `uname` query. Its new tested
-syscall implementation awaits CI. The bootstrap test does not invoke
+ART constructors, then stops at ART's required `uname` query. At `69e671c`, the
+new syscall passes; ART next aborts on an unsupported shared-anonymous mapping
+inside its `mremap` capability probe. The native-guest-only adaptation in
+`native-probe-boundary.json` treats `ENOSYS`/`EOPNOTSUPP` from that prerequisite
+as an absent capability. Allocation failures and both cleanup checks still
+fail. Sixteen injected cases run the original and adapted probe before the
+guest build; Linux reference profiles keep the original implementation.
+Shared anonymous mappings, `mremap` and userfaultfd collectors remain unsupported.
+The bootstrap test does not invoke
 `JNI_CreateJavaVM` or execute DEX; those require the remaining signal and native
 class-library integration.
 

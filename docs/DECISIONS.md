@@ -1540,3 +1540,25 @@ Test layout, padding, unaligned writes and memory errors, and compare the wire
 layout and error cases with actual Linux on both existing hosts and native
 ARM64 CI. Continue to test JIT/code-cache absence independently: this identity
 is not the mechanism that prevents runtime code generation.
+
+## 0067: Detect an unsupported memory prerequisite without aborting ART
+
+Status: regression reproduced before the edit; 16 injected probe cases pass
+locally. Full signed guest constructor execution awaits CI.
+
+ART probes `MREMAP_DONTUNMAP` during static initialization even when the selected
+collector is semispace. Its probe assumes shared anonymous mmap is available
+and aborts on ARTBox's `EOPNOTSUPP`. Keep uname conservative. Do not claim shared
+mapping or userfaultfd support just to bypass this probe.
+
+In the native guest profile only, let the hash-verified AOSP probe return false
+when its mmap prerequisite reports `ENOSYS` or `EOPNOTSUPP`. Keep allocation
+failures and cleanup assertions intact. This accepts the existing slower
+semispace path and leaves the original Linux reference untouched. Implementing
+real shared mappings remains an option when an actual workload requires them.
+
+Compile the extracted original and adapted function with deterministic syscall
+outcomes before building the guest. Check unsupported mappings, allocation
+failures, remap failure, successful remap and both unmap failure paths, including
+call ordering and arguments. These are control-flow tests, not Linux memory
+semantics tests. The full signed constructor test remains required in CI.
