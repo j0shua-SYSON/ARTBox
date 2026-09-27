@@ -13,8 +13,10 @@ namespace {
 std::atomic<uint64_t> next_identity{1};
 void fail(artbox_dl_error *error, const char *message) {
     if (!error) return;
-    std::strncpy(error->message,message,sizeof(error->message)-1);
-    error->message[sizeof(error->message)-1]=0;
+    size_t length=0;
+    while (length+1<sizeof(error->message) && message[length]) ++length;
+    std::memcpy(error->message,message,length);
+    error->message[length]=0;
     error->pending=1;
 }
 struct Alias { std::string path; unsigned index; };
