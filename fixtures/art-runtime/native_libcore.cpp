@@ -163,11 +163,35 @@ int main(int argc, char** argv) {
       // Upstream javacore's export map keeps its copy local to that library.
       CHECK(dlsym(library, "_ZN12JniConstants10InitializeEP7_JNIEnv") == nullptr);
       ++cases;
+    } else {
+      // OpenJDK requires the integer-returning POSIX strerror_r ABI here.
+      auto error_string = reinterpret_cast<int (*)(int, char*, size_t)>(dlsym(library, "getErrorString"));
+      auto last_error = reinterpret_cast<size_t (*)(char*, size_t)>(dlsym(library, "getLastErrorString"));
+      CHECK(error_string && last_error);
+      char text[64];
+      std::memset(text, '?', sizeof(text));
+      errno = EBUSY;
+      CHECK(error_string(EINVAL, text, sizeof(text) - 1) == 0 && errno == EBUSY);
+      CHECK(std::strcmp(text, std::strerror(EINVAL)) == 0 && text[sizeof(text) - 1] == '?');
+      char saved[sizeof(text)];
+      std::memcpy(saved, text, sizeof(text));
+      CHECK(error_string(0, text, sizeof(text)) == 0 && !std::memcmp(text, saved, sizeof(text)));
+      CHECK(error_string(EINVAL, text, 0) == 0 && !std::memcmp(text, saved, sizeof(text)));
+      std::memset(text, '?', sizeof(text));
+      errno = EBUSY;
+      CHECK(error_string(EINVAL, text, 1) == ERANGE && errno == EBUSY && text[0] == 0 && text[1] == '?');
+      errno = 0;
+      CHECK(last_error(text, sizeof(text)) == 0 && text[1] == '?');
+      errno = EINVAL;
+      CHECK(last_error(text, 0) == 0 && errno == EINVAL && text[1] == '?');
+      CHECK(last_error(text, sizeof(text) - 1) == std::strlen(std::strerror(EINVAL)) && errno == EINVAL);
+      CHECK(!std::strcmp(text, std::strerror(EINVAL)) && text[sizeof(text) - 1] == '?');
+      ++cases;
     }
     CHECK(dlclose(library) == 0);
     ++cases;
   }
-  CHECK(cases == 21);
+  CHECK(cases == 22);
   std::printf("ARTBox native libcore dependencies: %d cases passed; no Java VM started\n", cases);
   return 0;
 }

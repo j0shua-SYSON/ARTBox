@@ -64,9 +64,19 @@ two pthread-backed C++ threads, then loads both JNI libraries and checks their
 classification and compares capability reads and invalid requests with raw
 Linux syscalls. Invalid `capset` requests cannot change process privileges.
 It also calls the unversioned ICU shim to check its version and malformed UTF-8
-substitution through the same headers used by libcore. These are 21 native
-cases. Calling JNI registration and executing the boot
+substitution through the same headers used by libcore. The expanded fixture adds
+a 22nd group for OpenJDK's POSIX error-string helpers: successful and truncated
+buffers, zero-error/zero-length no-ops, terminators, guard bytes and errno
+preservation. Execution of that added group is pending. Calling JNI registration and executing the boot
 classes still require a real ART startup test.
+
+The Android compilation of the unchanged `jni_util_md.c` undefines
+`_GNU_SOURCE` for that unit. Its Linux branch otherwise selects glibc's
+`__xpg_strerror_r`, which Bionic does not export. The source requires an integer
+return value, so use Bionic's POSIX declaration and existing `strerror_r` symbol;
+do not bind it to the pointer-returning GNU variant. A strict local compile/link
+probe reproduces the missing glibc alias before this flag and resolves against
+the real guest libc afterward. Linux retains its original compiler flags.
 
 Artifacts preserve source/object hashes, compiler and link commands, native test
 output, original notices, all selected corresponding source, and the verified

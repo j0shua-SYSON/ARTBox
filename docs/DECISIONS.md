@@ -1612,3 +1612,21 @@ any performance improvement. Keep the existing DONTNEED implementation and
 explicit errors for other unsupported advice. Compare alignment, page rounding,
 zero length, overflow, inaccessible pages and holes against Linux, and use
 injected file backing to detect accidental remapping or writeback.
+
+## 0070: Select POSIX error strings in the Android OpenJDK utility
+
+Status: original Android object fails strict linking at `__xpg_strerror_r`;
+unchanged source with the POSIX declaration compiles and links locally. Runtime
+regression execution is pending.
+
+The Linux-Bionic build flags select a glibc-only alias in `jni_util_md.c` when
+`_GNU_SOURCE` is defined. This source expects the POSIX integer-returning API.
+Undefine that macro for this Android unit and use Bionic's existing `strerror_r`.
+Retain the original Linux flags and upstream source. A new native dependency
+test calls the actual exported helpers and checks truncation, untouched buffers,
+terminators, returned lengths and errno preservation.
+
+Adding a glibc alias would broaden the guest ABI for a build-configuration error.
+Forwarding to Darwin or Bionic's GNU variant would also introduce a different
+return-value contract. The selected build flag needs no extra code, host import,
+runtime-generated instruction or entitlement.

@@ -148,6 +148,11 @@ def main():
                 is_cpp = source.suffix == '.cpp'
                 flags = common + (cpp if is_cpp else ['-std=c11'])
                 if is_cpp: driver = cxx
+                if args.profile == 'android' and name == 'ojluni/src/main/native/jni_util_md.c':
+                    # This unchanged unit explicitly requires POSIX strerror_r.
+                    # _GNU_SOURCE selects a glibc-only alias in its Linux branch;
+                    # Bionic exposes the integer-returning ABI without that macro.
+                    flags += ['-U_GNU_SOURCE']
             elif group == 'jvm':
                 source, flags, driver = layout / 'art' / name, jvm_flags + includes + ['-include', 'math.h'], cxx
             elif group == 'fdlibm':
