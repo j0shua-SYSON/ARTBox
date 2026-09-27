@@ -69,6 +69,20 @@
           "after": "ENTRY(syscall)\n    // ARTBox: fixed-width C call; preserve the caller's frame and return address.\n    stp     x29, x30, [sp, #-16]!\n    .cfi_def_cfa_offset 16\n    .cfi_offset x29, -16\n    .cfi_offset x30, -8\n    mov     x29, sp\n    bl      artbox_bionic_syscall\n    ldp     x29, x30, [sp], #16\n    .cfi_def_cfa_offset 0\n    .cfi_restore x29\n    .cfi_restore x30\n\n"
         }
       ]
+    },
+    {
+      "path": "libc/arch-arm64/bionic/vfork.S",
+      "sha256": "46d1352c96243dc984a2b469e3fc7096daa76cd5f32454552818842afe7f1984",
+      "replacements": [
+        {
+          "before": "    mrs     x9, tpidr_el0\n",
+          "after": "    // ARTBox: obtain guest TLS without reading the host thread pointer.\n    stp     x29, x30, [sp, #-16]!\n    .cfi_def_cfa_offset 16\n    .cfi_offset x29, -16\n    .cfi_offset x30, -8\n    mov     x29, sp\n    bl      artbox_bionic_get_tls\n    mov     x9, x0\n    ldp     x29, x30, [sp], #16\n    .cfi_def_cfa_offset 0\n    .cfi_restore x29\n    .cfi_restore x30\n"
+        },
+        {
+          "before": "    mov     x8, __NR_clone\n    svc     #0\n",
+          "after": "    // ARTBox: a C call may clobber x9/x10, unlike the original kernel entry.\n    sub     sp, sp, #32\n    .cfi_def_cfa_offset 32\n    stp     x9, x10, [sp]\n    stp     x29, x30, [sp, #16]\n    .cfi_offset x29, -16\n    .cfi_offset x30, -8\n    add     x29, sp, #16\n    mov     x5, x4\n    mov     x4, x3\n    mov     x3, x2\n    mov     x2, x1\n    mov     x1, x0\n    mov     x0, __NR_clone\n    mov     x6, xzr\n    bl      artbox_bionic_syscall\n    ldp     x9, x10, [sp]\n    ldp     x29, x30, [sp, #16]\n    add     sp, sp, #32\n    .cfi_def_cfa_offset 0\n    .cfi_restore x29\n    .cfi_restore x30\n"
+        }
+      ]
     }
   ]
 }

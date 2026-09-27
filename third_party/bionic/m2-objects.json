@@ -513,6 +513,7 @@
   "sources": [
     "libc/arch-arm64/bionic/__set_tls.c",
     "libc/arch-arm64/bionic/syscall.S",
+    "libc/arch-arm64/bionic/vfork.S",
     "libc/arch-arm64/static_function_dispatch.S",
     "libc/async_safe/async_safe_log.cpp",
     "libc/bionic/NetdClient.cpp",
@@ -826,6 +827,7 @@
     "libc/upstream-netbsd/lib/libc/stdlib/bsearch.c": "a6c608a43685b4e6ae3e84a1c647e469083ce1eae435691601bb23b5d4c86c62",
     "libc/upstream-openbsd/lib/libc/string/strtok.c": "dc050c1f494744e4353305cc7dbd57b3c17ae9f3c0215824344443ba68057e36",
     "libc/upstream-openbsd/lib/libc/stdlib/setenv.c": "5d5e79af9546a63f7eafdb76cbef97d496f933b82b3578cb88674e8c288ad917",
-    "libc/upstream-openbsd/lib/libc/net/inet_pton.c": "52f738433bd4d5969909b2b1858a8392fac1041e055ceb1113ce2015b54dbd25"
+    "libc/upstream-openbsd/lib/libc/net/inet_pton.c": "52f738433bd4d5969909b2b1858a8392fac1041e055ceb1113ce2015b54dbd25",
+    "libc/arch-arm64/bionic/vfork.S": "46d1352c96243dc984a2b469e3fc7096daa76cd5f32454552818842afe7f1984"
   }
 }

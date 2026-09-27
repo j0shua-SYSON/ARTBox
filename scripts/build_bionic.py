@@ -21,6 +21,7 @@ from sources import obtain as obtain_source
 from bionic_adapt import adapt_sources, check_native, inventory, stack_references
 from bionic_syscalls import generate as generate_syscalls
 from bionic_builtins import prepare as prepare_builtins
+from bionic_vfork import prepare as prepare_vfork
 
 
 def digest(path):
@@ -208,6 +209,9 @@ def main():
                                        ("svc", "tpidr_mentions", "x18_mentions", "x27_mentions", "x28_mentions", "unknown_instructions")):
         raise RuntimeError("Allocator TLS test caller violates the native instruction boundary")
 
+    vfork = prepare_vfork(tools, build, source, overlay, entries, assembly_flags, includes) \
+        if args.profile == "native" else None
+
     # A relocatable link verifies these objects agree on their shared symbols.
     # Remaining undefined symbols are required dependencies, never zero stubs.
     combined = build / "bionic-m2-partial.o"
@@ -279,7 +283,7 @@ def main():
               "stack_protection": protection, "dependencies": {"libcutils-headers": cutils_pin,
                   **{name: source_pins[name] for name in components}},
               "component_selection_sha256": digest(component_path), "component_notices": component_notices,
-              "allocator_tls": allocator_tls, "strings": strings, "binary128": binary128,
+              "allocator_tls": allocator_tls, "strings": strings, "binary128": binary128, "vfork": vfork,
               "inline_raise_sha256": digest(inline_raise), "syscall_stubs": syscall_info}
     artifacts = Path(os.environ["ARTBOX_ARTIFACTS_DIR"])
     artifacts.mkdir(parents=True, exist_ok=True)

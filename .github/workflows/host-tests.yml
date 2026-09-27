@@ -169,6 +169,7 @@ jobs:
             artifacts/m2-acceptance.json
             build/m2/bionic-startup/
             build/m2/bionic/native/comparetf2.c.o
+            build/m2/bionic/native/vfork/
           if-no-files-found: warn
           retention-days: 7
       - name: Upload host evidence
@@ -231,6 +232,7 @@ jobs:
             build/m2/bionic/*/PROPERTY-INFO-NOTICE.txt
             build/m2/bionic/*/COMPILER-RT-NOTICE.txt
             build/m2/bionic/*/binary128-test.o
+            build/m2/bionic/native/vfork/
             build/m2/bionic/native/comparetf2.c.o
             build/m2/bionic/*/strings-test.o
             build/m2/bionic/*/allocator-tls-test.o
@@ -511,6 +513,8 @@ jobs:
         run: python3 -B scripts/test_bionic_vm.py --evidence-root build/oracle
       - name: Check Android binary128 arithmetic without crossing the host floating ABI
         run: python3 -B scripts/test_bionic_binary128.py --evidence-root build/oracle
+      - name: Check Bionic vfork state restoration and its register-preservation negative control
+        run: python3 -B scripts/test_bionic_vfork.py --evidence-root build/oracle
       - name: Compare the signed Bionic futex caller with both original Linux paths
         run: python3 -B scripts/test_bionic_futex.py --evidence-root build/oracle
       - name: Compare signed Bionic versioned imports with native Linux
@@ -551,6 +555,8 @@ jobs:
             artifacts/m2-strings-linux.json
             artifacts/m2-vm-linux.json
             artifacts/m2-binary128-linux.json
+            artifacts/m3-vfork-linux.json
+            build/m3/vfork-oracle/*.log
             artifacts/m2-futex-linux.json
             artifacts/m2-files-linux.json
             artifacts/m2-versioned-linux.json

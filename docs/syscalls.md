@@ -152,6 +152,14 @@ clone/fork/vfork forms remain unsupported. Native creation errors leave the pare
 TID word unchanged; clear-TID and detached unmap occur only after native join.
 The signed six-worker test passes at `e828dad` in both allocator sampling modes.
 
+The selected AOSP `vfork` frontend now calls the guest TLS and raw-syscall
+bridges. Raw clone (220) still returns ENOSYS. Preserve Bionic's original flags,
+cached PID/vfork state and errno handling; do not call host fork/vfork. The
+added acceptance checks cover 28 injected replies/modes and two real guest
+rejection checks. The Linux oracle also requires a missing-register-save
+mutation to fail. These checks validate the frontend and explicit rejection,
+not Linux process creation; native execution of the new checks is pending CI.
+
 The rt_sigprocmask (135) implementation stores an independent guest
 64-bit mask per thread and inherits it at clone. Size must be eight bytes; how
 is checked only with a new mask. SIGKILL/SIGSTOP cannot be blocked. Input is read

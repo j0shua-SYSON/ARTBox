@@ -1631,3 +1631,31 @@ Adding a glibc alias would broaden the guest ABI for a build-configuration error
 Forwarding to Darwin or Bionic's GNU variant would also introduce a different
 return-value contract. The selected build flag needs no extra code, host import,
 runtime-generated instruction or entitlement.
+
+## 0071: Preserve Bionic vfork state while rejecting process creation
+
+Status: the original object fails the native instruction gate as expected.
+Both 281-unit Bionic profiles and the linked diagnostic client build locally;
+the adapted objects contain no forbidden instructions. Native execution of the
+new regression checks is pending CI.
+
+OpenJDK's native process helper imports vfork even when no process is launched.
+Select the pinned AOSP frontend and replace only its TPIDR_EL0 read and kernel
+entry with existing guest TLS/syscall calls. Unlike a kernel entry, a C call
+may destroy x9/x10, which hold the thread pointer and cached PID/vfork bits.
+Save those registers and the frame/return address; retain the original flags,
+state restoration and errno branch. Raw clone remains unsupported with ENOSYS.
+
+Calling Darwin vfork would give guest code control over a native process with
+unimplemented exec/lifecycle semantics. A successful placeholder would lie to
+the library. Explicit rejection keeps the import resolvable without promising
+subprocess support or changing the no-code-generation policy.
+
+The oracle uses the actual production vfork and errno objects, prefixed to
+avoid host interposition. Inject errno-boundary, parent and simulated child
+results across both memtag modes and cached-state patterns. Deliberately
+clobber the two caller-saved registers, check arguments and guarded storage,
+and require a copy missing the save/restore to fail. Signed Apple execution
+also calls the real guest vfork and checks ENOSYS and unchanged getpid. No
+test launches a child. The cost is two ordinary bridge calls and stack frames
+for an unsupported operation; this is not a process-performance benchmark.

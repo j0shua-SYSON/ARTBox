@@ -101,7 +101,8 @@ upstream profile is unchanged source. The native profile applies the exact,
 hash-checked edits in `third_party/bionic/native-boundary.json` to
 `libc/platform/bionic/tls.h`, `libc/arch-arm64/bionic/__set_tls.c`,
 `libc/bionic/pthread_create.cpp`, `libc/bionic/pthread_exit.cpp` and
-`libc/private/bionic_inline_raise.h` and `libc/arch-arm64/bionic/syscall.S` in a separate
+`libc/private/bionic_inline_raise.h`, `libc/arch-arm64/bionic/syscall.S` and
+`libc/arch-arm64/bionic/vfork.S` in a separate
 build overlay. The edits route TLS access through ARTBox endpoints and omit
 Android shadow-call-stack setup/cleanup; the signal header uses a fixed-width
 raw-syscall endpoint instead of inline kernel entry. These BSD-licensed files retain their
@@ -133,6 +134,13 @@ their AOSP and Berkeley/OpenBSD/NetBSD notices; the complete libc notice remains
 with all object artifacts. Generated/modified Bionic assembly and test symbol
 renaming do not relicense that code as MIT. The generator is used as a build
 tool from the pinned archive; no rewritten syscall table is substituted.
+
+The vfork oracle combines the production adapted assembly with the original
+`libc/bionic/__set_errno.cpp`, both carrying AOSP BSD notices. Test-only symbol
+prefixing prevents host interposition. Original, adapted and deliberately
+mutated assembly copies retain their notices in the artifact's `vfork/`
+directory, alongside the complete Bionic notice. The original MIT test callers
+inject syscall replies; they do not implement or enable process creation.
 
 The allocator dependencies use the same AOSP `android-15.0.0_r1` tag:
 

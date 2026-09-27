@@ -54,6 +54,13 @@ provider is not implemented; portable VFS tests use an injected provider there.
 
 ## In progress: M3 ART bring-up
 
+The next native-class-library dependency is the pinned AOSP vfork frontend.
+Its native overlay keeps Bionic's state/errno logic while routing TLS and the
+raw clone request through existing bridges; process creation remains ENOSYS.
+The new tests cover 28 captured-reply cases, a register-preservation mutation
+control and two real guest rejection checks. Native execution is pending CI;
+this does not start a JavaVM or change M2's fixed 328-expectation denominator.
+
 At `7f9d8da`, original AOSP ART starts on native Linux ARM64, executes
 `artbox.Hello.message()` from the original 448-byte DEX and returns
 `hello from ARTBox ART`. The extended managed acceptance checks pass and the
