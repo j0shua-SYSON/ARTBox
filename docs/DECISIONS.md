@@ -1793,3 +1793,28 @@ without mutating the mask. No host signal handlers are installed by this slice;
 signal registration and alternate stacks remain open. The mutex path cannot
 serve ART's mask calls from an asynchronous handler: that requires a separate
 signal-safe bridge with Linux context conversion. Do not disable ART sigchain.
+
+## 0077: Translate handler contexts as data and preserve the platform register
+
+Status: portable codec accepted; native signal-return comparison pending CI.
+
+ART's ARM64 fault handlers read and rewrite Linux ucontext PC, SP and registers.
+Darwin's context cannot be passed directly to them. Define an original portable
+byte codec from the pinned Bionic ARM64 UAPI layout and test it against both
+Bionic headers and native Linux signal frames before wiring host delivery.
+The codec uses caller-owned storage, no allocation, locks, syscalls or loader
+lookups. It does not generate instructions or emulate their execution.
+
+On resume, accept the emitted FPSIMD/ESR record layout and guest changes to
+ordinary registers and NZCV. Preserve interrupted x18 and other PSTATE bits:
+Android code is already compiled with x18 reserved, and Apple owns that register.
+Unknown extensions fail explicitly; a future SVE/SME adapter needs its own
+state contract. Fault address and ESR remain observations of the interruption.
+Check PC/SP alignment here; signed-code/stack ranges and Darwin context access
+belong to the platform delivery adapter. Do not treat encoding alone as handler
+delivery or as a successful sigaction implementation.
+
+The native Linux test deliberately executes a precompiled BRK, transforms its
+real kernel context through the codec and resumes at the following instruction
+with changed x0/v0. A second run drops those edits and must fail. This tests
+actual kernel signal return without implying Apple handler integration.

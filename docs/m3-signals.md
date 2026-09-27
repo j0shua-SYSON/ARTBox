@@ -27,7 +27,25 @@ invalid requests, zero-signal probes and copyout consumption. Local portable
 tests pass it and exercise a blocked worker through the thread manager,
 inherited masks, pending-set isolation, failed creation, finite timeout and
 exited TIDs. CI runs the identical NDK object through signed Bionic and native
-Linux. Those new native comparisons are pending; M2's fixed score is unchanged.
+Linux. At `9c6a22f`, both signed modes and the identical NDK object on native
+Linux pass all 33 cases, with independently checked source/object hashes and
+logs. Both complete workflows pass; M2's fixed score remains 328/328.
+
+The next context boundary uses a 4,560-byte Linux ARM64 ucontext, including the
+31 general registers, PC/SP/PSTATE, FPSIMD and ESR records. The portable codec
+uses caller-provided storage without allocation, locking or syscalls. Resume
+extraction preserves the interrupted x18 and non-NZCV PSTATE bits, filters
+unmaskable signals and rejects malformed or unsupported extension layouts
+without changing outputs. SVE/SME/extra records are deliberately unsupported.
+This is data conversion; the platform bridge must still validate guest code
+and stack ranges, translate host state and install actual handlers.
+
+Portable tests cover unaligned storage, exact wire fields, handler edits,
+reserved-register preservation and malformed frames. A native ARM64 Linux
+test compares the codec with real Linux/Bionic declarations, delivers a BRK
+signal and resumes edited PC, x0 and SIMD v0 state while preserving x18. Its
+negative control drops register edits and must fail. The native test is pending
+CI; NDK header/layout compilation and local portable tests pass.
 
 The pinned ART sources require a real boundary before JavaVM startup on Apple:
 

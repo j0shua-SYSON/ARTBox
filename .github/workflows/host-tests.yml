@@ -493,6 +493,8 @@ jobs:
             build/m3/loader-reference/
             build/m3/signal-reference/
             build/m3/signal-wait-reference/
+            build/host/signal-context/
+            build/host/test_signal_context_linux
             build/host/Testing/Temporary/LastTest.log
           if-no-files-found: warn
           retention-days: 7

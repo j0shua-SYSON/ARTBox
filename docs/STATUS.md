@@ -85,9 +85,17 @@ Apple JavaVM startup, JNI_OnLoad and DEX acceptance. The Linux signal reference
 passes 70 checks at `7921eff`, including real alternate-stack handler execution
 and a worker-wakeup negative control. Portable queues now implement blocked
 thread-directed signals and synchronous waits, with clone/reaper lifetime
-integration. The 33-case shared contract and blocked-worker tests pass locally;
-signed Bionic and identical-object Linux comparisons are pending CI. Host
-handler translation, alternate stacks and unblocked delivery remain incomplete.
+integration. At `9c6a22f`, both signed Bionic modes and the identical NDK object
+on native Linux pass the 33-case contract; source/object hashes and logs verify
+independently. Both complete CI workflows pass, including all 17 host jobs.
+M2 retains its fixed 328/328 score. The integrated iOS 15 IPA verifies seven
+Mach-O images and empty entitlements; it still contains M1/M2 diagnostics.
+
+The next signal-context codec encodes Linux ARM64 handler frames and extracts
+PC/SP/general/SIMD edits while preserving Apple's reserved x18 and non-NZCV
+PSTATE bits. All 27 local core tests pass; a real Linux signal-return test and
+dropped-edit negative control are pending CI. Host handler translation,
+alternate stacks, registration and unblocked delivery remain incomplete.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the
