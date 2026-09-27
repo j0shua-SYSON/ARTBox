@@ -105,13 +105,22 @@ pass; both full CI workflows are green. Independent inspection verifies sixteen
 source hashes, the executable and nineteen signed code pages; disassembly keeps
 ordinary compiler-TLS resolution behind the signal-scope branch.
 
-The next change connects Bionic `sigaction` to immutable portable action records
-and a signed Android SIGTRAP handler. Local action publication and registration
-tests pass, including concurrent reset and copyout failure after publication.
-The new native caller checks Linux siginfo/context, Bionic TLS/errno, a mask
-query and PC/x0/SIMD return, with a dropped-register control. Apple execution and
-the same-source Linux comparison are pending CI. Other fault signals, handler
-mask changes, alternate stacks and unblocked queued delivery remain incomplete.
+At `2aa064f`, Bionic `sigaction` registers a signed Android SIGTRAP handler on
+ARM64 Mac. Both allocator modes pass 16 checks, including Linux siginfo/context,
+Bionic TLS/errno, mask query and PC/x0/SIMD return; dropped register edits fail
+as intended. The same source passes native Linux. Independent source/object,
+binary, stdout and framework checks verify this result. All 17 host CI jobs and
+the iOS build pass. The integrated 1,138,166-byte diagnostic IPA verifies seven
+iOS 15 images and empty entitlements; it still does not contain ART.
+
+The next change adds portable alternate-stack registration and an Apple stack
+switch for returning handlers. A guarded host alternate stack holds conversion
+work while the Linux frame and Android callback use the guest-selected stack.
+Local stack tests cover Linux wire layout, publication, clone reset and active
+stack rejection. A native caller checks SA_ONSTACK selection, its absence,
+handler queries and a separate Bionic worker; native execution is pending CI.
+Other fault signals, handler mask changes and unblocked queued delivery remain
+incomplete. JavaVM/JNI/DEX execution on Apple remains the M3 acceptance target.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

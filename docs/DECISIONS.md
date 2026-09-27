@@ -1863,7 +1863,7 @@ it establishes the binding required to do so without reentering locked services.
 
 ## 0079: Publish immutable actions and first deliver a signed Android trap handler
 
-Status: local portable tests pass; native delivery and Linux comparison pending CI.
+Status: verified at 2aa064f; both signed Bionic modes, native Linux and complete CI pass.
 
 Keep Linux rt_sigaction copyin/out and ownership in the portable process service.
 Enable registration only with a platform capability validator, before threads
@@ -1895,3 +1895,44 @@ TRAP_BRKPT data and PC/x0/SIMD resume. Dropping register edits must fail while
 still advancing BRK. Run the same source with Linux libc as an independent
 reference; its sigaction wrapper layout differs, so do not call this an
 identical-object oracle. Do not change M2's fixed acceptance denominator.
+
+## 0080: Separate host conversion storage from the guest signal stack
+
+Status: implemented; local stack tests pass; native validation pending CI.
+
+Install a guarded host alternate stack before guest execution on each Apple
+thread, preserving any earlier host registration. The execution owner requests
+SA_ONSTACK for its host trap callback. This keeps the host context adapter off
+an exhausted guest stack. An AOT ARM64 function switches to the selected guest
+stack for the callback and restores the host SP afterward; no executable memory
+is created at runtime. Preserve both ABIs' callee-saved registers and Apple's x18.
+
+Place Linux siginfo followed by ucontext on the guest-selected stack, above the
+callback's SP. SA_ONSTACK selects the registered alternate stack when needed;
+without that flag, use the interrupted stack even if alternate storage exists.
+Already-active alternate stacks continue downward. Compute guest SS_ONSTACK from
+the actual guest SP, independently of the host's private-stack state. Return
+requires validated code/SP, an unchanged alternate-stack description and the
+ordinary signal-context checks. Nonlocal exits from handlers remain unsupported.
+
+The portable process service publishes immutable alternate-stack records and
+frees them after the owning thread stops. Queries never allocate or lock.
+Updates require owned writable storage; SS_DISABLE needs no record. Shared-VM
+clone starts disabled, while Bionic may subsequently install its own stack.
+Follow Linux input/copyout ordering, EPERM on an active stack and SS_ONSTACK
+input acceptance; SS_AUTODISARM needs a separate return contract and is rejected.
+
+The virtual ARM64 ABI advertises an 8 KiB minimum in AT_MINSIGSTKSZ, rather than
+copying a host kernel's size. This budgets the 4,688-byte Linux frame, alignment,
+red-zone preservation and bridge call depth. The earlier native Linux reference
+measured 5,120 bytes; the stricter ARTBox minimum is a documented translation
+cost. ART's pinned 32 KiB allocation meets it. Each attached thread additionally
+reserves at least 128 KiB for host conversion plus two native guard pages. These
+pages are RW only and are unmapped after restoring the prior host registration.
+
+Validate with 17 shared wire cases and 24 same-source handler/worker checks on
+native Linux and signed Bionic. Omitting SA_ONSTACK must fail the stack-location
+assertion. The extra signal worker is reported separately from M2's six-worker
+group; the fixed 328-expectation acceptance denominator remains unchanged.
+The native caller also places SP 512 bytes above the normal stack's lower bound
+for a deliberate BRK, then restores it after alternate-stack delivery returns.

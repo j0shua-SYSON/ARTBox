@@ -89,16 +89,45 @@ after checking guest PC/SP edits. Getpid/gettid and stack-buffer mask queries
 are supported within this scope. The 16-check caller uses Bionic TLS/errno and
 edits PC/x0/SIMD; a second call drops the register edits and must return -1000.
 The same C source runs against native Linux libc, whose sigaction API layout
-differs from Bionic; this is not an identical-object comparison. Native execution
-is pending CI. The fixed 328-expectation M2 denominator is unchanged.
+differs from Bionic; this is not an identical-object comparison. Both signed
+Bionic modes and the native Linux comparison pass at `2aa064f`, including the
+negative control. Independent source/object/binary and framework checks verify
+the result; all 17 host CI jobs and the iOS build pass. The fixed 328-expectation
+M2 denominator is unchanged.
 
 This first transport accepts SA_SIGINFO with optional SA_RESTART, no action
 mask, and SIG_DFL restoration. Default/fatal handling remains with the owner;
-the diagnostic runner exits on unsupported faults. SA_ONSTACK, SA_NODEFER,
-SA_RESETHAND, custom restorers, changed return masks and handler-time mask
+the diagnostic runner exits on unsupported faults. SA_NODEFER, SA_RESETHAND,
+custom restorers, changed return masks and handler-time mask
 mutation return errors. No ART sigchain or JavaVM startup is claimed. Action
 records remain allocated until process destruction, with explicit ENOMEM on
 capacity exhaustion; the diagnostic owner allows 4,096 nontrivial publications.
+
+The next extension adds `sigaltstack` and SA_ONSTACK. Portable per-thread records
+hold the Linux stack address/size, published immutably for handler queries.
+Registration requires owned RW guest storage, accepts Linux SS_ONSTACK input,
+rejects active-stack updates and publishes before old-stack copyout. Clone with
+shared VM starts disabled; Bionic then installs its own pthread alternate stack.
+Records remain alive until thread detach, with explicit capacity exhaustion.
+
+Each Apple execution thread owns a guarded host alternate stack for conversion.
+The precompiled callback bridge places Linux siginfo/ucontext on the selected
+guest stack and changes SP while invoking Android code. Guest SS_ONSTACK is
+computed from guest execution, not the private host stack. A handler without
+SA_ONSTACK stays on the interrupted stack, even when alternate storage exists.
+The source test includes SP near the normal stack's lower bound, handler-time
+query/error ordering, separate pthread storage and a missing-flag negative
+control. There are 17 shared wire cases and 24 handler/worker checks; native
+validation is pending CI. The extra worker has its own reported count, separate
+from M2's six-worker acceptance group.
+
+ARTBox advertises an 8 KiB AT_MINSIGSTKSZ for its frame/bridge budget; this is
+larger than the 5,120-byte native Linux reference measurement. Each thread also
+reserves at least 128 KiB plus two guard pages for host conversion. All pages
+are data-only; no runtime code generation occurs. SS_AUTODISARM, nonlocal exits,
+alternate-stack changes from a handler on the normal stack, and changed stack
+metadata in a return context remain unsupported. No other fault transport or
+ART startup is implied by this extension.
 
 The pinned ART sources require a real boundary before JavaVM startup on Apple:
 

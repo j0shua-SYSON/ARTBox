@@ -62,6 +62,8 @@ static artbox_signals *process_signals;
 static artbox_signal_code_range signal_code[IMAGE_CAPACITY];
 static artbox_native_signal_thread signal_template;
 static int32_t signal_handler_cases,signal_handler_mutation;
+static int32_t signal_stack_cases,signal_stack_handler_cases,signal_stack_mutation;
+static uint64_t signal_stack_threads;
 static uint64_t file_ns;
 static artbox_futex *futex;
 static artbox_threads *threads;
@@ -273,7 +275,7 @@ static void run_child(void *context, artbox_kernel_thread *kernel, const artbox_
     artbox_native_signal_thread signal_thread=signal_template;
     signal_thread.kernel=kernel; signal_thread.stack_address=start->stack_base;
     signal_thread.stack_size=start->stack_size; signal_thread.guest_tls=(void **)(uintptr_t)start->tls;
-    if(artbox_native_signal_attach(&signal_thread)) fail("child signal attachment");
+    if(artbox_native_signal_thread_attach(&signal_thread)) fail("child signal attachment");
     artbox_guest_dl_thread *dl_thread = NULL, *old_dl = NULL;
     if (guest_dl_service) {
         if (artbox_guest_dl_thread_create(guest_dl_service, &dl_thread) != ARTBOX_ELF_OK) fail("child loader state");
@@ -286,7 +288,7 @@ static void run_child(void *context, artbox_kernel_thread *kernel, const artbox_
         finish->error = -5; // Bionic __pthread_start must end through guest exit.
     }
     exit_boundary = NULL; thread_finish = NULL; current_kernel = NULL;
-    if(artbox_native_signal_detach()) fail("child signal detach");
+    if(artbox_native_signal_thread_detach(&signal_thread)) fail("child signal detach");
     if (dl_thread) {
         artbox_native_dlfcn_swap(old_dl);
         artbox_guest_dl_thread_destroy(dl_thread);
@@ -338,7 +340,8 @@ static void *run(void *context) {
     // the mapped guest stack; no Darwin auxiliary-vector or pointer tagging.
     uint64_t auxv[] = {
         6, artbox_vm_page_size(vm), 11, 10000, 12, 10000, 13, 10000, 14, 10000,
-        16, 0, 17, 100, 23, 0, 25, (uintptr_t)random, 26, 0, 31, (uintptr_t)name, 0, 0};
+        16, 0, 17, 100, 23, 0, 25, (uintptr_t)random, 26, 0, 31, (uintptr_t)name,
+        51, ARTBOX_SIGNAL_STACK_MINIMUM, 0, 0}; // AT_MINSIGSTKSZ includes the native bridge budget.
     uint64_t args[48] = {1, (uintptr_t)name, 0};
     size_t cursor = 3;
     if (force_sampling) {
@@ -373,9 +376,14 @@ static void *run(void *context) {
     if (artbox_call7(entry(&images[0], "artbox_bootstrap_main"), (uintptr_t)args,
                     (uintptr_t)templates, tls_count, 0, 0, 0, 0)) fail("bootstrap return");
     if (!artbox_bionic_get_tls()) fail("no real Bionic TCB");
+    if(artbox_call7(entry(&images[0],"getauxval"),51,0,0,0,0,0,0)!=ARTBOX_SIGNAL_STACK_MINIMUM)
+        fail("guest alternate-stack minimum auxiliary value");
+    artbox_signal_stack bionic_stack;
+    if(artbox_signals_stack_snapshot(&thread,0,&bionic_stack) || bionic_stack.flags || bionic_stack.size<ARTBOX_SIGNAL_STACK_MINIMUM)
+        fail("Bionic main-thread alternate-stack initialization");
     artbox_native_signal_thread signal_thread=signal_template;
     signal_thread.kernel=&thread; signal_thread.guest_tls=artbox_bionic_get_tls();
-    if(artbox_native_signal_attach(&signal_thread)) fail("primary signal attachment");
+    if(artbox_native_signal_thread_attach(&signal_thread)) fail("primary signal attachment");
     fprintf(stderr, "bootstrap complete; running real libc constructors\n");
     if (artbox_load_group_initialize(load_group, construct, NULL) != ARTBOX_ELF_OK) fail("load-group constructors");
     unsigned initialized = constructors;
@@ -404,7 +412,7 @@ static void *run(void *context) {
         }
         artbox_native_dlfcn_swap(old_dl);
         artbox_guest_dl_thread_destroy(dl_thread);
-        if(artbox_native_signal_detach()) fail("ART primary signal detach");
+        if(artbox_native_signal_thread_detach(&signal_thread)) fail("ART primary signal detach");
         artbox_native_tls_swap(old_tls);
         artbox_native_syscall_swap(previous);
         current_kernel = NULL;
@@ -461,6 +469,15 @@ static void *run(void *context) {
         fprintf(stderr,"signal handler caller: %d mutation: %d\n",signal_handler_cases,signal_handler_mutation);
         fail("signed Android handler delivery");
     }
+    signal_stack_cases=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_stack_check"),artbox_vm_page_size(vm),0,0,0,0,0,0);
+    signal_stack_handler_cases=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_stack_handler_check"),0,signal_thread.stack_address,signal_thread.stack_size,0,0,0,0);
+    signal_stack_mutation=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_stack_handler_check"),1,signal_thread.stack_address,signal_thread.stack_size,0,0,0,0);
+    if(signal_stack_cases!=17 || signal_stack_handler_cases!=24 || signal_stack_mutation!=-1001) {
+        fprintf(stderr,"signal stack caller: %d handler: %d mutation: %d\n",signal_stack_cases,signal_stack_handler_cases,signal_stack_mutation);
+        fail("signed Android alternate-stack delivery");
+    }
+    if(artbox_threads_drain(threads,5000) || (signal_stack_threads=artbox_threads_reaped(threads))!=1)
+        fail("alternate-stack worker cleanup");
     int64_t scratch = artbox_vm_mmap(vm, 0, artbox_vm_page_size(vm), 3, 0x22, -1, 0);
     if (scratch < 0) fail("futex fixture storage");
     futex_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_futex_check"), (uint64_t)scratch, 0, 0, 0, 0, 0, 0);
@@ -493,12 +510,12 @@ static void *run(void *context) {
     thread_guarded_samples = artbox_call7(entry(&images[1], "artbox_pthread_guarded_samples"), 0, 0, 0, 0, 0, 0, 0);
     tls_queries = artbox_call7(entry(&images[1], "artbox_pthread_tls_queries"), 0, 0, 0, 0, 0, 0, 0);
     if (tls_queries != 14) fail("existing static TLS queries");
-    reaped = artbox_threads_reaped(threads);
+    reaped = artbox_threads_reaped(threads)-signal_stack_threads;
     if (reaped != 6) fail("child thread count");
     gwp_enabled = artbox_call7(entry(&images[0], "artbox_bootstrap_gwp_enabled"), 0, 0, 0, 0, 0, 0, 0);
     guarded_samples = artbox_call7(entry(&images[0], "artbox_bootstrap_guarded_samples"), 0, 0, 0, 0, 0, 0, 0);
     if (force_sampling && (!gwp_enabled || !guarded_samples)) fail("GWP-ASan sampling did not run");
-    if(artbox_native_signal_detach()) fail("primary signal detach");
+    if(artbox_native_signal_thread_detach(&signal_thread)) fail("primary signal detach");
     artbox_native_tls_swap(old_tls);
     artbox_native_syscall_swap(previous);
     current_kernel = NULL;
@@ -541,6 +558,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
         signal_code[i]=(artbox_signal_code_range){(uintptr_t)images[i].rx,images[i].elf.segments[0].file_size};
     signal_template.code=signal_code; signal_template.code_count=image_count;
     if(artbox_signals_enable_actions(process_signals,4096,artbox_native_signal_validate_trap,&signal_template) ||
+        artbox_signals_enable_stacks(process_signals,ARTBOX_SIGNAL_STACK_MINIMUM,4096) ||
         artbox_signals_attach(process_signals,&thread)) fail("signal action owner");
     signal_template.actions=artbox_signals_action_table(process_signals);
     artbox_relocation_memory memory[IMAGE_CAPACITY]; artbox_link_module modules[IMAGE_CAPACITY];
@@ -575,7 +593,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     if (stack < 0 || artbox_vm_mprotect(vm, (uint64_t)stack + page, stack_size, 3)) fail("guest stack");
     signal_template.stack_address=(uint64_t)stack+page; signal_template.stack_size=stack_size;
     struct sigaction trap={0},saved_trap;
-    trap.sa_sigaction=deliver_trap; trap.sa_flags=SA_SIGINFO|SA_RESTART;
+    trap.sa_sigaction=deliver_trap; trap.sa_flags=SA_SIGINFO|SA_RESTART|SA_ONSTACK;
     if(sigemptyset(&trap.sa_mask) || sigaction(SIGTRAP,&trap,&saved_trap)) fail("host trap disposition");
     pthread_attr_t attr;
     pthread_t worker;
@@ -632,8 +650,10 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
            ",\"pthread_result\":%d,\"threads_reaped\":%" PRIu64 ",\"pthread_client_ns\":%" PRIu64
            ",\"thread_guarded_samples\":%" PRIu64 ",\"process_peak_rss_bytes\":%ld,"
            "\"linked_images\":4,\"tls_modules\":2,\"tls_threads\":7,\"tls_result\":0,\"tls_queries\":%" PRIu64 ",\"version_result\":%" PRId64 ",\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64
-           ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"art_libc_cases\":%" PRId64 ",\"vfork_cases\":%" PRId64 ",\"libcore_frontend_cases\":%" PRId64 ",\"unlink_cases\":%" PRId64 ",\"signal_wait_cases\":%" PRId64 ",\"signal_handler_cases\":%d,\"signal_handler_mutation\":%d,\"unsupported_syscalls\":{",
-           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases, unlink_cases, signal_wait_cases,signal_handler_cases,signal_handler_mutation);
+           ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"art_libc_cases\":%" PRId64 ",\"vfork_cases\":%" PRId64 ",\"libcore_frontend_cases\":%" PRId64 ",\"unlink_cases\":%" PRId64 ",\"signal_wait_cases\":%" PRId64 ",\"signal_handler_cases\":%d,\"signal_handler_mutation\":%d,"
+           "\"signal_stack_cases\":%d,\"signal_stack_handler_cases\":%d,\"signal_stack_mutation\":%d,\"signal_stack_threads\":%" PRIu64 ",\"unsupported_syscalls\":{",
+           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases, unlink_cases, signal_wait_cases,signal_handler_cases,signal_handler_mutation,
+           signal_stack_cases,signal_stack_handler_cases,signal_stack_mutation,signal_stack_threads);
     if (length < 0 || (size_t)length >= sizeof(report)) fail("result formatting");
     size_t used_bytes = (size_t)length;
     unsigned printed = 0;

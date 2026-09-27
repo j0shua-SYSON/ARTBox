@@ -207,7 +207,7 @@ The 33-case shared caller and portable blocked-worker/lifetime tests pass
 locally. Signed Bionic and the identical NDK object on native Linux are CI gates.
 The normal queue implementation is not safe inside a host signal handler.
 
-### Initial action registration and synchronous trap delivery (native CI pending)
+### Initial action registration and synchronous trap delivery (verified at 2aa064f)
 
 | ARM64 call | Implemented subset | Deliberate limits |
 | --- | --- | --- |
@@ -218,9 +218,22 @@ The normal queue implementation is not safe inside a host signal handler.
 Portable tests cover publication races, reset, capacity, invalid signal IDs,
 unaligned buffers, rejected capabilities and copyout failure after mutation.
 A real Android-compiled handler and a same-source Linux reference check
-registration, Linux siginfo, TLS/errno and PC/x0/SIMD resume. Native results are
-pending. Alternate stacks, other fault signals and asynchronous unblocked
-delivery remain open; see [the signal contract](m3-signals.md).
+registration, Linux siginfo, TLS/errno and PC/x0/SIMD resume. Both signed Bionic
+modes, native Linux and complete CI pass at `2aa064f`. Other fault signals and
+asynchronous unblocked delivery remain open; see [the signal contract](m3-signals.md).
+
+### Alternate stacks (native CI pending)
+
+| ARM64 call | Implemented subset | Deliberate limits |
+| --- | --- | --- |
+| sigaltstack 132 | Linux 24-byte stack descriptor; query, register, disable, active-stack EPERM, input copy before validation and publication before old-stack copyout; shared-VM clone starts disabled | Owned RW storage only; advertised minimum 8 KiB; immutable records retained until thread detach with bounded capacity. SS_AUTODISARM is unsupported. |
+| sigaltstack 132 in handler | Query guest SS_ONSTACK/SS_DISABLE; invalid input EFAULT precedes active-stack EPERM | Input/output buffers must be on an attached guest stack. Updates from a handler on a normal stack return ENOTSUP; changed return-stack metadata is unsupported. |
+| rt_sigaction 134 extension | SA_ONSTACK chooses the guest alternate stack; otherwise the interrupted stack is used | Initial transport remains returning SIGTRAP handlers with zero action mask. |
+
+Local tests cover the 17-case shared wire contract, immutable snapshots, bounds,
+clone reset and capacity. The native caller adds 24 handler/worker checks and a
+missing-SA_ONSTACK control. Its Linux comparison uses the identical wire object
+and the same handler source with Linux libc. Native execution is pending.
 
 ### File-backed data mapping extension (native CI green at b1a94c5)
 

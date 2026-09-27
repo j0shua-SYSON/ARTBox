@@ -99,6 +99,7 @@ def main():
     unlink_object = build / "unlink-check.o"
     signal_object = build / "signal-wait.o"
     handler_object = build / "signal-handler.o"
+    stack_object,stack_handler_object = build / "signal-stack.o",build / "signal-stack-handler.o"
     art_libc_object = build / "art-libc-check.o"
     vfork_native_object = build / "vfork-rejection.o"
     libcore_common, libcore_accounts = build / "libcore-common.o", build / "libcore-accounts.o"
@@ -109,6 +110,8 @@ def main():
                                 ("fixtures/bionic-files/proc.c", proc_object), ("fixtures/bionic-files/unlink.c", unlink_object),
                                 ("fixtures/kernel-signals/wait.c", signal_object),
                                 ("fixtures/kernel-signals/handler.c", handler_object),
+                                ("fixtures/kernel-signals/stack.c", stack_object),
+                                ("fixtures/kernel-signals/handler_stack.c", stack_handler_object),
                                 ("fixtures/bionic-vfork/native.c", vfork_native_object),
                                 ("fixtures/bionic-libcore/common.c", libcore_common), ("fixtures/bionic-libcore/accounts.c", libcore_accounts)):
         command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
@@ -175,7 +178,7 @@ def main():
     command("ld.lld", *tls_link, "-z", "defs", "-soname", app.name, client, futex_object, thread_object, file_object, mapping_object,
             version_client_object, tls_access, tls_abi, vm_object, timeout_object, proc_object, art_libc_object, comparison,
             vfork_object, vfork_native_object,
-            libcore_common, libcore_accounts, unlink_object, signal_object, handler_object,
+            libcore_common, libcore_accounts, unlink_object, signal_object, handler_object, stack_object, stack_handler_object,
             "--no-as-needed", libc, versions, tls_library, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator through a manifest load group; not full M2",
               "project_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
@@ -213,7 +216,11 @@ def main():
               "signal_wait": {"cases": 33, "source_sha256": digest(ROOT / "fixtures/kernel-signals/wait.c"),
                               "object_sha256": digest(signal_object)},
               "signal_handler": {"cases": 16, "source_sha256": digest(ROOT / "fixtures/kernel-signals/handler.c"),
-                                 "object_sha256": digest(handler_object)}}
+                                 "object_sha256": digest(handler_object)},
+              "signal_stack": {"wire_cases": 17, "handler_cases": 24, "workers": 1, "minimum_bytes": 8192,
+                               "wire_source_sha256": digest(ROOT / "fixtures/kernel-signals/stack.c"),
+                               "handler_source_sha256": digest(ROOT / "fixtures/kernel-signals/handler_stack.c"),
+                               "wire_object_sha256": digest(stack_object), "handler_object_sha256": digest(stack_handler_object)}}
     notices = {name.upper() + "-NOTICE.txt": (inputs / (name.upper() + "-NOTICE.txt"), data["sha256"])
                for name, data in report["component_notices"].items()}
     notices["LIBCUTILS-NOTICE.txt"] = (inputs / "LIBCUTILS-NOTICE.txt", report["dependencies"]["libcutils-headers"]["notice_sha256"])
@@ -276,6 +283,9 @@ def main():
                 raise RuntimeError('Blocked signal wait client did not complete')
             if result[key]['signal_handler_cases'] != 16 or result[key]['signal_handler_mutation'] != -1000:
                 raise RuntimeError('Signed Android handler or its dropped-register control failed')
+            if (result[key]['signal_stack_cases'] != 17 or result[key]['signal_stack_handler_cases'] != 24 or
+                    result[key]['signal_stack_mutation'] != -1001 or result[key]['signal_stack_threads'] != 1):
+                raise RuntimeError('Signed Android alternate-stack delivery or its omitted-flag control failed')
             if result[key]["pthread_result"] != 0 or result[key]["threads_reaped"] != 6:
                 raise RuntimeError("NDK pthread client did not complete")
             if result[key]["tls_modules"] != 2 or result[key]["tls_threads"] != 7 or result[key]["tls_result"] != 0:
