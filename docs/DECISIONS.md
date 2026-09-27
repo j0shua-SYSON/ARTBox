@@ -1617,7 +1617,8 @@ injected file backing to detect accidental remapping or writeback.
 
 Status: original Android object fails strict linking at `__xpg_strerror_r`;
 unchanged source with the POSIX declaration compiles and links locally. Runtime
-regression execution is pending.
+regression passes in both native Linux ART dependency builds at `030b310`.
+Android-built helper execution on Apple remains pending.
 
 The Linux-Bionic build flags select a glibc-only alias in `jni_util_md.c` when
 `_GNU_SOURCE` is defined. This source expects the POSIX integer-returning API.

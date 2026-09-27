@@ -82,5 +82,10 @@ gethostname output is intentionally unspecified inside its buffer, matching the
 different Bionic/glibc behavior. No socket is opened by these tests.
 Both 280-unit profiles compile locally with 1,552 shared global definitions;
 the native instruction scan passes. The NetBSD bsearch source retains AOSP's
-forced `netbsd-compat.h` include. Signed Mac and native Linux execution of this
-expansion is pending.
+forced `netbsd-compat.h` include. At `030b310`, all 73 cases pass in both signed
+Mac allocator modes and on native Linux ARM64. The complete
+[host workflow](https://github.com/j0shua-SYSON/ARTBox/actions/runs/36300511614)
+and [iOS workflow](https://github.com/j0shua-SYSON/ARTBox/actions/runs/36300511621)
+pass. Independent downloaded checks verify the caller, four ELF images, eight
+framework layouts, 56 notices and the Linux reference report. Both fixed M2
+scores remain 328/328. These checks do not establish native libcore execution.

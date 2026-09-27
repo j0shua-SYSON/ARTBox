@@ -66,4 +66,11 @@ The native libcore link also requires log1p and remainder. The 130-vector caller
 fails to link against the previous subset at precisely those two symbols. Two
 unchanged files from the same Bionic pin provide them, retaining their Sun
 permission notices. All 41 units and the 25-import client link and pass local
-instruction/layout checks. Signed Mac and paired Linux execution is pending.
+instruction/layout checks. At `030b310`, all 130 vectors pass through the signed
+Mac framework, the identical Android libraries on native Linux ARM64 and the
+Linux system-libm reference. Independent checks verify 41 objects, 294 upstream
+inputs, 21 canonical project inputs, four framework layouts and 20 notices.
+The complete host and iOS workflows pass. The first Linux harness run rejected
+a successful 130-vector result because it retained the old 108-case count;
+the corrected harness retains strict count and failure checks and prints their
+diagnostics directly when it fails.

@@ -153,7 +153,16 @@ establish signed execution. The next dependency expansion adds six unchanged
 libc units and two libm units, with 73-case libc and 130-vector math callers.
 Both callers reproduce the missing-symbol failures against the previous
 libraries before the source selection changes. Their new native execution
-checks are pending; Apple JavaVM startup remains the M3 acceptance target.
+checks pass at `030b310`: both signed Mac allocator modes and native Linux libc
+pass all 73 checks; signed Mac, Android ELF on Linux and system libm pass all
+130 vectors. Downloaded artifacts independently verify the sources, objects,
+layouts, notices and the integrated iOS 15 diagnostic IPA. Both complete
+[host](https://github.com/j0shua-SYSON/ARTBox/actions/runs/36300511614) and
+[iOS](https://github.com/j0shua-SYSON/ARTBox/actions/runs/36300511621) workflows pass.
+OpenJDK's error-string unit now selects Bionic's POSIX declaration during Android
+compilation. A 22nd native libcore test group passes in both Linux profiles;
+Android libcore execution through the signed Apple runtime remains pending.
+Apple JavaVM startup remains the M3 acceptance target.
 The [loader service queries](m3-loader-services.md) now cover named dependency
 scope, lookup after the caller and ELF address/image metadata. All 25 local
 host tests pass. The portable handle/error context also passes concurrent tests,

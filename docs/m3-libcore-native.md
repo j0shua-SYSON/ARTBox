@@ -67,7 +67,8 @@ It also calls the unversioned ICU shim to check its version and malformed UTF-8
 substitution through the same headers used by libcore. The expanded fixture adds
 a 22nd group for OpenJDK's POSIX error-string helpers: successful and truncated
 buffers, zero-error/zero-length no-ops, terminators, guard bytes and errno
-preservation. Execution of that added group is pending. Calling JNI registration and executing the boot
+preservation. All 22 groups pass in both native Linux runtime profiles at
+`030b310`. Calling JNI registration and executing the boot
 classes still require a real ART startup test.
 
 The Android compilation of the unchanged `jni_util_md.c` undefines
@@ -76,7 +77,9 @@ The Android compilation of the unchanged `jni_util_md.c` undefines
 return value, so use Bionic's POSIX declaration and existing `strerror_r` symbol;
 do not bind it to the pointer-returning GNU variant. A strict local compile/link
 probe reproduces the missing glibc alias before this flag and resolves against
-the real guest libc afterward. Linux retains its original compiler flags.
+the real guest libc afterward. All 208 Android units compile with this selection.
+Linux retains its original compiler flags. Execution of the Android-built
+helper through the signed Apple runtime remains pending.
 
 Artifacts preserve source/object hashes, compiler and link commands, native test
 output, original notices, all selected corresponding source, and the verified
