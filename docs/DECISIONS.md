@@ -1474,7 +1474,8 @@ reference. A build does not establish signed full-runtime execution.
 ## 0063: Link the full guest from one verified dependency revision
 
 Status: full-runtime linking, instruction checks and signed Mac/iOS 15 framework
-layout validation pass in CI at `5b570af`; runtime execution remains pending.
+layout validation pass in CI at `5b570af`. Full native constructor/pre-start JNI
+execution also passes at `d43ceaf`; JavaVM startup and DEX remain incomplete.
 
 Consume the full native guest and already exercised Bionic, math, libdl and LLVM
 context artifacts from the same producer revision. Verify their original source
@@ -1492,7 +1493,8 @@ establish constructor execution, signal behavior, ART startup or DEX invocation.
 
 ## 0064: Query Bionic's existing static TLS for loader metadata
 
-Status: Android build and boundary checks pass locally; signed execution pending.
+Status: signed Mac execution passes at `d43ceaf`: 14 query rounds across seven
+threads in each allocator mode; downloaded source and binary evidence verify.
 
 Keep private Bionic TLS layouts in the Android bootstrap. Expose a fixed-word
 module-ID-to-address entry for the guest loader's metadata callback. The startup
@@ -1508,7 +1510,8 @@ original Linux TLS reference. Do not substitute a host TLS layout for Bionic's.
 
 ## 0065: Execute full ART bootstrap through the existing Bionic services
 
-Status: shared runner and CI test added; native execution pending.
+Status: 31 constructors, pre-start JNI, shared heap binding and cleanup pass on
+native Mac ARM64 at `d43ceaf`; JavaVM startup and DEX remain incomplete.
 
 Use the same VM, rooted filesystem, syscall translator, futex and pthread
 manager as the Bionic acceptance runner. Register libc, ART, libm and libdl in
@@ -1526,8 +1529,8 @@ fatal-error policy and no general unloading, not a production launcher API.
 
 ## 0066: Report an explicit virtual identity through Linux uname
 
-Status: regression fails before implementation and passes locally afterward;
-native Linux comparisons and the ART constructor retry await CI.
+Status: regression reproduced before implementation. Portable checks, native
+Linux comparisons and the ART constructor query pass in CI at `d43ceaf`.
 
 ART's cache-operation constructor requires uname, a Linux sysname and a parseable
 kernel release. Encode the six 65-byte Linux fields in the portable syscall
@@ -1543,8 +1546,8 @@ is not the mechanism that prevents runtime code generation.
 
 ## 0067: Detect an unsupported memory prerequisite without aborting ART
 
-Status: regression reproduced before the edit; 16 injected probe cases pass
-locally. Full signed guest constructor execution awaits CI.
+Status: regression reproduced before the edit; all 16 injected cases and full
+signed guest constructor execution pass at `d43ceaf`.
 
 ART probes `MREMAP_DONTUNMAP` during static initialization even when the selected
 collector is semispace. Its probe assumes shared anonymous mmap is available

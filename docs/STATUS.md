@@ -31,6 +31,9 @@ execution remains unverified. Runtime milestones take priority over launcher UI.
 - M3 high heap: the adapted full runtime also passes that suite on native Linux
   ARM64 at `71f398e`, with checked references and an owned 4 GiB heap window.
   This validates managed allocation and collection before Apple ABI integration.
+- M3 native bootstrap: all 31 constructors in the signed four-library ART group
+  return on Mac ARM64 at `d43ceaf`. Pre-start JNI registration, shared heap
+  binding and resource cleanup pass. This does not start a JavaVM or execute DEX.
 
 See [M2 acceptance](acceptance/m2.md) for exact revisions, CI links, artifact
 hashes, counts and limitations. One traced Mac process takes 17.503 ms for
@@ -41,8 +44,8 @@ timed waits, not steady-state performance or iPhone measurements.
 
 ## What does not run
 
-ART runs the hello DEX only in the native Linux reference. ART execution on
-macOS/iOS, Binder/services, Android Activities and APK execution remain incomplete.
+ART runs the hello DEX only in the native Linux reference. JavaVM startup and DEX
+execution on macOS/iOS, Binder/services, Android Activities and APK execution remain incomplete.
 The M2 runner is diagnostic and single-use; unexpected contract failures can
 terminate its process. General dlopen scope growth, unloading/finalization,
 other ELF TLS models, signal delivery, broader proc files, mutable directories
@@ -136,13 +139,14 @@ and the complete workflows pass. The full-runtime link passes the instruction
 and import checks with eight intentional VM/TLS host imports. Signed Mac/iOS 15
 framework layouts and empty entitlements pass in CI at `5b570af`. The shared
 Bionic loader/TLS and VM services now initialize Bionic and enter ART
-constructors on the Mac CPU at `6d80787`. The next run at `69e671c` passes the
-new `uname` query and reaches ART's `mremap` capability probe, which aborts when
-its shared-anonymous prerequisite returns `EOPNOTSUPP`. A narrow source edit
-now treats unsupported prerequisites as an absent capability; 16 injected
-probe cases pass locally, with real native execution still awaiting
-CI. Full bootstrap, JavaVM startup and DEX execution remain incomplete, and
-the iOS app still contains no ART runtime.
+constructors on the Mac CPU. At `d43ceaf`, all 31 constructors, pre-start JNI,
+shared heap binding and cleanup pass. Its virtual `uname` implementation passes
+native Linux comparisons; 16 injected cases verify the narrow adaptation for an
+unsupported memory-probe prerequisite. The independently verified bootstrap takes
+24.151 ms to load/relocate and 0.709 ms for the constructor/JNI/heap phase, including
+thread setup and join. These are single-run Mac observations. See
+[bootstrap evidence](m3-native-bootstrap.md). JavaVM startup and DEX execution
+remain incomplete, and the iOS app still contains no ART runtime.
 The [managed-storage contract](m3-managed-storage.md) now passes 54 cases on each
 native Mac/Linux host, with two signed Mac controls confirming the original
 forwarding-address truncation. GC forwarding words and JNI reference/free/serial/

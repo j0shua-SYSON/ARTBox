@@ -114,7 +114,9 @@ as an absent capability. Allocation failures and both cleanup checks still
 fail. Sixteen injected cases run the original and adapted probe before the
 guest build; Linux reference profiles keep the original implementation.
 Shared anonymous mappings, `mremap` and userfaultfd collectors remain unsupported.
-The bootstrap test does not invoke
+At `d43ceaf`, all 31 constructors and the pre-start JNI/shared-heap checks pass
+on native Mac ARM64. Downloaded reports, source and binary inputs verify;
+see [native bootstrap evidence](m3-native-bootstrap.md). The test does not invoke
 `JNI_CreateJavaVM` or execute DEX; those require the remaining signal and native
 class-library integration.
 

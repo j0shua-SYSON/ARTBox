@@ -114,7 +114,8 @@ syscall to check the structure size, unaligned output and EFAULT behavior. The
 suite runs on native Linux ARM64 as well as the existing host matrix. Destination
 contents after EFAULT are unspecified; the shared mapper validates the complete
 write before copying. This syscall was demanded by an actual ART constructor;
-the new local regression fails before implementation and passes afterward.
+the regression fails before implementation and passes afterward. Native Linux
+comparisons and the full signed constructor run pass in CI at `d43ceaf`.
 
 The native page size comes from the host (supported contract: power of two,
 4 KiB through 64 KiB). The fixture requests 16 KiB and both packaging routes
