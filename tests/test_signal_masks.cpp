@@ -13,7 +13,7 @@ static int64_t ordinary(artbox_kernel_thread *thread,Buffers *b,uint32_t how,con
     if(input) b->input=*input;
     return artbox_kernel_call(thread,135,how,input?(uintptr_t)&b->input:0,(uintptr_t)&b->old,8,0,0);
 }
-static int64_t update_under_mapper_lock(void *context,void *,uint64_t length) {
+static int64_t update_under_mapper_lock(void *context,void *,size_t length) {
     auto *thread=static_cast<artbox_kernel_thread*>(context);
     uint64_t input=bit,previous=77,current=0;
     int changed=artbox_signals_mask_update(thread,2,&input,&previous);
