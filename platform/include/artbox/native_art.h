@@ -15,6 +15,15 @@ typedef struct artbox_art_input {
  * Does not start a JavaVM or execute DEX. Unexpected failures terminate the
  * process, as in the Bionic acceptance runner. No physical-device claim. */
 int artbox_run_native_art_bootstrap(const artbox_art_input *input, const artbox_host *host);
+typedef struct artbox_icu_input {
+    /* libc, libart, libm, libdl, nativehelper, ICU common/i18n/shim/JNI, test. */
+    const char *frameworks[10], *elfs[10];
+    const char *root;
+} artbox_icu_input;
+/* Same one-shot boundary, plus the original eight-group ICU dependency check.
+ * The root supplies system/i18n/etc/icu/icudt75l.dat before constructors run.
+ * Does not invoke JNI_OnLoad, start a JavaVM or execute DEX. */
+int artbox_run_native_icu(const artbox_icu_input *input, const artbox_host *host);
 #ifdef __cplusplus
 }
 #endif

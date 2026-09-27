@@ -34,8 +34,15 @@ typedef struct module {
     artbox_dynamic dynamic;
     artbox_relocation_stats relocations;
 } module;
-enum { IMAGE_COUNT = 4 };
-static module images[IMAGE_COUNT];
+enum { IMAGE_CAPACITY = 10 };
+static module images[IMAGE_CAPACITY];
+static unsigned image_count;
+typedef struct native_input {
+    const char *const *frameworks;
+    const char *const *elfs;
+    const char *root;
+    unsigned sampled, count;
+} native_input;
 static artbox_load_group *load_group;
 static artbox_vm *vm;
 static artbox_vfs *filesystem;
@@ -61,6 +68,7 @@ static int64_t result;
 static unsigned force_sampling;
 static unsigned art_bootstrap;
 static unsigned tls_count;
+static uint64_t icu_check_ns;
 static artbox_dlfcn *guest_loader;
 static artbox_guest_dlfcn *guest_dl_service;
 static uint64_t gwp_enabled, guarded_samples;
@@ -299,6 +307,9 @@ static void *run(void *context) {
     char process_sampling[] = "GWP_ASAN_PROCESS_SAMPLING=1";
     char allocation_sampling[] = "GWP_ASAN_SAMPLE_RATE=1";
     char guarded_capacity[] = "GWP_ASAN_MAX_ALLOCS=32";
+    char android_data[] = "ANDROID_DATA=/data";
+    char android_i18n[] = "ANDROID_I18N_ROOT=/system/i18n";
+    char android_tzdata[] = "ANDROID_TZDATA_ROOT=/system/tzdata";
     artbox_system_ops system = artbox_native_system();
     if (system.random(random, sizeof(random))) fail("AT_RANDOM");
     // argc, argv, envp, and the Linux ARM64 auxiliary vector. These live on
@@ -312,6 +323,11 @@ static void *run(void *context) {
         args[cursor++] = (uintptr_t)process_sampling;
         args[cursor++] = (uintptr_t)allocation_sampling;
         args[cursor++] = (uintptr_t)guarded_capacity;
+    }
+    if (art_bootstrap == 2) {
+        args[cursor++] = (uintptr_t)android_data;
+        args[cursor++] = (uintptr_t)android_i18n;
+        args[cursor++] = (uintptr_t)android_tzdata;
     }
     args[cursor++] = 0;
     memcpy(args + cursor, auxv, sizeof(auxv));
@@ -342,6 +358,12 @@ static void *run(void *context) {
         fail("constructor idempotence");
     if (art_bootstrap) {
         check_art_bootstrap();
+        if (art_bootstrap == 2) {
+            uint64_t started = now();
+            if ((int32_t)artbox_call7(entry(&images[9], "artbox_native_icu_check"),
+                    0, 0, 0, 0, 0, 0, 0)) fail("native ICU dependency checks");
+            icu_check_ns = now() - started;
+        }
         artbox_native_dlfcn_swap(old_dl);
         artbox_guest_dl_thread_destroy(dl_thread);
         artbox_native_tls_swap(old_tls);
@@ -402,13 +424,15 @@ static void *run(void *context) {
     current_kernel = NULL;
     return NULL;
 }
-static int run_native(const artbox_bionic_input *input, const artbox_host *host, unsigned art_mode) {
+static int run_native(const native_input *input, const artbox_host *host, unsigned art_mode) {
     static atomic_flag used = ATOMIC_FLAG_INIT;
     if (!input || !input->root || !host || !host->log || input->sampled > 1) return -22;
-    for (unsigned i = 0; i < IMAGE_COUNT; ++i)
+    if (input->count != (art_mode == 2 ? 10u : 4u)) return -22;
+    for (unsigned i = 0; i < input->count; ++i)
         if (!input->frameworks[i] || !input->elfs[i]) return -22;
     if (atomic_flag_test_and_set(&used)) return -114;
     art_bootstrap = art_mode;
+    image_count = input->count;
     force_sampling = input->sampled;
     for (unsigned i = 0; i < 4; ++i) {
         const int signals[] = {SIGSEGV, SIGBUS, SIGILL, SIGABRT};
@@ -430,27 +454,29 @@ static int run_native(const artbox_bionic_input *input, const artbox_host *host,
     threads = artbox_threads_create(vm, futex, &atomic, &system, &native_threads, 10000, 10001, 64, run_child, NULL);
     if (!threads) fail("native thread manager");
     uint64_t start = now();
-    for (unsigned i = 0; i < IMAGE_COUNT; ++i) load(&images[i], input->frameworks[i], input->elfs[i]);
-    artbox_relocation_memory memory[IMAGE_COUNT]; artbox_link_module modules[IMAGE_COUNT];
-    for (unsigned i = 0; i < IMAGE_COUNT; ++i) {
+    for (unsigned i = 0; i < image_count; ++i) load(&images[i], input->frameworks[i], input->elfs[i]);
+    artbox_relocation_memory memory[IMAGE_CAPACITY]; artbox_link_module modules[IMAGE_CAPACITY];
+    for (unsigned i = 0; i < image_count; ++i) {
         memory[i] = (artbox_relocation_memory){1, images[i].rw, (size_t)images[i].elf.segments[1].memory_size};
         modules[i] = (artbox_link_module){images[i].dynamic.soname, &images[i].dynamic, (uintptr_t)images[i].rx, &memory[i], 1};
     }
-    artbox_elf_result linked = artbox_load_group_create(modules, IMAGE_COUNT,
-        art_bootstrap ? "libart.so" : "libstartup_client.so", resolve, NULL, &load_group);
+    artbox_elf_result linked = artbox_load_group_create(modules, image_count,
+        art_bootstrap == 2 ? "libartbox_icu_check.so" : art_bootstrap ? "libart.so" : "libstartup_client.so",
+        resolve, NULL, &load_group);
     if (linked == ARTBOX_ELF_OK) linked = artbox_load_group_tls_resolver(load_group, (uintptr_t)entry(&images[0], "artbox_tlsdesc_absolute"));
     if (linked == ARTBOX_ELF_OK) linked = artbox_load_group_relocate(load_group);
     if (linked != ARTBOX_ELF_OK) { fprintf(stderr, "load group result %d\n", linked); fail("manifest load group"); }
     if (art_bootstrap) {
-        const char *names[] = {"libc.so", "libart.so", "libm.so", "libdl.so"};
-        for (unsigned i = 0; i < IMAGE_COUNT; ++i)
+        const char *names[] = {"libc.so", "libart.so", "libm.so", "libdl.so", "libnativehelper.so",
+            "libicuuc.so", "libicui18n.so", "libicu.so", "libicu_jni.so", "libartbox_icu_check.so"};
+        for (unsigned i = 0; i < image_count; ++i)
             if (!modules[i].name || strcmp(modules[i].name, names[i])) fail("ART bootstrap image order");
         const artbox_guest_dl_ops loader_ops = {NULL, loader_invoke, loader_tls};
         if (artbox_dlfcn_create(load_group, NULL, 0, &guest_loader) != ARTBOX_ELF_OK ||
             artbox_guest_dlfcn_create(guest_loader, load_group, vm, &loader_ops, &guest_dl_service) != ARTBOX_ELF_OK)
             fail("ART guest loader service");
     }
-    for (unsigned i = 0; i < IMAGE_COUNT; ++i)
+    for (unsigned i = 0; i < image_count; ++i)
         if (artbox_load_group_stats(load_group, modules[i].name, &images[i].relocations) != ARTBOX_ELF_OK) fail("relocation statistics");
     uint64_t loaded = now();
     size_t stack_size = 4 * 1024 * 1024, page = ops.page_size;
@@ -473,20 +499,26 @@ static int run_native(const artbox_bionic_input *input, const artbox_host *host,
     if (artbox_vfs_destroy(filesystem) || artbox_native_files_close(backing_files)) fail("filesystem cleanup");
     if (artbox_futex_destroy(futex)) fail("futex cleanup");
     if (artbox_vm_destroy(vm)) fail("release reservations");
-    if (artbox_load_group_count(load_group) != IMAGE_COUNT) fail("reachable load-group size");
+    if (artbox_load_group_count(load_group) != image_count) fail("reachable load-group size");
     artbox_load_group_destroy(load_group);
     char report[16384];
     int length;
     if (art_bootstrap) {
         if (result || !constructors || artbox_bionic_get_tls()) fail("ART bootstrap completion");
+        char extra[128] = "";
+        if (art_bootstrap == 2) {
+            int count = snprintf(extra, sizeof(extra), "\"icu_cases\":8,\"icu_check_ns\":%" PRIu64 ",", icu_check_ns);
+            if (count < 0 || (size_t)count >= sizeof(extra)) fail("ICU result formatting");
+        }
         length = snprintf(report, sizeof(report),
-            "{\"constructors\":%u,\"tls_modules\":%u,\"linked_images\":4,\"registered_vms\":0,"
+            "{\"constructors\":%u,\"tls_modules\":%u,\"linked_images\":%u,\"registered_vms\":0,%s"
             "\"heap_binding_verified\":true,\"runtime_started\":false,\"dex_executed\":false,"
             "\"load_relocate_ns\":%" PRIu64 ",\"bootstrap_ns\":%" PRIu64 ",\"cleanup\":true}",
-            constructors, tls_count, loaded-start, finished-loaded);
+            constructors, tls_count, image_count, extra,
+            loaded-start, finished-loaded);
         if (length < 0 || (size_t)length >= sizeof(report)) fail("ART result formatting");
         host->log(host->context, report, (size_t)length);
-        for (unsigned i = 0; i < IMAGE_COUNT; ++i) { dlclose(images[i].handle); free(images[i].original); }
+        for (unsigned i = 0; i < image_count; ++i) { dlclose(images[i].handle); free(images[i].original); }
         return 0;
     }
     length = snprintf(report, sizeof(report), "{\"cases\":146,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
@@ -508,18 +540,21 @@ static int run_native(const artbox_bionic_input *input, const artbox_host *host,
     if (used_bytes + 3 > sizeof(report)) fail("result formatting");
     memcpy(report + used_bytes, "}}", 3); used_bytes += 2;
     host->log(host->context, report, used_bytes);
-    for (unsigned i = 0; i < IMAGE_COUNT; ++i) { dlclose(images[i].handle); free(images[i].original); }
+    for (unsigned i = 0; i < image_count; ++i) { dlclose(images[i].handle); free(images[i].original); }
     return 0;
 }
 int artbox_run_native_bionic(const artbox_bionic_input *input, const artbox_host *host) {
-    return run_native(input, host, 0);
+    if (!input) return -22;
+    const native_input shared = {input->frameworks, input->elfs, input->root, input->sampled, 4};
+    return run_native(&shared, host, 0);
 }
 int artbox_run_native_art_bootstrap(const artbox_art_input *input, const artbox_host *host) {
     if (!input) return -22;
-    artbox_bionic_input shared_input = {{0}, {0}, input->root, 0};
-    for (unsigned i = 0; i < IMAGE_COUNT; ++i) {
-        shared_input.frameworks[i] = input->frameworks[i];
-        shared_input.elfs[i] = input->elfs[i];
-    }
-    return run_native(&shared_input, host, 1);
+    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 4};
+    return run_native(&shared, host, 1);
+}
+int artbox_run_native_icu(const artbox_icu_input *input, const artbox_host *host) {
+    if (!input) return -22;
+    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 10};
+    return run_native(&shared, host, 2);
 }

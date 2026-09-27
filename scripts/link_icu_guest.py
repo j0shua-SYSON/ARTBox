@@ -94,6 +94,15 @@ def main():
     if {row['group'] for row in rows} != groups:
         raise RuntimeError('ICU source groups differ from the reviewed selection')
     objects = {row['unit']: verify(native / 'objects' / (row['unit'] + '.o'), row['object_sha256']) for row in rows}
+    client = build['guest_check']
+    if (client['exit'] or client['unit'] != 'artbox-native-icu-check' or client['group'] != 'guest-check' or
+            client['unit'] in objects or '-DARTBOX_GUEST_ICU' not in client['command'] or
+            client['source_sha256'] != build['project_sources']['fixtures/art-runtime/native_icu.cpp']):
+        raise RuntimeError('Guest ICU caller differs from its reviewed source or ABI')
+    objects[client['unit']] = verify(native / 'objects' / (client['unit'] + '.o'), client['object_sha256'])
+    link_rows = [*rows, client]
+    targets = [*LIBRARIES, ('libartbox_icu_check.so', 'ARTBoxICUCheck', ['guest-check'],
+                            [name for name, _, _, _ in LIBRARIES])]
     bases = {
         'libart.so': verify(guest / 'libart.so', art['elf_sha256']),
         'libc.so': evidence / 'build/m2/bionic-startup/libc.so',
@@ -131,8 +140,9 @@ def main():
 
     images = {name: metadata(path) for name, path in bases.items()}
     report = {'project_commit': revision, 'input_revision': producer, 'working_tree_dirty': dirty,
-              'scope': 'Five Android ICU/JNI libraries linked and packaged; no execution',
+              'scope': 'Five Android ICU/JNI libraries and their test caller packaged; no execution',
               'objects': 480, 'runtime_executed': False, 'device_execution_verified': False,
+              'guest_check': client,
               'base_inputs': {name: digest(path) for name, path in bases.items()},
               'libraries': {}, 'commands': commands,
               'crt_objects': {p.name: digest(p) for p in (crt / 'crtbegin_so.o', crt / 'crtend_so.o')}}
@@ -142,8 +152,8 @@ def main():
     def save():
         (artifacts / 'm3-icu-guest-link.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
 
-    for name, framework, selected, needs in LIBRARIES:
-        inputs = [objects[row['unit']] for row in rows if row['group'] in selected]
+    for name, framework, selected, needs in targets:
+        inputs = [objects[row['unit']] for row in link_rows if row['group'] in selected]
         if any('"' in str(p) or '\n' in str(p) for p in inputs):
             raise RuntimeError('Unsafe object response-file path')
         response = output / (name + '.rsp')
@@ -170,7 +180,7 @@ def main():
                                      name=framework, notice_name='ICU-NOTICE.txt')
                 item['frameworks'][target] = details
                 save()
-    report['dependency_scopes'] = check_dependencies(images, [name for name, _, _, _ in LIBRARIES])
+    report['dependency_scopes'] = check_dependencies(images, [name for name, _, _, _ in targets])
     data_name = 'icu4c/source/stubdata/icudt75l.dat'
     expected = next(row['sha256'] for row in build['sources']['art-icu-native']['files'] if row['path'] == data_name)
     with zipfile.ZipFile(bundles['icu']) as source:

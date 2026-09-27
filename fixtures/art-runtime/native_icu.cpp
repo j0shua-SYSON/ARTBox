@@ -10,8 +10,15 @@
 
 #define CHECK(value) do { if (!(value)) { std::fprintf(stderr, "line %d failed: %s\n", __LINE__, #value); return 1; } } while (0)
 
+#ifdef ARTBOX_GUEST_ICU
+// Fixed-word entry: all C++ and variadic library calls retain the Android ABI.
+extern "C" int artbox_native_icu_check(void) {
+  const char* library_path = "libicu_jni.so";
+#else
 int main(int argc, char** argv) {
   if (argc != 2) return 64;
+  const char* library_path = argv[1];
+#endif
   UVersionInfo version;
   u_getVersion(version);
   CHECK(version[0] == 75);
@@ -48,10 +55,14 @@ int main(int argc, char** argv) {
   CHECK(uregex_matches(expression, 0, &status) && U_SUCCESS(status));
   uregex_close(expression);
 
-  void* library = dlopen(argv[1], RTLD_NOW | RTLD_LOCAL);
+  void* library = dlopen(library_path, RTLD_NOW | RTLD_LOCAL);
   if (library == nullptr) std::fprintf(stderr, "%s\n", dlerror());
   CHECK(library != nullptr && dlsym(library, "JNI_OnLoad") != nullptr);
   CHECK(dlclose(library) == 0);
+  // Release ICU caches and the AOSP data mapping before guest VM teardown.
+  u_cleanup();
+#ifndef ARTBOX_GUEST_ICU
   std::puts("ARTBox native ICU and JNI dependencies: 8 cases passed; no ART execution");
+#endif
   return 0;
 }

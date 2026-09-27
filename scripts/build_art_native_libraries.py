@@ -184,6 +184,11 @@ def main():
     save(result_path, record)
     print('Passed', sum(x['exit'] == 0 for x in results), '/', len(results), flush=True)
     if any(x['exit'] for x in results): return 1
+    if args.all and args.profile == 'android':
+        record['guest_check'] = compile_one(('artbox-native-icu-check', ROOT / 'fixtures/art-runtime/native_icu.cpp',
+            [*common, *cpp, '-DARTBOX_GUEST_ICU'], cxx, 'guest-check'))
+        save(result_path, record)
+        if record['guest_check']['exit']: return 1
     if args.link:
         def link(name, groups, dependencies):
             inputs = []

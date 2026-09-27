@@ -133,8 +133,12 @@ The updated local link resolves all strong imports of the five ICU/JNI libraries
 against the guest dependency set. This diagnostic uses local objects and earlier
 verified inputs; it is not yet a signed or executed ICU artifact.
 The public ICU pipeline now requires all producers to share a Git revision,
-checks the actual dependency closure and packages five Mac/iOS 15 frameworks.
-Its first CI signing result and execution through the shared runtime are pending.
+checks the actual dependency closure and packages five libraries as Mac/iOS 15
+frameworks. At `d68dd3e`, signing and the complete host/iOS workflows pass,
+including both Linux ART startup profiles. A separate guest test image now
+connects the original eight ICU groups to the shared ten-image runtime; its
+first execution is pending. It stages pinned data through the rooted filesystem
+and releases ICU data/caches before teardown, without invoking JNI_OnLoad.
 Source review identified ICU's required `MADV_RANDOM` call. Anonymous/file
 regressions reproduce its rejection; the portable implementation now accepts
 the nonbinding hint after validation. All 25 local tests pass, with native Linux

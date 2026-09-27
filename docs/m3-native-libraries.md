@@ -62,7 +62,26 @@ data, dependency source archives and notices accompany the result.
 python -B scripts/link_icu_guest.py --native-dir build/m3/guest-icu-inputs --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
 ```
 
-The initial packaging validation is pending CI. This stage does not load ICU,
-run its constructors or invoke `JNI_OnLoad`. Native ICU acceptance through the
-rooted filesystem and Bionic services is the next execution test; JavaVM/DEX
-startup remains a separate M3 requirement.
+At `d68dd3e`, all five libraries link and sign as ten Mac/iOS frameworks in
+[host CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/36297239640), with
+the complete workflow and both Linux ART execution profiles passing. This
+packaging stage does not execute ICU.
+
+The next execution test adds a separate original guest caller to the 480 upstream
+objects and packages it as `ARTBoxICUCheck`. It reuses the eight Linux ICU test
+groups through a fixed-word C entry, keeping C++ and variadic calls in the Android
+ABI. The shared runner loads ten images rooted at that caller, initializes
+Bionic and all constructors, then checks ART's pre-start boundary and ICU.
+The rooted filesystem supplies `/system/i18n/etc/icu/icudt75l.dat`; Android data,
+I18N and timezone environment variables are set before constructors run.
+`u_cleanup` releases caches and the original AOSP data mapping before VM teardown.
+
+```console
+python -B scripts/test_icu_guest.py --icu-dir build/m3/icu-guest-link --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+```
+
+The new guest caller compiles, links and passes instruction/layout checks locally;
+its first signed execution result is pending. Its report measures the ICU test
+entry including data initialization and cleanup, separately from total bootstrap
+time. The test looks up `JNI_OnLoad` without invoking it. JavaVM/DEX startup
+remains a separate M3 requirement.

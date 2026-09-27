@@ -1569,7 +1569,8 @@ semantics tests. The full signed constructor test remains required in CI.
 ## 0068: Package Android ICU with the existing guest C++ runtime
 
 Status: local Android link and instruction inventory pass; public CI packaging
-and execution through the Apple runtime are pending.
+and the complete workflows pass at `d68dd3e`. ICU execution through the Apple
+runtime is pending.
 
 Keep nativehelper, ICU common, internationalization, shim and JNI registration
 as five ELF libraries wrapped in signed frameworks. Link their base/log/C++
@@ -1587,6 +1588,12 @@ This isolates signing and dependency failures before runtime initialization.
 The cost is five additional signed frameworks and their startup relocations;
 measure load/constructor time when the native ICU acceptance runner is wired.
 Packaging alone does not satisfy that execution test or M3.
+
+The execution test adds one original Android test image and reuses the shared
+Bionic runner with ten reachable images. Install the rooted ICU environment
+before constructors, keep its C++/variadic test calls inside Android code and
+release ICU caches/data with the upstream cleanup entry before VM teardown.
+Continue to run the existing four-image ART and M2 acceptance paths separately.
 
 ## 0069: Accept ICU's random-access hint without changing memory semantics
 

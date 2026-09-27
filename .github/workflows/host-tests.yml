@@ -673,6 +673,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 -B scripts/link_icu_guest.py --native-dir build/m3/guest-icu-inputs --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+      - name: Execute ICU data and Unicode checks through the shared native runtime
+        run: python3 -B scripts/test_icu_guest.py --icu-dir build/m3/icu-guest-link --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
       - name: Preserve signed ICU packaging and provenance
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -680,7 +682,10 @@ jobs:
           name: icu-guest-link
           path: |
             artifacts/m3-icu-guest-link.json
+            artifacts/m3-icu-guest.json
             build/m3/icu-guest-link/
+            build/m3/icu-guest/
+            build/host/artbox_native_icu
           if-no-files-found: warn
           retention-days: 7
       - name: Preserve the full guest link and signature evidence
