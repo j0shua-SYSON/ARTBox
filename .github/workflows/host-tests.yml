@@ -49,6 +49,17 @@ jobs:
           ${{ matrix.python }} -B scripts/build.py host
       - name: Check ART's native low-address heap requirement
         run: ${{ matrix.python }} -B scripts/test_low_address.py
+      - name: Preserve native Darwin signal-context diagnostics
+        if: always() && matrix.os == 'macos-15'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: darwin-signal-context
+          path: |
+            build/host/signal-context/
+            build/host/test_signal_context_apple
+            build/host/Testing/Temporary/LastTest.log
+          if-no-files-found: warn
+          retention-days: 7
       - name: Build the pinned NDK ELF and test both packaging inputs
         if: matrix.os == 'macos-15'
         run: python3 -B scripts/test_pack.py

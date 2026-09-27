@@ -44,8 +44,19 @@ Portable tests cover unaligned storage, exact wire fields, handler edits,
 reserved-register preservation and malformed frames. A native ARM64 Linux
 test compares the codec with real Linux/Bionic declarations, delivers a BRK
 signal and resumes edited PC, x0 and SIMD v0 state while preserving x18. Its
-negative control drops register edits and must fail. The native test is pending
-CI; NDK header/layout compilation and local portable tests pass.
+negative control drops register edits and must fail. At `c687998`, this native
+Linux test passes and detects dropped edits. Downloaded source/binary hashes
+and the CTest log verify the actual kernel return; NDK header/layout compilation
+and all 27 local portable tests also pass.
+
+The Apple architecture adapter captures general/NEON/exception state through
+SDK mcontext fields and thread-state accessors. Applying edits independently
+preserves live host x18, non-NZCV CPSR bits and exception information. It does
+not translate Darwin signal numbers, masks or siginfo, install a disposition,
+or invoke an Android handler yet. The build targets ordinary arm64; arm64e
+authenticated return addresses need a separate contract. A Darwin BRK test
+and dropped-edit control are prepared for Mac CI, with signature verification
+and retained diagnostics. Apple compilation and execution are still pending.
 
 The pinned ART sources require a real boundary before JavaVM startup on Apple:
 

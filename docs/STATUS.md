@@ -93,9 +93,12 @@ Mach-O images and empty entitlements; it still contains M1/M2 diagnostics.
 
 The next signal-context codec encodes Linux ARM64 handler frames and extracts
 PC/SP/general/SIMD edits while preserving Apple's reserved x18 and non-NZCV
-PSTATE bits. All 27 local core tests pass; a real Linux signal-return test and
-dropped-edit negative control are pending CI. Host handler translation,
-alternate stacks, registration and unblocked delivery remain incomplete.
+PSTATE bits. All 27 local core tests pass; at `c687998`, a real Linux signal-return
+test resumes edited PC/x0/SIMD state and detects dropped edits. Its source,
+binary and CTest log verify independently. The Apple architecture-state adapter
+and corresponding Darwin signal-return test are prepared, pending native CI.
+Guest handler delivery, handler-time masks, alternate stacks, registration and unblocked
+delivery remain incomplete.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

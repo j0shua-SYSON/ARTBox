@@ -1,6 +1,7 @@
 """Check native signal return and detect deliberately dropped register edits."""
 import hashlib
 import json
+import platform
 from pathlib import Path
 import subprocess
 import sys
@@ -10,13 +11,24 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from environment import environment
 
 binary = Path(sys.argv[1]).resolve()
+if sys.platform not in ('linux', 'darwin') or platform.machine().lower() not in ('arm64', 'aarch64'):
+    raise RuntimeError('Native ARM64 Linux or Darwin is required')
 output = binary.parent / 'signal-context'
 output.mkdir(exist_ok=True)
+sources = ['core/include/artbox/signal_context.h', 'core/src/signal_context.c', 'tests/run_signal_context.py']
+sources += (['tests/native_signal_context_linux.c'] if sys.platform == 'linux' else [
+    'tests/native_signal_context_apple.c', 'platform/apple/native_signal_context.c',
+    'platform/include/artbox/native_signal_context.h'])
 record = {'project_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
           'binary_sha256': hashlib.sha256(binary.read_bytes()).hexdigest(), 'runs': {},
-          'project_sources': {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in (
-              'core/include/artbox/signal_context.h', 'core/src/signal_context.c',
-              'tests/native_signal_context_linux.c', 'tests/run_signal_context.py')}}
+          'platform': sys.platform, 'machine': platform.machine(),
+          'project_sources': {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in sources}}
+if sys.platform == 'darwin':
+    signature = subprocess.run(['codesign', '--verify', '--strict', '--verbose=2', str(binary)],
+                               env=environment(), capture_output=True, text=True, timeout=10)
+    (output / 'signature.log').write_text(signature.stdout + signature.stderr, encoding='utf-8')
+    signature.check_returncode()
+    record['signature_verified'] = True
 for mode in ('native', 'dropped-edit'):
     command = [str(binary)] + (['--drop-register-edit'] if mode == 'dropped-edit' else [])
     result = subprocess.run(command, env=environment(), capture_output=True, text=True, timeout=10)
@@ -29,4 +41,5 @@ for mode in ('native', 'dropped-edit'):
     else:
         assert result.returncode == 1 and not result.stdout, record['runs'][mode]
         assert result.stderr == 'handler register edits were not resumed\n', record['runs'][mode]
-print('Native Linux handler resumes edited PC, x0 and v0; x18 is preserved; dropped edits are detected')
+name = 'Linux' if sys.platform == 'linux' else 'Darwin'
+print('Native ' + name + ' handler resumes edited PC, x0 and v0; x18 is preserved; dropped edits are detected')

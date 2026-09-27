@@ -1796,7 +1796,7 @@ signal-safe bridge with Linux context conversion. Do not disable ART sigchain.
 
 ## 0077: Translate handler contexts as data and preserve the platform register
 
-Status: portable codec accepted; native signal-return comparison pending CI.
+Status: portable codec and native Linux return verified; Darwin adapter pending CI.
 
 ART's ARM64 fault handlers read and rewrite Linux ucontext PC, SP and registers.
 Darwin's context cannot be passed directly to them. Define an original portable
@@ -1818,3 +1818,12 @@ The native Linux test deliberately executes a precompiled BRK, transforms its
 real kernel context through the codec and resumes at the following instruction
 with changed x0/v0. A second run drops those edits and must fail. This tests
 actual kernel signal return without implying Apple handler integration.
+
+The Darwin adapter uses public SDK mcontext fields and thread-state pointer
+accessors, reviewed against the [iOS 15-era XNU declarations](https://github.com/apple-oss-distributions/xnu/blob/xnu-8019.41.5/osfmk/mach/arm/_structs.h).
+No Apple source is copied or vendored. Keep capture/apply independent of signal
+number, mask and siginfo translation so no Darwin encoding leaks into the guest.
+The live host x18 is preserved even if a caller bypasses the portable decoder.
+The initial adapter targets arm64, with a separate arm64e contract required
+before claiming authenticated-context support. Test actual Darwin BRK return
+and dropped edits on Mac; ordinary iOS 15 compilation is a separate check.
