@@ -209,6 +209,7 @@ jobs:
             build/m2/bionic-startup/file-check.o
             build/m2/bionic-startup/mapping-check.o
             build/m2/bionic-startup/unlink-check.o
+            build/m2/bionic-startup/signal-wait.o
             build/m2/bionic-startup/libartbox_versions.so
             build/m2/bionic-startup/version-client.o
             build/m2/bionic-startup/libartbox_tls.so
@@ -477,6 +478,8 @@ jobs:
         run: python3 -B scripts/test_loader_reference.py
       - name: Establish native Linux signal registration and delivery before guest translation
         run: python3 -B scripts/test_signal_reference.py
+      - name: Establish pending signal and copyout ordering against the Linux kernel
+        run: python3 -B scripts/test_signal_wait.py
       - name: Compare portable kernel services with native Linux ARM64
         run: python3 -B scripts/build.py host
       - name: Preserve the loader reference binaries and result
@@ -489,6 +492,7 @@ jobs:
             artifacts/host-metrics.json
             build/m3/loader-reference/
             build/m3/signal-reference/
+            build/m3/signal-wait-reference/
             build/host/Testing/Temporary/LastTest.log
           if-no-files-found: warn
           retention-days: 7
@@ -538,6 +542,8 @@ jobs:
         run: python3 -B scripts/test_proc.py --evidence-root build/oracle
       - name: Compare signed Bionic file operations with both original Linux paths
         run: python3 -B scripts/test_bionic_files.py --evidence-root build/oracle
+      - name: Compare the identical signed Bionic signal-wait caller with native Linux
+        run: python3 -B scripts/test_signal_wait.py --evidence-root build/oracle
       - name: Compare ART libc dependency calls with native Linux
         run: python3 -B scripts/test_art_bionic.py --evidence-root build/oracle
       - name: Compare numeric resolver and bounded string calls with native Linux
@@ -572,6 +578,7 @@ jobs:
             build/m3/vfork-oracle/*.log
             artifacts/m3-libcore-frontends-linux.json
             build/m3/libcore-frontends/*.log
+            build/m3/signal-wait-oracle/
             artifacts/m2-futex-linux.json
             artifacts/m2-files-linux.json
             artifacts/m2-versioned-linux.json

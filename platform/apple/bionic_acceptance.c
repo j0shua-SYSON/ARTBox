@@ -8,6 +8,7 @@
 #include "artbox/native_call.h"
 #include "artbox/native_tls.h"
 #include "artbox/native_syscall.h"
+#include "artbox/signals.h"
 #include "artbox/native_vm.h"
 #include "artbox/native_system.h"
 #include "artbox/native_files.h"
@@ -54,6 +55,8 @@ static int64_t art_libc_cases;
 static int64_t vfork_cases;
 static int64_t libcore_frontend_cases;
 static int64_t unlink_cases;
+static int64_t signal_wait_cases;
+static artbox_signals *process_signals;
 static uint64_t file_ns;
 static artbox_futex *futex;
 static artbox_threads *threads;
@@ -427,6 +430,12 @@ static void *run(void *context) {
         fprintf(stderr, "unlink caller: %" PRId64 "\n", unlink_cases);
         fail("unlink and descriptor lifetime checks");
     }
+    signal_wait_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_signal_wait_check"),
+        artbox_vm_page_size(vm), 10000, 10000, 10000, 0, 0, 0);
+    if (signal_wait_cases != 33) {
+        fprintf(stderr, "signal wait caller: %" PRId64 "\n", signal_wait_cases);
+        fail("blocked signal wait contract");
+    }
     int64_t scratch = artbox_vm_mmap(vm, 0, artbox_vm_page_size(vm), 3, 0x22, -1, 0);
     if (scratch < 0) fail("futex fixture storage");
     futex_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_futex_check"), (uint64_t)scratch, 0, 0, 0, 0, 0, 0);
@@ -495,6 +504,8 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     artbox_atomic_u32_ops atomic = artbox_native_atomic_u32();
     futex = artbox_futex_create(vm, &atomic, &system, 4096);
     if (!vm || !filesystem || !futex || artbox_kernel_thread_init(&thread, vm, &system, 10000, 10000)) fail("kernel context");
+    process_signals = artbox_signals_create(vm, 10000, 10000, 65);
+    if (!process_signals || artbox_signals_attach(process_signals, &thread)) fail("signal process context");
     artbox_thread_ops native_threads = artbox_native_threads();
     threads = artbox_threads_create(vm, futex, &atomic, &system, &native_threads, 10000, 10001, 64, run_child, NULL);
     if (!threads) fail("native thread manager");
@@ -542,6 +553,8 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) || usage.ru_maxrss <= 0) fail("native resident-memory measurement");
     if (artbox_threads_destroy(threads)) fail("thread manager cleanup");
+    if (artbox_signals_thread_count(process_signals) != 1 || artbox_signals_waiter_count(process_signals) ||
+        artbox_signals_detach(&thread) || artbox_signals_destroy(process_signals)) fail("signal process cleanup");
     artbox_guest_dlfcn_destroy(guest_dl_service);
     artbox_dlfcn_destroy(guest_loader);
     if (artbox_vfs_destroy(filesystem) || artbox_native_files_close(backing_files)) fail("filesystem cleanup");
@@ -582,8 +595,8 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
            ",\"pthread_result\":%d,\"threads_reaped\":%" PRIu64 ",\"pthread_client_ns\":%" PRIu64
            ",\"thread_guarded_samples\":%" PRIu64 ",\"process_peak_rss_bytes\":%ld,"
            "\"linked_images\":4,\"tls_modules\":2,\"tls_threads\":7,\"tls_result\":0,\"tls_queries\":%" PRIu64 ",\"version_result\":%" PRId64 ",\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64
-           ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"art_libc_cases\":%" PRId64 ",\"vfork_cases\":%" PRId64 ",\"libcore_frontend_cases\":%" PRId64 ",\"unlink_cases\":%" PRId64 ",\"unsupported_syscalls\":{",
-           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases, unlink_cases);
+           ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"art_libc_cases\":%" PRId64 ",\"vfork_cases\":%" PRId64 ",\"libcore_frontend_cases\":%" PRId64 ",\"unlink_cases\":%" PRId64 ",\"signal_wait_cases\":%" PRId64 ",\"unsupported_syscalls\":{",
+           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases, unlink_cases, signal_wait_cases);
     if (length < 0 || (size_t)length >= sizeof(report)) fail("result formatting");
     size_t used_bytes = (size_t)length;
     unsigned printed = 0;

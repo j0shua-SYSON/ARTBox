@@ -52,7 +52,7 @@ ART runs the hello DEX only in the native Linux reference. JavaVM startup and DE
 execution on macOS/iOS, Binder/services, Android Activities and APK execution remain incomplete.
 The M2 runner is diagnostic and single-use; unexpected contract failures can
 terminate its process. General dlopen scope growth, unloading/finalization,
-other ELF TLS models, signal delivery, broader proc files, mutable directories
+other ELF TLS models, asynchronous signal delivery, broader proc files, mutable directories
 and additional syscall families remain unsupported. The Windows native file
 provider is not implemented; portable VFS tests use an injected provider there.
 
@@ -81,8 +81,13 @@ modes and both native Linux profiles pass all 29 unlink cases. The original
 JVM cleanup and hidden-cache assertions remain mandatory.
 
 Next is [signal registration and delivery](m3-signals.md), followed by actual
-Apple JavaVM startup, JNI_OnLoad and DEX acceptance. The new Linux signal
-reference compiles locally; its execution is pending CI.
+Apple JavaVM startup, JNI_OnLoad and DEX acceptance. The Linux signal reference
+passes 70 checks at `7921eff`, including real alternate-stack handler execution
+and a worker-wakeup negative control. Portable queues now implement blocked
+thread-directed signals and synchronous waits, with clone/reaper lifetime
+integration. The 33-case shared contract and blocked-worker tests pass locally;
+signed Bionic and identical-object Linux comparisons are pending CI. Host
+handler translation, alternate stacks and unblocked delivery remain incomplete.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

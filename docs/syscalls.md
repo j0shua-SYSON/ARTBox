@@ -195,6 +195,19 @@ signed Mac modes and both native Linux profiles at `c211a46`; native provider
 tests retain a shared mapping after unlink and close. These checks do not
 change M2's fixed denominator.
 
+### M3 blocked signal queues (native validation pending)
+
+| ARM64 call | Implemented subset | Deliberate limits |
+| --- | --- | --- |
+| tgkill 131 | Guest PID/TID lookup, zero-signal probe, queued blocked standard signals and active synchronous waiters | No cross-process, unblocked/default, SIGKILL/SIGSTOP or realtime delivery; unsupported delivery returns ENOTSUP. |
+| rt_sigprocmask 135 | Shared queue mask, clone inheritance, unmaskable-signal filtering and mutation before old-mask copyout | Host masks are unchanged. Unblocking a pending signal returns ENOTSUP without mutation. |
+| rt_sigtimedwait 137 | Standard-signal coalescing, lowest-number selection, Linux SI_TKILL encoding, zero/finite/infinite waits, consume before siginfo copyout | No host-handler interruption/EINTR or realtime queue semantics. |
+
+The 33-case shared caller and portable blocked-worker/lifetime tests pass
+locally. Signed Bionic and the identical NDK object on native Linux are CI gates.
+This normal thread-context implementation does not implement sigaction or
+sigaltstack and is not safe for use inside a host signal handler.
+
 ### File-backed data mapping extension (native CI green at b1a94c5)
 
 | ARM64 call | Implemented subset | Evidence |

@@ -1,9 +1,33 @@
 # M3 signal boundary
 
-Guest signal delivery is not implemented. The current kernel adapter stores
-each guest thread's logical Linux mask and inherits it during clone; it does
-not install host handlers or change host masks. Signal registration and
-alternate-stack calls still return ENOSYS.
+Portable queues now implement guest thread-directed blocked standard signals
+and synchronous waits. They do not install host handlers or change host masks.
+Unblocked/default delivery and realtime queues remain unsupported; signal
+registration and alternate-stack calls still return ENOSYS.
+
+`tgkill` (131) resolves a guest PID/TID, supports the zero-signal existence probe,
+and queues standard signals that the target blocks or is currently waiting for.
+`rt_sigtimedwait` (137) consumes the lowest selected standard signal, with
+coalescing, Linux SI_TKILL sender information, zero/finite/infinite waits and
+Linux pointer/timeout ordering. A failed siginfo copyout still consumes the
+signal. `rt_sigprocmask` (135) retains the existing mask and copyout rules;
+unblocking a pending signal returns ENOTSUP without changing state until a
+handler/default-delivery path exists. No host process is signalled.
+
+Clone inherits the mask but no pending signals. Each guest thread owns a queue
+until its actual native thread has joined; the reaper removes its TID before
+waking Bionic's clear-TID waiter. Failed native creation rolls back queue
+registration. A process with attached threads cannot be destroyed. Queue
+operations use a process mutex and per-thread condition variables, so they are
+for ordinary thread context only; a future asynchronous handler needs a separate
+signal-safe path.
+
+The shared 33-case C caller covers coalescing, selection order, sender layout,
+invalid requests, zero-signal probes and copyout consumption. Local portable
+tests pass it and exercise a blocked worker through the thread manager,
+inherited masks, pending-set isolation, failed creation, finite timeout and
+exited TIDs. CI runs the identical NDK object through signed Bionic and native
+Linux. Those new native comparisons are pending; M2's fixed score is unchanged.
 
 The pinned ART sources require a real boundary before JavaVM startup on Apple:
 
@@ -25,9 +49,13 @@ queries; the probe preserves errno.
 
 Run `python scripts/test_signal_reference.py` on native ARM64 Linux. Build
 commands, source/binary hashes, kernel release and both process results are
-retained under the configured build directory. The fixture compiles with the
-NDK locally; native execution is pending CI. This reference does not run ART
-or supply a guest implementation.
+retained under the configured build directory. At `7921eff`, the native ARM64
+Linux reference passes 70 checks on kernel 6.17.0-1022-azure and detects the
+dropped-signal mutation. That kernel accepts action flags `0xdc000807` from
+the all-bits probe and has a 5,120-byte minimum alternate stack. These are
+measured Linux values, not Darwin constants or a portability guarantee.
+Downloaded source/binary hashes and both process logs verify independently.
+This reference does not run ART or prove Apple signal-handler translation.
 
 The adapter must keep Linux encodings and thread IDs in the portable core,
 with public host signal/pthread operations behind the platform interface.

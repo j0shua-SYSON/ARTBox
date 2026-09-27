@@ -1768,3 +1768,28 @@ libraries. The test caller keeps its explicit full manifest so all 15 images
 remain reachable. Preserve the original runtime visibility assertion and loader
 lookup semantics. This changes only build-time dependency metadata; it adds no
 runtime code-generation or platform entitlement requirement.
+
+## 0076: Queue guest thread signals without signalling the host process
+
+Status: portable tests pass; signed Bionic and native Linux comparison pending.
+
+ART's SignalCatcher waits for blocked SIGQUIT/SIGUSR1 and requires a
+thread-targeted wakeup to shut down. Implement standard pending signals in the
+portable process/thread namespace with mutex/condition-variable synchronization.
+This avoids mapping a guest TID onto an unrelated host PID and works on the
+Windows host as well as Apple platforms. A zero signal probes the target without
+enqueueing; standard signals coalesce, and synchronous waits select the lowest
+requested number. Preserve Linux error ordering and consumption before failed
+siginfo copyout. The 33-case shared caller also runs on real Linux.
+
+Attach before native thread start, inherit only the mask, and detach after
+native join but before clear-TID publication. Roll back failed native starts and
+reject process destruction with attached threads. Cross-thread mask access goes
+through the queue's synchronization, not the kernel descriptor's owner-only field.
+
+Do not return success for unblocked/default delivery, SIGKILL/SIGSTOP or realtime
+signals before those paths exist. Unblocking a pending signal fails explicitly
+without mutating the mask. No host signal handlers are installed by this slice;
+signal registration and alternate stacks remain open. The mutex path cannot
+serve ART's mask calls from an asynchronous handler: that requires a separate
+signal-safe bridge with Linux context conversion. Do not disable ART sigchain.
