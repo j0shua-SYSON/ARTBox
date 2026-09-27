@@ -184,9 +184,16 @@ static void load(module *m, const char *framework, const char *file) {
     if (!m->original || fread(m->original, 1, (size_t)size, f) != (size_t)size || fclose(f)) fail("ELF read");
     if (artbox_elf_open(m->original, (size_t)size, &m->elf) != ARTBOX_ELF_OK || m->elf.type != 3 ||
         m->elf.segment_count != 2 || m->elf.segments[0].virtual_address || m->elf.segments[0].flags != 5 ||
-        m->elf.segments[1].flags != 6 || m->elf.segments[1].memory_size % 16384 ||
-        artbox_dynamic_open(&m->elf, &m->dynamic) != ARTBOX_ELF_OK || m->dynamic.init || m->dynamic.preinit_array.size)
+        m->elf.segments[1].flags != 6 || !m->elf.segments[1].memory_size ||
+        m->elf.segments[1].memory_size > 64 * 1024 * 1024 ||
+        artbox_dynamic_open(&m->elf, &m->dynamic) != ARTBOX_ELF_OK || m->dynamic.init || m->dynamic.preinit_array.size) {
+        fprintf(stderr, "rejected startup ELF: %s\n", file);
         fail("controlled ELF shape");
+    }
+    // The signed wrapper pads RW to 16 KiB; ELF p_memsz itself need not be a
+    // page multiple (the verified libm/libdl images have 232/336-byte spans).
+    // Check that padding too, then borrow complete pages in the shared mapper.
+    const size_t rw_bytes = (size_t)((m->elf.segments[1].memory_size + 16383) & ~UINT64_C(16383));
     m->handle = dlopen(framework, RTLD_NOW | RTLD_LOCAL);
     if (!m->handle) fail(dlerror());
     m->rx = dlsym(m->handle, "artbox_dynamic_rx");
@@ -196,10 +203,10 @@ static void load(module *m, const char *framework, const char *file) {
         memcmp(m->rx, m->original, (size_t)m->elf.segments[0].file_size) ||
         memcmp(m->rw, m->original + m->elf.segments[1].file_offset, (size_t)m->elf.segments[1].file_size))
         fail("signed bytes or load bias");
-    for (uint64_t i = m->elf.segments[1].file_size; i < m->elf.segments[1].memory_size; ++i)
+    for (uint64_t i = m->elf.segments[1].file_size; i < rw_bytes; ++i)
         if (m->rw[i]) fail("BSS");
     if (artbox_vm_register_readonly(vm, m->rx, (size_t)m->elf.segments[0].file_size) ||
-        artbox_vm_register_data(vm, m->rw, (size_t)m->elf.segments[1].memory_size, 3)) fail("borrow image");
+        artbox_vm_register_data(vm, m->rw, rw_bytes, 3)) fail("borrow image");
 }
 static int64_t dispatch(void *context, uint64_t n, uint64_t a0, uint64_t a1, uint64_t a2,
                         uint64_t a3, uint64_t a4, uint64_t a5) {
