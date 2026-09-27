@@ -1,9 +1,10 @@
 #include "artbox/kernel.h"
+#include "artbox/signals.h"
 
 int artbox_kernel_thread_init(artbox_kernel_thread *thread, artbox_vm *vm,
                               const artbox_system_ops *system, int32_t pid, int32_t tid) {
     if (!thread || !vm || !system || !system->clock || !system->random || pid <= 0 || tid <= 0) return -22;
-    *thread = (artbox_kernel_thread){vm, *system, pid, tid, 0, 0};
+    *thread = (artbox_kernel_thread){vm, *system, pid, tid, 0, 0, NULL};
     return 0;
 }
 
@@ -15,6 +16,8 @@ int64_t artbox_kernel_call(void *context, uint64_t number, uint64_t a0, uint64_t
                           uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5) {
     artbox_kernel_thread *thread = context;
     if (!thread) return -22;
+    if (thread->signal_state && (number == 131 || number == 135 || number == 137))
+        return artbox_signals_call(thread, number, a0, a1, a2, a3);
     switch (number) {
         case 160: {
             /* Virtual Linux ABI identity, not the host's uname structure or
