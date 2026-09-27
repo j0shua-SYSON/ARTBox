@@ -121,7 +121,9 @@ The complete workflows and downloaded iOS 15 diagnostic IPA verify. Compiled
 wrappers do not imply new kernel-service support; the IPA still contains no ART.
 The [loader service queries](m3-loader-services.md) now cover named dependency
 scope, lookup after the caller and ELF address/image metadata. All 25 local
-host tests pass; the Android loader API bridge is still pending.
+host tests pass. The portable handle/error context also passes concurrent tests,
+and a native Linux reference passes 32 loader calls and six thread-error checks.
+The Android loader API bridge is still pending.
 The [managed-storage contract](m3-managed-storage.md) now passes 54 cases on each
 native Mac/Linux host, with two signed Mac controls confirming the original
 forwarding-address truncation. GC forwarding words and JNI reference/free/serial/

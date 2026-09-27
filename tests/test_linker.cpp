@@ -1,10 +1,12 @@
 #include "artbox/linker.h"
+#include "artbox/dlfcn.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
+#include <thread>
 #define CHECK(c) do { if (!(c)) { std::fprintf(stderr, "%d: %s\n", __LINE__, #c); std::exit(1); } } while (0)
 static void put(unsigned char *p, uint64_t value, unsigned width) { for (unsigned i=0; i<width; ++i) p[i]=static_cast<unsigned char>(value>>(i*8)); }
 static uint64_t word(const unsigned char *p) { uint64_t v=0; for (unsigned i=0; i<8; ++i) v|=static_cast<uint64_t>(p[i])<<(i*8); return v; }
@@ -178,9 +180,84 @@ static void query_tests() {
     CHECK(artbox_load_group_address(g,0x604518,&found)==ARTBOX_ELF_OK && !std::strcmp(found.symbol_name,"ordinary"));
     artbox_load_group_destroy(g);
 }
+static void dlfcn_tests() {
+    Module root("root.so",0x100000,{"libc.so"},{{"shared",true,false}});
+    Module libc("libc.so",0x200000,{},{{"shared",true,false},{"zero",true,false}});
+    Module excluded("excluded.so",0x300000,{},{{"absent",true,false}});
+    put(libc.bytes.data()+0x636,0xfff1,2);put(libc.bytes.data()+0x638,0,8);
+    artbox_link_module modules[]={excluded.view,libc.view,root.view};
+    artbox_load_group *group=nullptr;
+    CHECK(artbox_load_group_create(modules,3,"root.so",nullptr,nullptr,&group)==ARTBOX_ELF_OK);
+    artbox_dlfcn *premature=nullptr;
+    CHECK(artbox_dlfcn_create(group,nullptr,0,&premature)==ARTBOX_ELF_INVALID && !premature);
+    CHECK(artbox_load_group_relocate(group)==ARTBOX_ELF_OK);
+    artbox_dl_alias alias{"/system/lib64/libc.so","libc.so"};
+    artbox_dlfcn *loader=nullptr;
+    CHECK(artbox_dlfcn_create(group,&alias,1,&loader)==ARTBOX_ELF_OK);
+    artbox_dl_alias bad{"/system/excluded.so","excluded.so"};
+    CHECK(artbox_dlfcn_create(group,&bad,1,&premature)==ARTBOX_ELF_NOT_FOUND && !premature);
+    bad={"relative/libc.so","libc.so"};
+    CHECK(artbox_dlfcn_create(group,&bad,1,&premature)==ARTBOX_ELF_INVALID && !premature);
+    artbox_dl_alias duplicate[]={alias,alias};
+    CHECK(artbox_dlfcn_create(group,duplicate,2,&premature)==ARTBOX_ELF_INVALID && !premature);
+    artbox_dl_error error{};
+    CHECK(!artbox_dlerror(&error));
+    uint64_t handle=artbox_dlopen(loader,&error,"libc.so",ARTBOX_RTLD_NOW);
+    CHECK(handle && handle!=ARTBOX_RTLD_NEXT && !artbox_dlerror(&error));
+    CHECK(artbox_dlopen(loader,&error,alias.path,ARTBOX_RTLD_LAZY|ARTBOX_RTLD_NOLOAD)==handle);
+    CHECK(artbox_dlsym(loader,&error,handle,"shared",nullptr,0)==0x204508);
+    CHECK(artbox_dlsym(loader,&error,ARTBOX_RTLD_DEFAULT,"shared",nullptr,0)==0x104508);
+    CHECK(artbox_dlsym(loader,&error,ARTBOX_RTLD_NEXT,"shared",nullptr,0x100200)==0x204508);
+    CHECK(!artbox_dlsym(loader,&error,handle,"zero",nullptr,0) && !artbox_dlerror(&error));
+    CHECK(!artbox_dlopen(loader,&error,"/wrong/libc.so",ARTBOX_RTLD_NOW));
+    CHECK(artbox_dlerror(&error) && !artbox_dlerror(&error));
+    CHECK(!artbox_dlopen(loader,&error,"excluded.so",ARTBOX_RTLD_NOW));
+    CHECK(artbox_dlsym(loader,&error,handle,"shared",nullptr,0)==0x204508);
+    CHECK(artbox_dlerror(&error) && !artbox_dlerror(&error)); // success retains unread error
+    CHECK(!artbox_dlopen(loader,&error,"libc.so",0x80000000));
+    CHECK(artbox_dlerror(&error));
+    CHECK(artbox_dlclose(loader,&error,handle)==0);
+    CHECK(artbox_dlsym(loader,&error,handle,"shared",nullptr,0)==0x204508);
+    CHECK(artbox_dlclose(loader,&error,handle)==0);
+    CHECK(artbox_dlclose(loader,&error,handle)==-1 && artbox_dlerror(&error));
+    CHECK(!artbox_dlsym(loader,&error,handle,"shared",nullptr,0) && artbox_dlerror(&error));
+    CHECK(artbox_dlclose(loader,&error,ARTBOX_RTLD_NEXT)==-1 && artbox_dlerror(&error));
+    uint64_t main=artbox_dlopen(loader,&error,nullptr,ARTBOX_RTLD_NOW|ARTBOX_RTLD_GLOBAL|ARTBOX_RTLD_NODELETE);
+    CHECK(main && artbox_dlsym(loader,&error,main,"shared",nullptr,0)==0x104508);
+    artbox_dlfcn *other=nullptr;
+    CHECK(artbox_dlfcn_create(group,nullptr,0,&other)==ARTBOX_ELF_OK);
+    CHECK(!artbox_dlsym(other,&error,main,"shared",nullptr,0) && artbox_dlerror(&error));
+    artbox_dlfcn_destroy(other);
+    CHECK(artbox_dlclose(loader,&error,main)==0);
+    CHECK(artbox_dlfcn_count(loader)==2);
+    artbox_link_info info{};artbox_link_address address{};
+    CHECK(artbox_dlfcn_info(loader,1,&info)==ARTBOX_ELF_OK && !std::strcmp(info.name,alias.path));
+    CHECK(artbox_dlfcn_address(loader,0x204509,&address)==ARTBOX_ELF_OK && !std::strcmp(address.image.name,alias.path));
+    CHECK(!artbox_dlopen(loader,&error,"missing-main.so",ARTBOX_RTLD_NOW));
+    std::thread worker([&] {
+        artbox_dl_error own{};
+        CHECK(!artbox_dlerror(&own));
+        for (unsigned i=0;i<100;++i) {
+            uint64_t h=artbox_dlopen(loader,&own,"libc.so",ARTBOX_RTLD_NOW);
+            CHECK(h && artbox_dlsym(loader,&own,h,"shared",nullptr,0)==0x204508);
+            CHECK(artbox_dlclose(loader,&own,h)==0);
+        }
+        CHECK(!artbox_dlsym(loader,&own,ARTBOX_RTLD_DEFAULT,"missing-worker",nullptr,0));
+        CHECK(artbox_dlerror(&own) && !artbox_dlerror(&own));
+    });
+    for (unsigned i=0;i<100;++i) {
+        uint64_t h=artbox_dlopen(loader,&error,"libc.so",ARTBOX_RTLD_NOLOAD);
+        CHECK(h && artbox_dlclose(loader,&error,h)==0);
+    }
+    worker.join();
+    CHECK(artbox_dlerror(&error) && !artbox_dlerror(&error));
+    artbox_dlfcn_destroy(loader);
+    artbox_load_group_destroy(group);
+}
 int main() {
     tls_tests();
     query_tests();
+    dlfcn_tests();
     Module root("root.so",0x100000,{"left.so","right.so"},{{"root",true,false},{"shared",false,false},{"optional",false,true},{"bridge",false,false}});
     Module left("left.so",0x200000,{"leaf.so"},{{"shared",true,true},{"root",false,false}});
     Module right("right.so",0x300000,{"leaf.so"},{{"shared",true,false}});

@@ -14,7 +14,7 @@ set(CMAKE_EXPORT_NO_PACKAGE_REGISTRY ON)
 set(CMAKE_EXPORT_PACKAGE_REGISTRY OFF)
 
 find_package(Threads REQUIRED)
-add_library(artbox_core STATIC core/src/runtime.c core/src/elf.c core/src/dynamic.c core/src/relocation.c core/src/linker.cpp core/src/guest.c core/src/vm.cpp core/src/kernel.c core/src/devices.cpp core/src/futex.cpp core/src/threads.cpp core/src/vfs.cpp core/src/managed_reference.c)
+add_library(artbox_core STATIC core/src/runtime.c core/src/elf.c core/src/dynamic.c core/src/relocation.c core/src/linker.cpp core/src/dlfcn.cpp core/src/guest.c core/src/vm.cpp core/src/kernel.c core/src/devices.cpp core/src/futex.cpp core/src/threads.cpp core/src/vfs.cpp core/src/managed_reference.c)
 target_include_directories(artbox_core PUBLIC core/include)
 target_compile_features(artbox_core PRIVATE cxx_std_11)
 target_link_libraries(artbox_core PUBLIC Threads::Threads)

@@ -1412,3 +1412,23 @@ the fixed group. Do not present these queries as general Android namespace,
 unloading or TLS-symbol support. The forthcoming ABI bridge owns its error and
 handle state and exposes valid guest metadata while the signed images remain
 alive. See [the loader service contract](m3-loader-services.md).
+
+## 0060: Pin loader images and separate handle state from each thread's errors
+
+Status: native Linux API reference and portable context tests pass; signed
+Android API bridge pending.
+
+The startup group owns image lifetime. `dlopen` acquires a reference to an
+already registered image, and `dlclose` balances that reference. Explicit
+absolute guest-path aliases are copied from configuration; no basename fallback
+or host search resolves an unknown path. Each context issues its own opaque
+handle tokens and serializes reference changes. Metadata queries remain
+immutable so program-header callbacks can reenter loader operations.
+
+Keep the error record explicit and owned by the calling guest thread. The
+platform bridge must validate guest strings, expose guest-readable error/name
+storage and translate callback structures. Original AOSP libdl supplies the
+entry points and caller-address capture. Native Linux establishes the 32-call
+and six thread-error regression before those operations are connected to the
+guest bridge. Unloading and dynamic namespaces remain outside the fixed
+startup-group contract.

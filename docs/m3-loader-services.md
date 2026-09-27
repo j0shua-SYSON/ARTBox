@@ -23,8 +23,8 @@ The behavior follows the relevant dependency traversal and address rules in
 the pinned Bionic `linker/linker.cpp` and `linker/linker_soinfo.cpp`. It covers a
 single startup group. Namespace search, global-scope promotion, on-demand
 loading, unloading and per-thread TLS symbol addresses are not implemented by
-these queries. The Android `dlfcn` bridge still needs handle/error lifetime,
-callback ABI, guest-visible metadata storage and native execution tests.
+these queries. The Android `dlfcn` bridge still needs its callback ABI,
+guest-visible metadata storage and native execution tests.
 
 Portable tests cover scope isolation, weak-symbol order, cycle termination,
 caller selection, TLS IDs, symbol boundaries and missing/invalid inputs. All
@@ -39,4 +39,15 @@ loader results and six interleaved thread-error checks. It covers explicit and
 default handles, `RTLD_NEXT`, missing names, exact-path rejection, `dladdr`,
 program-header callbacks with reentry and early termination, and balanced
 repeated opens. The same original caller compiles for Android ARM64. Native
-Linux execution is pending; this reference does not test a guest loader bridge.
+Linux execution passes at `6ec73bf`; downloaded source and binary hashes and the
+execution log verify. This reference does not test a guest loader bridge.
+
+The portable `artbox/dlfcn.h` context now owns loader handles and copied path
+aliases. All libraries remain pinned by the startup group; closing balances an
+open reference without unloading code. A handle belongs to one context and must
+be open for explicit symbol lookup. Default and next lookups retain the group's
+defined scope. The owner supplies a separate zero-initialized error record for
+each thread, with read-and-clear behavior and preservation of unread errors
+across successful calls. Local tests cover concurrent opens, invalid flags,
+missing libraries, exact aliases, zero-valued symbols and cross-context handles.
+The guest pointer/callback bridge and signed API execution remain pending.
