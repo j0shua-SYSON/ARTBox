@@ -456,3 +456,13 @@ The corresponding-source archive contains those files and the ARTBox bridge and
 build inputs. Every signed framework includes the libdl notice, the pinned NDK
 notice covering its compile-time headers, and ARTBox's MIT license. No upstream
 code is copied into original ARTBox source files.
+
+The full Android ART guest link also uses the pinned NDK r28c's
+`libc++_static.a`, `libc++abi.a`, `libunwind.a`, compiler-rt builtins and Android
+CRT objects. Their hashes and extracted archive members are recorded, and the
+complete hash-verified NDK toolchain NOTICE accompanies the runtime frameworks.
+The selected LLVM libraries retain their Apache-2.0 WITH LLVM-exception and
+other per-component terms as listed there. The already reviewed source-built
+context restore replaces the archive's platform-register restore; its original
+and adapted source and license accompany the link artifact. Original ARTBox
+glue remains MIT, and Android/host C++ runtime objects are not shared.

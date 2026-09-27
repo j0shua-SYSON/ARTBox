@@ -62,10 +62,32 @@ runtime execution remain separate acceptance work.
 The native guest profile compiles 462 units and excludes the host-owned VM and
 native VM implementation, which must be shared with Bionic's syscall mapper.
 Use `python -B scripts/build_art_runtime.py --profile android --managed-window
---native-guest --all --jobs 2`. Its initial full local build and dedicated macOS
-CI validation are pending. The Linux configurations retain their native host
+--native-guest --all --jobs 2`. All 462 units compile in macOS CI at `44008be`.
+The downloaded artifact verifies against 100 canonical project files, 37
+generated inputs, 22 notices, all objects and the three original/adapted TLS
+pairs. Five reviewed thread-pointer reads change across those pairs.
+The Linux configurations retain their native host
 ABI. These configurations must keep their C++ dependencies separate.
 See ADR 0037 for the static Bionic and public NDK link limitations.
+
+The full guest linker consumes the runtime, Bionic, math, libdl and LLVM context
+artifacts from one producer revision. It checks the source/object hashes and
+prior native dependency results, links NDK C++ support separately from the host,
+and requires exactly the eight explicit VM/TLS host imports. Unknown strong
+imports fail. The original x18-restoring archive member is excluded; the linked
+instruction check permits only the three reviewed context-snapshot stores and
+rejects syscalls, thread-pointer instructions and unknown opcodes. This is an
+instruction boundary check, not a proof of all runtime ABI behavior.
+
+`scripts/link_art_guest.py` prepares the resulting ELF for signed Mac and iOS 15
+frameworks. The CI job preserves inputs, corresponding source, notices and
+signature/layout evidence. `--input-revision` supports locally fetched CI merge
+commits; input provenance and the current link producer are recorded separately.
+The local consumer links the verified `44008be` objects to a 21,482,824-byte ELF
+and passes the import/instruction checks. Its wrapper input contains 11,255,808
+RX bytes and 278,528 RW bytes. Apple signing/layout validation is pending in the
+new CI job. The pipeline does not invoke ART constructors, JNI startup or a DEX
+method; these sizes are build results, not runtime memory measurements.
 
 Build outputs preserve source and object hashes, complete compiler commands,
 generated inputs, notices and `corresponding-source.zip`. A successful link

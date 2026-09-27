@@ -130,7 +130,11 @@ sources, objects, ELF files, six Mac/iOS framework layouts and notices verify.
 Full Apple ART startup remains pending.
 The full Android guest object build now has an explicit `--native-guest` profile:
 462 units share the host-owned VM and use the reviewed Bionic/HeapSampler TLS
-boundaries. Its first full local compile and dedicated CI validation are pending.
+boundaries. All units compile in macOS CI at `44008be`; source, object, generated
+input and notice hashes verify independently. Both full Linux startup profiles
+and the complete workflows pass. A local full-runtime link passes the instruction
+and import checks with eight intentional VM/TLS host imports. Its signed Mac/iOS
+framework build is being validated; the iOS app still contains no ART runtime.
 The [managed-storage contract](m3-managed-storage.md) now passes 54 cases on each
 native Mac/Linux host, with two signed Mac controls confirming the original
 forwarding-address truncation. GC forwarding words and JNI reference/free/serial/

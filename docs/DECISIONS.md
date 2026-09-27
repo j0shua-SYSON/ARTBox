@@ -1456,7 +1456,8 @@ for both Mac execution and iOS 15 packaging. Physical execution remains unverifi
 
 ## 0062: Make the full native guest ART object build reproducible
 
-Status: compiler-boundary tests pass; the first public full build is in progress.
+Status: all 462 units and the complete CI workflows pass at `44008be`; downloaded
+source, object and TLS-adaptation evidence verify independently.
 
 Add an explicit Android managed-window guest profile to the shared Python
 builder. Apply the existing hash-checked Bionic TLS header boundary before
@@ -1469,3 +1470,22 @@ Verify source hashes, exact descriptor symbols/counts and the adapted instructio
 inventory. Unrecognized accesses require investigation, never a broader rewrite.
 The existing real Linux ART thread-state regression remains the behavior
 reference. A build does not establish signed full-runtime execution.
+
+## 0063: Link the full guest from one verified dependency revision
+
+Status: boundary tests and a local full-runtime link from verified `44008be`
+objects pass; Apple signing/layout validation is pending.
+
+Consume the full native guest and already exercised Bionic, math, libdl and LLVM
+context artifacts from the same producer revision. Verify their original source
+and object hashes before linking. Preserve the producer revision separately when
+a local consumer links downloaded CI artifacts. Only eight explicit shared
+VM/TLS imports may remain outside the guest dependency exports.
+
+Link NDK C++ support inside the Android runtime; do not share host C++ objects or
+substitute Darwin libc. Retain the complete NDK notice and dependency provenance.
+Place the reviewed context-restore object before the unwind archive and reject
+extraction of its original x18-restoring member. Inspect the final linked code,
+including extracted archive members, before signing. Existing Mach-O wrappers
+carry the immutable code and writable ELF data layout. Packaging alone does not
+establish constructor execution, signal behavior, ART startup or DEX invocation.
