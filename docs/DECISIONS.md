@@ -1381,7 +1381,8 @@ results, not full libm accuracy, floating-point state or ART startup.
 
 ## 0058: Extend the existing Bionic source library for ART dependencies
 
-Status: both source profiles and startup ELFs build; shared native execution pending.
+Status: both source profiles, signed Mac modes, native Linux and iOS packaging
+pass at `a3e46d6`; expanded syscall behavior remains outside this source closure.
 
 Reuse Bionic's original implementations for the additional libc functions in
 the ART dependency graph. Build the 50-unit closure with its pinned AOSP flags

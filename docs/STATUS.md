@@ -115,9 +115,10 @@ Mac code, the identical Android libraries on Linux, and Linux system libm at
 `236625c`. Downloaded sources, objects, ELF files and four signed framework
 layouts verify; the full Apple runtime still needs its remaining Bionic and loader APIs.
 The [Bionic dependency expansion](m3-bionic-dependencies.md) adds 50 unchanged
-source units and a separate 30-case libc client. Both 271-unit profiles and all
-four startup ELFs build locally; signed execution is pending. Compiled wrappers
-do not imply new kernel-service support.
+source units and a separate 30-case libc client. Both signed Mac modes and
+native Linux pass at `a3e46d6`, with the M2 scores unchanged at 328/328.
+The complete workflows and downloaded iOS 15 diagnostic IPA verify. Compiled
+wrappers do not imply new kernel-service support; the IPA still contains no ART.
 The [loader service queries](m3-loader-services.md) now cover named dependency
 scope, lookup after the caller and ELF address/image metadata. All 25 local
 host tests pass; the Android loader API bridge is still pending.

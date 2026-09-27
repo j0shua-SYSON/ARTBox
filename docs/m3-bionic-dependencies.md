@@ -30,8 +30,24 @@ This work adds dependency coverage; it does not establish Apple ART startup.
 Both 271-unit public source profiles compile and preserve 1,540 shared global
 definitions. The adapted profile contains no direct syscall, thread-register
 or reserved-register instructions. All four startup ELF images link and pass
-their instruction and layout checks locally. Signed Mac execution and the new
-native Linux comparison remain pending.
+their instruction and layout checks locally. At `a3e46d6`, all 30 added cases
+pass in both signed Mac allocator modes and against native Linux libc. Both
+fixed M2 scores remain 328/328. [Host CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35976603927)
+and [iOS build CI](https://github.com/j0shua-SYSON/ARTBox/actions/runs/35976603997)
+are green, including both full Linux ART startup profiles.
+
+Downloaded evidence verifies the client/helper hashes, four ELF layouts,
+eight signed framework layouts and 56 notice hashes. The integrated IPA also
+verifies: seven iOS 15 ARM64 images, four embedded ELF payloads and 28 notice
+hashes; both recorded allocator modes include the 30-case result. The IPA is
+882,877 bytes, SHA-256
+`e84f8202ec80a8b73df2db841bca5b4f8ad1489938a240054ff3a2bd4cc0861c`.
+It still contains the native diagnostics, not ART.
+
+In this Mac run the complete startup/client sequence takes 21.305 ms normally
+and 33.811 ms with forced sampling; whole-process peak RSS is 6.52/6.19 MiB.
+These are single correctness runs of the combined suite. The new libc checks
+are not timed separately, and these measurements do not predict iPhone speed.
 
 The first signed run caught a missing `__netf2` in the separate client: its
 Android binary128 comparisons need a local compiler-rt helper, while Bionic's
