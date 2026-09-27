@@ -23,6 +23,15 @@ int artbox_signals_enable_actions(artbox_signals *signals, size_t capacity,
 artbox_signal_actions *artbox_signals_action_table(artbox_signals *signals);
 /* Signal-context read; the thread must remain attached throughout delivery. */
 int artbox_signals_mask_snapshot(const artbox_kernel_thread *thread, uint64_t *mask);
+/* Capability of this compiled target: mask/pending transitions must be lock-free
+ * before a delivery owner may change masks inside a host handler. */
+int artbox_signals_handler_mask_support(void);
+/* Signal-context operation on a live descriptor; buffers are trusted host data.
+ * BLOCK=0, UNBLOCK=1, SETMASK=2. Null input only queries, ignoring how. Preserve
+ * output on error. Pending signals that would become unblocked return ENOTSUP
+ * without mutation until their delivery transport exists. No VM access/locks. */
+int artbox_signals_mask_update(artbox_kernel_thread *thread, uint32_t how,
+    const uint64_t *input, uint64_t *previous);
 typedef struct artbox_signal_stack { uint64_t address,size; uint32_t flags; } artbox_signal_stack;
 /* Enable only with an actual platform stack-switching delivery owner, before
  * attaching threads. Minimum size is part of the runtime's advertised ABI.

@@ -1,5 +1,6 @@
 // Original portable pending-signal queues. SPDX-License-Identifier: MIT
 #include "artbox/signals.h"
+#include "signal_state.h"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -25,8 +26,8 @@ struct StackRecord { artbox_signal_stack value; StackRecord *next; };
 struct artbox_signal_thread {
     artbox_signals *owner;
     artbox_kernel_thread *kernel;
-    std::atomic<uint64_t> mask{0};
-    uint64_t pending = 0, wait_mask = 0;
+    SignalState state;
+    uint64_t wait_mask = 0;
     bool waiting = false;
     std::condition_variable changed;
     const StackRecord disabled{{0,0,2},nullptr};
@@ -67,8 +68,34 @@ extern "C" artbox_signal_actions *artbox_signals_action_table(artbox_signals *si
 }
 extern "C" int artbox_signals_mask_snapshot(const artbox_kernel_thread *kernel,uint64_t *mask) {
     if(!kernel || !kernel->signal_state || !mask) return -22;
-    *mask=kernel->signal_state->mask.load(std::memory_order_acquire);
+    *mask=kernel->signal_state->state.mask();
     return 0;
+}
+extern "C" int artbox_signals_handler_mask_support(void) { return SignalState::handler_safe()?1:0; }
+static int change_mask(artbox_signal_thread *thread,uint32_t how,const uint64_t *input,uint64_t *previous) {
+    auto old=thread->state.load();
+    if(input) {
+        const uint64_t requested=*input&~unmaskable;
+        for(;;) {
+            auto updated=old;
+            switch(how) {
+                case 0: updated.mask|=requested; break;
+                case 1: updated.mask&=~requested; break;
+                case 2: updated.mask=requested; break;
+                default: return -22;
+            }
+            if(updated.pending&~updated.mask) return -95;
+            if(thread->state.compare_exchange(old,updated)) break;
+        }
+    }
+    if(previous) *previous=old.mask;
+    return 0;
+}
+extern "C" int artbox_signals_mask_update(artbox_kernel_thread *kernel,uint32_t how,
+    const uint64_t *input,uint64_t *previous) {
+    if(!kernel || !kernel->signal_state) return -22;
+    if(!SignalState::handler_safe()) return -95;
+    return change_mask(kernel->signal_state,how,input,previous);
 }
 extern "C" int artbox_signals_enable_stacks(artbox_signals *signals,size_t minimum,size_t capacity) {
     if(!signals || !minimum || !capacity || capacity>65536) return -22;
@@ -127,10 +154,10 @@ static int attach(artbox_signals *signals,artbox_kernel_thread *kernel,uint64_t 
     if (signals->threads.size()==signals->capacity) return -11;
     auto *thread=new(std::nothrow) artbox_signal_thread;
     if (!thread) return -12;
-    if (!thread->mask.is_lock_free() || !thread->stack.is_lock_free()) { delete thread; return -95; }
-    thread->owner=signals; thread->kernel=kernel; thread->mask=mask&~unmaskable;
+    if (!thread->state.snapshot_lock_free() || !thread->stack.is_lock_free()) { delete thread; return -95; }
+    thread->owner=signals; thread->kernel=kernel; thread->state.initialize(mask&~unmaskable);
     signals->threads.push_back(thread); // Capacity was reserved before publication.
-    kernel->blocked_signals=thread->mask;
+    kernel->blocked_signals=thread->state.mask();
     kernel->signal_state=thread;
     return 0;
 }
@@ -144,7 +171,7 @@ extern "C" int artbox_signals_inherit(const artbox_kernel_thread *parent,artbox_
     if (!parent->signal_state) return 0;
     artbox_signals *signals=parent->signal_state->owner;
     std::lock_guard<std::mutex> guard(signals->lock);
-    return attach(signals,child,parent->signal_state->mask); // Pending signals are not inherited.
+    return attach(signals,child,parent->signal_state->state.mask()); // Pending signals are not inherited.
 }
 extern "C" int artbox_signals_detach(artbox_kernel_thread *kernel) {
     if (!kernel || !kernel->signal_state) return -22;
@@ -153,7 +180,7 @@ extern "C" int artbox_signals_detach(artbox_kernel_thread *kernel) {
     std::lock_guard<std::mutex> guard(signals->lock);
     if (thread->waiting) return -16;
     signals->threads.erase(std::find(signals->threads.begin(),signals->threads.end(),thread));
-    kernel->blocked_signals=thread->mask;
+    kernel->blocked_signals=thread->state.mask();
     kernel->signal_state=nullptr;
     while(thread->stack_records) {
         auto *next=thread->stack_records->next;
@@ -227,24 +254,9 @@ static int64_t mask(artbox_signal_thread *thread,uint64_t how,uint64_t in,uint64
         if (error) return error;
         requested=get64(bytes)&~unmaskable;
     }
-    {
-        std::lock_guard<std::mutex> guard(thread->owner->lock);
-        previous=thread->mask;
-        if (in) {
-            uint64_t updated;
-            switch (static_cast<uint32_t>(how)) {
-                case 0: updated=previous|requested; break;
-                case 1: updated=previous&~requested; break;
-                case 2: updated=requested; break;
-                default: return -22;
-            }
-            // No false success for a transition that requires unblocked
-            // handler/default delivery, which is not implemented yet.
-            if (thread->pending&~updated) return -95;
-            thread->mask=updated;
-            thread->kernel->blocked_signals=updated;
-        }
-    }
+    int error=change_mask(thread,static_cast<uint32_t>(how),in?&requested:nullptr,&previous);
+    if(error) return error;
+    thread->kernel->blocked_signals=thread->state.mask(); // Legacy state outside attachment.
     if (!out) return 0;
     put(bytes,previous,8);
     return artbox_vm_write(thread->owner->vm,out,bytes,8); // Mutation precedes copyout.
@@ -261,8 +273,12 @@ static int64_t send(artbox_signal_thread *sender,uint64_t process,uint64_t tid,u
     if (!signal) return 0;
     if (signal>=32 || signal==9 || signal==19) return -95;
     uint64_t bit=UINT64_C(1)<<(signal-1);
-    if (!((target->mask|target->wait_mask)&bit)) return -95;
-    target->pending|=bit; // Standard signals coalesce; one process has one sender PID/UID.
+    auto old=target->state.load();
+    for(;;) {
+        if(!((old.mask|target->wait_mask)&bit)) return -95;
+        auto updated=old; updated.pending|=bit; // Standard signals coalesce.
+        if(target->state.compare_exchange(old,updated)) break;
+    }
     target->changed.notify_one();
     return 0;
 }
@@ -283,9 +299,9 @@ static int64_t wait(artbox_signal_thread *thread,uint64_t set,uint64_t info,uint
     }
     std::unique_lock<std::mutex> guard(owner->lock);
     if (thread->waiting) return -16; // API requires a single owner for each guest thread.
-    if (!(thread->pending&selected) && (!timeout || seconds || nanoseconds)) {
+    if (!(thread->state.load().pending&selected) && (!timeout || seconds || nanoseconds)) {
         thread->waiting=true; thread->wait_mask=selected; ++owner->waiters;
-        auto available=[&] { return (thread->pending&selected)!=0; };
+        auto available=[&] { return (thread->state.load().pending&selected)!=0; };
         if (!timeout) thread->changed.wait(guard,available);
         else {
             using Clock=std::chrono::steady_clock;
@@ -298,11 +314,16 @@ static int64_t wait(artbox_signal_thread *thread,uint64_t set,uint64_t info,uint
         }
         --owner->waiters; thread->waiting=false; thread->wait_mask=0;
     }
-    uint64_t pending=thread->pending&selected;
-    if (!pending) return -11;
-    unsigned signal=1;
-    while (!(pending&1)) { pending>>=1; ++signal; }
-    thread->pending&=~(UINT64_C(1)<<(signal-1));
+    auto old=thread->state.load();
+    unsigned signal;
+    for(;;) {
+        uint64_t pending=old.pending&selected;
+        if(!pending) return -11;
+        signal=1;
+        while(!(pending&1)) { pending>>=1; ++signal; }
+        auto updated=old; updated.pending&=~(UINT64_C(1)<<(signal-1));
+        if(thread->state.compare_exchange(old,updated)) break;
+    }
     int32_t pid=owner->pid;
     uint32_t uid=owner->uid;
     guard.unlock();
