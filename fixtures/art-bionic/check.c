@@ -87,9 +87,12 @@ int artbox_art_bionic_check(void) {
     CHECK(strcat(joined, "Box") == joined && !strcmp(joined, "ARTBox") && joined[7] == '?');
     CHECK(strcat(joined, "") == joined && !strcmp(joined, "ARTBox") && joined[7] == '?');
     const char nonterminated[] = {'x', 'y', 'z'};
-    CHECK(strncat(joined, nonterminated, 2) == joined && !strcmp(joined, "ARTBoxxy") && joined[9] == '?');
-    CHECK(strncat(joined, nonterminated, 0) == joined && !strcmp(joined, "ARTBoxxy") && joined[9] == '?');
-    CHECK(strncat(joined, "!", 3) == joined && !strcmp(joined, "ARTBoxxy!") && joined[10] == '?');
+    // Call the libc symbol itself. Glibc's fortified inline wrapper diagnoses
+    // the deliberately bounded source copy as truncation when optimized.
+    char *(*volatile append_bounded)(char *, const char *, size_t) = strncat;
+    CHECK(append_bounded(joined, nonterminated, 2) == joined && !strcmp(joined, "ARTBoxxy") && joined[9] == '?');
+    CHECK(append_bounded(joined, nonterminated, 0) == joined && !strcmp(joined, "ARTBoxxy") && joined[9] == '?');
+    CHECK(append_bounded(joined, "!", 3) == joined && !strcmp(joined, "ARTBoxxy!") && joined[10] == '?');
     const int divisions[][4] = {
         {17, 5, 3, 2}, {-17, 5, -3, -2}, {17, -5, -3, 2}, {-17, -5, 3, -2},
         {INT_MIN, 2, INT_MIN / 2, 0}, {INT_MAX, INT_MAX, 1, 0}

@@ -46,6 +46,8 @@ def main():
                str(source), str(ROOT / 'fixtures/art-bionic/linux.c'), '-o', str(binary)]
     result = subprocess.run(command, capture_output=True)
     (output / 'build.log').write_bytes(result.stdout + result.stderr)
+    if result.returncode:
+        sys.stderr.buffer.write(result.stdout + result.stderr)
     result.check_returncode()
     result = subprocess.run([str(binary)], capture_output=True, timeout=30)
     (output / 'reference.log').write_bytes(result.stdout + result.stderr)
