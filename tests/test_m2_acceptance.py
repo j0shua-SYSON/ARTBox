@@ -10,10 +10,17 @@ def completed():
     return dict(cases=146, futex_cases=19, file_cases=41, mapping_cases=43, vm_cases=35,
                 timeout_cases=18, proc_cases=22, pthread_result=0, threads_reaped=6,
                 tls_result=0, tls_modules=2, tls_threads=7, version_result=46,
-                constructors=3, linked_images=4, absent_netd=1)
+                constructors=5, linked_images=4, absent_netd=1)
 
 
 class Acceptance(unittest.TestCase):
+    def test_every_selected_constructor_is_required(self):
+        for count in (0, 3, 4, 6):
+            run = completed(); run['constructors'] = count
+            result = evaluate(run)
+            self.assertEqual((result['total'], result['passed']), (328, 327))
+            self.assertFalse(result['success'])
+
     def test_complete_and_unexecuted_runs_keep_the_same_denominator(self):
         good, absent = evaluate(completed()), evaluate({})
         self.assertEqual(good['passed'], 328)

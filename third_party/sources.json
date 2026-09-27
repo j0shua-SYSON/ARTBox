@@ -18419,5 +18419,55 @@
         "sha256": "2bf092e5863c1c75a94694f8874c3aafdb5fd6baf58f4dd9217324a902d311ca"
       }
     ]
+  },
+  "fs-config-generator": {
+    "repository": "aosp-mirror/platform_build",
+    "upstream": "https://android.googlesource.com/platform/build",
+    "tag": "android-15.0.0_r1",
+    "commit": "3d9c9aacdb6ca0b745b3048dad88d0db4680d50e",
+    "notice": "tools/fs_config/Android.bp",
+    "notice_sha256": "ce8bd299123a60e35c6c054ca21eb26ae792fb14e770e5884bac7df38868bd82",
+    "files": [
+      {
+        "path": "tools/fs_config/fs_config_generator.py",
+        "bytes": 47521,
+        "sha256": "3792818203f97909b190d457997fdc63f0fd6a4a9d550d728585728752da86f3"
+      },
+      {
+        "path": "Android.bp",
+        "bytes": 1104,
+        "sha256": "d373d2bd0d8c296397cc622210d9e79dd037e389230165a2d20012f190bffdaf"
+      },
+      {
+        "path": "tools/fs_config/Android.bp",
+        "bytes": 11455,
+        "sha256": "ce8bd299123a60e35c6c054ca21eb26ae792fb14e770e5884bac7df38868bd82"
+      },
+      {
+        "path": "tools/fs_config/test_fs_config_generator.py",
+        "bytes": 12501,
+        "sha256": "457a0809e04c0462319ffa7d3313798574f2ae882ecf8e7b3a5142b4f5bb5020"
+      }
+    ]
+  },
+  "bionic-libcore-headers": {
+    "repository": "aosp-mirror/platform_system_core",
+    "upstream": "https://android.googlesource.com/platform/system/core",
+    "tag": "android-15.0.0_r1",
+    "commit": "fc7bc8c4bfb4c6095e34ea784509dae56f25b486",
+    "notice": "libcutils/NOTICE",
+    "notice_sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+    "files": [
+      {
+        "path": "libcutils/include/cutils/misc.h",
+        "bytes": 1248,
+        "sha256": "d8c23c79390c7cb394f7020cffa159bc09a316534f36b0f5fce24a3e905cee79"
+      },
+      {
+        "path": "libcutils/NOTICE",
+        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+        "bytes": 10695
+      }
+    ]
   }
 }

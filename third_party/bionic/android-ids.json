@@ -1,0 +1,8 @@
+{
+  "generator": "fs-config-generator",
+  "header_component": "property-info",
+  "header": "libcutils/include/private/android_filesystem_config.h",
+  "command": "aidarray",
+  "output_sha256": "8434e6d2305d590f2eabb1508045fbe7b931a7205f30ec9e1eb8614c926dbbf4",
+  "output_newlines": "LF"
+}

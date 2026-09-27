@@ -1,10 +1,33 @@
 # Bionic dependencies for ART
 
 The M3 Android ART link needs libc entry points outside the M2 startup subset.
-Extend the same source-built Bionic with 59 unchanged units from its pinned
-Android 15 revision. `third_party/bionic/m2-objects.json` records these sources,
-their hashes and the corresponding AOSP build flags. This brings the shared
-source selection to 280 units, including its existing support components.
+Extend the same source-built Bionic from its pinned Android 15 revision.
+`third_party/bionic/m2-objects.json` records the sources, their hashes and the
+corresponding AOSP build flags. The selection now contains 338 units, including
+its existing support components and the separately adapted vfork entry.
+
+The latest native-class-library closure adds 57 unchanged units: Android
+account lookup, numeric/DNS resolver routines, network/interface, file and
+event wrappers, plus their BSD helpers. Numeric resolution does not contact a
+DNS server. The account table comes from the pinned AOSP `aidarray` generator
+and Android filesystem-ID header, not the host's passwd/group database or an
+empty host table. Its upstream tests run unchanged on POSIX build hosts; the
+generated output is normalized to LF and its hash checked on every platform.
+Large object links use
+response files so build paths do not exceed the process command-line limit.
+
+A new client exercises 45 bounded string and numeric IPv4/IPv6 resolver cases,
+plus 30 Android account/reentrant-buffer cases. The common cases have a native
+Linux libc reference; Android's account IDs are checked only in real Bionic.
+Short getnameinfo buffers retain Bionic's EAI_MEMORY and glibc's EAI_OVERFLOW
+results. No runtime adaptation changes these original library semantics.
+The new client fails strict linking against the previous source selection;
+native execution of these 75 cases is pending CI. Its score is separate from
+the existing 73 libc checks, 30 vfork checks and fixed M2 denominator.
+The account-file tables and resolver pthread key add two original Bionic
+constructors. Current acceptance requires all five constructors, while retaining
+one mandatory startup expectation in the 328-case denominator. Earlier reports
+with three constructors describe the earlier source selection.
 
 The added closure includes BSD sorting/string routines, locale adapters,
 path/directory and syscall wrappers, system-property writing, and time-zone

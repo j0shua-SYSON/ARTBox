@@ -12,7 +12,7 @@ execution remains unverified. Runtime milestones take priority over launcher UI.
 - M2: real pinned AOSP Bionic starts with Scudo and GWP-ASan. A dynamically linked
   NDK suite passes **328/328 expectations (100%)** in both normal and forced
   sampling processes. The manifest loader links four signed libraries, resolves
-  versions, relocates data atomically, and runs three constructors.
+  versions, relocates data atomically, and runs the selected Bionic constructors.
 - Six real Bionic pthreads exercise concurrent allocation, files, mutexes,
   conditions, timed waits, errno/key isolation, return/exit and cleanup. Two ELF
   TLS templates preserve initialized, zero-filled and aligned storage across
@@ -53,6 +53,13 @@ and additional syscall families remain unsupported. The Windows native file
 provider is not implemented; portable VFS tests use an injected provider there.
 
 ## In progress: M3 ART bring-up
+
+The next dependency selection adds 57 unchanged Bionic units and AOSP-generated
+Android account IDs. New callers cover numeric address resolution, bounded
+strings and Android account storage; they fail to link against the previous
+libc as expected. The 338-unit build and 75-case native acceptance are being
+validated. DNS/network services, interface discovery and the other newly
+imported syscall families remain outside the implemented kernel subset.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

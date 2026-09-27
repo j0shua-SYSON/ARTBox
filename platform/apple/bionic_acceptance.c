@@ -52,6 +52,7 @@ static int64_t vm_cases, timeout_cases;
 static int64_t proc_cases;
 static int64_t art_libc_cases;
 static int64_t vfork_cases;
+static int64_t libcore_frontend_cases;
 static uint64_t file_ns;
 static artbox_futex *futex;
 static artbox_threads *threads;
@@ -394,6 +395,17 @@ static void *run(void *context) {
         fail("Bionic vfork unsupported-process contract");
     }
     vfork_cases += vfork_rejection;
+    libcore_frontend_cases = (int32_t)artbox_call7(entry(&images[1], "artbox_libcore_frontend_common"), 0, 0, 0, 0, 0, 0, 0);
+    if (libcore_frontend_cases != 45) {
+        fprintf(stderr, "libcore libc frontend caller: %" PRId64 "\n", libcore_frontend_cases);
+        fail("Numeric resolver and string acceptance");
+    }
+    int32_t account_cases = (int32_t)artbox_call7(entry(&images[1], "artbox_libcore_frontend_accounts"), 0, 0, 0, 0, 0, 0, 0);
+    if (account_cases != 30) {
+        fprintf(stderr, "Android account caller: %d\n", account_cases);
+        fail("Generated Android account table acceptance");
+    }
+    libcore_frontend_cases += account_cases;
     int64_t scratch = artbox_vm_mmap(vm, 0, artbox_vm_page_size(vm), 3, 0x22, -1, 0);
     if (scratch < 0) fail("futex fixture storage");
     futex_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_futex_check"), (uint64_t)scratch, 0, 0, 0, 0, 0, 0);
@@ -539,8 +551,8 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
            ",\"pthread_result\":%d,\"threads_reaped\":%" PRIu64 ",\"pthread_client_ns\":%" PRIu64
            ",\"thread_guarded_samples\":%" PRIu64 ",\"process_peak_rss_bytes\":%ld,"
            "\"linked_images\":4,\"tls_modules\":2,\"tls_threads\":7,\"tls_result\":0,\"tls_queries\":%" PRIu64 ",\"version_result\":%" PRId64 ",\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64
-           ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"art_libc_cases\":%" PRId64 ",\"vfork_cases\":%" PRId64 ",\"unsupported_syscalls\":{",
-           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases);
+           ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"art_libc_cases\":%" PRId64 ",\"vfork_cases\":%" PRId64 ",\"libcore_frontend_cases\":%" PRId64 ",\"unsupported_syscalls\":{",
+           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases);
     if (length < 0 || (size_t)length >= sizeof(report)) fail("result formatting");
     size_t used_bytes = (size_t)length;
     unsigned printed = 0;

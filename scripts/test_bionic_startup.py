@@ -98,11 +98,13 @@ def main():
     proc_object = build / "proc-check.o"
     art_libc_object = build / "art-libc-check.o"
     vfork_native_object = build / "vfork-rejection.o"
+    libcore_common, libcore_accounts = build / "libcore-common.o", build / "libcore-accounts.o"
     vfork_object = inputs / "vfork/native-test.o"
     if report["vfork"]["cases"] != 28 or digest(vfork_object) != report["vfork"]["native"]["object_sha256"]:
         raise RuntimeError("Vfork caller differs from the verified production-object oracle")
     for source_name, target in (("fixtures/bionic-vm/check.c", vm_object), ("fixtures/bionic-startup/timeouts.c", timeout_object),
-                                ("fixtures/bionic-files/proc.c", proc_object), ("fixtures/bionic-vfork/native.c", vfork_native_object)):
+                                ("fixtures/bionic-files/proc.c", proc_object), ("fixtures/bionic-vfork/native.c", vfork_native_object),
+                                ("fixtures/bionic-libcore/common.c", libcore_common), ("fixtures/bionic-libcore/accounts.c", libcore_accounts)):
         command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
                 "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
                 "-c", ROOT / source_name, "-o", target)
@@ -167,6 +169,7 @@ def main():
     command("ld.lld", *tls_link, "-z", "defs", "-soname", app.name, client, futex_object, thread_object, file_object, mapping_object,
             version_client_object, tls_access, tls_abi, vm_object, timeout_object, proc_object, art_libc_object, comparison,
             vfork_object, vfork_native_object,
+            libcore_common, libcore_accounts,
             "--no-as-needed", libc, versions, tls_library, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator through a manifest load group; not full M2",
               "project_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
@@ -184,6 +187,11 @@ def main():
               "vfork": {"capture": report["vfork"], "rejection_cases": 2,
                         "rejection_source_sha256": digest(ROOT / "fixtures/bionic-vfork/native.c"),
                         "rejection_object_sha256": digest(vfork_native_object)},
+              "libcore_frontends": {"common_cases": 45, "account_cases": 30,
+                                    "common_source_sha256": digest(ROOT / "fixtures/bionic-libcore/common.c"),
+                                    "accounts_source_sha256": digest(ROOT / "fixtures/bionic-libcore/accounts.c"),
+                                    "common_object_sha256": digest(libcore_common), "accounts_object_sha256": digest(libcore_accounts),
+                                    "android_ids": report["android_ids"]},
               "threads": {"source_sha256": digest(thread_source), "object_sha256": digest(thread_object),
                           "joined": 4, "detached": 2, "iterations_per_thread": 32},
               "versions": {"result": 46, "provider_source_sha256": digest(ROOT / "fixtures/dynamic/versions.c"),
@@ -198,6 +206,7 @@ def main():
                for name, data in report["component_notices"].items()}
     notices["LIBCUTILS-NOTICE.txt"] = (inputs / "LIBCUTILS-NOTICE.txt", report["dependencies"]["libcutils-headers"]["notice_sha256"])
     notices["COMPILER-RT-NOTICE.txt"] = (inputs / "COMPILER-RT-NOTICE.txt", report["binary128"]["pin"]["notice_sha256"])
+    notices["FSCONFIG-NOTICE.txt"] = (inputs / "FSCONFIG-NOTICE.txt", report["android_ids"]["notice_sha256"])
     binaries = {}
     for name, elf, framework_name in (("libc", libc, "ARTBoxBionic"), ("client", app, "ARTBoxStartupClient"),
                                        ("versions", versions, "ARTBoxVersions"), ("tls", tls_library, "ARTBoxTLS")):
@@ -247,6 +256,8 @@ def main():
                 raise RuntimeError("ART libc dependency client did not complete")
             if result[key]["vfork_cases"] != 30:
                 raise RuntimeError("Bionic vfork state/rejection client did not complete")
+            if result[key]["libcore_frontend_cases"] != 75:
+                raise RuntimeError("Native class-library libc frontend client did not complete")
             if result[key]["pthread_result"] != 0 or result[key]["threads_reaped"] != 6:
                 raise RuntimeError("NDK pthread client did not complete")
             if result[key]["tls_modules"] != 2 or result[key]["tls_threads"] != 7 or result[key]["tls_result"] != 0:
