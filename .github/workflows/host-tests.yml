@@ -126,6 +126,21 @@ jobs:
             build/m3/art-stack/
           if-no-files-found: warn
           retention-days: 7
+      - name: Execute AOSP libdl through the signed guest loader bridge
+        if: matrix.os == 'macos-15'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_guest_loader.py
+      - name: Preserve guest loader diagnostics
+        if: always() && matrix.os == 'macos-15'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: guest-loader-diagnostics
+          path: |
+            artifacts/m3-guest-loader.json
+            build/m3/guest-loader/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Load and verify an original DEX with pinned AOSP code
         if: matrix.os == 'macos-15'
         env:

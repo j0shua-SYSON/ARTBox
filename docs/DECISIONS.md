@@ -1432,3 +1432,23 @@ entry points and caller-address capture. Native Linux establishes the 32-call
 and six thread-error regression before those operations are connected to the
 guest bridge. Unloading and dynamic namespaces remain outside the fixed
 startup-group contract.
+
+## 0061: Marshal loader metadata through the shared guest mapper
+
+Status: portable tests and Android builds pass; signed native execution pending.
+
+Keep AOSP's original libdl frontend and implement its seven explicit loader
+imports behind a thin native binding. Use host TLS to select the guest thread's
+error state. Android library names and handles never reach the host linker.
+
+Copy names to read-only guest pages and point program headers and symbol names
+into the verified signed image. Encode Android LP64 callback structures
+explicitly; host structure layouts and transient host stacks are not the guest
+ABI. The mapper validates input strings and output storage. Callbacks run only
+from declared signed executable segments and outside mapper locks, permitting
+reentry. A TLS callback reports an existing block without allocating one.
+
+The native acceptance runner owns guarded guest stacks until pthread join.
+Compare its unchanged Android fixture with the native Linux 32-case and six
+thread-error reference. Preserve source, object, ELF, signing and notice evidence
+for both Mac execution and iOS 15 packaging. Physical execution remains unverified.

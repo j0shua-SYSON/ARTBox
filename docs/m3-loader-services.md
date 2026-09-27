@@ -23,8 +23,8 @@ The behavior follows the relevant dependency traversal and address rules in
 the pinned Bionic `linker/linker.cpp` and `linker/linker_soinfo.cpp`. It covers a
 single startup group. Namespace search, global-scope promotion, on-demand
 loading, unloading and per-thread TLS symbol addresses are not implemented by
-these queries. The Android `dlfcn` bridge still needs its callback ABI,
-guest-visible metadata storage and native execution tests.
+these queries. The Android `dlfcn` bridge layers guest-visible storage and
+callback marshalling over this fixed scope.
 
 Portable tests cover scope isolation, weak-symbol order, cycle termination,
 caller selection, TLS IDs, symbol boundaries and missing/invalid inputs. All
@@ -50,4 +50,18 @@ defined scope. The owner supplies a separate zero-initialized error record for
 each thread, with read-and-clear behavior and preservation of unread errors
 across successful calls. Local tests cover concurrent opens, invalid flags,
 missing libraries, exact aliases, zero-valued symbols and cross-context handles.
-The guest pointer/callback bridge and signed API execution remain pending.
+The guest bridge now validates strings and output buffers through the shared
+mapper. It places names in read-only guest pages, retains each thread's error
+buffer, and exposes ELF headers and symbol names from the signed image mappings.
+`Dl_info` and `dl_phdr_info` use explicit Android LP64 layouts. Program-header
+callbacks must belong to signed executable segments and run without a mapper
+lock; reentry and early termination are tested. TLS metadata requires an
+owner-supplied lookup of the calling thread's existing TLS block.
+
+The unchanged pinned AOSP `libdl.cpp` supplies seven entry points, including
+caller-address capture for `RTLD_NEXT`. A thin native binding connects its
+explicit `__loader_*` imports using host TLS. The original 32-case fixture and
+six thread-error checks now have a signed Mac runner and iOS 15 framework
+packaging in CI. Guest threads use VM-owned guarded stacks, which remain live
+until join. Local portable tests and Android compilation pass; signed execution
+of this bridge is pending. This does not establish Apple ART startup.

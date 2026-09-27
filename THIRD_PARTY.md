@@ -445,3 +445,14 @@ Reassembling the original ARM64 routines with the pinned NDK reproduces the
 144-byte restore and 156-byte save text sections from its shipped archive.
 This establishes a source basis for adapting reserved-register restoration;
 it does not establish Apple unwinder execution or general exception support.
+
+## AOSP libdl frontend
+
+`third_party/bionic/libdl.json` selects the unchanged `libdl/libdl.cpp` at the
+existing Bionic commit `361ba86734fb2821a6adcfdf775db8abd04e0de0`.
+Its seven selected APIs use **Apache-2.0**; the complete `libdl/NOTICE`, original
+source header and `Android.bp` license declaration are retained and hash-checked.
+The corresponding-source archive contains those files and the ARTBox bridge and
+build inputs. Every signed framework includes the libdl notice, the pinned NDK
+notice covering its compile-time headers, and ARTBox's MIT license. No upstream
+code is copied into original ARTBox source files.

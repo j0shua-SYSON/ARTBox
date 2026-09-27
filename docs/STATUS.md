@@ -123,7 +123,10 @@ The [loader service queries](m3-loader-services.md) now cover named dependency
 scope, lookup after the caller and ELF address/image metadata. All 25 local
 host tests pass. The portable handle/error context also passes concurrent tests,
 and a native Linux reference passes 32 loader calls and six thread-error checks.
-The Android loader API bridge is still pending.
+The Android loader API bridge now validates guest pointers, marshals metadata
+and owns per-thread error storage. Its unchanged AOSP libdl frontend and signed
+Mac acceptance runner are implemented; local tests and Android compilation pass.
+Signed execution and full Apple ART startup remain pending.
 The [managed-storage contract](m3-managed-storage.md) now passes 54 cases on each
 native Mac/Linux host, with two signed Mac controls confirming the original
 forwarding-address truncation. GC forwarding words and JNI reference/free/serial/

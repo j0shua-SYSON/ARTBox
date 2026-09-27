@@ -106,7 +106,8 @@ int artbox_vm_prepare_store_u32(artbox_vm *space, uint64_t address,
  * guest read buffer from advancing a backing file's offset before EFAULT. */
 int64_t artbox_vm_transfer(artbox_vm *space, uint64_t address, size_t length, unsigned access,
     int64_t (*transfer)(void *context, void *buffer, size_t length), void *context);
-/* A snapshot of metadata, not a pin against another thread changing a map. */
+/* Returns nonzero when the whole range permits required access, zero otherwise.
+ * A snapshot of metadata, not a pin against another thread changing a map. */
 int artbox_vm_access(artbox_vm *space, uint64_t address, uint64_t length, unsigned required);
 uint64_t artbox_vm_reserved_bytes(artbox_vm *space);
 size_t artbox_vm_page_size(const artbox_vm *space);
