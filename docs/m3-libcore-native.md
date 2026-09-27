@@ -115,7 +115,15 @@ ABI, and reports separate native/integer test times. JNI_OnLoad and JavaVM are
 not invoked. At `3505832`, the six libraries link and sign but the actual JVM
 temporary-file cleanup fails on unimplemented unlinkat. The rooted unlink
 extension retains this test and adds a 29-case native comparison for pathname
-removal and open-inode lifetime. Complete signed execution is still pending.
+removal and open-inode lifetime. All 29 cases pass in both signed Mac modes
+and both native Linux profiles at `c211a46`. That rerun reaches the hidden-cache
+assertion after the file and monitor groups: javacore's own export map is correct,
+but an unnecessary dependency on libicu_jni exposes ICU's public cache copy.
+Use `--as-needed` for the five production libraries, retaining the caller's
+explicit full manifest. A dependency-scope check rejects both direct and transitive
+JniConstants exposure from javacore. Keep the existing runtime assertion; neither
+the class cache nor dlsym behavior is special-cased. Complete signed execution
+is still pending.
 
 Artifacts preserve source/object hashes, compiler and link commands, native test
 output, original notices, all selected corresponding source, and the verified

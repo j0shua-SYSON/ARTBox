@@ -182,15 +182,21 @@ def main():
         flags = [] if name == 'libopenjdkjvm.so' else ['-z', 'defs']
         if name == 'libjavacore.so': flags += ['--version-script=' + str(exports)]
         if 'guest-check' in selected: flags += ['--version-script=' + str(client_exports)]
+        # The caller intentionally retains every image for its preloaded
+        # manifest. Production libraries retain only dependencies needed by
+        # their own symbols; JNI libraries must not acquire each other's cache.
+        dependency_mode = '--no-as-needed' if 'guest-check' in selected else '--as-needed'
         elf = output / name
         run([tool('ld.lld'), '-shared', *flags, '--hash-style=both', '--build-id=none', '-z', 'max-page-size=16384',
              '--pack-dyn-relocs=relr', '--no-relax', '-T', linker, '-soname', name,
              '--exclude-libs=libartbox_uint128.a', '--why-extract=' + str(output / (name + '-extracted.txt')),
-             crt / 'crtbegin_so.o', response(inputs, name), *[output / n for n in needs],
+             crt / 'crtbegin_so.o', response(inputs, name), dependency_mode, *[output / n for n in needs],
              *[output / ('lib' + group + '.a') for group in extra], *bases.values(), integer_archive,
              crt / 'crtend_so.o', '-o', elf], name + '-link')
         images[name] = metadata(elf)
-        if images[name]['needed'] != needs + list(bases): raise RuntimeError('DT_NEEDED changed: ' + name)
+        candidates = needs + list(bases)
+        expected = candidates if 'guest-check' in selected else [n for n in candidates if n in images[name]['needed']]
+        if images[name]['needed'] != expected: raise RuntimeError('DT_NEEDED changed: ' + name)
         if any(symbol in images[name]['exports'] for symbol in ('__udivti3', '__umodti3', '__udivmodti4')):
             raise RuntimeError('Integer helpers must remain library-local')
         boundary = check_code(run([tool('llvm-objdump'), '-d', '--no-show-raw-insn', elf], name + '-instructions'))

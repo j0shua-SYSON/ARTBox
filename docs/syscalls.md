@@ -178,7 +178,7 @@ I/O and 512 concurrent appends. `/system` is read-only and parent/symlink traver
 is rejected. Guest stat ownership is UID/GID 10000. File-backed data mappings and the 41-case NDK caller pass paired CI below;
 mkdir, rename, directory removal and multiple guest users remain unsupported.
 
-### M3 unlink extension (native CI validation pending)
+### M3 unlink extension
 
 | ARM64 call | Implemented subset | Deliberate limits |
 | --- | --- | --- |
@@ -190,8 +190,10 @@ NDK caller now checks errors without deletion, zero link counts, reads through
 an unlinked descriptor, and same-name recreation without changing the old file.
 Both signed Bionic modes and the original/adapted Bionic syscall entries on
 native Linux run the identical object. Portable tests also check protected
-trees and an outside-root guard behind symlinks. Local tests pass; native CI
-validation is pending. These checks do not change M2's fixed denominator.
+trees and an outside-root guard behind symlinks. All 29 cases pass in both
+signed Mac modes and both native Linux profiles at `c211a46`; native provider
+tests retain a shared mapping after unlink and close. These checks do not
+change M2's fixed denominator.
 
 ### File-backed data mapping extension (native CI green at b1a94c5)
 

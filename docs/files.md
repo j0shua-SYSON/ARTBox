@@ -42,7 +42,9 @@ entry. Existing descriptors and mappings retain the unlinked inode, including
 after the same pathname is recreated. A separate 29-case NDK caller compares
 errors, link counts and descriptor lifetime on signed Bionic and native Linux;
 native provider tests also retain a shared mapping after unlink and FD close.
-Local portable checks pass; native CI validation is pending.
+All 29 cases pass in both signed Mac modes and both original/adapted native
+Linux profiles at `c211a46`. The native mapping lifetime check passes on Mac
+and Linux; Windows uses the injected portable provider.
 
 The local contract covers mixed descriptor allocation, create/exclusive/truncate,
 relative directory paths, read-only system files, symlink/traversal rejection,

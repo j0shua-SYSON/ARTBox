@@ -1724,7 +1724,7 @@ frameworks plus their ELF data and notices; no executable mappings are created.
 
 ## 0074: Preserve open inode lifetime when unlinking a guest file
 
-Status: local portable tests pass; native Linux and signed Apple validation pending.
+Status: 29 cases pass in both signed Mac modes and both native Linux profiles at c211a46.
 
 The first signed class-library execution at `3505832` reaches JVM file cleanup
 and fails because unlinkat returns ENOSYS. Implement rooted non-directory
@@ -1748,3 +1748,23 @@ adapted Bionic syscall entries on native Linux ARM64. Portable tests additionall
 check virtual-tree protection, absolute dirfd handling, symlink confinement and
 unchanged outside-root guard contents. These cases have a separate result field;
 M2's existing 328-case denominator remains unchanged.
+
+## 0075: Keep unrelated JNI libraries outside javacore's dependency scope
+
+Status: local link and regression checks pass; signed execution pending.
+
+At `c211a46`, the native class-library fixture passes file cleanup and monitor
+join, then finds JniConstants through javacore's handle. The original export map
+correctly exports only JNI_OnLoad and JNI_OnUnload from javacore. The link step
+retained every candidate base library as DT_NEEDED, including libicu_jni, whose
+public class-cache initializer has the same name. Breadth-first handle lookup
+therefore correctly finds that different library's symbol.
+
+Use the linker's --as-needed selection for the five class libraries. Continue
+requiring every strong import to resolve in its actual dependency graph and
+reject JniConstants exposure anywhere in javacore's lookup scope. Tests cover
+direct exports, direct and transitive dependency leaks, and unrelated preloaded
+libraries. The test caller keeps its explicit full manifest so all 15 images
+remain reachable. Preserve the original runtime visibility assertion and loader
+lookup semantics. This changes only build-time dependency metadata; it adds no
+runtime code-generation or platform entitlement requirement.
