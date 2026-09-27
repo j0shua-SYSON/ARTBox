@@ -19,6 +19,7 @@ import zipfile
 from environment import ROOT, environment
 from ndk import obtain as obtain_ndk
 from sources import obtain, obtain_files
+from libcore_builtins import prepare as prepare_builtins
 
 
 def digest(path):
@@ -178,8 +179,12 @@ def main():
                       [*base, '-std=c11', '-D_GNU_SOURCE', '-I', str(sources['art-host-capability'] / 'libc/include')],
                       cc, 'capabilities'))
 
+    integer = prepare_builtins(toolchain, output / 'integer128') if args.all and toolchain else None
     files = {'dependencies/art-runtime-corresponding-source.zip': runtime_bundle,
              'dependencies/art-runtime-build.json': metadata}
+    if integer:
+        for name in ('vectors.h', 'vectors.json', 'build.json'):
+            files['generated/integer128/' + name] = output / 'integer128' / name
     notices = output / 'notices'
     notices.mkdir(exist_ok=True)
     for name, source in sources.items():
@@ -210,7 +215,8 @@ def main():
     project = ['LICENSE', 'THIRD_PARTY.md', 'docs/m3-libcore-native.md', 'third_party/sources.json',
                'third_party/art/libcore-native-sources.json', 'third_party/art/libcore-native.json',
                'third_party/art/native-library-sources.json', 'third_party/art/runtime-sources.json',
-               'third_party/bionic/builtins.json', 'fixtures/art-runtime/native_libcore.cpp']
+               'third_party/bionic/builtins.json', 'fixtures/art-runtime/native_libcore.cpp',
+               'third_party/art/libcore-builtins.json', 'fixtures/libcore-integer128/check.c']
     project.append('platform/linux/capabilities.c')
     project += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT / 'scripts').glob('*.py'))]
     for name in project: files['artbox/' + name] = ROOT / name
@@ -222,7 +228,7 @@ def main():
             entry.compress_type = zipfile.ZIP_DEFLATED
             entry.external_attr = 0o100644 << 16
             bundle.writestr(entry, path.read_bytes())
-    record = {'profile': args.profile, 'runtime_executed': False,
+    record = {'profile': args.profile, 'runtime_executed': False, 'integer128': integer,
               'project_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
               'source_bundle_sha256': digest(archive), 'source_layout': layout_files,
               'project_sources': {name: digest(ROOT / name) for name in project}, 'sources': catalog,
@@ -251,6 +257,11 @@ def main():
     save(result_path, record)
     print('Passed', sum(x['exit'] == 0 for x in results), '/', len(results), flush=True)
     if any(x['exit'] for x in results): return 1
+    if args.all and args.profile == 'android':
+        record['guest_check'] = compile_one(('artbox-native-libcore-check', ROOT / 'fixtures/art-runtime/native_libcore.cpp',
+            [*common, *cpp, '-I', str(sources['art-fdlibm']), '-DARTBOX_GUEST_LIBCORE'], cxx, 'guest-check'))
+        save(result_path, record)
+        if record['guest_check']['exit']: return 1
     if args.link:
         record['link_commands'] = []
         def link_run(command, log):

@@ -12,6 +12,7 @@ import tempfile
 import zipfile
 from environment import ROOT, environment
 from link_icu_guest import LIBRARIES
+from link_libcore_guest import LIBRARIES as LIBCORE_LIBRARIES
 
 
 def digest(path):
@@ -23,18 +24,21 @@ def main():
     parser.add_argument('--icu-dir', required=True, type=Path)
     parser.add_argument('--guest-dir', required=True, type=Path)
     parser.add_argument('--dependency-dir', required=True, type=Path)
+    parser.add_argument('--libcore-dir', type=Path, help='Also execute the signed native class-library checks')
     args = parser.parse_args()
     if sys.platform != 'darwin': parser.error('Signed native ARM64 execution requires macOS')
     os.environ.update(environment())
     builds, artifacts = [Path(os.environ[name]) for name in ('ARTBOX_BUILD_DIR', 'ARTBOX_ARTIFACTS_DIR')]
-    output = builds / 'm3/icu-guest'
+    label = 'libcore' if args.libcore_dir else 'icu'
+    output = builds / ('m3/' + label + '-guest')
     output.mkdir(parents=True, exist_ok=True)
     read = lambda p: json.loads(p.read_text(encoding='utf-8'))
     icu, guest, deps = args.icu_dir, args.guest_dir, args.dependency_dir
     linked = read(artifacts / 'm3-icu-guest-link.json')
     art = read(artifacts / 'm3-art-guest-link.json')
+    libcore = read(artifacts / 'm3-libcore-guest-link.json') if args.libcore_dir else None
     revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
-    for report in (linked, art):
+    for report in [linked, art, *([libcore] if libcore else [])]:
         if report['project_commit'] != revision or report['input_revision'] != revision or report['working_tree_dirty']:
             raise RuntimeError('Require ICU and ART from the current clean producer revision')
     bionic = read(deps / 'artifacts/m2-bionic-startup.json')
@@ -54,13 +58,24 @@ def main():
          deps / 'build/m3/guest-loader/libdl.so', art['dependencies']['libdl.so'], loader['frameworks']['macos-libdl'])]
     for _, elf, expected, _ in modules:
         if linked['base_inputs'][elf.name] != expected: raise RuntimeError('ICU base dependency changed')
-    order = [name for name, _, _, _ in LIBRARIES] + ['libartbox_icu_check.so']
-    if set(linked['libraries']) != set(order): raise RuntimeError('Unexpected ICU library set')
+    order = [name for name, _, _, _ in LIBRARIES]
+    if set(linked['libraries']) != set(order + ['libartbox_icu_check.so']): raise RuntimeError('Unexpected ICU library set')
+    if not libcore: order.append('libartbox_icu_check.so')
     for name in order:
         details = linked['libraries'][name]
         framework = details['framework_name']
         modules.append((icu / 'macos' / (framework + '.framework') / framework,
                         icu / name, details['elf_sha256'], details['frameworks']['macos']))
+    if libcore:
+        for _, elf, expected, _ in modules:
+            if libcore['base_inputs'][elf.name] != expected: raise RuntimeError('Libcore base dependency changed')
+        order = [name for name, _, _, _, _ in LIBCORE_LIBRARIES] + ['libartbox_libcore_check.so']
+        if set(libcore['libraries']) != set(order): raise RuntimeError('Unexpected libcore library set')
+        for name in order:
+            details = libcore['libraries'][name]
+            framework = details['framework_name']
+            modules.append((args.libcore_dir / 'macos' / (framework + '.framework') / framework,
+                            args.libcore_dir / name, details['elf_sha256'], details['frameworks']['macos']))
     for binary, elf, expected, framework in modules:
         if digest(elf) != expected or digest(binary) != framework['layout']['macho_sha256']:
             raise RuntimeError('ICU executable input changed: ' + str(elf))
@@ -72,15 +87,16 @@ def main():
     for directory in ('data', 'system/i18n/etc/icu', 'system/tzdata'):
         (root / directory).mkdir(parents=True, exist_ok=True)
     shutil.copyfile(data, root / 'system/i18n/etc/icu/icudt75l.dat')
-    runner = builds / 'host/artbox_native_icu'
+    runner = builds / ('host/artbox_native_' + label)
     command = [str(runner), *[str(p.resolve()) for row in modules for p in row[:2]], str(root.resolve())]
     paths = subprocess.check_output(['git', 'ls-files', 'core', 'platform', 'CMakeLists.txt',
-        'scripts/test_icu_guest.py', 'tests/native_icu.c', 'fixtures/art-runtime/native_icu.cpp', 'LICENSE'],
+        'scripts/test_icu_guest.py', 'tests/native_icu.c', 'fixtures/art-runtime/native_icu.cpp',
+        'tests/native_libcore.c', 'fixtures/art-runtime/native_libcore.cpp', 'fixtures/libcore-integer128/check.c', 'LICENSE'],
         text=True).splitlines()
     bundle = output / 'corresponding-source.zip'
     with zipfile.ZipFile(bundle, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
         for path in paths: archive.write(ROOT / path, 'artbox/' + path)
-    result = {'project_commit': revision, 'scope': 'Signed ICU native checks through Bionic; no JavaVM/DEX',
+    result = {'project_commit': revision, 'scope': 'Signed ' + label + ' native checks through Bionic; no JavaVM/DEX',
               'project_sources': {p: digest(ROOT / p) for p in paths}, 'source_bundle_sha256': digest(bundle),
               'runner_sha256': digest(runner), 'command': command,
               'elf_sha256': {elf.name: expected for _, elf, expected, _ in modules},
@@ -96,10 +112,16 @@ def main():
         process.check_returncode()
         native = json.loads(process.stdout)
         result['native'] = native
-        if (native['icu_cases'] != 8 or native['icu_check_ns'] <= 0 or native['constructors'] < 31 or native['tls_modules'] < 1 or
-                native['linked_images'] != 10 or native['registered_vms'] or
+        if (native['constructors'] < 35 or native['tls_modules'] < 1 or
+                native['linked_images'] != (15 if libcore else 10) or native['registered_vms'] or
                 not native['heap_binding_verified'] or not native['cleanup'] or
                 native['runtime_started'] or native['dex_executed']):
+            raise RuntimeError('Incomplete signed native dependency execution contract')
+        if libcore:
+            if (native['libcore_cases'] != 17 or native['integer128_cases'] != 228 or native['threads_reaped'] != 1 or
+                    native['libcore_check_ns'] <= 0 or native['integer128_check_ns'] <= 0):
+                raise RuntimeError('Incomplete signed libcore execution contract')
+        elif native['icu_cases'] != 8 or native['icu_check_ns'] <= 0:
             raise RuntimeError('Incomplete signed ICU execution contract')
     except subprocess.TimeoutExpired as error:
         (output / 'native.stdout').write_bytes(error.stdout or b'')
@@ -107,8 +129,9 @@ def main():
         result['timeout'] = True
         raise
     finally:
-        (artifacts / 'm3-icu-guest.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
-    print('Eight native ICU groups pass through signed Android libraries; JavaVM startup and DEX pending')
+        (artifacts / ('m3-' + label + '-guest.json')).write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
+    print(('17 libcore groups and 228 integer vectors' if libcore else 'Eight native ICU groups') +
+          ' pass through signed Android libraries; JavaVM startup and DEX pending')
 
 
 if __name__ == '__main__': main()

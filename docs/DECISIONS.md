@@ -1664,7 +1664,8 @@ for an unsupported operation; this is not a process-performance benchmark.
 ## 0072: Generate Android IDs and retain Bionic's resolver dependencies
 
 Status: the new NDK callers fail strict linking against the preceding libc.
-Original source selection and runtime checks added; native execution pending.
+At `1647514`, all 75 new checks pass in both signed Mac modes, 45 common checks
+pass on native Linux, and the 16 original generator tests pass. Complete CI is green.
 
 Native libcore imports account, resolver, network/interface and file wrappers
 outside the existing Bionic subset. Select the original pinned units and their
@@ -1694,3 +1695,29 @@ for their original source revision.
 This source closure increases signed code and relocation size, including
 resolver paths not yet usable without their services. Measure the resulting
 artifact; do not infer network support or JavaVM startup from successful linking.
+
+## 0073: Sign native class libraries before registering JNI
+
+Status: implementation added; signed execution pending CI.
+
+Link the 208 selected Android native class-library objects against ART, ICU,
+Bionic, math and libdl from the same clean producer revision. Preserve the
+original javacore export map: its JNI class cache must remain distinct from
+OpenJDK's. Only OpenjdkJvm may retain the existing explicit Bionic TLS import;
+every other strong import must resolve through its DT_NEEDED graph. Reject
+compiler TLS and unreviewed kernel/thread-pointer/reserved-register instructions.
+
+Use a narrow archive containing exactly three hash-pinned NDK compiler-rt
+unsigned-128 division members. Keep them local to the consuming libraries and
+carry the original LLVM exception notice. A Python arbitrary-precision divmod
+oracle supplies 228 boundary and deterministic generated vectors, including
+null-remainder output. Calls with 128-bit operands stay inside Android code;
+the Apple boundary sees only the integer result.
+
+Run the original native libcore fixture with the five Linux capability groups
+excluded from the Apple variant; Linux continues requiring all 22 groups.
+Apple must pass all 17 applicable groups, including the actual monitor worker's
+join and cleanup. Load both JNI libraries and check their exports, but defer
+JNI_OnLoad until JavaVM exists. Constructor and native dependency execution
+alone cannot establish Java or APK support. The cost is six additional signed
+frameworks plus their ELF data and notices; no executable mappings are created.

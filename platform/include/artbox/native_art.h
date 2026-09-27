@@ -24,6 +24,13 @@ typedef struct artbox_icu_input {
  * The root supplies system/i18n/etc/icu/icudt75l.dat before constructors run.
  * Does not invoke JNI_OnLoad, start a JavaVM or execute DEX. */
 int artbox_run_native_icu(const artbox_icu_input *input, const artbox_host *host);
+typedef struct artbox_libcore_input {
+    /* Nine ART/ICU dependencies, five libcore libraries, native test caller. */
+    const char *frameworks[15], *elfs[15];
+    const char *root;
+} artbox_libcore_input;
+/* Plain native checks only: no JNI_OnLoad, JavaVM or DEX execution. */
+int artbox_run_native_libcore(const artbox_libcore_input *input, const artbox_host *host);
 #ifdef __cplusplus
 }
 #endif

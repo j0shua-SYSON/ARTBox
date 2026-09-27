@@ -54,12 +54,19 @@ provider is not implemented; portable VFS tests use an injected provider there.
 
 ## In progress: M3 ART bring-up
 
-The next dependency selection adds 57 unchanged Bionic units and AOSP-generated
+At `1647514`, the dependency selection adds 57 unchanged Bionic units and AOSP-generated
 Android account IDs. New callers cover numeric address resolution, bounded
 strings and Android account storage; they fail to link against the previous
-libc as expected. The 338-unit build and 75-case native acceptance are being
-validated. DNS/network services, interface discovery and the other newly
+libc as expected. The 338-unit build passes all 75 cases in both signed Mac
+modes; native Linux passes the 45 common string/resolver cases. All 16 original
+ID-generator tests pass on Mac. Both complete CI workflows are green.
+DNS/network services, interface discovery and the other newly
 imported syscall families remain outside the implemented kernel subset.
+
+The next integration links the five Android native class-library dependencies
+and their caller from 208 original units. A 15-image signed runtime test is
+being added for 17 native groups and 228 unsigned-integer division vectors.
+This validation is pending; it does not start JavaVM or invoke JNI_OnLoad.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

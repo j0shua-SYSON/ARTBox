@@ -22,7 +22,9 @@ Linux libc reference; Android's account IDs are checked only in real Bionic.
 Short getnameinfo buffers retain Bionic's EAI_MEMORY and glibc's EAI_OVERFLOW
 results. No runtime adaptation changes these original library semantics.
 The new client fails strict linking against the previous source selection;
-native execution of these 75 cases is pending CI. Its score is separate from
+all 75 cases pass in both signed Mac modes at `1647514`, and native Linux
+passes the 45 common cases. All 16 unchanged ID-generator tests also pass on Mac.
+Its score is separate from
 the existing 73 libc checks, 30 vfork checks and fixed M2 denominator.
 The account-file tables and resolver pthread key add two original Bionic
 constructors. Current acceptance requires all five constructors, while retaining

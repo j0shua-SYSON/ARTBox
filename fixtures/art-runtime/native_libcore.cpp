@@ -7,7 +7,9 @@
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <string>
+#ifndef ARTBOX_GUEST_LIBCORE
 #include <sys/capability.h>
+#endif
 #include <sys/syscall.h>
 #include <thread>
 #include <unistd.h>
@@ -36,8 +38,13 @@ static void XMLCALL characters(void* opaque, const XML_Char* text, int size) {
   static_cast<XmlState*>(opaque)->text.append(text, size);
 }
 
+#ifdef ARTBOX_GUEST_LIBCORE
+extern "C" int artbox_native_libcore_check(void) {
+  const char* argv[] = {"libcore-check", "/data", ""};
+#else
 int main(int argc, char** argv) {
   if (argc != 3) return 64;  // writable scratch directory, library directory
+#endif
   int cases = 0;
   unsigned char hash[SHA_DIGEST_LENGTH];
   const unsigned char expected[] = {0xa9,0x99,0x3e,0x36,0x47,0x06,0x81,0x6a,0xba,0x3e,
@@ -74,6 +81,7 @@ int main(int argc, char** argv) {
   CHECK(JVM_IsNaN(ieee_sqrt(-1.0)) && !JVM_IsNaN(1.0) && !JVM_IsNaN(ieee_log(0.0)));
   ++cases;
 
+#ifndef ARTBOX_GUEST_LIBCORE
   __user_cap_header_struct header{_LINUX_CAPABILITY_VERSION_3, 0}, raw_header = header;
   __user_cap_data_struct capabilities[2]{}, raw_capabilities[2]{};
   CHECK(capget(&header, capabilities) == 0);
@@ -98,6 +106,7 @@ int main(int argc, char** argv) {
     }
   }
 
+#endif
   XmlState xml;
   XML_Parser parser = XML_ParserCreate(nullptr);
   CHECK(parser);
@@ -154,7 +163,7 @@ int main(int argc, char** argv) {
   ++cases;
 
   for (const char* name : {"libjavacore.so", "libopenjdk.so"}) {
-    const std::string library_path = std::string(argv[2]) + "/" + name;
+    const std::string library_path = *argv[2] ? std::string(argv[2]) + "/" + name : name;
     void* library = dlopen(library_path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (!library) std::fprintf(stderr, "%s\n", dlerror());
     CHECK(library && dlsym(library, "JNI_OnLoad"));
@@ -191,7 +200,15 @@ int main(int argc, char** argv) {
     CHECK(dlclose(library) == 0);
     ++cases;
   }
+#ifdef ARTBOX_GUEST_LIBCORE
+  CHECK(cases == 17);
+#else
   CHECK(cases == 22);
+#endif
+#ifdef ARTBOX_GUEST_LIBCORE
+  std::fprintf(stderr, "ARTBox native libcore dependencies: %d cases passed; no Java VM started\n", cases);
+#else
   std::printf("ARTBox native libcore dependencies: %d cases passed; no Java VM started\n", cases);
+#endif
   return 0;
 }

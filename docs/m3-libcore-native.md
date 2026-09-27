@@ -88,7 +88,31 @@ returning ENOSYS for raw process clone. At `3826391`, both signed Mac modes pass
 28 injected-state cases and two real guest rejection checks; native Linux
 confirms the captured cases and detects a missing-register-save mutation.
 This satisfies the frontend contract, not subprocess support. Additional
-Bionic dependencies and signed execution of these class libraries remain open.
+Bionic dependencies are now selected: at `1647514`, the 338-unit build passes
+75 new frontend/account checks in both signed Mac modes. Additional syscall
+services remain open even when their Bionic frontend links.
+
+The Android guest job now also builds all 208 units and a guest variant of the
+native fixture. `scripts/link_libcore_guest.py` verifies producer revisions,
+object/source hashes, every library's reachable imports and the instruction
+boundary before creating signed Mac and iOS 15 frameworks. It preserves the
+original javacore export map. OpenjdkJvm retains exactly the existing explicit
+`artbox_bionic_get_tls` boundary; no new host implementation is supplied.
+
+Three pinned NDK compiler-rt unsigned-128 division members form a narrow local
+archive. Neither libc nor the class libraries export these helpers. The same
+bytes are tested against 228 Python-generated quotient/remainder vectors in
+the signed caller; the 128-bit calling convention never crosses into Apple C.
+The generated vectors, original test source, member hashes and complete NDK
+notice accompany the producer artifact.
+
+The shared runner loads 15 images: nine ART/ICU dependencies, five class
+libraries and the test caller. The Apple fixture requires 17 applicable native
+groups; the five Linux capability groups remain mandatory in the 22-group
+Linux reference. It calls real JVM file and monitor routines, joins and reaps
+the guest worker, checks both JNI library exports and the POSIX error-string
+ABI, and reports separate native/integer test times. JNI_OnLoad and JavaVM are
+not invoked. Signed execution of this integration is pending CI.
 
 Artifacts preserve source/object hashes, compiler and link commands, native test
 output, original notices, all selected corresponding source, and the verified

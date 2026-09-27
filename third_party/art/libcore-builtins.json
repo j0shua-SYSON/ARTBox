@@ -1,0 +1,12 @@
+{
+  "description": "Three compiler-rt unsigned 128-bit division members, kept local to libcore",
+  "ndk_revision": "28.2.13676358",
+  "archive": "lib/clang/19/lib/linux/libclang_rt.builtins-aarch64-android.a",
+  "members": {
+    "udivti3.c.o": "d42b766d3fd644ed8859060f6ce6a14ed4bd1318ce192df5da7372debc56c487",
+    "umodti3.c.o": "68a6353d960e4c0de47eedf0da4765be90a2659568361f917d437df0e9d1771f",
+    "udivmodti4.c.o": "4dfa503bc1f6f60118c7b7a4462a760fea259a3971d4dfca26c2cfb8bf6d8f9e"
+  },
+  "notice": "NOTICE",
+  "notice_sha256": "f96f763beb66a7ba7a667647fc64c0226ace875e590c831fdd9579ec1c1d91e1"
+}

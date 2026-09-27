@@ -437,6 +437,14 @@ library implementations at the same `android-15.0.0_r1` tag:
 | BoringSSL libcrypto_for_art subset | `23a87e389eb925678c6766f7d0fcd189c2f9303c` | Complete NOTICE, src/LICENSE and original per-file notices, including OpenSSL, SSLeay, ISC and MIT terms |
 | Expat library | `8ae3fff00472acf17b96871c7cdeaccfa7430c73` | MIT root COPYING, expat/COPYING and original source notices |
 
+The signed Android libcore link additionally selects `udivti3.c.o`,
+`umodti3.c.o` and `udivmodti4.c.o` from the already pinned NDK r28c compiler-rt
+archive. `third_party/art/libcore-builtins.json` pins each member and the
+complete NDK notice (Apache-2.0 WITH LLVM-exception for these helpers). A narrow
+archive prevents selection of unreviewed members; the helpers remain local to
+their consuming library. Original ARTBox integer test vectors and callers are
+MIT. This does not change any upstream component's license.
+
 The native libcore artifacts retain all selected corresponding source and build
 inputs, including the original relative-header layout recipe. No license header
 is removed; ARTBox's MIT license applies to original ARTBox code. The Expat
