@@ -1830,7 +1830,7 @@ and dropped edits on Mac; ordinary iOS 15 compilation is a separate check.
 
 ## 0078: Bind a separate syscall and TLS scope before guest signal execution
 
-Status: implemented; native signal-under-mapper-lock test pending CI.
+Status: verified on native ARM64 Mac at 9200f91; complete CI passes.
 
 A signal can interrupt code while the VM mapper or stdio holds a lock. Reusing
 the ordinary dispatcher from ART sigchain would reenter those locks. Likewise,
@@ -1860,3 +1860,38 @@ must use its separate scope and resume normally. Tests also cover nested scope
 restoration, per-thread isolation, active-detach rejection and cleanup. This
 still does not install guest actions or implement handler-time Linux mask calls;
 it establishes the binding required to do so without reentering locked services.
+
+## 0079: Publish immutable actions and first deliver a signed Android trap handler
+
+Status: local portable tests pass; native delivery and Linux comparison pending CI.
+
+Keep Linux rt_sigaction copyin/out and ownership in the portable process service.
+Enable registration only with a platform capability validator, before threads
+start. Publish complete immutable records through a lock-free atomic pointer;
+handlers snapshot or reset without taking the ordinary writer mutex. Retain
+records until process destruction so an interrupted reader cannot observe freed
+memory. Bounded exhaustion returns ENOMEM without changing state; the diagnostic
+owner reserves 4,096 records (128 KiB). This trades bounded lifetime storage for
+simple safe publication; reclamation needs a separate quiescence protocol.
+
+Use a real NDK-compiled handler registered through Bionic sigaction as the next
+integration test. Begin with BRK/SIGTRAP, SA_SIGINFO and optional SA_RESTART on an
+attached guest stack. Snapshot the logical mask atomically, construct Linux
+siginfo/ucontext, enter the signal syscall/TLS scope and invoke signed code
+through the existing fixed-word ARM64 boundary. Validate the resumed PC against
+stable signed RX ranges and SP against the owned stack before touching Darwin
+state. No allocation, VM lookup, mutable loader query or stdio occurs in delivery.
+
+The initial signal dispatcher supports immutable getpid/gettid and a mask query
+into the attached stack. It rejects mask mutation, alternate stacks, changed
+return masks, custom restorers and unsupported action flags rather than passing
+Darwin layouts or semantics into Android. Process-wide host disposition changes
+belong to the execution owner, which restores SIGTRAP after guest threads stop.
+Fatal/default routing and other faults remain unfinished; this is not yet ART's
+full sigchain boundary. Ordinary masks and blocked queues retain their tests.
+
+The caller checks registration/error ordering, real Bionic errno/TLS, Linux
+TRAP_BRKPT data and PC/x0/SIMD resume. Dropping register edits must fail while
+still advancing BRK. Run the same source with Linux libc as an independent
+reference; its sigaction wrapper layout differs, so do not call this an
+identical-object oracle. Do not change M2's fixed acceptance denominator.

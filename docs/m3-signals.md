@@ -70,7 +70,35 @@ allocation or locking. Ordinary compiler-TLS reads remain outside that path.
 The new test faults while the VM mapper lock is held, then calls the adapted
 Bionic endpoints through the signal scope; entering the ordinary dispatcher
 would deadlock. Nested restoration, host errno, TLS-write rejection and thread
-isolation are also checked. These new native checks are pending CI.
+isolation are also checked. These native checks and both complete CI workflows
+pass at `9200f91`. Independent inspection verifies sixteen project sources,
+nineteen signed code pages and the positive/mutation outcomes. Disassembly
+confirms that ordinary compiler-TLS resolution follows the unbound branch.
+
+The initial delivery bridge now connects a real Bionic `sigaction` caller to
+portable immutable action records and an Android-compiled SIGTRAP handler.
+Registration reads/writes the 32-byte Linux ARM64 action, filters unmaskable bits
+and publishes before old-action copyout, matching Linux error ordering. A
+delivery owner must enable registration before guest threads start. Its validator
+rejects unsupported flags/dispositions and checks signed code addresses.
+
+The Apple bridge uses stable signed RX ranges and the attached guest stack;
+its handler path never enters the VM registry or loader. It translates BRK to
+Linux TRAP_BRKPT, enters a separate syscall/TLS scope and returns through Darwin
+after checking guest PC/SP edits. Getpid/gettid and stack-buffer mask queries
+are supported within this scope. The 16-check caller uses Bionic TLS/errno and
+edits PC/x0/SIMD; a second call drops the register edits and must return -1000.
+The same C source runs against native Linux libc, whose sigaction API layout
+differs from Bionic; this is not an identical-object comparison. Native execution
+is pending CI. The fixed 328-expectation M2 denominator is unchanged.
+
+This first transport accepts SA_SIGINFO with optional SA_RESTART, no action
+mask, and SIG_DFL restoration. Default/fatal handling remains with the owner;
+the diagnostic runner exits on unsupported faults. SA_ONSTACK, SA_NODEFER,
+SA_RESETHAND, custom restorers, changed return masks and handler-time mask
+mutation return errors. No ART sigchain or JavaVM startup is claimed. Action
+records remain allocated until process destruction, with explicit ENOMEM on
+capacity exhaustion; the diagnostic owner allows 4,096 nontrivial publications.
 
 The pinned ART sources require a real boundary before JavaVM startup on Apple:
 

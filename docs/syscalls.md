@@ -195,7 +195,7 @@ signed Mac modes and both native Linux profiles at `c211a46`; native provider
 tests retain a shared mapping after unlink and close. These checks do not
 change M2's fixed denominator.
 
-### M3 blocked signal queues (native validation pending)
+### M3 blocked signal queues (native validation passes at 9c6a22f)
 
 | ARM64 call | Implemented subset | Deliberate limits |
 | --- | --- | --- |
@@ -205,8 +205,22 @@ change M2's fixed denominator.
 
 The 33-case shared caller and portable blocked-worker/lifetime tests pass
 locally. Signed Bionic and the identical NDK object on native Linux are CI gates.
-This normal thread-context implementation does not implement sigaction or
-sigaltstack and is not safe for use inside a host signal handler.
+The normal queue implementation is not safe inside a host signal handler.
+
+### Initial action registration and synchronous trap delivery (native CI pending)
+
+| ARM64 call | Implemented subset | Deliberate limits |
+| --- | --- | --- |
+| rt_sigaction 134 | Linux ARM64 action copyin/out, filtered masks, query, atomic publication before old-action copyout | Requires a delivery owner. Initial Apple owner accepts SIGTRAP, SA_SIGINFO and optional SA_RESTART, no action mask/custom restorer; SIG_DFL can be restored. |
+| rt_sigprocmask 135 in handler | Query the interrupted mask plus automatically blocked SIGTRAP into an attached stack buffer | Mask mutations and return-frame mask changes are unsupported; no VM locks in this path. |
+| getpid/gettid 172/178 in handler | Immutable guest thread IDs through the separate signal dispatcher | Other signal-time syscall families remain unsupported. |
+
+Portable tests cover publication races, reset, capacity, invalid signal IDs,
+unaligned buffers, rejected capabilities and copyout failure after mutation.
+A real Android-compiled handler and a same-source Linux reference check
+registration, Linux siginfo, TLS/errno and PC/x0/SIMD resume. Native results are
+pending. Alternate stacks, other fault signals and asynchronous unblocked
+delivery remain open; see [the signal contract](m3-signals.md).
 
 ### File-backed data mapping extension (native CI green at b1a94c5)
 

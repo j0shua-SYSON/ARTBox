@@ -99,10 +99,19 @@ binary and CTest log verify independently. At `c16c648`, the signed Darwin test
 also resumes edited PC/x0/SIMD state, preserves x18 and detects dropped edits.
 Independent checks verify six source hashes, the native executable and nine
 CodeDirectory page hashes. Both complete CI workflows pass at that revision.
-The next change gives handlers a separate syscall/TLS scope and tests a real
-fault while the mapper lock is held; native validation of that binding is pending.
-Guest handler delivery, handler-time masks, alternate stacks, registration and unblocked
-delivery remain incomplete.
+At `9200f91`, a real Mac fault while the mapper mutex is held uses a separate
+syscall/TLS scope. Nested restoration, thread isolation and errno preservation
+pass; both full CI workflows are green. Independent inspection verifies sixteen
+source hashes, the executable and nineteen signed code pages; disassembly keeps
+ordinary compiler-TLS resolution behind the signal-scope branch.
+
+The next change connects Bionic `sigaction` to immutable portable action records
+and a signed Android SIGTRAP handler. Local action publication and registration
+tests pass, including concurrent reset and copyout failure after publication.
+The new native caller checks Linux siginfo/context, Bionic TLS/errno, a mask
+query and PC/x0/SIMD return, with a dropped-register control. Apple execution and
+the same-source Linux comparison are pending CI. Other fault signals, handler
+mask changes, alternate stacks and unblocked queued delivery remain incomplete.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

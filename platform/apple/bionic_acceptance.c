@@ -8,6 +8,8 @@
 #include "artbox/native_call.h"
 #include "artbox/native_tls.h"
 #include "artbox/native_syscall.h"
+#include "artbox/native_signal_binding.h"
+#include "artbox/native_signal_delivery.h"
 #include "artbox/signals.h"
 #include "artbox/native_vm.h"
 #include "artbox/native_system.h"
@@ -57,6 +59,9 @@ static int64_t libcore_frontend_cases;
 static int64_t unlink_cases;
 static int64_t signal_wait_cases;
 static artbox_signals *process_signals;
+static artbox_signal_code_range signal_code[IMAGE_CAPACITY];
+static artbox_native_signal_thread signal_template;
+static int32_t signal_handler_cases,signal_handler_mutation;
 static uint64_t file_ns;
 static artbox_futex *futex;
 static artbox_threads *threads;
@@ -96,6 +101,11 @@ static void fault(int number) {
     const char text[] = "startup: native fault (see last stage and syscall)\n";
     (void)write(2, text, sizeof(text) - 1);
     _Exit(1); // No core dump or platform crash reporter needed by this fixture.
+}
+static void deliver_trap(int number,siginfo_t *info,void *context) {
+    (void)info;
+    artbox_native_signal_thread *thread=artbox_native_signal_thread_context();
+    if(number!=SIGTRAP || artbox_native_signal_deliver_trap(thread,context)) fault(number);
 }
 static uint64_t unexpected(void) { fail("unexpected external loader/thread interface"); return 0; }
 static int target_sdk(void) { return 35; }
@@ -260,6 +270,10 @@ static void run_child(void *context, artbox_kernel_thread *kernel, const artbox_
     const artbox_syscall_binding binding = {dispatch, kernel};
     const artbox_syscall_binding *previous = artbox_native_syscall_swap(&binding);
     void **old_tls = artbox_native_tls_swap((void **)(uintptr_t)start->tls);
+    artbox_native_signal_thread signal_thread=signal_template;
+    signal_thread.kernel=kernel; signal_thread.stack_address=start->stack_base;
+    signal_thread.stack_size=start->stack_size; signal_thread.guest_tls=(void **)(uintptr_t)start->tls;
+    if(artbox_native_signal_attach(&signal_thread)) fail("child signal attachment");
     artbox_guest_dl_thread *dl_thread = NULL, *old_dl = NULL;
     if (guest_dl_service) {
         if (artbox_guest_dl_thread_create(guest_dl_service, &dl_thread) != ARTBOX_ELF_OK) fail("child loader state");
@@ -272,6 +286,7 @@ static void run_child(void *context, artbox_kernel_thread *kernel, const artbox_
         finish->error = -5; // Bionic __pthread_start must end through guest exit.
     }
     exit_boundary = NULL; thread_finish = NULL; current_kernel = NULL;
+    if(artbox_native_signal_detach()) fail("child signal detach");
     if (dl_thread) {
         artbox_native_dlfcn_swap(old_dl);
         artbox_guest_dl_thread_destroy(dl_thread);
@@ -358,6 +373,9 @@ static void *run(void *context) {
     if (artbox_call7(entry(&images[0], "artbox_bootstrap_main"), (uintptr_t)args,
                     (uintptr_t)templates, tls_count, 0, 0, 0, 0)) fail("bootstrap return");
     if (!artbox_bionic_get_tls()) fail("no real Bionic TCB");
+    artbox_native_signal_thread signal_thread=signal_template;
+    signal_thread.kernel=&thread; signal_thread.guest_tls=artbox_bionic_get_tls();
+    if(artbox_native_signal_attach(&signal_thread)) fail("primary signal attachment");
     fprintf(stderr, "bootstrap complete; running real libc constructors\n");
     if (artbox_load_group_initialize(load_group, construct, NULL) != ARTBOX_ELF_OK) fail("load-group constructors");
     unsigned initialized = constructors;
@@ -386,6 +404,7 @@ static void *run(void *context) {
         }
         artbox_native_dlfcn_swap(old_dl);
         artbox_guest_dl_thread_destroy(dl_thread);
+        if(artbox_native_signal_detach()) fail("ART primary signal detach");
         artbox_native_tls_swap(old_tls);
         artbox_native_syscall_swap(previous);
         current_kernel = NULL;
@@ -436,6 +455,12 @@ static void *run(void *context) {
         fprintf(stderr, "signal wait caller: %" PRId64 "\n", signal_wait_cases);
         fail("blocked signal wait contract");
     }
+    signal_handler_cases=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_handler_check"),0,0,0,0,0,0,0);
+    signal_handler_mutation=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_handler_check"),1,0,0,0,0,0,0);
+    if(signal_handler_cases!=16 || signal_handler_mutation!=-1000) {
+        fprintf(stderr,"signal handler caller: %d mutation: %d\n",signal_handler_cases,signal_handler_mutation);
+        fail("signed Android handler delivery");
+    }
     int64_t scratch = artbox_vm_mmap(vm, 0, artbox_vm_page_size(vm), 3, 0x22, -1, 0);
     if (scratch < 0) fail("futex fixture storage");
     futex_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_futex_check"), (uint64_t)scratch, 0, 0, 0, 0, 0, 0);
@@ -473,6 +498,7 @@ static void *run(void *context) {
     gwp_enabled = artbox_call7(entry(&images[0], "artbox_bootstrap_gwp_enabled"), 0, 0, 0, 0, 0, 0, 0);
     guarded_samples = artbox_call7(entry(&images[0], "artbox_bootstrap_guarded_samples"), 0, 0, 0, 0, 0, 0, 0);
     if (force_sampling && (!gwp_enabled || !guarded_samples)) fail("GWP-ASan sampling did not run");
+    if(artbox_native_signal_detach()) fail("primary signal detach");
     artbox_native_tls_swap(old_tls);
     artbox_native_syscall_swap(previous);
     current_kernel = NULL;
@@ -505,12 +531,18 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     futex = artbox_futex_create(vm, &atomic, &system, 4096);
     if (!vm || !filesystem || !futex || artbox_kernel_thread_init(&thread, vm, &system, 10000, 10000)) fail("kernel context");
     process_signals = artbox_signals_create(vm, 10000, 10000, 65);
-    if (!process_signals || artbox_signals_attach(process_signals, &thread)) fail("signal process context");
+    if (!process_signals) fail("signal process context");
     artbox_thread_ops native_threads = artbox_native_threads();
     threads = artbox_threads_create(vm, futex, &atomic, &system, &native_threads, 10000, 10001, 64, run_child, NULL);
     if (!threads) fail("native thread manager");
     uint64_t start = now();
     for (unsigned i = 0; i < image_count; ++i) load(&images[i], input->frameworks[i], input->elfs[i]);
+    for(unsigned i=0;i<image_count;++i)
+        signal_code[i]=(artbox_signal_code_range){(uintptr_t)images[i].rx,images[i].elf.segments[0].file_size};
+    signal_template.code=signal_code; signal_template.code_count=image_count;
+    if(artbox_signals_enable_actions(process_signals,4096,artbox_native_signal_validate_trap,&signal_template) ||
+        artbox_signals_attach(process_signals,&thread)) fail("signal action owner");
+    signal_template.actions=artbox_signals_action_table(process_signals);
     artbox_relocation_memory memory[IMAGE_CAPACITY]; artbox_link_module modules[IMAGE_CAPACITY];
     for (unsigned i = 0; i < image_count; ++i) {
         memory[i] = (artbox_relocation_memory){1, images[i].rw, (size_t)images[i].elf.segments[1].memory_size};
@@ -541,6 +573,10 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     size_t stack_size = 4 * 1024 * 1024, page = ops.page_size;
     int64_t stack = artbox_vm_mmap(vm, 0, stack_size + 2 * page, 0, 0x22, -1, 0);
     if (stack < 0 || artbox_vm_mprotect(vm, (uint64_t)stack + page, stack_size, 3)) fail("guest stack");
+    signal_template.stack_address=(uint64_t)stack+page; signal_template.stack_size=stack_size;
+    struct sigaction trap={0},saved_trap;
+    trap.sa_sigaction=deliver_trap; trap.sa_flags=SA_SIGINFO|SA_RESTART;
+    if(sigemptyset(&trap.sa_mask) || sigaction(SIGTRAP,&trap,&saved_trap)) fail("host trap disposition");
     pthread_attr_t attr;
     pthread_t worker;
     if (pthread_attr_init(&attr) || pthread_attr_setstack(&attr, (void *)(uintptr_t)((uint64_t)stack + page), stack_size) ||
@@ -553,6 +589,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) || usage.ru_maxrss <= 0) fail("native resident-memory measurement");
     if (artbox_threads_destroy(threads)) fail("thread manager cleanup");
+    if(sigaction(SIGTRAP,&saved_trap,NULL)) fail("restore host trap disposition");
     if (artbox_signals_thread_count(process_signals) != 1 || artbox_signals_waiter_count(process_signals) ||
         artbox_signals_detach(&thread) || artbox_signals_destroy(process_signals)) fail("signal process cleanup");
     artbox_guest_dlfcn_destroy(guest_dl_service);
@@ -595,8 +632,8 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
            ",\"pthread_result\":%d,\"threads_reaped\":%" PRIu64 ",\"pthread_client_ns\":%" PRIu64
            ",\"thread_guarded_samples\":%" PRIu64 ",\"process_peak_rss_bytes\":%ld,"
            "\"linked_images\":4,\"tls_modules\":2,\"tls_threads\":7,\"tls_result\":0,\"tls_queries\":%" PRIu64 ",\"version_result\":%" PRId64 ",\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64
-           ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"art_libc_cases\":%" PRId64 ",\"vfork_cases\":%" PRId64 ",\"libcore_frontend_cases\":%" PRId64 ",\"unlink_cases\":%" PRId64 ",\"signal_wait_cases\":%" PRId64 ",\"unsupported_syscalls\":{",
-           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases, unlink_cases, signal_wait_cases);
+           ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"art_libc_cases\":%" PRId64 ",\"vfork_cases\":%" PRId64 ",\"libcore_frontend_cases\":%" PRId64 ",\"unlink_cases\":%" PRId64 ",\"signal_wait_cases\":%" PRId64 ",\"signal_handler_cases\":%d,\"signal_handler_mutation\":%d,\"unsupported_syscalls\":{",
+           constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases, unlink_cases, signal_wait_cases,signal_handler_cases,signal_handler_mutation);
     if (length < 0 || (size_t)length >= sizeof(report)) fail("result formatting");
     size_t used_bytes = (size_t)length;
     unsigned printed = 0;
