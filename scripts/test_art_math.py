@@ -40,6 +40,8 @@ def run(command, log=None):
 def execute(runner, arguments, log):
     result = subprocess.run([str(runner), *map(str, arguments)], capture_output=True, timeout=30)
     log.write_bytes(result.stdout + result.stderr)
+    if result.returncode:
+        print((result.stdout + result.stderr).decode('utf-8', errors='replace'), file=sys.stderr)
     result.check_returncode()
     observed = json.loads(result.stdout)
     if observed != EXPECTED:

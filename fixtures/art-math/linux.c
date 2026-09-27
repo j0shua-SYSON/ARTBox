@@ -17,11 +17,11 @@ int main(int argc, char **argv) {
     memcpy(&count, &symbol, sizeof(count));
     if (!check || !count) return 4;
     uint32_t cases = count(), failure = check();
-    if (cases != 108 || failure) {
+    if (cases != 130 || failure) {
         fprintf(stderr, "math cases %u, first failure %u\n", cases, failure);
         return 5;
     }
     if (dlclose(library)) return 6;
-    puts("{\"cases\":108,\"first_failure\":0,\"cleanup\":true}");
+    puts("{\"cases\":130,\"first_failure\":0,\"cleanup\":true}");
     return 0;
 }
