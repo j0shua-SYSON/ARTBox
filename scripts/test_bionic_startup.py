@@ -96,6 +96,7 @@ def main():
     version_object, version_client_object = build / "versions.o", build / "version-client.o"
     vm_object, timeout_object = build / "vm-check.o", build / "timeout-check.o"
     proc_object = build / "proc-check.o"
+    unlink_object = build / "unlink-check.o"
     art_libc_object = build / "art-libc-check.o"
     vfork_native_object = build / "vfork-rejection.o"
     libcore_common, libcore_accounts = build / "libcore-common.o", build / "libcore-accounts.o"
@@ -103,7 +104,8 @@ def main():
     if report["vfork"]["cases"] != 28 or digest(vfork_object) != report["vfork"]["native"]["object_sha256"]:
         raise RuntimeError("Vfork caller differs from the verified production-object oracle")
     for source_name, target in (("fixtures/bionic-vm/check.c", vm_object), ("fixtures/bionic-startup/timeouts.c", timeout_object),
-                                ("fixtures/bionic-files/proc.c", proc_object), ("fixtures/bionic-vfork/native.c", vfork_native_object),
+                                ("fixtures/bionic-files/proc.c", proc_object), ("fixtures/bionic-files/unlink.c", unlink_object),
+                                ("fixtures/bionic-vfork/native.c", vfork_native_object),
                                 ("fixtures/bionic-libcore/common.c", libcore_common), ("fixtures/bionic-libcore/accounts.c", libcore_accounts)):
         command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
                 "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
@@ -169,7 +171,7 @@ def main():
     command("ld.lld", *tls_link, "-z", "defs", "-soname", app.name, client, futex_object, thread_object, file_object, mapping_object,
             version_client_object, tls_access, tls_abi, vm_object, timeout_object, proc_object, art_libc_object, comparison,
             vfork_object, vfork_native_object,
-            libcore_common, libcore_accounts,
+            libcore_common, libcore_accounts, unlink_object,
             "--no-as-needed", libc, versions, tls_library, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator through a manifest load group; not full M2",
               "project_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
@@ -201,7 +203,9 @@ def main():
               "rss_method": "Darwin getrusage RUSAGE_SELF ru_maxrss, bytes for the entire host process",
               "futex": {"cases": 19, "source_sha256": digest(futex_source), "object_sha256": digest(futex_object)},
               "mappings": {"cases": 43, "source_sha256": digest(mapping_source), "object_sha256": digest(mapping_object)},
-              "files": {"cases": 41, "source_sha256": digest(file_source), "object_sha256": digest(file_object)}}
+              "files": {"cases": 41, "source_sha256": digest(file_source), "object_sha256": digest(file_object)},
+              "unlink": {"cases": 29, "source_sha256": digest(ROOT / "fixtures/bionic-files/unlink.c"),
+                         "object_sha256": digest(unlink_object)}}
     notices = {name.upper() + "-NOTICE.txt": (inputs / (name.upper() + "-NOTICE.txt"), data["sha256"])
                for name, data in report["component_notices"].items()}
     notices["LIBCUTILS-NOTICE.txt"] = (inputs / "LIBCUTILS-NOTICE.txt", report["dependencies"]["libcutils-headers"]["notice_sha256"])
@@ -258,6 +262,8 @@ def main():
                 raise RuntimeError("Bionic vfork state/rejection client did not complete")
             if result[key]["libcore_frontend_cases"] != 75:
                 raise RuntimeError("Native class-library libc frontend client did not complete")
+            if result[key]['unlink_cases'] != 29:
+                raise RuntimeError('Unlink and descriptor lifetime client did not complete')
             if result[key]["pthread_result"] != 0 or result[key]["threads_reaped"] != 6:
                 raise RuntimeError("NDK pthread client did not complete")
             if result[key]["tls_modules"] != 2 or result[key]["tls_threads"] != 7 or result[key]["tls_result"] != 0:

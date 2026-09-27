@@ -208,6 +208,7 @@ jobs:
             build/m2/bionic-startup/futex-check.o
             build/m2/bionic-startup/file-check.o
             build/m2/bionic-startup/mapping-check.o
+            build/m2/bionic-startup/unlink-check.o
             build/m2/bionic-startup/libartbox_versions.so
             build/m2/bionic-startup/version-client.o
             build/m2/bionic-startup/libartbox_tls.so

@@ -1721,3 +1721,30 @@ join and cleanup. Load both JNI libraries and check their exports, but defer
 JNI_OnLoad until JavaVM exists. Constructor and native dependency execution
 alone cannot establish Java or APK support. The cost is six additional signed
 frameworks plus their ELF data and notices; no executable mappings are created.
+
+## 0074: Preserve open inode lifetime when unlinking a guest file
+
+Status: local portable tests pass; native Linux and signed Apple validation pending.
+
+The first signed class-library execution at `3505832` reaches JVM file cleanup
+and fails because unlinkat returns ENOSYS. Implement rooted non-directory
+unlink rather than removing that cleanup assertion. Reuse the existing pinned
+parent-directory walk, ignore dirfd for absolute paths, and never follow the
+last symlink. A terminal '/.' must be preserved during unlink resolution; the
+read-path normalization would otherwise select its parent for deletion.
+
+Unlink removes the pathname while open descriptors and mappings keep their
+native backing references. Test a zero link count, continued reads through the
+old descriptor, and recreation of the same name as a distinct file. The mock
+filesystem therefore holds inodes through shared ownership. The native provider
+maps Darwin's directory-unlink rejection to Linux EISDIR. It rejects other
+special files; directory removal with AT_REMOVEDIR remains explicitly unsupported.
+The virtual system, device and proc trees stay protected, and parent traversal
+through '..' or a symlink remains rejected. Removing a final symlink removes
+only that directory entry.
+
+The same 29-case NDK object runs through both signed Bionic modes and original/
+adapted Bionic syscall entries on native Linux ARM64. Portable tests additionally
+check virtual-tree protection, absolute dirfd handling, symlink confinement and
+unchanged outside-root guard contents. These cases have a separate result field;
+M2's existing 328-case denominator remains unchanged.

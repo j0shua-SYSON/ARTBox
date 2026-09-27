@@ -112,7 +112,10 @@ groups; the five Linux capability groups remain mandatory in the 22-group
 Linux reference. It calls real JVM file and monitor routines, joins and reaps
 the guest worker, checks both JNI library exports and the POSIX error-string
 ABI, and reports separate native/integer test times. JNI_OnLoad and JavaVM are
-not invoked. Signed execution of this integration is pending CI.
+not invoked. At `3505832`, the six libraries link and sign but the actual JVM
+temporary-file cleanup fails on unimplemented unlinkat. The rooted unlink
+extension retains this test and adds a 29-case native comparison for pathname
+removal and open-inode lifetime. Complete signed execution is still pending.
 
 Artifacts preserve source/object hashes, compiler and link commands, native test
 output, original notices, all selected corresponding source, and the verified

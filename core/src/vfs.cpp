@@ -75,7 +75,7 @@ extern "C" int64_t artbox_vfs_mmap(artbox_vfs *fs, artbox_vm *vm, uint64_t addre
 struct path_info {
     std::string relative, canonical;
     void *directory = nullptr;
-    bool trailing = false;
+    bool trailing = false, terminal_dot = false;
 };
 static int path(artbox_vfs *fs, artbox_vm *vm, uint64_t address, int32_t dirfd, path_info &out) {
     char bytes[4096]; size_t length = 0;
@@ -86,6 +86,9 @@ static int path(artbox_vfs *fs, artbox_vm *vm, uint64_t address, int32_t dirfd, 
     if (length == sizeof(bytes)) return -36;
     if (!length) return -2;
     out.trailing = bytes[length - 1] == '/';
+    size_t tail = length;
+    while (tail && bytes[tail - 1] == '/') --tail;
+    out.terminal_dot = tail && bytes[tail - 1] == '.' && (tail == 1 || bytes[tail - 2] == '/');
     std::string prefix;
     if (bytes[0] != '/' && dirfd != -100) {
         descriptor *base = get(fs, dirfd);
@@ -176,10 +179,26 @@ static int64_t transfer(void *context, void *buffer, size_t length) {
 extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread, uint64_t number,
                                    uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3) {
     if (!fs || !thread || !thread->vm || !thread->system.random) return -22;
-    if (number != 48 && number != 56 && number != 57 && number != 62 && number != 63 && number != 64 && number != 79 && number != 80)
+    if (number != 35 && number != 48 && number != 56 && number != 57 && number != 62 && number != 63 && number != 64 && number != 79 && number != 80)
         return -38;
     try {
         std::lock_guard<std::mutex> guard(fs->lock);
+        if (number == 35) {
+            unsigned flags = static_cast<uint32_t>(a2);
+            if (flags & ~0x200u) return -22;
+            if (flags) return -95; // AT_REMOVEDIR is a separate directory-mutation contract.
+            path_info p;
+            int error = path(fs, thread->vm, a1, static_cast<int32_t>(a0), p);
+            if (error) return error;
+            if (below(p.canonical, "system") || below(p.canonical, "dev") || below(p.canonical, "proc")) return -30;
+            if (!fs->files.unlink) return -38;
+            Walk walk(fs, p.directory);
+            // Normalizing a terminal '/.' would delete its parent pathname.
+            std::string relative = p.relative;
+            if (p.terminal_dot && !relative.empty()) relative += "/.";
+            if ((error = walk.resolve(relative))) return error;
+            return fs->files.unlink(fs->files.context, walk.current, walk.leaf.c_str(), p.trailing);
+        }
         if (number == 48 || number == 56 || number == 79) {
             unsigned flags = static_cast<uint32_t>(a2);
             if (number == 48 && (flags & ~7u)) return -22;

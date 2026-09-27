@@ -66,7 +66,11 @@ imported syscall families remain outside the implemented kernel subset.
 The next integration links the five Android native class-library dependencies
 and their caller from 208 original units. A 15-image signed runtime test is
 being added for 17 native groups and 228 unsigned-integer division vectors.
-This validation is pending; it does not start JavaVM or invoke JNI_OnLoad.
+At `3505832`, all six libraries link and sign, but native execution fails at
+the JVM fixture's temporary-file removal: syscall 35 (`unlinkat`) is ENOSYS.
+The fix adds rooted non-directory unlink and a separate 29-case lifetime/error
+contract. It retains the JVM cleanup check; complete native validation is pending.
+This integration does not start JavaVM or invoke JNI_OnLoad.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

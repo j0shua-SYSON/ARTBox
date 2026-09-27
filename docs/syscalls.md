@@ -176,7 +176,22 @@ injected provider on Windows. Openat, read/write, lseek, fstat/newfstatat,
 faccessat and close pass the supported flags/path/offset cases, including partial
 I/O and 512 concurrent appends. `/system` is read-only and parent/symlink traversal
 is rejected. Guest stat ownership is UID/GID 10000. File-backed data mappings and the 41-case NDK caller pass paired CI below;
-mutable directories and multiple guest users remain unsupported.
+mkdir, rename, directory removal and multiple guest users remain unsupported.
+
+### M3 unlink extension (native CI validation pending)
+
+| ARM64 call | Implemented subset | Deliberate limits |
+| --- | --- | --- |
+| unlinkat 35 | Regular files and final symlink entries; relative directory descriptors and absolute paths; retained open descriptors and mappings; Linux errors for invalid flags, missing names, trailing slash/dot and directory targets | AT_REMOVEDIR returns ENOTSUP. Other special file types remain unsupported. System/dev/proc trees are protected; parent traversal and intermediate symlinks remain rejected. |
+
+The first signed libcore run at `3505832` fails on the JVM fixture's actual
+temporary-file cleanup. Its assertion remains required. A separate 29-case
+NDK caller now checks errors without deletion, zero link counts, reads through
+an unlinked descriptor, and same-name recreation without changing the old file.
+Both signed Bionic modes and the original/adapted Bionic syscall entries on
+native Linux run the identical object. Portable tests also check protected
+trees and an outside-root guard behind symlinks. Local tests pass; native CI
+validation is pending. These checks do not change M2's fixed denominator.
 
 ### File-backed data mapping extension (native CI green at b1a94c5)
 
