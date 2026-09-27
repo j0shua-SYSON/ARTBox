@@ -95,8 +95,12 @@ The next signal-context codec encodes Linux ARM64 handler frames and extracts
 PC/SP/general/SIMD edits while preserving Apple's reserved x18 and non-NZCV
 PSTATE bits. All 27 local core tests pass; at `c687998`, a real Linux signal-return
 test resumes edited PC/x0/SIMD state and detects dropped edits. Its source,
-binary and CTest log verify independently. The Apple architecture-state adapter
-and corresponding Darwin signal-return test are prepared, pending native CI.
+binary and CTest log verify independently. At `c16c648`, the signed Darwin test
+also resumes edited PC/x0/SIMD state, preserves x18 and detects dropped edits.
+Independent checks verify six source hashes, the native executable and nine
+CodeDirectory page hashes. Both complete CI workflows pass at that revision.
+The next change gives handlers a separate syscall/TLS scope and tests a real
+fault while the mapper lock is held; native validation of that binding is pending.
 Guest handler delivery, handler-time masks, alternate stacks, registration and unblocked
 delivery remain incomplete.
 

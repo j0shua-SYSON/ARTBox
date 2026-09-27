@@ -31,7 +31,7 @@ endif()
 if(APPLE AND (CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$" OR
              CMAKE_OSX_ARCHITECTURES STREQUAL "arm64"))
     enable_language(ASM)
-    target_sources(artbox_platform PRIVATE platform/apple/enter_arm64.S platform/apple/call_arm64.S platform/apple/native_hello.c platform/apple/bionic_acceptance.c platform/apple/native_signal_context.c)
+    target_sources(artbox_platform PRIVATE platform/apple/enter_arm64.S platform/apple/call_arm64.S platform/apple/native_hello.c platform/apple/bionic_acceptance.c platform/apple/native_signal_context.c platform/apple/native_signal_binding.c)
 endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_compile_definitions(artbox_platform PRIVATE _DEFAULT_SOURCE)

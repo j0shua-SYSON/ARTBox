@@ -13,7 +13,9 @@ void **artbox_native_tls_swap(void **guest_tls);
 /* Precompiled pointer-only C ABI endpoints for adapted Bionic. __get_tls calls
  * the getter; its hidden __set_tls wrapper calls the setter. Host TLS and
  * reserved registers retain their native ABI ownership. A NULL pointer clears
- * the binding; invoking Bionic without initialized TLS remains a caller error. */
+ * the binding; invoking Bionic without initialized TLS remains a caller error.
+ * An active Apple signal scope supplies its own borrowed TLS pointer. The
+ * setter returns -ENOTSUP there instead of replacing interrupted-thread TLS. */
 void **artbox_bionic_get_tls(void);
 int artbox_bionic_set_tls(void *guest_tls);
 

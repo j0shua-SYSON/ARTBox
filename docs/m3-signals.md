@@ -55,8 +55,22 @@ preserves live host x18, non-NZCV CPSR bits and exception information. It does
 not translate Darwin signal numbers, masks or siginfo, install a disposition,
 or invoke an Android handler yet. The build targets ordinary arm64; arm64e
 authenticated return addresses need a separate contract. A Darwin BRK test
-and dropped-edit control are prepared for Mac CI, with signature verification
-and retained diagnostics. Apple compilation and execution are still pending.
+and dropped-edit control pass on native ARM64 Mac at `c16c648`. Independent
+artifact checks verify six source hashes, the native binary, CTest results and
+nine CodeDirectory page hashes, alongside the CI codesign verification. Both
+complete CI workflows pass at that revision. This
+proves Darwin context return through the codec; it does not call an Android
+handler or establish physical iOS execution.
+
+An Apple per-thread signal scope now provides the separate syscall dispatcher
+and initialized guest TLS pointer needed during delivery. Its public pthread
+key is created outside handlers and retained for the library lifetime; explicit
+attach/detach owns per-thread storage. Signal-time lookup and scope swaps use no
+allocation or locking. Ordinary compiler-TLS reads remain outside that path.
+The new test faults while the VM mapper lock is held, then calls the adapted
+Bionic endpoints through the signal scope; entering the ordinary dispatcher
+would deadlock. Nested restoration, host errno, TLS-write rejection and thread
+isolation are also checked. These new native checks are pending CI.
 
 The pinned ART sources require a real boundary before JavaVM startup on Apple:
 

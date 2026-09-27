@@ -1771,7 +1771,7 @@ runtime code-generation or platform entitlement requirement.
 
 ## 0076: Queue guest thread signals without signalling the host process
 
-Status: portable tests pass; signed Bionic and native Linux comparison pending.
+Status: portable tests, both signed Bionic modes and identical-object native Linux comparison verified.
 
 ART's SignalCatcher waits for blocked SIGQUIT/SIGUSR1 and requires a
 thread-targeted wakeup to shut down. Implement standard pending signals in the
@@ -1796,7 +1796,7 @@ signal-safe bridge with Linux context conversion. Do not disable ART sigchain.
 
 ## 0077: Translate handler contexts as data and preserve the platform register
 
-Status: portable codec and native Linux return verified; Darwin adapter pending CI.
+Status: portable codec and native Linux/Darwin context return verified; guest handler integration pending.
 
 ART's ARM64 fault handlers read and rewrite Linux ucontext PC, SP and registers.
 Darwin's context cannot be passed directly to them. Define an original portable
@@ -1827,3 +1827,36 @@ The live host x18 is preserved even if a caller bypasses the portable decoder.
 The initial adapter targets arm64, with a separate arm64e contract required
 before claiming authenticated-context support. Test actual Darwin BRK return
 and dropped edits on Mac; ordinary iOS 15 compilation is a separate check.
+
+## 0078: Bind a separate syscall and TLS scope before guest signal execution
+
+Status: implemented; native signal-under-mapper-lock test pending CI.
+
+A signal can interrupt code while the VM mapper or stdio holds a lock. Reusing
+the ordinary dispatcher from ART sigchain would reenter those locks. Likewise,
+the first access to compiler TLS may require initialization. Create one public
+pthread key in ordinary context and explicitly attach each participating thread
+before delivery. Retain the key for the library lifetime to avoid key-reuse
+races; free per-thread storage on explicit detach after all scopes have left.
+
+The handler path reads that initialized key and publishes a borrowed immutable
+scope with lock-free pointer atomics. It never invokes pthread_once, key creation,
+allocation or cleanup. Public pthread_getspecific was reviewed in the
+[iOS 15-era libpthread implementation](https://github.com/apple-oss-distributions/libpthread/blob/libpthread-454.60.1/src/pthread_tsd.c),
+where it delegates to a direct lookup. This is an Apple implementation contract,
+not a portable claim that every pthread implementation is signal-safe. No
+private TSD keys, offsets or APIs are used and no Apple code is vendored.
+
+The Bionic syscall and TLS endpoints check the signal scope first. Keep ordinary
+compiler-TLS access behind non-inlined helpers; a volatile TLS read prevents
+speculative lookup on the getter path. A scope provides a separate fixed-word
+dispatcher and initialized guest TLS pointer, preserves host errno, rejects
+TLS replacement, and restores the interrupted binding on exit. Normal calls
+pay an additional scope lookup; measure this overhead with the eventual runtime.
+
+The Darwin BRK test now faults from inside artbox_vm_transfer while its mapper
+lock is held. Its ordinary dispatcher would reacquire that lock; the handler
+must use its separate scope and resume normally. Tests also cover nested scope
+restoration, per-thread isolation, active-detach rejection and cleanup. This
+still does not install guest actions or implement handler-time Linux mask calls;
+it establishes the binding required to do so without reentering locked services.

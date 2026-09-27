@@ -18,7 +18,10 @@ output.mkdir(exist_ok=True)
 sources = ['core/include/artbox/signal_context.h', 'core/src/signal_context.c', 'tests/run_signal_context.py']
 sources += (['tests/native_signal_context_linux.c'] if sys.platform == 'linux' else [
     'tests/native_signal_context_apple.c', 'platform/apple/native_signal_context.c',
-    'platform/include/artbox/native_signal_context.h'])
+    'platform/include/artbox/native_signal_context.h', 'platform/apple/native_signal_binding.c',
+    'platform/include/artbox/native_signal_binding.h', 'platform/native_syscall.c', 'platform/native_tls.c',
+    'platform/include/artbox/native_syscall.h', 'platform/include/artbox/native_tls.h',
+    'core/src/vm.cpp', 'core/include/artbox/vm.h', 'platform/native_vm.c', 'platform/include/artbox/native_vm.h'])
 record = {'project_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
           'binary_sha256': hashlib.sha256(binary.read_bytes()).hexdigest(), 'runs': {},
           'platform': sys.platform, 'machine': platform.machine(),
@@ -36,8 +39,11 @@ for mode in ('native', 'dropped-edit'):
     (output / 'result.json').write_text(json.dumps(record, indent=2) + '\n', encoding='utf-8')
     if mode == 'native':
         assert result.returncode == 0 and not result.stderr, record['runs'][mode]
-        assert json.loads(result.stdout) == {'frame_bytes': 4560, 'native_resume': True,
-            'general_register_edit': True, 'vector_edit': True, 'x18_preserved': True}
+        expected = {'frame_bytes': 4560, 'native_resume': True,
+                    'general_register_edit': True, 'vector_edit': True, 'x18_preserved': True}
+        if sys.platform == 'darwin':
+            expected.update(signal_binding=True, mapper_lock_held=True)
+        assert json.loads(result.stdout) == expected
     else:
         assert result.returncode == 1 and not result.stdout, record['runs'][mode]
         assert result.stderr == 'handler register edits were not resumed\n', record['runs'][mode]
