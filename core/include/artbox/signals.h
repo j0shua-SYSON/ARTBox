@@ -15,10 +15,14 @@ artbox_signals *artbox_signals_create(artbox_vm *vm, int32_t pid, uint32_t uid, 
 /* Enable registration only when a delivery owner exists. Configure once before
  * attaching threads. The normal-context validator checks supported dispositions,
  * flags and signed code addresses; it must not modify process state. Published
- * actions and validator context remain alive until the process is destroyed. */
+ * actions and validator context remain alive until the process is destroyed.
+ * supported_flags advertises the delivery owner's capabilities. An action with
+ * SA_UNSUPPORTED (0x400) probes these flags: clear unsupported bits before
+ * validation/publication. Without that bit reject unsupported flags. The probe
+ * bit itself cannot be advertised as supported. */
 typedef int (*artbox_signal_action_validator)(void *, unsigned, const artbox_signal_action *);
 int artbox_signals_enable_actions(artbox_signals *signals, size_t capacity,
-    artbox_signal_action_validator validate, void *context);
+    artbox_signal_action_validator validate, void *context, uint64_t supported_flags);
 /* Borrow in normal context, before installing any native handler. */
 artbox_signal_actions *artbox_signals_action_table(artbox_signals *signals);
 /* Signal-context read; the thread must remain attached throughout delivery. */

@@ -46,9 +46,10 @@ int main() {
     CHECK(vm && artbox_kernel_thread_init(&parent,vm,&system,100,100)==0);
     main_thread=&parent;
     artbox_signals *signals=artbox_signals_create(vm,100,10000,4);
-    CHECK(signals && artbox_signals_enable_actions(signals,8,validate_action,nullptr)==0);
+    CHECK(signals && artbox_signals_enable_actions(signals,16,validate_action,nullptr,0x404)==-22);
+    CHECK(artbox_signals_enable_actions(signals,16,validate_action,nullptr,4)==0);
     CHECK(signals && artbox_signals_attach(signals,&parent)==0);
-    CHECK(artbox_signals_enable_actions(signals,8,validate_action,nullptr)==-16);
+    CHECK(artbox_signals_enable_actions(signals,16,validate_action,nullptr,4)==-16);
     CHECK(artbox_signals_attach(signals,&parent)==-22);
     artbox_kernel_thread duplicate;
     CHECK(artbox_kernel_thread_init(&duplicate,vm,&system,100,100)==0);
@@ -83,6 +84,26 @@ int main() {
     CHECK(artbox_vm_write(vm,buffer+1,&observed,sizeof(observed))==0);
     CHECK(call(parent,134,5,buffer+1,1,8)==-14); // Publication precedes copyout failure.
     CHECK(artbox_signal_actions_snapshot(artbox_signals_action_table(signals),5,&observed)==0 && observed.handler==0x1004);
+    // SA_UNSUPPORTED probes the delivery owner's flags without changing input.
+    artbox_signal_action probe{0x1008,UINT64_C(0x80000c04),0,0};
+    CHECK(artbox_vm_write(vm,buffer+1,&probe,sizeof(probe))==0);
+    CHECK(call(parent,134,5,buffer+1,buffer+65,8)==0);
+    CHECK(artbox_vm_read(vm,buffer+65,&observed,sizeof(observed))==0 && observed.handler==0x1004);
+    CHECK(artbox_vm_read(vm,buffer+1,&observed,sizeof(observed))==0 && observed.flags==probe.flags);
+    CHECK(call(parent,134,5,0,buffer+65,8)==0);
+    CHECK(artbox_vm_read(vm,buffer+65,&observed,sizeof(observed))==0 && observed.handler==0x1008 && observed.flags==4);
+    probe.handler=0x3000;
+    CHECK(artbox_vm_write(vm,buffer+1,&probe,sizeof(probe))==0);
+    CHECK(call(parent,134,5,buffer+1,buffer+65,8)==-22);
+    CHECK(artbox_vm_read(vm,buffer+65,&observed,sizeof(observed))==0 && observed.handler==0x1008 && observed.flags==4);
+    probe.handler=0x100c; probe.flags=0x804; // Unsupported semantic flags still fail without a probe.
+    CHECK(artbox_vm_write(vm,buffer+1,&probe,sizeof(probe))==0);
+    CHECK(call(parent,134,5,buffer+1,buffer+65,8)==-95);
+    CHECK(artbox_signal_actions_snapshot(artbox_signals_action_table(signals),5,&observed)==0 && observed.handler==0x1008);
+    probe.flags|=0x400;
+    CHECK(artbox_vm_write(vm,buffer+1,&probe,sizeof(probe))==0);
+    CHECK(call(parent,134,5,buffer+1,1,8)==-14);
+    CHECK(artbox_signal_actions_snapshot(artbox_signals_action_table(signals),5,&observed)==0 && observed.handler==0x100c && observed.flags==4);
     words[0]=UINT64_C(0x200);
     words[1]=UINT64_MAX;
     CHECK(call(parent,135,2,buffer+8,1,8)==-14);

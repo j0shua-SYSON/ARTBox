@@ -20,6 +20,7 @@ struct artbox_signals {
     artbox_signal_actions *actions=nullptr;
     artbox_signal_action_validator validate=nullptr;
     void *validation_context=nullptr;
+    uint64_t supported_flags=0;
     size_t stack_minimum=0,stack_capacity=0;
 };
 struct StackRecord { artbox_signal_stack value; StackRecord *next; };
@@ -54,13 +55,14 @@ extern "C" artbox_signals *artbox_signals_create(artbox_vm *vm,int32_t pid,uint3
     return signals;
 }
 extern "C" int artbox_signals_enable_actions(artbox_signals *signals,size_t capacity,
-    artbox_signal_action_validator validate,void *context) {
-    if(!signals || !validate || !capacity || capacity>65536) return -22;
+    artbox_signal_action_validator validate,void *context,uint64_t supported_flags) {
+    if(!signals || !validate || !capacity || capacity>65536 || (supported_flags&UINT64_C(0x400))) return -22;
     std::lock_guard<std::mutex> guard(signals->lock);
     if(signals->actions || !signals->threads.empty()) return -16;
     auto *actions=artbox_signal_actions_create(capacity);
     if(!actions) return -12;
     signals->validation_context=context; signals->validate=validate; signals->actions=actions;
+    signals->supported_flags=supported_flags;
     return 0;
 }
 extern "C" artbox_signal_actions *artbox_signals_action_table(artbox_signals *signals) {
@@ -236,6 +238,8 @@ static int64_t action(artbox_signal_thread *thread,uint64_t number,uint64_t in,u
     unsigned signal=static_cast<uint32_t>(number);
     if(signal<1 || signal>64 || (in && (signal==9 || signal==19))) return -22;
     if(in) {
+        if(requested.flags&UINT64_C(0x400)) requested.flags&=owner->supported_flags;
+        else if(requested.flags&~owner->supported_flags) return -95;
         int error=owner->validate(owner->validation_context,signal,&requested);
         if(error) return error;
     }
