@@ -30,8 +30,21 @@ reads/writes that range. A bad read destination therefore cannot consume file
 bytes before EFAULT. Later inaccessible pages yield partial progress. EOF copies
 no bytes; an unmapped destination at EOF returns zero after a non-mutating
 position/size check. The same edge case is checked through real Linux syscalls.
-Zero-length regular-file I/O does not inspect its buffer. General pipes/sockets, dup/fcntl, directory enumeration and mutable directory
-operations remain unimplemented. File mappings are described below.
+Zero-length regular-file I/O does not inspect its buffer. General pipes/sockets,
+dup/fcntl, directory enumeration, mkdir, rename and directory removal remain
+unimplemented. File mappings are described below.
+
+M3 adds non-directory unlinkat for JVM temporary-file cleanup. Parent directories
+remain pinned during the walk, and the final symlink is removed without following
+its target. System/dev/proc paths remain protected. Trailing slashes and terminal
+'/.' retain their directory semantics; normalization must not delete a different
+entry. Existing descriptors and mappings retain the unlinked inode, including
+after the same pathname is recreated. A separate 29-case NDK caller compares
+errors, link counts and descriptor lifetime on signed Bionic and native Linux;
+native provider tests also retain a shared mapping after unlink and FD close.
+All 29 cases pass in both signed Mac modes and both original/adapted native
+Linux profiles at `c211a46`. The native mapping lifetime check passes on Mac
+and Linux; Windows uses the injected portable provider.
 
 The local contract covers mixed descriptor allocation, create/exclusive/truncate,
 relative directory paths, read-only system files, symlink/traversal rejection,

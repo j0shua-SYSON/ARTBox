@@ -2,7 +2,9 @@
 #include <stdint.h>
 #include <stddef.h>
 #if defined(__aarch64__) && defined(__linux__)
-#include <fcntl.h>
+// These are raw syscall flags. libc feature macros can hide them, and a
+// 64-bit libc may define its public O_LARGEFILE as zero.
+#include <asm/fcntl.h>
 _Static_assert(O_DIRECTORY == 0x4000, "ARM64 directory flag");
 _Static_assert(O_NOFOLLOW == 0x8000, "ARM64 no-follow flag");
 _Static_assert(O_DIRECT == 0x10000, "ARM64 direct IO flag");

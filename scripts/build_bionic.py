@@ -21,6 +21,8 @@ from sources import obtain as obtain_source
 from bionic_adapt import adapt_sources, check_native, inventory, stack_references
 from bionic_syscalls import generate as generate_syscalls
 from bionic_builtins import prepare as prepare_builtins
+from bionic_vfork import prepare as prepare_vfork
+from bionic_ids import prepare as prepare_ids
 
 
 def digest(path):
@@ -45,6 +47,7 @@ def main():
     if manifest["source_commit"] != pin["commit"]:
         raise RuntimeError("Bionic source selection does not match the pinned source revision")
     source = obtain_source("bionic")
+    android_ids, libcore_headers, android_ids_info = prepare_ids(build, args.profile == "upstream")
     cutils = obtain_source("libcutils-headers")
     cutils_pin = json.loads((ROOT / "third_party/sources.json").read_text(encoding="utf-8"))["libcutils-headers"]
     component_path = ROOT / "third_party/bionic/components.json"
@@ -95,7 +98,8 @@ def main():
         flags += ['-DGWP_ASAN_PLATFORM_TLS_HEADER="artbox_gwp_asan_tls.h"']
     language_flags = {".cpp": ["-std=gnu++20", "-fno-exceptions", "-fno-rtti", "-nostdinc++"],
                       ".c": ["-std=gnu99"], ".S": []}
-    includes = ["-I", str(source / "libstdc++/include"), "-I", str(cutils / "libcutils/include")]
+    includes = ["-I", str(android_ids), "-I", str(libcore_headers / "libcutils/include"),
+                "-I", str(source / "libstdc++/include"), "-I", str(cutils / "libcutils/include")]
     includes += ["-I", str(ROOT / "third_party/bionic/adapters")]
     for name, component in components.items():
         for relative in libraries["components"][name]["includes"]:
@@ -113,6 +117,9 @@ def main():
         original = source / relative
         if not original.resolve().is_relative_to(source.resolve()) or not original.is_file():
             raise RuntimeError(f"Invalid Bionic source selection: {relative}")
+        expected = manifest.get("art_runtime_sources", {}).get(relative)
+        if expected is not None and digest(original) != expected:
+            raise RuntimeError(f"ART Bionic dependency source changed: {relative}")
         path = overlay / relative if any(a["path"] == relative for a in adaptations) else original
         output = build / "objects" / (relative + ".o")
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -205,12 +212,19 @@ def main():
                                        ("svc", "tpidr_mentions", "x18_mentions", "x27_mentions", "x28_mentions", "unknown_instructions")):
         raise RuntimeError("Allocator TLS test caller violates the native instruction boundary")
 
+    vfork = prepare_vfork(tools, build, source, overlay, entries, assembly_flags, includes) \
+        if args.profile == "native" else None
+
     # A relocatable link verifies these objects agree on their shared symbols.
     # Remaining undefined symbols are required dependencies, never zero stubs.
     combined = build / "bionic-m2-partial.o"
     builtins, binary128 = prepare_builtins(tools, build)
-    subprocess.run([str(tools / f"ld.lld{suffix}"), "-r", *[str(e[2]) for e in entries],
-                    *map(str, builtins), "-o", str(combined)], check=True)
+    inputs = [e[2] for e in entries] + builtins
+    if any(any(c in path.as_posix() for c in ('"', '\r', '\n')) for path in inputs):
+        raise RuntimeError("Unsafe object response-file path")
+    response = build / "objects.rsp"
+    response.write_text('\n'.join('"' + path.as_posix() + '"' for path in inputs) + '\n', encoding="utf-8")
+    subprocess.run([str(tools / f"ld.lld{suffix}"), "-r", "@" + str(response), "-o", str(combined)], check=True)
     structure = json.loads(subprocess.check_output([str(tools / f"llvm-readobj{suffix}"), "--elf-output-style=JSON",
                                                    "--file-headers", "--symbols", "--relocations", str(combined)]))[0]
     header = structure["ElfHeader"]
@@ -274,9 +288,11 @@ def main():
                                   if entry["Type"]["Value"] == 6 and entry["Section"]["Value"]},
               "notice_sha256": digest(notice), "undefined_symbols": undefined, "native_boundary_inventory": boundaries,
               "stack_protection": protection, "dependencies": {"libcutils-headers": cutils_pin,
+                  **{name: source_pins[name] for name in ("fs-config-generator", "bionic-libcore-headers")},
                   **{name: source_pins[name] for name in components}},
               "component_selection_sha256": digest(component_path), "component_notices": component_notices,
-              "allocator_tls": allocator_tls, "strings": strings, "binary128": binary128,
+              "allocator_tls": allocator_tls, "strings": strings, "binary128": binary128, "vfork": vfork,
+              "android_ids": android_ids_info,
               "inline_raise_sha256": digest(inline_raise), "syscall_stubs": syscall_info}
     artifacts = Path(os.environ["ARTBOX_ARTIFACTS_DIR"])
     artifacts.mkdir(parents=True, exist_ok=True)

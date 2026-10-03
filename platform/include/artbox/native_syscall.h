@@ -21,7 +21,9 @@ const artbox_syscall_binding* artbox_native_syscall_swap(const artbox_syscall_bi
 /* Precompiled ARM64-compatible endpoint: number plus six complete 64-bit words.
  * Return raw Linux values; never perform libc's errno/-1 conversion here.
  * Returning calls preserve host errno. A missing handler returns -ENOSYS.
- * The dispatcher must not modify guest errno or forward Linux numbers to Darwin. */
+ * The dispatcher must not modify guest errno or forward Linux numbers to Darwin.
+ * On Apple arm64, an active signal scope selects a separate dispatcher before
+ * compiler TLS or the ordinary syscall path is accessed. */
 int64_t artbox_bionic_syscall(uint64_t number, uint64_t a0, uint64_t a1, uint64_t a2,
                             uint64_t a3, uint64_t a4, uint64_t a5);
 

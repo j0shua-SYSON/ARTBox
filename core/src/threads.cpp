@@ -1,5 +1,6 @@
 // Original portable thread lifecycle, MIT. Bionic owns guest pthread state.
 #include "artbox/threads.h"
+#include "artbox/signals.h"
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
@@ -70,6 +71,12 @@ static void reap(artbox_threads *t) {
         }
         {
             error = w->finish.error;
+            // Remove the TID from signal lookup before waking pthread_join's
+            // guest clear-TID waiter. The native worker has really stopped.
+            if (w->kernel.signal_state) {
+                int detached = artbox_signals_detach(&w->kernel);
+                if (!error) error = detached;
+            }
             if (!error && w->finish.unmap_size) {
                 // Detached Bionic exit must have disabled CHILD_CLEARTID.
                 error = w->kernel.clear_tid_address ? -22 :
@@ -126,9 +133,14 @@ extern "C" int64_t artbox_threads_start(artbox_threads *t, const artbox_kernel_t
         artbox_kernel_thread_init(&w->kernel, t->vm, &t->system, t->pid, static_cast<int32_t>(t->next_tid++));
         w->kernel.clear_tid_address = s.child_tid;
         w->kernel.blocked_signals = parent->blocked_signals;
-        int error = artbox_vm_prepare_store_u32(t->vm, s.parent_tid, &t->atomic,
-            static_cast<uint32_t>(w->kernel.tid), start_native, w);
+        int error = artbox_signals_inherit(parent, &w->kernel);
         if (error) { delete w; return error; }
+        error = artbox_vm_prepare_store_u32(t->vm, s.parent_tid, &t->atomic,
+            static_cast<uint32_t>(w->kernel.tid), start_native, w);
+        if (error) {
+            if (w->kernel.signal_state) (void)artbox_signals_detach(&w->kernel);
+            delete w; return error;
+        }
         t->active.push_back(w); // Reserved capacity; the child is blocked on this lock.
         return w->kernel.tid;
     } catch (const std::exception&) { return -12; }

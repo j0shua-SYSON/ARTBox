@@ -37,6 +37,13 @@ def main():
     if report["mappings"]["cases"] != 43 or digest(mapping) != report["mappings"]["object_sha256"] or \
             digest(ROOT / "fixtures/bionic-files/mapping.c") != report["mappings"]["source_sha256"]:
         raise RuntimeError("Mapping caller differs from the signed Bionic startup input")
+    unlink = evidence / "build/m2/bionic-startup/unlink-check.o"
+    if report['unlink']['cases'] != 29 or digest(unlink) != report['unlink']['object_sha256'] or \
+            digest(ROOT / 'fixtures/bionic-files/unlink.c') != report['unlink']['source_sha256']:
+        raise RuntimeError('Unlink caller differs from the signed Bionic input')
+    for mode in ('native', 'sampled_native'):
+        if report[mode]['unlink_cases'] != 29:
+            raise RuntimeError('Signed Bionic unlink checks did not complete')
     records = {}
     for profile in ("upstream", "native"):
         control = json.loads((evidence / f"artifacts/m2-bionic-{profile}.json").read_text(encoding="utf-8"))
@@ -45,7 +52,7 @@ def main():
             raise RuntimeError("Bionic syscall input changed")
         executable = build / profile
         subprocess.run([args.compiler, "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror", "-ffixed-x18",
-                        str(ROOT / "fixtures/bionic-files/linux.c"), str(obj), str(mapping), str(stubs), "-o", str(executable)], check=True)
+                        str(ROOT / "fixtures/bionic-files/linux.c"), str(obj), str(mapping), str(unlink), str(stubs), "-o", str(executable)], check=True)
         root = Path(tempfile.mkdtemp(prefix=profile + "-root-", dir=build))
         (root / "data").mkdir()
         process = subprocess.run([str(executable)], cwd=root, capture_output=True, text=True, encoding="utf-8", timeout=15)
@@ -53,13 +60,13 @@ def main():
         if process.returncode:
             raise RuntimeError(f"{profile} file oracle failed ({process.returncode}):\n{process.stdout}{process.stderr}")
         record = json.loads(process.stdout)
-        if record["cases"] != 41 or record["mapping_cases"] != 43:
+        if record["cases"] != 41 or record["mapping_cases"] != 43 or record['unlink_cases'] != 29:
             raise RuntimeError("File caller did not complete")
         records[profile] = {**record, "syscall_object_sha256": digest(stubs)}
     (Path(os.environ["ARTBOX_ARTIFACTS_DIR"]) / "m2-files-linux.json").write_text(json.dumps({
         "scope": "Identical NDK file caller with actual Bionic syscall entries and errno helper",
-        "files": metadata, "mappings": report["mappings"], "profiles": records}, indent=2) + "\n", encoding="utf-8")
-    print("Both Bionic Linux profiles passed all 41 file and 43 mapping cases")
+        "files": metadata, "mappings": report["mappings"], "unlink": report['unlink'], "profiles": records}, indent=2) + "\n", encoding="utf-8")
+    print("Both Bionic Linux profiles passed all 41 file, 43 mapping and 29 unlink cases")
 
 
 if __name__ == "__main__":

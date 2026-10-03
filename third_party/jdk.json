@@ -1,0 +1,42 @@
+{
+  "repository": "adoptium/temurin17-binaries",
+  "tag": "jdk-17.0.20.1+1",
+  "version": "17.0.20.1+1",
+  "archives": {
+    "linux-aarch64": {
+      "name": "OpenJDK17U-jdk_aarch64_linux_hotspot_17.0.20.1_1.tar.gz",
+      "bytes": 191962709,
+      "sha256": "457b57af8f9c93ec39080bb8c764f559dc8c89a6da1a39d718a400b7890d3e41",
+      "root": "jdk-17.0.20.1+1",
+      "home": "."
+    },
+    "darwin-aarch64": {
+      "name": "OpenJDK17U-jdk_aarch64_mac_hotspot_17.0.20.1_1.tar.gz",
+      "bytes": 185851019,
+      "sha256": "196d13ba5f10414bef7f6a05a9b3f00edacb18ebacef2b99485db9e2ee18f0e8",
+      "root": "jdk-17.0.20.1+1",
+      "home": "Contents/Home"
+    },
+    "linux-x64": {
+      "name": "OpenJDK17U-jdk_x64_linux_hotspot_17.0.20.1_1.tar.gz",
+      "bytes": 193252603,
+      "sha256": "3808d1d15e3ec6bd5b84057fb5d84c33d8a1536a258146bcea2e603fc726e08e",
+      "root": "jdk-17.0.20.1+1",
+      "home": "."
+    },
+    "darwin-x64": {
+      "name": "OpenJDK17U-jdk_x64_mac_hotspot_17.0.20.1_1.tar.gz",
+      "bytes": 180578248,
+      "sha256": "c01975da12ed4235250ff891fe8bba73a9e73037d444b269c9d0922b5dbc8e0a",
+      "root": "jdk-17.0.20.1+1",
+      "home": "Contents/Home"
+    },
+    "win32-x64": {
+      "name": "OpenJDK17U-jdk_x64_windows_hotspot_17.0.20.1_1.zip",
+      "bytes": 190817615,
+      "sha256": "e53a79c3c3d86865bd7e787903884331068e71321714ffd44f145785affc7cb0",
+      "root": "jdk-17.0.20.1+1",
+      "home": "."
+    }
+  }
+}

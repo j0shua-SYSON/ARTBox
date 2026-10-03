@@ -22,6 +22,7 @@ static artbox_kernel_thread *caller_thread;
 static int caller_errno;
 extern "C" int64_t artbox_files_check(uint64_t);
 extern "C" int64_t artbox_file_mapping_check(uint64_t);
+extern "C" int64_t artbox_files_unlink_check(uint64_t);
 extern "C" int *artbox_file_errno(void) { return &caller_errno; }
 extern "C" int64_t artbox_file_syscall(uint64_t n, uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f) {
     int64_t result = n == 222 ? artbox_vfs_mmap(caller_fs, caller_thread->vm, a, b, c, d, static_cast<int64_t>(e), f) :
@@ -30,9 +31,9 @@ extern "C" int64_t artbox_file_syscall(uint64_t n, uint64_t a, uint64_t b, uint6
     if (result < 0 && result >= -4095) { caller_errno = static_cast<int>(-result); return -1; }
     return result;
 }
-struct Node { std::string name; bool directory = false, link = false; uint32_t mode = 0644; std::vector<unsigned char> bytes; };
-struct Mock { std::map<std::string, Node> nodes; size_t handles = 0, reads = 0, writes = 0; };
-struct Handle { Mock *fs; Node *node; size_t position; unsigned flags; };
+struct Node { std::string name; bool directory = false, link = false; uint32_t mode = 0644, links = 1; std::vector<unsigned char> bytes; };
+struct Mock { std::map<std::string, std::shared_ptr<Node>> nodes; size_t handles = 0, reads = 0, writes = 0; };
+struct Handle { Mock *fs; std::shared_ptr<Node> node; size_t position; unsigned flags; };
 static std::string path(void *directory, const char *name) {
     std::string base = directory ? static_cast<Handle*>(directory)->node->name : "";
     if (!std::strcmp(name, ".")) return base;
@@ -42,7 +43,7 @@ static int info(Node *node, artbox_file_info *out) {
     if (node->link) return -40;
     *out = artbox_file_info{};
     out->mode = (node->directory ? 0040000u : 0100000u) | node->mode;
-    out->uid = out->gid = 10000; out->links = 1; out->block_size = 4096;
+    out->uid = out->gid = 10000; out->links = node->links; out->block_size = 4096;
     out->size = node->bytes.size(); return 0;
 }
 static int open_mock(void *context, void *directory, const char *name, uint32_t flags, uint32_t mode, void **out) {
@@ -54,9 +55,9 @@ static int open_mock(void *context, void *directory, const char *name, uint32_t 
     if (found == fs->nodes.end()) {
         if (!(flags & 0x40)) return -2;
         Node node; node.name = key; node.mode = mode & ~022u;
-        found = fs->nodes.emplace(key, std::move(node)).first;
+        found = fs->nodes.emplace(key, std::make_shared<Node>(std::move(node))).first;
     }
-    Node *n = &found->second;
+    auto n = found->second;
     if (n->link) return -40;
     if ((flags & 0x4000) && !n->directory) return -20;
     if (n->directory && ((flags & 3) || (flags & 0x200))) return -21;
@@ -85,10 +86,20 @@ static int64_t seek_mock(void *file, int64_t offset, unsigned origin) {
     if (offset < -base || offset > INT64_MAX - base) return -22;
     h->position = static_cast<size_t>(base + offset); return base + offset;
 }
-static int stat_mock(void *file, artbox_file_info *out) { return info(static_cast<Handle*>(file)->node, out); }
+static int stat_mock(void *file, artbox_file_info *out) { return info(static_cast<Handle*>(file)->node.get(), out); }
 static int stat_at_mock(void *context, void *directory, const char *name, artbox_file_info *out) {
     Mock *fs = static_cast<Mock*>(context); auto it = fs->nodes.find(path(directory, name));
-    return it == fs->nodes.end() ? -2 : info(&it->second, out);
+    return it == fs->nodes.end() ? -2 : info(it->second.get(), out);
+}
+static int unlink_mock(void *context, void *directory, const char *name, int trailing) {
+    Mock *fs = static_cast<Mock*>(context);
+    auto it = fs->nodes.find(path(directory, name));
+    if (it == fs->nodes.end()) return -2;
+    if (it->second->directory) return -21;
+    if (trailing) return -20;
+    it->second->links = 0;
+    fs->nodes.erase(it); // Existing handles retain the original inode.
+    return 0;
 }
 static uint64_t word(const unsigned char *p, unsigned size) {
     uint64_t value = 0; for (unsigned i = 0; i < size; ++i) value |= static_cast<uint64_t>(p[i]) << (8*i); return value;
@@ -105,6 +116,9 @@ static void contract(const artbox_file_ops &files) {
     int64_t cases = artbox_files_check(memory.page_size);
     std::printf("File syscall caller: %lld\n", static_cast<long long>(cases));
     CHECK(cases == 41);
+    int64_t unlink_cases = artbox_files_unlink_check(memory.page_size);
+    std::printf("Unlink syscall caller: %lld\n", static_cast<long long>(unlink_cases));
+    CHECK(unlink_cases == 29);
     auto call = [&](uint64_t n, uint64_t a = 0, uint64_t b = 0, uint64_t c = 0, uint64_t d = 0) {
         return artbox_vfs_call(fs, &thread, n, a, b, c, d);
     };
@@ -167,15 +181,29 @@ static void contract(const artbox_file_ops &files) {
     CHECK(artbox_vm_read(vm, data, records, sizeof(records)) == 0);
     for (uint32_t record : records) { CHECK(record < 8); ++counts[record]; }
     for (unsigned count : counts) CHECK(count == 64);
+    CHECK(call(35, UINT64_MAX-99, name("/system/readonly"), 0) == -30);
+    CHECK(call(35, UINT64_MAX-99, name("/dev/null"), 0) == -30);
+    CHECK(call(35, UINT64_MAX-99, name("/proc/self/cmdline"), 0) == -30);
+    CHECK(call(35, UINT64_MAX-99, name("/data/../escape"), 0) == -1);
+    CHECK(call(35, UINT64_MAX-99, name("/data/file"), 0x200) == -95);
+    CHECK(call(35, UINT64_MAX-99, name("/data/."), 0) == -21);
+    int64_t through_link = call(35, UINT64_MAX-99, name("/data/jump/guard"), 0);
+    CHECK(through_link == -20 || through_link == -40);
+    // Remove only the link itself, never the outside-root target.
+    CHECK(call(35, UINT64_MAX-99, name("/data/link"), 0) == 0);
+    CHECK(call(35, UINT64_MAX-99, name("/data/jump"), 0) == 0);
+    CHECK(call(35, 999, name("/data/append"), 0) == 0); // Absolute paths ignore dirfd.
+    CHECK(call(80, static_cast<uint64_t>(file), data) == 0);
+    CHECK(artbox_vm_read(vm, data, stat, sizeof(stat)) == 0 && word(stat+20,4) == 0);
     CHECK(artbox_vfs_destroy(fs) == 0 && artbox_vm_destroy(vm) == 0);
 }
 int main(int argc, char **argv) {
     CHECK(argc == 2);
     Mock mock;
-    for (const char *name : {"", "data", "system"}) { Node n; n.name = name; n.directory = true; n.mode = 0755; mock.nodes.emplace(name, n); }
-    for (const char *name : {"data/link", "data/jump"}) { Node n; n.name = name; n.link = true; mock.nodes.emplace(name, n); }
-    Node ro; ro.name = "system/readonly"; mock.nodes.emplace(ro.name, ro);
-    artbox_file_ops files{&mock, open_mock, close_mock, read_mock, write_mock, seek_mock, stat_mock, stat_at_mock, {}};
+    for (const char *name : {"", "data", "system"}) { Node n; n.name = name; n.directory = true; n.mode = 0755; mock.nodes.emplace(name, std::make_shared<Node>(n)); }
+    for (const char *name : {"data/link", "data/jump"}) { Node n; n.name = name; n.link = true; mock.nodes.emplace(name, std::make_shared<Node>(n)); }
+    Node ro; ro.name = "system/readonly"; mock.nodes.emplace(ro.name, std::make_shared<Node>(ro));
+    artbox_file_ops files{&mock, open_mock, close_mock, read_mock, write_mock, seek_mock, stat_mock, stat_at_mock, {}, unlink_mock};
     contract(files); CHECK(mock.handles == 0);
 #if defined(__linux__)
     int root = ::open(argv[1], O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
@@ -203,6 +231,29 @@ int main(int argc, char **argv) {
     int64_t mapping_cases = artbox_file_mapping_check(memory.page_size);
     if (mapping_cases != 43) std::fprintf(stderr, "mapping caller: %lld\n", static_cast<long long>(mapping_cases));
     CHECK(mapping_cases == 43 && artbox_vm_reserved_bytes(vm) == 0);
+    // The VM's native backing reference must outlive both pathname and guest FD.
+    int64_t scratch = artbox_vm_mmap(vm, 0, memory.page_size * 2, 3, 0x22, -1, 0);
+    CHECK(scratch > 0);
+    uint64_t path_address = static_cast<uint64_t>(scratch), bytes_address = path_address + memory.page_size;
+    const char map_name[] = "/data/unlinked-map", payload[] = "retained mapping";
+    CHECK(artbox_vm_write(vm, path_address, map_name, sizeof(map_name)) == 0);
+    CHECK(artbox_vm_write(vm, bytes_address, payload, sizeof(payload)) == 0);
+    int64_t mapped_fd = artbox_vfs_call(caller_fs, &thread, 56, UINT64_MAX-99, path_address, 0xc2, 0600);
+    CHECK(mapped_fd >= 3);
+    CHECK(artbox_vfs_call(caller_fs, &thread, 64, static_cast<uint64_t>(mapped_fd), bytes_address, memory.page_size, 0)
+          == static_cast<int64_t>(memory.page_size));
+    int64_t view = artbox_vfs_mmap(caller_fs, vm, 0, memory.page_size, 3, 1, mapped_fd, 0);
+    CHECK(view > 0);
+    CHECK(artbox_vfs_call(caller_fs, &thread, 35, UINT64_MAX-99, path_address, 0, 0) == 0);
+    CHECK(artbox_vfs_call(caller_fs, &thread, 57, static_cast<uint64_t>(mapped_fd), 0, 0, 0) == 0);
+    CHECK(artbox_vfs_call(caller_fs, &thread, 56, UINT64_MAX-99, path_address, 0, 0) == -2);
+    char retained[sizeof(payload)];
+    CHECK(artbox_vm_read(vm, static_cast<uint64_t>(view), retained, sizeof(retained)) == 0);
+    CHECK(!std::memcmp(retained, payload, sizeof(payload)));
+    CHECK(artbox_vm_write(vm, static_cast<uint64_t>(view), "R", 1) == 0);
+    CHECK(artbox_vm_syscall(vm, 227, static_cast<uint64_t>(view), memory.page_size, 4, 0, 0, 0) == 0);
+    CHECK(artbox_vm_munmap(vm, static_cast<uint64_t>(view), memory.page_size) == 0);
+    CHECK(artbox_vm_munmap(vm, path_address, memory.page_size * 2) == 0 && artbox_vm_reserved_bytes(vm) == 0);
     CHECK(artbox_vfs_destroy(caller_fs) == 0 && artbox_vm_destroy(vm) == 0);
     CHECK(artbox_native_files_close(native) == 0);
 #endif

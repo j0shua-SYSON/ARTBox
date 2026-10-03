@@ -5,10 +5,11 @@ in `third_party/bionic/m2-objects.json`. The current selection includes 23
 pthread translation units, three libc initialization units, errno accessors,
 futex/clone wrappers, open/stat wrappers and the AArch64 TLS setter. It also
 builds C++ initialization/destruction support, ELF TLS helpers, auxv/vDSO access,
-tracing, fd ownership/tracking, semaphores and signal wrappers. It produces
-167 Bionic objects (including generated syscall assembly), 23 Scudo/GWP-ASan
-objects and 14 AOSP Arm memory/string objects
-and combines them with a relocatable link. The default
+tracing, fd ownership/tracking, semaphores and signal wrappers. With the ART
+dependency closure, it combines 338 selected/generated libc and support units,
+including Scudo/GWP-ASan, AOSP Arm memory/string and property-info components.
+Object paths use a linker response file to avoid process command-line limits.
+The default
 `native` profile applies the source adaptations below; `--profile upstream`
 builds a control with the original source. Neither produces `libc.so` or packages
 Android code into the app. `--ndk-root`, `--build-dir` and `--jobs` are configurable;
@@ -32,8 +33,17 @@ stack protection. C sources use Bionic's `gnu99` setting.
 
 The compiler reserves x18, x27 and x28 and disables emulated ELF TLS. These flags
 alone do not adapt handwritten assembly or TLS access. `native-boundary.json`
-specifies exact, hash-checked edits to six upstream files, written into an
+specifies exact, hash-checked edits to seven upstream files, written into an
 overlay under the build directory. Original source and notices stay intact.
+
+Android account IDs come from the original pinned AOSP `aidarray` generator and
+filesystem-ID header. Both profiles require the same generated hash after
+normalizing the generator's host-dependent stdout newlines to LF. The
+upstream generator tests run on POSIX build hosts; their temporary-file reopen
+semantics do not apply on Windows. The actual generation and hash verification
+run everywhere. Source inputs, package license declarations and complete terms
+are retained with the evidence. See [ART libc dependencies](m3-bionic-dependencies.md)
+for the numeric resolver/account acceptance and unimplemented service boundaries.
 
 - `__get_tls()` calls the precompiled `artbox_bionic_get_tls` endpoint.
 - The hidden Bionic `__set_tls` definition calls `artbox_bionic_set_tls`; it

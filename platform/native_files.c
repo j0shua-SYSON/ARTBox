@@ -104,6 +104,19 @@ static int stat_at(void *context, void *directory, const char *name, artbox_file
     struct stat s;
     return fstatat(directory_fd(context, directory), name, &s, AT_SYMLINK_NOFOLLOW) ? error() : encode(&s, info);
 }
+static int unlink_file(void *context, void *directory, const char *name, int trailing) {
+    if (!component(name)) return -22;
+    const int fd = directory_fd(context, directory);
+    struct stat s;
+    if (fstatat(fd, name, &s, AT_SYMLINK_NOFOLLOW)) return error();
+    // Darwin reports EPERM for directory unlink; Linux reports EISDIR.
+    if (S_ISDIR(s.st_mode)) return -21;
+    if (trailing) return -20;
+    if (!S_ISREG(s.st_mode) && !S_ISLNK(s.st_mode)) return -95;
+    // unlinkat does not follow the final component. A concurrent replacement
+    // cannot turn this operation into deletion through a symlink target.
+    return unlinkat(fd, name, 0) ? error() : 0;
+}
 static int acquire_mapping(void *handle, void **out) {
     file_handle *reference = malloc(sizeof(*reference));
     if (!reference) return -12;
@@ -137,7 +150,7 @@ int artbox_native_files_open(const char *root, artbox_native_files **out) {
 }
 artbox_file_ops artbox_native_files_ops(artbox_native_files *files) {
     const artbox_file_ops ops = {files, open_file, close_file, read_file, write_file, seek_file, stat_file, stat_at,
-        {acquire_mapping, release_mapping, map_file, sync_mapping}};
+        {acquire_mapping, release_mapping, map_file, sync_mapping}, unlink_file};
     return ops;
 }
 int artbox_native_files_close(artbox_native_files *files) {

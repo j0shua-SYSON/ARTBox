@@ -25,6 +25,10 @@ typedef struct artbox_file_ops {
     int (*stat)(void *file, artbox_file_info *info);
     int (*stat_at)(void *context, void *directory, const char *name, artbox_file_info *info);
     artbox_vm_file_ops mapping; // Optional; a zero table rejects file mappings.
+    /* Optional non-directory unlink. Parent is an already pinned directory;
+     * never follow the final symlink. Preserve open handles and mappings.
+     * trailing means the original path required a directory at the leaf. */
+    int (*unlink)(void *context, void *directory, const char *name, int trailing);
 } artbox_file_ops;
 typedef struct artbox_vfs artbox_vfs;
 /* The root/provider outlives this table. A NULL provider gives only virtual

@@ -9,7 +9,10 @@ NUMBERED = {'allocator_devices': 'cases', 'futex': 'futex_cases', 'regular_files
 WORKLOADS = {'pthread_workload': {'pthread_result': 0, 'threads_reaped': 6},
              'elf_tls': {'tls_result': 0, 'tls_modules': 2, 'tls_threads': 7},
              'symbol_versions': {'version_result': 46},
-             'startup_constructors': {'constructors': 3, 'linked_images': 4, 'absent_netd': 1}}
+             # The selected account tables and resolver TLS key add two original
+             # Bionic initializers. Require every initializer, with the same
+             # single mandatory startup expectation and fixed total of 328.
+             'startup_constructors': {'constructors': 5, 'linked_images': 4, 'absent_netd': 1}}
 
 
 def manifest():

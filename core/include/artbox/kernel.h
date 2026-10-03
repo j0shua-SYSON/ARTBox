@@ -13,6 +13,7 @@ typedef struct artbox_system_ops {
     /* Fill a host buffer from the operating system CSPRNG; Linux errno on error. */
     int (*random)(void *buffer, size_t length);
 } artbox_system_ops;
+typedef struct artbox_signal_thread artbox_signal_thread;
 
 /* Borrowed address space, one descriptor per native guest thread. IDs belong
  * to the runtime's process namespace. The owner provides unique positive TIDs
@@ -22,9 +23,12 @@ typedef struct artbox_kernel_thread {
     artbox_system_ops system;
     int32_t pid, tid;
     uint64_t clear_tid_address;
-    /* Owned by this thread; clone inherits it. This is guest state only:
-     * signal delivery/handlers are not implemented and host masks are untouched. */
+    /* Owned by this thread; clone inherits it. When signal_state is attached,
+     * the queue service synchronizes updates. Host masks remain untouched. */
     uint64_t blocked_signals;
+    /* Optional shared process queue. Owner attaches before starting this
+     * thread and detaches after join, before clear-TID publication. */
+    artbox_signal_thread *signal_state;
 } artbox_kernel_thread;
 
 int artbox_kernel_thread_init(artbox_kernel_thread *thread, artbox_vm *vm,

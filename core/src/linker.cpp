@@ -27,10 +27,7 @@ bool overlap(const void *a,size_t an,const void *b,size_t bn) {
 uint64_t word(const unsigned char *p) {
     uint64_t result=0; for (unsigned i=0;i<8;++i) result|=static_cast<uint64_t>(p[i])<<(i*8); return result;
 }
-artbox_elf_result lookup(const Node &node,const char *name,const char *version,uint64_t *out) {
-    artbox_elf_symbol symbol;
-    artbox_elf_result result=artbox_dynamic_lookup_version(node.module.dynamic,name,version,&symbol);
-    if (result!=ARTBOX_ELF_OK) return result;
+artbox_elf_result symbol_address(const Node &node,const artbox_elf_symbol &symbol,uint64_t *out) {
     if (symbol.type>2 || symbol.binding>2) return ARTBOX_ELF_UNSUPPORTED;
     if (symbol.section==0xfff1) { *out=symbol.value; return ARTBOX_ELF_OK; }
     if (symbol.section>=0xff00) return ARTBOX_ELF_UNSUPPORTED;
@@ -42,6 +39,14 @@ artbox_elf_result lookup(const Node &node,const char *name,const char *version,u
         }
     }
     return ARTBOX_ELF_INVALID;
+}
+artbox_elf_result lookup(const Node &node,const char *name,const char *version,uint64_t *out) {
+    artbox_elf_symbol symbol;
+    artbox_elf_result result=artbox_dynamic_lookup_version(node.module.dynamic,name,version,&symbol);
+    return result==ARTBOX_ELF_OK?symbol_address(node,symbol,out):result;
+}
+artbox_link_info info(const Node &node) {
+    return {node.module.name,node.module.dynamic,node.module.load_bias,node.tls_id};
 }
 }
 struct artbox_load_group {
@@ -56,6 +61,17 @@ struct artbox_load_group {
 
     unsigned find(const char *name) const {
         for (unsigned i=0;i<nodes.size();++i) if (!std::strcmp(nodes[i].module.name,name)) return i;
+        return static_cast<unsigned>(nodes.size());
+    }
+    unsigned containing(uint64_t address) const {
+        for (unsigned index:scope) {
+            const auto &m=nodes[index].module;
+            for (unsigned i=0;i<m.dynamic->image->segment_count;++i) {
+                const auto &s=m.dynamic->image->segments[i];
+                uint64_t base=m.load_bias+s.virtual_address;
+                if (address>=base && address-base<s.memory_size) return index;
+            }
+        }
         return static_cast<unsigned>(nodes.size());
     }
     void visit(unsigned index,std::vector<bool> &visited) {
@@ -175,6 +191,62 @@ artbox_elf_result artbox_load_group_lookup(const artbox_load_group *group,const 
         if (result!=ARTBOX_ELF_NOT_FOUND) return result;
     }
     return ARTBOX_ELF_NOT_FOUND;
+}
+artbox_elf_result artbox_load_group_lookup_from(const artbox_load_group *g,const char *module,
+    const char *name,const char *version,uint64_t *address) {
+    if (!g || !module || !name || !address) return ARTBOX_ELF_INVALID;
+    unsigned first=g->find(module);
+    if (std::find(g->scope.begin(),g->scope.end(),first)==g->scope.end()) return ARTBOX_ELF_NOT_FOUND;
+    // The immutable manifest is bounded at 64 entries. A fixed queue keeps
+    // read-only lookup allocation-free and visits cycles only once.
+    std::array<unsigned,64> queue{};std::array<bool,64> visited{};
+    queue[0]=first;visited[first]=true;unsigned end=1;
+    for (unsigned cursor=0;cursor<end;++cursor) {
+        const Node &node=g->nodes[queue[cursor]];
+        artbox_elf_result r=lookup(node,name,version,address);
+        if (r!=ARTBOX_ELF_NOT_FOUND) return r;
+        for (unsigned dependency:node.dependencies) if (!visited[dependency]) {
+            visited[dependency]=true;queue[end++]=dependency;
+        }
+    }
+    return ARTBOX_ELF_NOT_FOUND;
+}
+artbox_elf_result artbox_load_group_lookup_next(const artbox_load_group *g,uint64_t caller,
+    const char *name,const char *version,uint64_t *address) {
+    if (!g || !name || !address) return ARTBOX_ELF_INVALID;
+    unsigned origin=g->containing(caller);bool after=false;
+    for (unsigned index:g->scope) {
+        if (after) {
+            artbox_elf_result r=lookup(g->nodes[index],name,version,address);
+            if (r!=ARTBOX_ELF_NOT_FOUND) return r;
+        }
+        if (index==origin) after=true;
+    }
+    return ARTBOX_ELF_NOT_FOUND;
+}
+artbox_elf_result artbox_load_group_info(const artbox_load_group *g,unsigned index,artbox_link_info *out) {
+    if (!g || !out) return ARTBOX_ELF_INVALID;
+    if (index>=g->scope.size()) return ARTBOX_ELF_NOT_FOUND;
+    *out=info(g->nodes[g->scope[index]]);return ARTBOX_ELF_OK;
+}
+artbox_elf_result artbox_load_group_address(const artbox_load_group *g,uint64_t address,artbox_link_address *out) {
+    if (!g || !out) return ARTBOX_ELF_INVALID;
+    unsigned index=g->containing(address);
+    if (index==g->nodes.size()) return ARTBOX_ELF_NOT_FOUND;
+    const Node &node=g->nodes[index];
+    artbox_link_address found{info(node),nullptr,0};
+    uint64_t relative=address-node.module.load_bias;
+    for (uint32_t i=0;i<node.module.dynamic->symbol_count;++i) {
+        artbox_elf_symbol symbol;
+        artbox_elf_result r=artbox_dynamic_symbol(node.module.dynamic,i,&symbol);
+        if (r!=ARTBOX_ELF_OK) return r;
+        if (!symbol.section || symbol.section>=0xff00 || symbol.type>2 ||
+            relative<symbol.value || relative-symbol.value>=symbol.size) continue;
+        r=symbol_address(node,symbol,&found.symbol_address);
+        if (r!=ARTBOX_ELF_OK) return r;
+        found.symbol_name=symbol.name;break;
+    }
+    *out=found;return ARTBOX_ELF_OK;
 }
 static artbox_elf_result resolve(void *context,const artbox_dynamic *d,uint32_t index,uint64_t *address) {
     auto *group=static_cast<artbox_load_group*>(context);

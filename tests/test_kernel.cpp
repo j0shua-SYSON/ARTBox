@@ -8,6 +8,7 @@
 #include <cerrno>
 #include <sys/random.h>
 #include <sys/syscall.h>
+#include <sys/utsname.h>
 #include <time.h>
 #include <unistd.h>
 #endif
@@ -51,6 +52,31 @@ int main() {
     uint64_t address = static_cast<uint64_t>(mapped);
     auto *bytes = reinterpret_cast<unsigned char *>(address);
     std::memset(bytes, 0xa5, memory.page_size * 2);
+    // Linux ARM64 uname is six fixed 65-byte strings, independent of the
+    // host's utsname type. An unaligned destination is valid.
+    CHECK(call(a, 160, address + 1) == 0);
+    const char *identity[] = {"Linux", "artbox", "0.0.0-artbox", "ARTBox Linux ABI", "aarch64", "(none)"};
+    for (unsigned field = 0; field < 6; ++field) {
+        const size_t length = std::strlen(identity[field]);
+        CHECK(std::memcmp(bytes + 1 + field * 65, identity[field], length + 1) == 0);
+        for (size_t i = length + 1; i < 65; ++i) CHECK(bytes[1 + field * 65 + i] == 0);
+    }
+    CHECK(bytes[0] == 0xa5 && bytes[391] == 0xa5);
+    CHECK(call(b, 160, address + 1) == 0); // One guest identity across threads.
+    CHECK(call(a, 160, 0) == -14 && call(a, 160, UINT64_MAX - 8) == -14);
+    CHECK(call(a, 160, address + memory.page_size * 2 - 389) == -14);
+#if defined(__linux__)
+    static_assert(sizeof(struct utsname) == 390, "Linux uname ABI size");
+    unsigned char native_uts[392];
+    std::memset(native_uts, 0xa5, sizeof(native_uts));
+    CHECK(syscall(SYS_uname, native_uts + 1) == 0);
+    CHECK(native_uts[0] == 0xa5 && native_uts[391] == 0xa5);
+    CHECK(std::strcmp(reinterpret_cast<char *>(native_uts + 1), "Linux") == 0);
+    for (unsigned field = 0; field < 6; ++field)
+        CHECK(std::memchr(native_uts + 1 + field * 65, 0, 65) != nullptr);
+    errno = 0;
+    CHECK(syscall(SYS_uname, nullptr) == -1 && errno == EFAULT);
+#endif
     CHECK(call(a, 278, 0, 0, 0) == 0);
     CHECK(call(a, 278, address, 16, 8) == -22 && bytes[0] == 0xa5);
     CHECK(call(a, 278, address, 16, 6) == -22 && bytes[0] == 0xa5);
@@ -62,6 +88,11 @@ int main() {
     // syscall contract and canaries, while the backend is the OS CSPRNG.
     CHECK(call(a, 278, 0, 16) == -14);
     CHECK(call(a, 226, address, memory.page_size, 1) == 0);
+    CHECK(call(a, 160, address) == -14);
+#if defined(__linux__)
+    errno = 0;
+    CHECK(syscall(SYS_uname, bytes) == -1 && errno == EFAULT);
+#endif
     CHECK(call(a, 278, address, 16) == -14);
     CHECK(call(a, 113, 0, address) == -14);
     CHECK(call(a, 226, address, memory.page_size, 3) == 0);

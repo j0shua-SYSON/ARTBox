@@ -31,6 +31,19 @@ extern "C" void artbox_bootstrap_note_allocation(const void* p) {
   if (shared.gwp_asan_state && shared.gwp_asan_state->pointerIsMine(p)) ++guarded_samples;
 }
 
+// Loader metadata queries must not allocate a DTV or call __tls_get_addr.
+// This bootstrap owns an immutable startup group: every registered module has
+// static TLS. Dynamic module loading is not supported by this interface.
+// Keep Bionic's private TCB/layout types entirely on the Android side.
+extern "C" uintptr_t artbox_bootstrap_tls_data(uint64_t module_id) {
+  if (artbox_bootstrap_stage != 5 || !module_id ||
+      module_id > shared.tls_modules.static_module_count || !__get_tls()) return 0;
+  const size_t offset = shared.tls_modules.module_table[module_id - 1].static_offset;
+  if (offset == SIZE_MAX) return 0;
+  return reinterpret_cast<uintptr_t>(__get_bionic_tcb()) -
+      shared.static_tls_layout.offset_bionic_tcb() + offset;
+}
+
 // No stack protector: Bionic reseeds its guard while this frame is active.
 extern "C" int artbox_bootstrap_main(void* raw_args, const artbox_tls_template* templates, uint64_t count) {
   if (count > 64 || (count && !templates)) return -22;

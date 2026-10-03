@@ -34,12 +34,32 @@ jobs:
         run: |
           ${{ matrix.python }} -B tests/test_environment.py
           ${{ matrix.python }} -B tests/test_sources.py
+          ${{ matrix.python }} -B tests/test_classlib_build.py
+          ${{ matrix.python }} -B tests/test_jdk.py
           ${{ matrix.python }} -B tests/test_bionic_adapt.py
+          ${{ matrix.python }} -B tests/test_art_host_adapt.py
           ${{ matrix.python }} -B tests/test_bionic_syscalls.py
           ${{ matrix.python }} -B tests/test_dynamic_pack.py
           ${{ matrix.python }} -B tests/test_tls_adapt.py
+          ${{ matrix.python }} -B tests/test_art_native_tls.py
+          ${{ matrix.python }} -B tests/test_art_guest_link.py
+          ${{ matrix.python }} -B tests/test_icu_guest_link.py
+          ${{ matrix.python }} -B tests/test_libcore_guest_link.py
           ${{ matrix.python }} -B tests/test_m2_acceptance.py
           ${{ matrix.python }} -B scripts/build.py host
+      - name: Check ART's native low-address heap requirement
+        run: ${{ matrix.python }} -B scripts/test_low_address.py
+      - name: Preserve native Darwin signal-context diagnostics
+        if: always() && matrix.os == 'macos-15'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: darwin-signal-context
+          path: |
+            build/host/signal-context/
+            build/host/test_signal_context_apple
+            build/host/Testing/Temporary/LastTest.log
+          if-no-files-found: warn
+          retention-days: 7
       - name: Build the pinned NDK ELF and test both packaging inputs
         if: matrix.os == 'macos-15'
         run: python3 -B scripts/test_pack.py
@@ -66,6 +86,91 @@ jobs:
       - name: Initialize real Bionic and run its dynamically linked allocator client
         if: matrix.os == 'macos-15'
         run: python3 -B scripts/test_bionic_startup.py
+      - name: Compare real AOSP references in signed native ARM64 code
+        if: matrix.os == 'macos-15'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_art_references.py
+      - name: Compare ART forwarding words and JNI storage above the native guard
+        if: matrix.os == 'macos-15'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_art_storage.py
+      - name: Preserve ART interpreter argument roots above the native guard
+        if: matrix.os == 'macos-15'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_art_stack.py
+      - name: Preserve the platform register across real LLVM context restoration
+        if: matrix.os == 'macos-15'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_unwind_context.py
+      - name: Preserve LLVM context diagnostics
+        if: always() && matrix.os == 'macos-15'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unwind-context-diagnostics
+          path: |
+            artifacts/m3-unwind-context.json
+            build/m3/unwind-context/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Execute source-built AOSP math through a signed dependency group
+        if: matrix.os == 'macos-15'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_art_math.py
+      - name: Preserve source-built math diagnostics
+        if: always() && matrix.os == 'macos-15'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-math-diagnostics
+          path: |
+            artifacts/m3-art-math.json
+            build/m3/art-math/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Preserve interpreter argument diagnostics on failure
+        if: failure() && matrix.os == 'macos-15'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-arguments-diagnostics
+          path: |
+            artifacts/m3-art-stack.json
+            build/m3/art-stack/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Execute AOSP libdl through the signed guest loader bridge
+        if: matrix.os == 'macos-15'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_guest_loader.py
+      - name: Preserve guest loader diagnostics
+        if: always() && matrix.os == 'macos-15'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: guest-loader-diagnostics
+          path: |
+            artifacts/m3-guest-loader.json
+            build/m3/guest-loader/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Load and verify an original DEX with pinned AOSP code
+        if: matrix.os == 'macos-15'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_dex_loader.py
+      - name: Preserve DEX loader build diagnostics
+        if: always() && matrix.os == 'macos-15'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dex-loader-diagnostics
+          path: |
+            artifacts/m3-dex-loader.json
+            build/m3/dex-loader/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Preserve Bionic startup diagnostics
         if: always() && matrix.os == 'macos-15'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -75,6 +180,10 @@ jobs:
             artifacts/m2-bionic-startup.json
             artifacts/m2-acceptance.json
             build/m2/bionic-startup/
+            build/m2/bionic/native/comparetf2.c.o
+            build/m2/bionic/native/vfork/
+            build/m2/bionic/native/android-ids/
+            build/m2/bionic/upstream/android-ids/upstream-tests.log
           if-no-files-found: warn
           retention-days: 7
       - name: Upload host evidence
@@ -83,6 +192,20 @@ jobs:
           name: host-evidence-${{ matrix.os }}
           path: |
             artifacts/host-metrics.json
+            artifacts/m3-low-address.json
+            build/m3/low-address/
+            artifacts/m3-art-references.json
+            build/m3/art-references/
+            artifacts/m3-art-storage.json
+            build/m3/art-storage/
+            artifacts/m3-art-stack.json
+            build/m3/art-stack/
+            artifacts/m3-dex-loader.json
+            artifacts/m3-unwind-context.json
+            build/m3/unwind-context/
+            artifacts/m3-art-math.json
+            build/m3/art-math/
+            build/m3/dex-loader/*.dex
             artifacts/m1-native.json
             artifacts/m2-metadata.json
             artifacts/m2-versions.json
@@ -96,6 +219,12 @@ jobs:
             build/m2/bionic-startup/futex-check.o
             build/m2/bionic-startup/file-check.o
             build/m2/bionic-startup/mapping-check.o
+            build/m2/bionic-startup/unlink-check.o
+            build/m2/bionic-startup/signal-wait.o
+            build/m2/bionic-startup/signal-handler.o
+            build/m2/bionic-startup/signal-stack.o
+            build/m2/bionic-startup/signal-stack-handler.o
+            build/m2/bionic-startup/signal-mask-handler.o
             build/m2/bionic-startup/libartbox_versions.so
             build/m2/bionic-startup/version-client.o
             build/m2/bionic-startup/libartbox_tls.so
@@ -107,6 +236,9 @@ jobs:
             build/m2/bionic-startup/tls-abi.o
             build/m2/bionic-startup/vm-check.o
             build/m2/bionic-startup/proc-check.o
+            build/m2/bionic-startup/art-libc-check.o
+            build/m2/bionic-startup/libcore-common.o
+            build/m2/bionic-startup/libcore-accounts.o
             build/m2/dynamic-wrapper/libartbox_bionic_slice.so
             build/m2/dynamic-wrapper/vm-check.o
             build/m2/dynamic-wrapper/system-check.o
@@ -121,7 +253,11 @@ jobs:
             build/m2/bionic/*/ARM-ROUTINES-NOTICE.txt
             build/m2/bionic/*/PROPERTY-INFO-NOTICE.txt
             build/m2/bionic/*/COMPILER-RT-NOTICE.txt
+            build/m2/bionic/*/FSCONFIG-NOTICE.txt
+            build/m2/bionic/*/android-ids/
             build/m2/bionic/*/binary128-test.o
+            build/m2/bionic/native/vfork/
+            build/m2/bionic/native/comparetf2.c.o
             build/m2/bionic/*/strings-test.o
             build/m2/bionic/*/allocator-tls-test.o
             build/m2/bionic/*/bionic_inline_raise.h
@@ -132,6 +268,264 @@ jobs:
             build/m1/macos/ARTBox*-load-commands.txt
             build/host/Testing/Temporary/LastTest.log
           if-no-files-found: error
+          retention-days: 7
+  runtime-sources:
+    name: ART runtime source selection
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Fetch and verify the pinned interpreter source selection
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/art_runtime_sources.py
+      - name: Preserve the source inventory
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-runtime-source-inventory
+          path: build/m3/runtime/source-inventory.json
+          if-no-files-found: error
+          retention-days: 7
+  runtime-build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - heap: absolute
+            name: AOSP ART runtime build (native Linux ARM64)
+            argument: ''
+            suffix: ''
+          - heap: relative
+            name: AOSP ART runtime build (managed window, native Linux ARM64)
+            argument: --managed-window
+            suffix: -managed-window
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Compile the interpreter and link its native reference harness
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_art_runtime.py --profile linux --all --link --jobs 3 ${{ matrix.argument }}
+      - name: Build and test native ICU and JNI dependencies
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_art_native_libraries.py --profile linux --all --link --jobs 3
+      - name: Build and test the remaining native libcore dependencies
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_art_libcore.py --profile linux --all --link --jobs 3
+      - name: Preserve runtime build diagnostics and corresponding source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-runtime-linux-build${{ matrix.suffix }}
+          path: build/m3/runtime-build/linux/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve native dependency diagnostics and corresponding source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-native-libraries-linux${{ matrix.suffix }}
+          path: build/m3/native-libraries/linux/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve native libcore diagnostics and corresponding source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-libcore-native-linux${{ matrix.suffix }}
+          path: build/m3/libcore-native/linux/
+          if-no-files-found: error
+          retention-days: 7
+  runtime-startup:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - heap: absolute
+            name: Original ART interpreter startup (native Linux ARM64)
+            suffix: ''
+          - heap: relative
+            name: ART interpreter startup (managed window, native Linux ARM64)
+            suffix: -managed-window
+    needs: [runtime-build, class-library, runtime-policy]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: art-runtime-linux-build${{ matrix.suffix }}
+          path: build/m3/runtime-build/linux
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: art-native-libraries-linux${{ matrix.suffix }}
+          path: build/m3/native-libraries/linux
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: art-libcore-native-linux${{ matrix.suffix }}
+          path: build/m3/libcore-native/linux
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: class-library-ubuntu-24.04-arm
+          path: build/m3/startup-inputs/classlib
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: art-managed-fixture-ubuntu-24.04-arm
+          path: build/m3/managed-fixture
+      - name: Start ART and verify hello, GC, exceptions and native attachment
+        run: >-
+          python3 -B scripts/test_art_startup.py
+          --classlib-dir build/m3/startup-inputs/classlib/build/m3/classlib
+      - name: Preserve startup result, maps, logs, native libraries, DEX and source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-runtime-startup-linux${{ matrix.suffix }}
+          path: build/m3/runtime-startup/
+          if-no-files-found: error
+          retention-days: 7
+  class-library:
+    name: AOSP class libraries (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build pinned implementation Java and DEX
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_art_classlib.py --fetch-jdk
+      - name: Build the managed ART acceptance fixture
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_art_managed_fixture.py --fetch-jdk
+      - name: Verify class libraries and malformed inputs with AOSP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_dex_loader.py --classlib-root build/m3/classlib
+      - name: Preserve class libraries, corresponding source and diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: class-library-${{ matrix.os }}
+          path: |
+            build/m3/classlib/artbox-classlib.zip
+            build/m3/classlib/result.json
+            build/m3/classlib/attempt-*/*.log
+            build/m3/classlib/attempt-*/*.args
+            build/m3/dex-loader/
+            artifacts/m3-classlib-verifier.json
+            artifacts/m3-dex-loader.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Preserve the managed fixture and source provenance
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-managed-fixture-${{ matrix.os }}
+          path: build/m3/managed-fixture/
+          if-no-files-found: error
+          retention-days: 7
+  runtime-policy:
+    name: ART runtime policy (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test stack trace names and reject JIT compiler creation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_art_runtime_policy.py
+      - name: Deny executable mappings and child execution before ART startup
+        if: runner.os == 'Linux'
+        run: python3 -B scripts/test_runtime_codegen.py
+      - name: Preserve native tests and the signed iOS policy framework
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: runtime-policy-${{ matrix.os }}
+          path: build/m3/runtime-policy/
+          if-no-files-found: warn
+          retention-days: 7
+  loader-api-reference:
+    name: Loader/kernel API references (native Linux ARM64)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Establish native Linux behavior for the guest loader API
+        run: python3 -B scripts/test_loader_reference.py
+      - name: Establish native Linux signal registration and delivery before guest translation
+        run: python3 -B scripts/test_signal_reference.py
+      - name: Establish pending signal and copyout ordering against the Linux kernel
+        run: python3 -B scripts/test_signal_wait.py
+      - name: Establish the Android handler source contract against native Linux
+        run: python3 -B scripts/test_signal_handler.py
+      - name: Establish alternate-stack layout and native handler stack selection
+        run: python3 -B scripts/test_signal_stack.py
+      - name: Establish handler mask mutation and pending-signal return behavior
+        run: python3 -B scripts/test_signal_mask.py
+      - name: Execute pinned AOSP sigchain registration and handler forwarding
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_art_sigchain.py
+      - name: Compare portable kernel services with native Linux ARM64
+        run: python3 -B scripts/build.py host
+      - name: Preserve the loader reference binaries and result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: loader-api-reference
+          path: |
+            artifacts/m3-loader-reference.json
+            artifacts/host-metrics.json
+            build/m3/loader-reference/
+            build/m3/signal-reference/
+            build/m3/signal-wait-reference/
+            build/m3/signal-handler-reference/
+            build/m3/signal-stack-reference/
+            build/m3/signal-mask-reference/
+            build/m3/art-sigchain-reference/
+            build/host/signal-context/
+            build/host/test_signal_context_linux
+            build/host/Testing/Temporary/LastTest.log
+          if-no-files-found: warn
           retention-days: 7
   linux-oracle:
     name: unchanged ELF on native Linux ARM64
@@ -165,6 +559,8 @@ jobs:
         run: python3 -B scripts/test_bionic_vm.py --evidence-root build/oracle
       - name: Check Android binary128 arithmetic without crossing the host floating ABI
         run: python3 -B scripts/test_bionic_binary128.py --evidence-root build/oracle
+      - name: Check Bionic vfork state restoration and its register-preservation negative control
+        run: python3 -B scripts/test_bionic_vfork.py --evidence-root build/oracle
       - name: Compare the signed Bionic futex caller with both original Linux paths
         run: python3 -B scripts/test_bionic_futex.py --evidence-root build/oracle
       - name: Compare signed Bionic versioned imports with native Linux
@@ -177,6 +573,32 @@ jobs:
         run: python3 -B scripts/test_proc.py --evidence-root build/oracle
       - name: Compare signed Bionic file operations with both original Linux paths
         run: python3 -B scripts/test_bionic_files.py --evidence-root build/oracle
+      - name: Compare the identical signed Bionic signal-wait caller with native Linux
+        run: python3 -B scripts/test_signal_wait.py --evidence-root build/oracle
+      - name: Compare the signed Bionic handler source with native Linux
+        run: python3 -B scripts/test_signal_handler.py --evidence-root build/oracle
+      - name: Compare signed Bionic alternate-stack behavior with native Linux
+        run: python3 -B scripts/test_signal_stack.py --evidence-root build/oracle
+      - name: Compare signed Bionic handler masks with native Linux
+        run: python3 -B scripts/test_signal_mask.py --evidence-root build/oracle
+      - name: Compare ART libc dependency calls with native Linux
+        run: python3 -B scripts/test_art_bionic.py --evidence-root build/oracle
+      - name: Compare numeric resolver and bounded string calls with native Linux
+        run: python3 -B scripts/test_libcore_frontends.py --evidence-root build/oracle
+      - name: Compare original AOSP reference types with the signed adaptation
+        run: python3 -B scripts/test_art_references.py --evidence-root build/oracle
+      - name: Compare original ART forwarding and JNI storage with signed high-address code
+        run: python3 -B scripts/test_art_storage.py --evidence-root build/oracle
+      - name: Compare original ART argument copying with signed high-address code
+        run: python3 -B scripts/test_art_stack.py --evidence-root build/oracle
+      - name: Compare original and adapted LLVM contexts on native Linux
+        run: python3 -B scripts/test_unwind_context.py --evidence-root build/oracle
+      - name: Compare signed AOSP math with native Linux and system libm
+        run: python3 -B scripts/test_art_math.py --evidence-root build/oracle
+      - name: Compare AOSP DEX validation on native Linux
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_dex_loader.py --evidence-root build/oracle
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -189,18 +611,204 @@ jobs:
             artifacts/m2-strings-linux.json
             artifacts/m2-vm-linux.json
             artifacts/m2-binary128-linux.json
+            artifacts/m3-vfork-linux.json
+            build/m3/vfork-oracle/*.log
+            artifacts/m3-libcore-frontends-linux.json
+            build/m3/libcore-frontends/*.log
+            build/m3/signal-wait-oracle/
+            build/m3/signal-handler-oracle/
+            build/m3/signal-stack-oracle/
+            build/m3/signal-mask-oracle/
             artifacts/m2-futex-linux.json
             artifacts/m2-files-linux.json
             artifacts/m2-versioned-linux.json
             artifacts/m2-elf-tls-linux.json
             artifacts/m2-timeouts-linux.json
             artifacts/m2-proc-linux.json
+            artifacts/m3-art-references-linux.json
+            build/m3/art-references/*.log
+            artifacts/m3-art-storage-linux.json
+            build/m3/art-storage/*.log
+            artifacts/m3-art-stack-linux.json
+            build/m3/art-stack/*.log
+            artifacts/m3-unwind-context-linux.json
+            build/m3/unwind-context/*.log
+            artifacts/m3-art-math-linux.json
+            build/m3/art-math/*.log
+            artifacts/m3-art-bionic-linux.json
+            build/m3/art-bionic/*.log
+            artifacts/m3-dex-loader-linux.json
+            build/m3/dex-loader/linux/*.log
+            build/m3/dex-loader/linux/objects/*.log
             build/m2/proc/*.log
             build/m2/timeouts/native.log
             build/m2/elf-tls/native.log
             build/m2/versioned-call/native.log
             build/m2/files-oracle/*.log
           if-no-files-found: error
+          retention-days: 7
+
+  art-native-guest-build:
+    name: AOSP ART Android guest build (macos-15)
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Compile the managed runtime with the native guest TLS boundary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_art_runtime.py --profile android --managed-window --native-guest --all --jobs 3
+      - name: Compile the pinned Android ICU and nativehelper dependencies
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_art_native_libraries.py --profile android --all --jobs 3
+      - name: Compile the pinned Android class libraries and native callers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/build_art_libcore.py --profile android --all --runtime-dir build/m3/runtime-build/native-guest --jobs 3
+      - name: Preserve Android class libraries and corresponding source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: libcore-native-guest-build
+          path: |
+            build/m3/libcore-native/android/*.json
+            build/m3/libcore-native/android/*.log
+            build/m3/libcore-native/android/*.zip
+            build/m3/libcore-native/android/objects/
+            build/m3/libcore-native/android/notices/
+            build/m3/libcore-native/android/integer128/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Preserve Android ICU objects and corresponding source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: icu-native-guest-build
+          path: |
+            build/m3/native-libraries/android/*.json
+            build/m3/native-libraries/android/*.log
+            build/m3/native-libraries/android/*.zip
+            build/m3/native-libraries/android/objects/
+            build/m3/native-libraries/android/notices/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Preserve guest objects and corresponding source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-native-guest-build
+          path: |
+            build/m3/runtime-build/native-guest/*.json
+            build/m3/runtime-build/native-guest/*.log
+            build/m3/runtime-build/native-guest/*.zip
+            build/m3/runtime-build/native-guest/objects/
+            build/m3/runtime-build/native-guest/compiler-tls/
+            build/m3/runtime-build/native-guest/notices/
+          if-no-files-found: warn
+          retention-days: 7
+
+  art-guest-link:
+    name: Full ART guest link, signed frameworks and native bootstrap
+    needs: [host, art-native-guest-build]
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: art-native-guest-build
+          path: build/m3/guest-runtime-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: icu-native-guest-build
+          path: build/m3/guest-icu-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: libcore-native-guest-build
+          path: build/m3/guest-libcore-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: bionic-startup
+          path: build/m3/guest-dependency-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: art-math-diagnostics
+          path: build/m3/guest-dependency-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: guest-loader-diagnostics
+          path: build/m3/guest-dependency-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: unwind-context-diagnostics
+          path: build/m3/guest-dependency-inputs
+      - name: Link the complete guest and verify signed framework layouts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/link_art_guest.py --runtime-dir build/m3/guest-runtime-inputs --dependency-dir build/m3/guest-dependency-inputs
+      - name: Build the shared native bootstrap runner
+        run: python3 -B scripts/build.py host
+      - name: Execute full guest constructors and the pre-start JNI boundary
+        run: python3 -B scripts/test_art_guest_bootstrap.py --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+      - name: Link ICU dependencies and verify their signed Apple frameworks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/link_icu_guest.py --native-dir build/m3/guest-icu-inputs --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+      - name: Execute ICU data and Unicode checks through the shared native runtime
+        run: python3 -B scripts/test_icu_guest.py --icu-dir build/m3/icu-guest-link --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+      - name: Preserve signed ICU packaging and provenance
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: icu-guest-link
+          path: |
+            artifacts/m3-icu-guest-link.json
+            artifacts/m3-icu-guest.json
+            build/m3/icu-guest-link/
+            build/m3/icu-guest/
+            build/host/artbox_native_icu
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Link class libraries and verify their signed Apple frameworks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/link_libcore_guest.py --native-dir build/m3/guest-libcore-inputs --icu-dir build/m3/icu-guest-link --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+      - name: Execute native class libraries through signed Bionic and ART dependencies
+        run: python3 -B scripts/test_icu_guest.py --libcore-dir build/m3/libcore-guest-link --icu-dir build/m3/icu-guest-link --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+      - name: Preserve signed class libraries and native execution evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: libcore-guest-link
+          path: |
+            artifacts/m3-libcore-guest-link.json
+            artifacts/m3-libcore-guest.json
+            build/m3/libcore-guest-link/
+            build/m3/libcore-guest/
+            build/host/artbox_native_libcore
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Preserve the full guest link and signature evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-guest-link
+          path: |
+            artifacts/m3-art-guest-link.json
+            artifacts/m3-art-guest-bootstrap.json
+            build/m3/art-guest-link/
+            build/m3/art-guest-bootstrap/
+            build/host/artbox_native_art_bootstrap
+          if-no-files-found: warn
           retention-days: 7
 
   m2-device-build:

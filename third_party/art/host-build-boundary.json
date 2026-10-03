@@ -1,0 +1,93 @@
+{
+  "description": "ARTBox native Linux build adaptations; original Apache notices retained.",
+  "files": [
+    {
+      "path": "runtime/class_linker.cc",
+      "sha256": "1d1c8f860e64385c42fd59b0859448344f822f408bf24a3ab9b279798506455c",
+      "replacements": [
+        {
+          "before": "#include \"class_linker.h\"",
+          "after": "#include <cstddef>  // ARTBox: declare std::nullptr_t explicitly.\n#include \"class_linker.h\""
+        },
+        {
+          "before": "Finish([[maybe_unused]] nullptr_t np)",
+          "after": "Finish([[maybe_unused]] std::nullptr_t np)"
+        },
+        {
+          "before": "    c2->DumpClass(os2, mirror::Class::kDumpClassFullDetail);",
+          "after": "    c2->DumpClass(os2, mirror::Class::kDumpClassFullDetail);\n    // ARTBox: preserve the fatal check and expose the actual linked layout.\n    os2 << \"\\nARTBox bootstrap layout: class_header=\" << sizeof(mirror::Class)\n        << \" reserved=\" << c1->GetClassSize()\n        << \" linked=\" << c2->GetClassSize()\n        << \" embedded_vtable=\" << c2->GetEmbeddedVTableLength() << '\\n';\n    for (ArtField& field : c2->GetSFields()) {\n      os2 << \"static \" << field.GetName() << \" offset=\"\n          << field.GetOffset().Uint32Value() << '\\n';\n    }"
+        }
+      ]
+    },
+    {
+      "path": "libartbase/base/strlcpy.h",
+      "sha256": "5fcfd8ed95cf5c4c5275d1b583466ef0fb371a16112c04513a3d887a10e70e3d",
+      "replacements": [
+        {
+          "before": "#if !defined(__BIONIC__) && !defined(__APPLE__) && !defined(ANDROID_HOST_MUSL)",
+          "after": "// ARTBox: the build probes whether the host already provides strlcpy.\n#if !defined(__BIONIC__) && !defined(__APPLE__) && !defined(ANDROID_HOST_MUSL) && \\\n    !defined(ARTBOX_SYSTEM_HAS_STRLCPY)"
+        }
+      ]
+    },
+    {
+      "path": "libartbase/base/histogram.h",
+      "sha256": "7017ba68943b4c8e364554d3c63b0211c5f60af3942266ccd7ea9cf73b3f5418",
+      "replacements": [
+        {
+          "before": "#include <string>",
+          "after": "#include <cstdint>  // ARTBox: declare fixed-width integer types explicitly.\n#include <string>"
+        }
+      ]
+    },
+    {
+      "path": "runtime/runtime_common.h",
+      "sha256": "a0265f0aa3895a767022cd8c6bb04b067365cab2a3ed2919a31001f4c2842cea",
+      "replacements": [
+        {
+          "before": "#include <sys/utsname.h>",
+          "after": "#include <signal.h>  // ARTBox: declare siginfo_t and sigaction before the namespace.\n#include <sys/utsname.h>"
+        }
+      ]
+    },
+    {
+      "path": "runtime/thread.cc",
+      "sha256": "527530323edc9f03be2fcaf7cf1b0cf5038e4aaa8ca5649a9e9b90fc8e1be4be",
+      "replacements": [
+        {
+          "before": "#include \"thread.h\"",
+          "after": "#include \"artbox_host_stack.h\"  // ARTBox: checked dynamic host stack minimum.\n#include \"thread.h\""
+        },
+        {
+          "before": "  if (stack_size < PTHREAD_STACK_MIN) {\n    stack_size = PTHREAD_STACK_MIN;\n  }",
+          "after": "  size_t minimum_stack_size = 0;\n  CHECK(artbox::host_stack_size(PTHREAD_STACK_MIN, stack_size, &minimum_stack_size));\n  stack_size = minimum_stack_size;"
+        }
+      ]
+    },
+    {
+      "path": "runtime/thread_linux.cc",
+      "sha256": "a80aa91257b408ba5bbbfe3f0cc210bb88974fa78343d8b1c6c149a876748393",
+      "replacements": [
+        {
+          "before": "#include \"thread.h\"",
+          "after": "#include \"artbox_host_stack.h\"  // ARTBox: checked dynamic host stack minimum.\n#include \"thread.h\""
+        },
+        {
+          "before": "static constexpr int kHostAltSigStackSize =\n    32 * KB < MINSIGSTKSZ ? MINSIGSTKSZ : 32 * KB;",
+          "after": "// ARTBox: glibc may obtain MINSIGSTKSZ from sysconf at runtime. Cache the\n// validated size at first use so setup and teardown use the same value.\nstatic size_t HostAltSignalStackSize() {\n  static const size_t size = []() {\n    size_t result = 0;\n    CHECK(artbox::host_stack_size(MINSIGSTKSZ, 32 * KB, &result));\n    return result;\n  }();\n  return size;\n}"
+        },
+        {
+          "before": "new uint8_t[kHostAltSigStackSize]",
+          "after": "new uint8_t[HostAltSignalStackSize()]"
+        },
+        {
+          "before": "  ss.ss_size = kHostAltSigStackSize;\n",
+          "after": "  ss.ss_size = HostAltSignalStackSize();\n"
+        },
+        {
+          "before": "  ss.ss_size = kHostAltSigStackSize;  // Avoid",
+          "after": "  ss.ss_size = HostAltSignalStackSize();  // Avoid"
+        }
+      ]
+    }
+  ]
+}

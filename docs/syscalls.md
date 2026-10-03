@@ -101,6 +101,22 @@ EACCES 13, EFAULT 14, EINVAL 22, ENOSYS 38, ENOTSUP 95. Guest flags and host
 `errno` are translated at the platform boundary. An unsupported syscall returns
 ENOSYS; it is never forwarded to Darwin using the Linux syscall number.
 
+`uname` (160) now writes the Linux ARM64 390-byte structure: six zero-padded
+65-byte fields. The virtual identity is `Linux`, `artbox`, `0.0.0-artbox`,
+`ARTBox Linux ABI`, `aarch64`, `(none)`. It describes the guest ABI; it does not
+expose the host hostname or claim a running Linux kernel. Version zero keeps
+ART's kernel-version checks on their conservative path. The identity is fixed
+across guest threads; hostname/domain mutation is unsupported.
+
+Portable tests check every field, padding, unaligned output, canaries and invalid,
+read-only and out-of-range destinations. Linux builds also call the real uname
+syscall to check the structure size, unaligned output and EFAULT behavior. The
+suite runs on native Linux ARM64 as well as the existing host matrix. Destination
+contents after EFAULT are unspecified; the shared mapper validates the complete
+write before copying. This syscall was demanded by an actual ART constructor;
+the regression fails before implementation and passes afterward. Native Linux
+comparisons and the full signed constructor run pass in CI at `d43ceaf`.
+
 The native page size comes from the host (supported contract: power of two,
 4 KiB through 64 KiB). The fixture requests 16 KiB and both packaging routes
 use 16 KiB Mach-O alignment. Memory allocated for the guest never requests
@@ -136,6 +152,16 @@ clone/fork/vfork forms remain unsupported. Native creation errors leave the pare
 TID word unchanged; clear-TID and detached unmap occur only after native join.
 The signed six-worker test passes at `e828dad` in both allocator sampling modes.
 
+The selected AOSP `vfork` frontend now calls the guest TLS and raw-syscall
+bridges. Raw clone (220) still returns ENOSYS. Preserve Bionic's original flags,
+cached PID/vfork state and errno handling; do not call host fork/vfork. The
+added acceptance checks cover 28 injected replies/modes and two real guest
+rejection checks. The Linux oracle also requires a missing-register-save
+mutation to fail. These checks validate the frontend and explicit rejection,
+not Linux process creation. At `3826391`, both signed Mac modes pass all 30
+checks; native Linux passes the 28 captured cases and detects the deliberate
+mutation. The unchanged M2 pthread suite still passes 328/328 in both modes.
+
 The rt_sigprocmask (135) implementation stores an independent guest
 64-bit mask per thread and inherits it at clone. Size must be eight bytes; how
 is checked only with a new mask. SIGKILL/SIGSTOP cannot be blocked. Input is read
@@ -150,7 +176,90 @@ injected provider on Windows. Openat, read/write, lseek, fstat/newfstatat,
 faccessat and close pass the supported flags/path/offset cases, including partial
 I/O and 512 concurrent appends. `/system` is read-only and parent/symlink traversal
 is rejected. Guest stat ownership is UID/GID 10000. File-backed data mappings and the 41-case NDK caller pass paired CI below;
-mutable directories and multiple guest users remain unsupported.
+mkdir, rename, directory removal and multiple guest users remain unsupported.
+
+### M3 unlink extension
+
+| ARM64 call | Implemented subset | Deliberate limits |
+| --- | --- | --- |
+| unlinkat 35 | Regular files and final symlink entries; relative directory descriptors and absolute paths; retained open descriptors and mappings; Linux errors for invalid flags, missing names, trailing slash/dot and directory targets | AT_REMOVEDIR returns ENOTSUP. Other special file types remain unsupported. System/dev/proc trees are protected; parent traversal and intermediate symlinks remain rejected. |
+
+The first signed libcore run at `3505832` fails on the JVM fixture's actual
+temporary-file cleanup. Its assertion remains required. A separate 29-case
+NDK caller now checks errors without deletion, zero link counts, reads through
+an unlinked descriptor, and same-name recreation without changing the old file.
+Both signed Bionic modes and the original/adapted Bionic syscall entries on
+native Linux run the identical object. Portable tests also check protected
+trees and an outside-root guard behind symlinks. All 29 cases pass in both
+signed Mac modes and both native Linux profiles at `c211a46`; native provider
+tests retain a shared mapping after unlink and close. These checks do not
+change M2's fixed denominator.
+
+### M3 blocked signal queues (native validation passes at 9c6a22f)
+
+| ARM64 call | Implemented subset | Deliberate limits |
+| --- | --- | --- |
+| tgkill 131 | Guest PID/TID lookup, zero-signal probe, queued blocked standard signals and active synchronous waiters | No cross-process, unblocked/default, SIGKILL/SIGSTOP or realtime delivery; unsupported delivery returns ENOTSUP. |
+| rt_sigprocmask 135 | Shared queue mask, clone inheritance, unmaskable-signal filtering and mutation before old-mask copyout | Host masks are unchanged. Unblocking a pending signal returns ENOTSUP without mutation. |
+| rt_sigtimedwait 137 | Standard-signal coalescing, lowest-number selection, Linux SI_TKILL encoding, zero/finite/infinite waits, consume before siginfo copyout | No host-handler interruption/EINTR or realtime queue semantics. |
+
+The 33-case shared caller and portable blocked-worker/lifetime tests pass
+locally. Signed Bionic and the identical NDK object on native Linux are CI gates.
+The normal queue implementation is not safe inside a host signal handler.
+
+### Initial action registration and synchronous trap delivery (verified at 2aa064f)
+
+| ARM64 call | Implemented subset | Deliberate limits |
+| --- | --- | --- |
+| rt_sigaction 134 | Linux ARM64 action copyin/out, filtered masks, query, atomic publication before old-action copyout | Requires a delivery owner. Initial Apple owner accepts SIGTRAP, SA_SIGINFO and optional SA_RESTART, no action mask/custom restorer; SIG_DFL can be restored. |
+| rt_sigprocmask 135 in handler | Query the interrupted mask plus automatically blocked SIGTRAP into an attached stack buffer | Mask mutations and return-frame mask changes are unsupported; no VM locks in this path. |
+| getpid/gettid 172/178 in handler | Immutable guest thread IDs through the separate signal dispatcher | Other signal-time syscall families remain unsupported. |
+
+Portable tests cover publication races, reset, capacity, invalid signal IDs,
+unaligned buffers, rejected capabilities and copyout failure after mutation.
+A real Android-compiled handler and a same-source Linux reference check
+registration, Linux siginfo, TLS/errno and PC/x0/SIMD resume. Both signed Bionic
+modes, native Linux and complete CI pass at `2aa064f`. Other fault signals and
+asynchronous unblocked delivery remain open; see [the signal contract](m3-signals.md).
+
+### Alternate stacks (verified at e7e1647)
+
+| ARM64 call | Implemented subset | Deliberate limits |
+| --- | --- | --- |
+| sigaltstack 132 | Linux 24-byte stack descriptor; query, register, disable, active-stack EPERM, input copy before validation and publication before old-stack copyout; shared-VM clone starts disabled | Owned RW storage only; advertised minimum 8 KiB; immutable records retained until thread detach with bounded capacity. SS_AUTODISARM is unsupported. |
+| sigaltstack 132 in handler | Query guest SS_ONSTACK/SS_DISABLE; invalid input EFAULT precedes active-stack EPERM | Input/output buffers must be on an attached guest stack. Updates from a handler on a normal stack return ENOTSUP; changed return-stack metadata is unsupported. |
+| rt_sigaction 134 extension | SA_ONSTACK chooses the guest alternate stack; otherwise the interrupted stack is used | Initial transport remains returning SIGTRAP handlers with zero action mask. |
+
+Local tests cover the 17-case shared wire contract, immutable snapshots, bounds,
+clone reset and capacity. The native caller adds 24 handler/worker checks and a
+missing-SA_ONSTACK control. Its Linux comparison uses the identical wire object
+and the same handler source with Linux libc. Both Bionic modes, native Linux and
+all CI jobs pass at `e7e1647`; downloaded hashes and stdout verify independently.
+
+### Handler masks (native CI green at e8408fd)
+
+| ARM64 call | Implemented subset | Deliberate limits |
+| --- | --- | --- |
+| rt_sigprocmask 135 in handler | BLOCK/UNBLOCK/SETMASK and query; unmaskable filtering; Linux input and copyout ordering; coherent mask/pending publication | Requires the lock-free ARM64 backend. Copies use attached stacks and stable image ranges, with RO input only. Pending signals that would become unblocked return ENOTSUP without mutation. |
+| rt_sigaction 134 extension | Action mask is published along with automatic self-blocking before the guest callback | Initial delivery still requires a returning SIGTRAP handler; flag negotiation and other fault transports remain open. |
+| signal return | Validated ucontext mask edits restore shared state after the callback | Unsupported pending-unblock delivery returns an error while retaining the queue. No guest rt_sigreturn syscall or nonlocal handler exit is provided. |
+
+Local tests cover 4,096 enqueue/unmask races and the mapper-lock-held update path.
+The signed Android and same-source Linux caller add 18 handler checks, a queued
+signal across return and an omitted-unblock control. Native Linux, both signed
+Bionic modes and the comparison pass at `e8408fd`; all CI is green.
+
+### Signal action capability probing (native sigchain CI pending)
+
+With SA_UNSUPPORTED (0x400), rt_sigaction intersects requested flags with the
+delivery owner's supported set before handler validation and publication.
+Readback clears the probe and unimplemented flags. The initial Apple set is
+0x18000004 (SIGINFO, ONSTACK, RESTART); EXPOSE_TAGBITS is not advertised.
+Without the probe bit, unsupported flags return ENOTSUP rather than Linux's
+unconditional unknown-bit clearing. Portable tests cover input preservation,
+invalid-handler rejection and publication before a failing old-action copyout.
+The real AOSP sigchain caller adds 22 native assertions and a removed-handler
+control; execution remains pending CI.
 
 ### File-backed data mapping extension (native CI green at b1a94c5)
 
@@ -166,6 +275,18 @@ mutable directories and multiple guest users remain unsupported.
 real Linux ARM64 file oracle exposed the initial generic-layout error; the
 correction passes at `ce6c6eb` without removing any file tests.
 
+ICU's data loader also requires `MADV_RANDOM` (advice 1). ARTBox validates the
+owned, mapped range and accepts this nonbinding hint without changing host
+read-ahead policy, bytes, protections or file references. Partial lengths round
+to pages; misalignment/overflow return EINVAL and holes return ENOMEM. Borrowed
+host storage stays outside this operation. Other unsupported advice remains
+ENOTSUP. This follows the distinction between caching hints and DONTNEED in
+the [Linux madvise contract](https://man7.org/linux/man-pages/man2/madvise.2.html).
+Anonymous range/error checks run through the same portable/Linux test sequence;
+injected private and read-only shared-file tests check absence of remapping,
+writeback and permission changes. Local regression tests and native Linux ARM64
+comparisons pass at `ecf9000`; the actual ICU data loader also passes on Mac ARM64.
+
 ### Initial proc snapshot
 
 Openat/read/fstat/newfstatat/lseek/close now route `/proc/self/cmdline` through
@@ -174,3 +295,16 @@ The 22-case original NDK caller passes Linux at `2125b46`; portable snapshot
 ownership and fault tests pass. Both signed Bionic profiles and Linux comparisons
 pass all 22 cases at `e50ec7f`, completing [M2 acceptance](acceptance/m2.md).
 See [the proc scope](files.md#initial-process-command-line) for explicit limits.
+
+### M3 retained managed windows
+
+The runtime can attach an anonymous managed heap window to the existing VM
+registry. Active pages participate in the same syscall buffer checks and memory
+operations as ordinary mappings. mmap (222) with a fixed owned address cannot
+replace a window guard; mprotect (226) rejects guards and holes; munmap (215)
+retains managed reservation ownership even after its last page is freed.
+Ordinary non-fixed mmap continues to allocate outside the pool. This retained-VA
+policy deliberately differs from Linux, preventing other host allocations from
+occupying future managed heap pages. The explicit window allocator is a host API,
+not a new Linux syscall. See [the window contract](m3-heap-window.md) for validation
+and remaining ART integration work.

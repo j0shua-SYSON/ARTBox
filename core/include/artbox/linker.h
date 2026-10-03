@@ -41,6 +41,32 @@ artbox_elf_result artbox_load_group_relocate(artbox_load_group *group);
  * Group mutation is serialized by the owner; callbacks must not mutate it. */
 artbox_elf_result artbox_load_group_lookup(const artbox_load_group *group,
     const char *name, const char *version, uint64_t *address);
+/* Queries for a fixed set of signed startup dependencies. These do not open,
+ * unload or promote libraries, resolve TLS addresses, or call the host linker.
+ * Lookup from a named module visits only its breadth-first dependency closure.
+ * NEXT skips the module containing caller and searches the rest of this group's
+ * scope. This is one local group, not Android's general namespace/global rules. */
+artbox_elf_result artbox_load_group_lookup_from(const artbox_load_group *group,
+    const char *module, const char *name, const char *version, uint64_t *address);
+artbox_elf_result artbox_load_group_lookup_next(const artbox_load_group *group,
+    uint64_t caller, const char *name, const char *version, uint64_t *address);
+typedef struct artbox_link_info {
+    const char *name;
+    const artbox_dynamic *dynamic;
+    uint64_t load_bias, tls_module_id;
+} artbox_link_info;
+typedef struct artbox_link_address {
+    artbox_link_info image;
+    const char *symbol_name; /* NULL when the image has no containing symbol. */
+    uint64_t symbol_address;
+} artbox_link_address;
+/* Borrowed immutable metadata in scope order; excludes unreachable entries.
+ * Address lookup excludes PT_LOAD gaps, undefined/absolute/TLS symbols and
+ * zero-size symbols. All query outputs remain unchanged on failure. */
+artbox_elf_result artbox_load_group_info(const artbox_load_group *group,
+    unsigned index, artbox_link_info *out);
+artbox_elf_result artbox_load_group_address(const artbox_load_group *group,
+    uint64_t address, artbox_link_address *out);
 /* Dependencies initialize before their parents, with cycles visited once. All
  * constructor pointers are checked before the first callback. A failed callback
  * poisons initialization; it is never silently retried. No guest code runs here
