@@ -236,7 +236,7 @@ missing-SA_ONSTACK control. Its Linux comparison uses the identical wire object
 and the same handler source with Linux libc. Both Bionic modes, native Linux and
 all CI jobs pass at `e7e1647`; downloaded hashes and stdout verify independently.
 
-### Handler masks (native CI pending)
+### Handler masks (native CI green at e8408fd)
 
 | ARM64 call | Implemented subset | Deliberate limits |
 | --- | --- | --- |
@@ -246,7 +246,20 @@ all CI jobs pass at `e7e1647`; downloaded hashes and stdout verify independently
 
 Local tests cover 4,096 enqueue/unmask races and the mapper-lock-held update path.
 The signed Android and same-source Linux caller add 18 handler checks, a queued
-signal across return and an omitted-unblock control. Native validation is pending.
+signal across return and an omitted-unblock control. Native Linux, both signed
+Bionic modes and the comparison pass at `e8408fd`; all CI is green.
+
+### Signal action capability probing (native sigchain CI pending)
+
+With SA_UNSUPPORTED (0x400), rt_sigaction intersects requested flags with the
+delivery owner's supported set before handler validation and publication.
+Readback clears the probe and unimplemented flags. The initial Apple set is
+0x18000004 (SIGINFO, ONSTACK, RESTART); EXPOSE_TAGBITS is not advertised.
+Without the probe bit, unsupported flags return ENOTSUP rather than Linux's
+unconditional unknown-bit clearing. Portable tests cover input preservation,
+invalid-handler rejection and publication before a failing old-action copyout.
+The real AOSP sigchain caller adds 22 native assertions and a removed-handler
+control; execution remains pending CI.
 
 ### File-backed data mapping extension (native CI green at b1a94c5)
 

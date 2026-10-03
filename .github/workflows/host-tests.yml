@@ -501,6 +501,10 @@ jobs:
         run: python3 -B scripts/test_signal_stack.py
       - name: Establish handler mask mutation and pending-signal return behavior
         run: python3 -B scripts/test_signal_mask.py
+      - name: Execute pinned AOSP sigchain registration and handler forwarding
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/test_art_sigchain.py
       - name: Compare portable kernel services with native Linux ARM64
         run: python3 -B scripts/build.py host
       - name: Preserve the loader reference binaries and result
@@ -517,6 +521,7 @@ jobs:
             build/m3/signal-handler-reference/
             build/m3/signal-stack-reference/
             build/m3/signal-mask-reference/
+            build/m3/art-sigchain-reference/
             build/host/signal-context/
             build/host/test_signal_context_linux
             build/host/Testing/Temporary/LastTest.log

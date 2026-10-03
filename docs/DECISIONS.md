@@ -1939,7 +1939,7 @@ for a deliberate BRK, then restores it after alternate-stack delivery returns.
 
 ## 0081: Publish signal masks and pending bits as one transition
 
-Status: local tests pass; native handler-mask validation pending CI.
+Status: native Linux and both signed Bionic modes verified at `e8408fd`; all CI green.
 
 A mask kept only in the handler's local scope hides it from other guest threads.
 Separate atomic mask/pending words also permit an enqueue accepted under an old
@@ -1977,3 +1977,35 @@ a worker's queued SIGUSR2 and an edited return mask. Omitting UNBLOCK must fail.
 The two worker instances are counted separately from the fixed M2 denominator.
 Action flag probing, other fault transports and actual ART sigchain execution
 remain separate acceptance work; this change does not establish Apple JavaVM.
+
+## 0082: Probe delivery capabilities and exercise the actual AOSP signal chain
+
+Status: portable flag negotiation and NDK caller compile pass; native sigchain CI pending.
+
+Pinned ART installs its handler with SA_UNSUPPORTED and SA_EXPOSE_TAGBITS, then
+reads back the accepted flags. Give the delivery owner an explicit supported
+flag set. When the probe bit is present, intersect the requested flags with
+that set before validating the handler and publishing the immutable action.
+Never advertise the probe bit. Without it, unsupported flags still fail with
+ENOTSUP. This deliberately differs from Linux's unconditional unknown-bit
+clearing: callers that require unsupported semantics must not silently succeed.
+Copyin, validation and publication-before-copyout ordering remain unchanged.
+The initial Apple owner advertises SIGINFO, ONSTACK and RESTART; it does not
+claim tagged fault-address or other fault-transport support.
+
+Compile an original caller against the existing, unchanged AOSP sigchain header
+and implementation. Keep it in a separate native-guest fixture unit (463 objects
+in that profile). Pass named libart sigaction/sigprocmask addresses into the
+caller, because libc occurs earlier in the load group and has symbols with the
+same names. Warm sigchain's own pthread key through its wrapper before faults;
+first-handler allocation is not an acceptable shortcut.
+
+The caller checks special-handler acceptance, fallback to a user handler, handler
+removal, action readback, alternate-stack execution, return masks and scoped TLS
+mask behavior. Removing the special handler before execution is a negative
+control. Run the same caller with the unchanged pinned source and Linux libc as
+a reference; do not claim identical Bionic machine code. AOSP retains a claimed
+chain after the last special handler is removed, so restore its user disposition
+and let process teardown own the kernel registration. This tests sigchain, not
+JavaVM startup, JNI_OnLoad or DEX execution. No code generation or new entitlement
+is involved.

@@ -121,15 +121,28 @@ verified 1,145,107-byte diagnostic IPA has seven iOS 15 images, four ELF layouts
 32 notices and empty entitlements. It contains no ART runtime. Compiled snapshots
 have no function calls; the signed stack bridge restores host SP and preserves x18.
 
-The next change makes mask/pending transitions coherent so a handler can change
+At `e8408fd`, mask/pending transitions are coherent so a handler can change
 its mask while another thread queues a signal. Local tests pass 4,096 enqueue/
 unmask races and exercise the handler API while the mapper lock is held. Apple
 ARM64 uses lock-free 128-bit transitions; other targets retain ordinary-context
 support without advertising handler mutation. The new signed/native Linux
 caller tests action masks, handler mask changes, stable image buffers and an
-edited return mask that preserves a queued signal. Native validation is pending.
-Other fault signals, supported-action-flag negotiation and unblocked queued
-delivery remain incomplete. JavaVM/JNI/DEX execution on Apple is still required.
+edited return mask that preserves a queued signal. All 18 handler checks and the
+omitted-unblock control pass on native Linux and both signed Bionic modes. All
+17 host jobs and the iOS build pass. Downloaded sources, objects, native results
+and the 1,148,066-byte diagnostic IPA verify independently. Compiled iOS mask
+updates tail-call a local helper containing exclusive-pair loops, with no
+library calls. No physical execution or Apple JavaVM is claimed.
+
+The current change adds delivery-owner flag probing and a real pinned AOSP
+sigchain caller. The caller invokes libart's named sigaction/sigprocmask wrappers,
+registers a special handler, tests accepted and forwarded faults on an alternate
+stack, removes that handler and verifies ordinary user forwarding. It checks
+the scoped handling TLS bit through actual mask behavior. A removed-handler
+control must fail. Thirty portable tests pass; the NDK caller compiles and its
+instruction boundary is checked. Native sigchain validation is pending CI.
+Other fault signals and unblocked queued delivery remain incomplete.
+JavaVM/JNI/DEX execution on Apple is still required.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

@@ -1,4 +1,4 @@
-"""Execute the signed ART guest's constructors and pre-start JNI/heap boundary."""
+"""Execute signed ART constructors, real sigchain and the pre-start JNI/heap boundary."""
 import sys
 sys.dont_write_bytecode = True
 import argparse
@@ -63,7 +63,7 @@ def main():
     bundle = output / 'corresponding-source.zip'
     with zipfile.ZipFile(bundle, 'w', compression=zipfile.ZIP_DEFLATED) as z:
         for p in paths: z.write(ROOT / p, 'artbox/' + p)
-    result = {'project_commit': revision, 'scope': 'Signed guest constructors, pre-start JNI and shared heap only',
+    result = {'project_commit': revision, 'scope': 'Signed guest constructors, real sigchain, pre-start JNI and shared heap',
               'project_sources': {p: digest(ROOT / p) for p in paths}, 'source_bundle_sha256': digest(bundle),
               'runner_sha256': digest(runner), 'command': command, 'elf_sha256': linked['elf_sha256'],
               'framework_sha256': {elf.name: digest(binary) for binary, elf, _, _ in modules},
@@ -80,7 +80,8 @@ def main():
         result['native'] = native
         if (native['constructors'] < 1 or native['tls_modules'] < 1 or native['linked_images'] != 4 or
                 native['registered_vms'] or not native['heap_binding_verified'] or not native['cleanup'] or
-                native['runtime_started'] or native['dex_executed']):
+                native['runtime_started'] or native['dex_executed'] or
+                native['sigchain_cases'] != 22 or native['sigchain_mutation'] != -1005):
             raise RuntimeError('Incomplete signed ART bootstrap contract')
     except subprocess.TimeoutExpired as error:
         (output / 'native.stdout').write_bytes(error.stdout or b'')
@@ -89,7 +90,7 @@ def main():
         raise
     finally:
         (artifacts / 'm3-art-guest-bootstrap.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
-    print('Signed ART constructors, pre-start JNI and shared heap verified; JavaVM startup and DEX execution pending')
+    print('Signed ART constructors, real sigchain, pre-start JNI and shared heap verified; JavaVM/DEX pending')
 
 
 if __name__ == '__main__': main()

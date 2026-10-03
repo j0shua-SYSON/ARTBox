@@ -61,14 +61,14 @@ def main():
     runtime, evidence = args.runtime_dir.resolve(), args.dependency_dir.resolve()
     build = read(runtime / 'all-results.json')
     if (build['project_commit'] != input_revision or build['profile'] != 'android' or
-            not build.get('native_guest') or not build['managed_window'] or len(build['results']) != 462 or
+            not build.get('native_guest') or not build['managed_window'] or len(build['results']) != 463 or
             build['excluded_host_owned_units'] != ['artbox-vm', 'artbox-native-vm'] or
             any(r['exit'] for r in build['results'])):
         raise RuntimeError('Require the complete native guest build from this revision')
     producer_sources(build['project_sources'])
     source_archives = {'runtime': verify(runtime / 'corresponding-source.zip', build['source_bundle_sha256'])}
     units = [r['unit'] for r in build['results']]
-    if len(set(units)) != 462 or any(n in units for n in build['excluded_host_owned_units']):
+    if len(set(units)) != 463 or 'artbox-sigchain-contract' not in units or any(n in units for n in build['excluded_host_owned_units']):
         raise RuntimeError('Guest object ownership or uniqueness changed')
     inputs = [verify(runtime / 'objects' / (r['unit'] + '.o'), r['object_sha256']) for r in build['results']]
     expected_tls = read(ROOT / 'third_party/art/native-tls.json')
@@ -180,7 +180,7 @@ def main():
                                   name='ARTBoxRuntime', notice_name='ART-NOTICE.txt')
             report['frameworks'][target] = details
             save()
-    print('Full ART guest linked from 462 objects; eight explicit VM/TLS host imports; ' +
+    print('Full ART guest linked from 463 objects; eight explicit VM/TLS host imports; ' +
           ('Mac/iOS 15 frameworks signed and verified; execution pending' if sys.platform == 'darwin'
            else 'Apple packaging and execution pending'))
 

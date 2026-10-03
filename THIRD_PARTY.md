@@ -521,3 +521,10 @@ __cmsg_nxthdr (AOSP BSD terms), bsearch (NetBSD BSD-3-Clause), strtok and setenv
 terms). Bionic's FreeBSD log1p and remainder retain Sun's notice-preservation
 terms. All use the existing Bionic pin. Original per-file notices and the full
 libc/libm notices remain in corresponding-source and binary artifacts.
+
+The standalone signal-chain reference uses unchanged `sigchainlib/sigchain.cc`,
+`sigchain.h` and `log.h` from the existing ART Android 15 pin (Apache-2.0).
+Their original headers and hash-checked ART NOTICE accompany its source archive.
+The signed ART guest already includes this implementation; its additional caller
+is original MIT code. The Linux reference links the runner's system C++ runtime
+and libc and does not represent an Android binary.

@@ -323,6 +323,19 @@ static void check_art_bootstrap(void) {
         artbox_call7(entry(&images[1], "artbox_art_reference_decompress"), 0, 0, 0, 0, 0, 0, 0))
         fail("ART null reference contract");
     artbox_call7(entry(&images[1], "artbox_art_heap_unbind"), 0, 0, 0, 0, 0, 0, 0);
+    void *sigchain_check=entry(&images[1],"artbox_sigchain_check");
+    uint64_t chain_action=(uintptr_t)entry(&images[1],"sigaction");
+    uint64_t chain_mask=(uintptr_t)entry(&images[1],"sigprocmask");
+    int positive=(int32_t)artbox_call7(sigchain_check,chain_action,chain_mask,0,0,0,0,0);
+    if(positive!=22) {
+        fprintf(stderr,"ART sigchain result: %d\n",positive);
+        fail("ART sigchain registration and forwarding");
+    }
+    int negative=(int32_t)artbox_call7(sigchain_check,chain_action,chain_mask,1,0,0,0,0);
+    if(negative!=-1005) {
+        fprintf(stderr,"ART sigchain mutation result: %d\n",negative);
+        fail("ART sigchain missing-handler control");
+    }
     result = 0;
 }
 static void *run(void *context) {
@@ -570,7 +583,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     }
     signal_template.code=signal_code; signal_template.code_count=image_count;
     signal_template.data=signal_data; signal_template.data_count=image_count;
-    if(artbox_signals_enable_actions(process_signals,4096,artbox_native_signal_validate_trap,&signal_template) ||
+    if(artbox_signals_enable_actions(process_signals,4096,artbox_native_signal_validate_trap,&signal_template,UINT64_C(0x18000004)) ||
         artbox_signals_enable_stacks(process_signals,ARTBOX_SIGNAL_STACK_MINIMUM,4096) ||
         artbox_signals_attach(process_signals,&thread)) fail("signal action owner");
     signal_template.actions=artbox_signals_action_table(process_signals);
@@ -648,7 +661,8 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
         }
         length = snprintf(report, sizeof(report),
             "{\"constructors\":%u,\"tls_modules\":%u,\"linked_images\":%u,\"registered_vms\":0,%s"
-            "\"heap_binding_verified\":true,\"runtime_started\":false,\"dex_executed\":false,"
+            "\"heap_binding_verified\":true,\"sigchain_cases\":22,\"sigchain_mutation\":-1005,"
+            "\"runtime_started\":false,\"dex_executed\":false,"
             "\"load_relocate_ns\":%" PRIu64 ",\"bootstrap_ns\":%" PRIu64 ",\"cleanup\":true}",
             constructors, tls_count, image_count, extra,
             loaded-start, finished-loaded);

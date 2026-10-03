@@ -130,7 +130,7 @@ alternate-stack changes from a handler on the normal stack, and changed stack
 metadata in a return context remain unsupported. No other fault transport or
 ART startup is implied by this extension.
 
-The next extension publishes mask and pending bits in one coherent state. Apple
+The extension verified at `e8408fd` publishes mask and pending bits in one coherent state. Apple
 ARM64 requires lock-free 128-bit updates without outlined library calls; other
 targets retain ordinary-context transitions and explicitly reject handler-time
 mutation. Local tests cover 4,096 enqueue/unmask races, pending-unblock rejection
@@ -141,11 +141,23 @@ Delivery publishes the action mask and automatic self-blocking. Handler mask
 syscalls now update shared state, while the ucontext retains the interrupted
 mask. A validated return-mask edit is accepted if queued signals stay blocked.
 The new native caller checks 18 assertions, including a cross-thread queue during
-the handler and a subsequent wait after return. Omitting UNBLOCK must fail;
-native CI is pending. Stable signed RO input and guest image RW output are
+the handler and a subsequent wait after return. Omitting UNBLOCK fails as intended
+on native Linux and both signed Bionic modes; all CI passes. Stable signed RO input and guest image RW output are
 accepted alongside attached stacks; dynamic heap buffers are not yet supported
 by the handler copy path. Restoring a mask that requires unblocked queued delivery
 still fails explicitly, preserving the pending bits.
+
+The next caller executes the unchanged pinned AOSP sigchain implementation. Its
+registration probes SA_UNSUPPORTED and SA_EXPOSE_TAGBITS; the kernel facade now
+clears probe flags outside the delivery owner's advertised 0x18000004 set.
+Without a probe, unsupported flags still return ENOTSUP. No tagged-address
+semantics are advertised. Action readback and copyout ordering have portable tests.
+The guest caller uses named libart wrapper addresses to avoid libc interposition,
+warms sigchain's real pthread key before delivery, then exercises special-handler
+acceptance, fallback, removal, alternate-stack execution and scoped TLS mask
+behavior. Twenty-two assertions and a removed-handler control are required on
+both signed Mac and a same-source native Linux reference. Native execution of
+this extension is pending; it does not start a JavaVM.
 
 The pinned ART sources require a real boundary before JavaVM startup on Apple:
 
