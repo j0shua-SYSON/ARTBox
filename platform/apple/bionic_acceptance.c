@@ -323,7 +323,7 @@ static void check_art_bootstrap(void) {
         artbox_call7(entry(&images[1], "artbox_art_reference_decompress"), 0, 0, 0, 0, 0, 0, 0))
         fail("ART null reference contract");
     artbox_call7(entry(&images[1], "artbox_art_heap_unbind"), 0, 0, 0, 0, 0, 0, 0);
-    void *sigchain_check=entry(&images[1],"artbox_sigchain_check");
+    const void *sigchain_check=entry(&images[1],"artbox_sigchain_check");
     uint64_t chain_action=(uintptr_t)entry(&images[1],"sigaction");
     uint64_t chain_mask=(uintptr_t)entry(&images[1],"sigprocmask");
     int positive=(int32_t)artbox_call7(sigchain_check,chain_action,chain_mask,0,0,0,0,0);

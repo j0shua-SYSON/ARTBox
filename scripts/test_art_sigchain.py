@@ -19,7 +19,7 @@ def digest(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--compiler', default=os.environ.get('CXX', 'c++'))
+    parser.add_argument('--compiler', default=os.environ.get('CXX', 'clang++'))
     args = parser.parse_args()
     os.environ.update(environment())
     if sys.platform != 'linux' or platform.machine().lower() not in ('aarch64', 'arm64'):
@@ -38,7 +38,7 @@ def main():
     project = [caller, runner, Path(__file__), ROOT / 'LICENSE']
     binary = output / 'sigchain-reference'
     command = list(map(str, [args.compiler, '-std=c++17', '-O2', '-ffixed-x18', '-pthread',
-        '-include', 'limits', '-I', art / 'sigchainlib', caller, runner,
+        '-include', 'limits', '-include', 'climits', '-I', art / 'sigchainlib', caller, runner,
         art / 'sigchainlib/sigchain.cc', '-ldl', '-o', binary]))
     record = {'project_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
               'scope': 'Same-source caller and unchanged AOSP sigchain; native Linux libc, not Bionic',
@@ -52,6 +52,8 @@ def main():
     try:
         compiled = subprocess.run(command, capture_output=True, timeout=90)
         (output / 'compile.log').write_bytes(compiled.stdout + compiled.stderr)
+        if compiled.returncode:
+            print(compiled.stderr.decode('utf-8', errors='replace'), file=sys.stderr)
         compiled.check_returncode()
         record['binary_sha256'] = digest(binary)
         for key, options in [('native', []), ('dropped-special', ['--drop-special'])]:
