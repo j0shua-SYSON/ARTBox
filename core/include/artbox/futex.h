@@ -5,10 +5,12 @@
 extern "C" {
 #endif
 typedef struct artbox_futex artbox_futex;
-/* One wait domain per guest address space. Both shared/private Linux opcodes
- * are supported for the same-address, single-process case, with distinct keys.
- * Shared file aliases, PI and robust-owner recovery are not provided. The
- * interruptible entry supports the configured non-restarting signal only. */
+/* One wait domain per guest address space. Shared/private wait and wake use
+ * distinct keys in the same-address, single-process case. Plain private requeue
+ * moves waiters between keys; its fourth argument is a count, not a timeout.
+ * Shared requeue, comparison/PI operations, shared file aliases and robust-owner
+ * recovery are not provided. The interruptible entry supports the configured
+ * non-restarting signal only. */
 artbox_futex *artbox_futex_create(artbox_vm *vm, const artbox_atomic_u32_ops *atomic,
                                  const artbox_system_ops *system, size_t waiter_limit);
 /* The owner must stop callers before destruction. Active waits return EBUSY. */

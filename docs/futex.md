@@ -1,7 +1,7 @@
 # Futex and exit-TID boundary
 
 The initial process-local futex domain implements Linux WAIT, WAKE, WAIT_BITSET
-and WAKE_BITSET, including the PRIVATE flag. WAIT uses a relative monotonic
+and WAKE_BITSET, including the PRIVATE flag, plus plain REQUEUE_PRIVATE. WAIT uses a relative monotonic
 timeout; WAIT_BITSET uses an absolute monotonic or realtime deadline. Timeout
 bytes use Linux ARM64's two signed 64-bit fields. Invalid timeout data is checked
 before a supported wait compares its word. Unsupported operations return ENOSYS.
@@ -44,5 +44,35 @@ adapted Bionic syscall objects on native Linux. All 19 cases pass in both signed
 startup modes and both Linux profiles at `7b62337`; all 15 portable contracts and
 the iOS regression build pass. [Host/Linux evidence](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34815207011)
 and [iOS build](https://github.com/j0shua-SYSON/ARTBox/actions/runs/34815209434)
-are hash-paired with the downloaded caller and signed containers. Signals/EINTR, robust owner death, PI, requeue and wake-op are not yet
-implemented; they are not silently treated as successful operations.
+are hash-paired with the downloaded caller and signed containers. That checkpoint
+does not include the later interruption or requeue extensions below.
+
+The configured non-restarting realtime interruption can terminate an ordinary
+futex wait with EINTR. It uses the owning thread's delivery epoch and at most
+5 ms polling intervals; see [the signal contract](m3-signals.md). Requeue retains
+that owner, so moving a waiter does not detach its interruption state.
+
+Plain FUTEX_REQUEUE_PRIVATE (opcode 131) takes signed 32-bit wake and move counts;
+the fourth syscall argument is a count rather than a timeout pointer. It wakes
+up to the requested number, then changes the key of up to the remaining move
+budget, returning the combined count. Zero wakes really wakes zero. Both private
+keys require alignment and a valid user address range but need not be mapped;
+neither guest word is read or changed. Same-key movement counts each waiter once.
+The source and destination keys share the existing queue lock, preserving atomic
+registration versus wake/requeue, bitsets, deadlines and private/shared isolation.
+Scanning is linear in the bounded active queue and needs no additional allocation.
+The behavior reference is [Linux v6.12 requeue.c](https://github.com/torvalds/linux/blob/v6.12/kernel/futex/requeue.c);
+the implementation and tests are original MIT code.
+
+The separate 18-case NDK requeue caller covers counts, keys, error precedence and
+word preservation. Its object is required in both signed Bionic modes and both
+native Linux syscall profiles, without changing the original 19-case baseline
+or M2's 328-case score. Portable tests additionally move actual blocked waiters,
+select them by bitset at the destination, retain a timeout, interrupt a moved
+waiter and exercise 128 insertion/requeue/wake races. Linux builds repeat the
+queue tests against the actual kernel. All 34 local CTests pass; native CI for
+this extension is pending. ART's unchanged condition-variable implementation
+provides a further integration test during required JavaVM startup.
+
+Shared requeue, CMP_REQUEUE, PI, robust owner death, wake-op and general restart
+semantics remain unsupported; they are not silently treated as successful.

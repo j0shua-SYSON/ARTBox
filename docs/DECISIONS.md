@@ -2224,9 +2224,9 @@ required full JavaVM, hello DEX and shutdown acceptance.
 
 ## 0088: Report the existing virtual cwd through the Linux getcwd ABI
 
-Status: the new 22-case regression fails before implementation and passes
-locally afterward; NDK compilation passes. Signed Apple and Linux execution
-are required next.
+Status: all 22 cases pass both signed Bionic modes and both native Linux syscall
+profiles at `a9e91b6`, with the identical NDK object verified independently.
+ART advances to Signal Catcher creation, then fails private futex requeue.
 
 At `06fa115`, ART passes signal-34 registration and advances through native
 initialization. The last recorded unsupported call is getcwd (17), followed by
@@ -2251,3 +2251,40 @@ whose declared capacity exceeds its mapping. Run its identical NDK object
 through both signed Bionic profiles and both Bionic syscall-entry profiles on
 native Linux, with the Linux test child at `/`. Preserve M2's 328-case score
 and require the complete JavaVM/DEX acceptance after this fix.
+
+## 0089: Requeue private futex waiters for ART condition variables
+
+Status: the raw caller regression fails before implementation and passes
+afterward. All 34 local CTests pass; native Linux, signed Bionic and complete
+Apple JavaVM execution are required next.
+
+At `a9e91b6`, the signed ART worker reaches Signal Catcher creation, then exits
+with ENOSYS from syscall 98, operation 131. Pinned AOSP ConditionVariable::
+RequeueWaiters uses FUTEX_REQUEUE_PRIVATE to move condition-variable waiters
+onto their guard mutex. Implement the queue operation without changing that
+upstream synchronization algorithm or pretending the operation succeeded.
+
+Interpret the fourth syscall argument as a signed 32-bit move count. Reject
+negative wake/move counts before checking source then destination key alignment
+and user range. Private keys need not have mapped words. Wake the requested
+prefix and move up to the remaining budget under the same lock that serializes
+wait registration and wake. Return woken plus moved, including same-key moves.
+Preserve each waiter's bitset, original deadline, native condition variable and
+signal-delivery owner. The zero-wake case must not inherit the separate WAKE
+opcode's historical nonpositive-count quirk. See [Linux v6.12 requeue.c](https://raw.githubusercontent.com/torvalds/linux/v6.12/kernel/futex/requeue.c)
+for ABI behavior; no Linux implementation code is copied.
+
+This adds a linear scan of the bounded active queue (at most 65,536 entries),
+without allocation, code generation or a new platform API. Shared requeue,
+comparison, PI and robust owner recovery remain unsupported. Returning to ART's
+mutex wait can add native scheduling overhead; no steady-state benchmark is
+claimed from the correctness fixture.
+
+Keep an 18-case original NDK wire caller separate from M2's frozen score. Require
+its identical object in both signed Bionic modes and both native Linux syscall
+profiles. In C++ tests, move real blocked waiters, check destination bitsets,
+private/shared isolation, bounded wake/move counts, retained timeouts and 128
+registration/requeue/wake races. Linux builds repeat these against the kernel.
+The interruption test delivers signal 34 after moving the waiter and requires
+EINTR. Required full JavaVM, hello DEX and shutdown acceptance stays enabled;
+these narrower tests do not complete M3.

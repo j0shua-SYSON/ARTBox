@@ -287,17 +287,29 @@ existing guest stack constraints still apply. The five-case Android/Linux
 caller and dropped-edit/address controls are required in CI; local portable
 classification and metadata concurrency tests pass.
 
-### Current directory (local contract passed; native validation pending)
+### Current directory (native comparisons passed at a9e91b6)
 
 | ARM64 call | Implemented subset | Deliberate limits |
 | --- | --- | --- |
 | getcwd 17 | Existing virtual `/` cwd, NUL-inclusive return length, full-width capacity, ERANGE before copy, EFAULT on inaccessible output | Cwd is fixed; chdir/fchdir and deleted/renamed cwd semantics remain unsupported. Never returns the host backing path. |
 
-The 22-case shared caller fails against the missing implementation and passes
+The 22-case shared caller failed against the missing implementation and passes
 locally after the fix. It checks canaries, unaligned storage, capacity and page
 boundaries. Both signed Bionic modes and both Bionic Linux syscall-entry profiles
-must run the same NDK object; the reference child changes to `/` after its file
-mutations finish. M2's existing denominator remains 328.
+pass the same NDK object at `a9e91b6`; the reference child changes to `/` after
+its file mutations finish. M2's existing denominator remains 328.
+
+### Private futex requeue (local contract passed; native validation pending)
+
+| ARM64 call | Implemented subset | Deliberate limits |
+| --- | --- | --- |
+| futex 98, operation 131 | Wake a prefix and move remaining private waiters to another key; return combined count; preserve masks, deadlines and interruption ownership | Plain private requeue only. Shared requeue, comparison and PI variants remain ENOSYS. |
+
+Counts use signed 32-bit semantics. Private keys are validated in source then
+destination order without reading their words. An 18-case identical NDK caller
+is required in both signed Bionic modes and Linux syscall profiles; additional
+portable/Linux tests move real waiters and race requeue with registration/wake.
+All 34 local CTests pass. See [the full futex contract](futex.md) and ADR 0089.
 
 ### File-backed data mapping extension (native CI green at b1a94c5)
 

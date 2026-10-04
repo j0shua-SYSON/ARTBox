@@ -52,7 +52,7 @@ ART runs the hello DEX only in the native Linux reference. JavaVM startup and DE
 execution on macOS/iOS, Binder/services, Android Activities and APK execution remain incomplete.
 The M2 runner is diagnostic and single-use; unexpected contract failures can
 terminate its process. General dlopen scope growth, unloading/finalization,
-other ELF TLS models, asynchronous signal delivery, broader proc files, mutable directories
+other ELF TLS models, asynchronous signals beyond the tested interruption subset, broader proc files, mutable directories
 and additional syscall families remain unsupported. The Windows native file
 provider is not implemented; portable VFS tests use an injected provider there.
 
@@ -73,11 +73,19 @@ pass. See ADR 0087 and the [signal contract](m3-signals.md) for the 5 ms
 wait-polling cost and scoped limits. Sixteen host jobs and the iOS build pass;
 the required Apple JavaVM test advances but times out after unsupported getcwd.
 
-The next implementation reports the existing virtual `/` cwd through syscall
-17. Its 22-case fixture reproduces the missing call before implementation;
-all 33 CTests pass afterward, and NDK compilation passes. Native comparisons
-and the next full JavaVM attempt remain pending. See ADR 0088. Current ART
-execution on Apple and ART inclusion in the iOS app remain unverified.
+At `a9e91b6`, getcwd reports the existing virtual `/` through syscall 17. Its
+22-case identical NDK caller passes both signed Bionic modes and both native
+Linux profiles. The signed ART worker now creates Signal Catcher, then exits
+with an explicit unsupported FUTEX_REQUEUE_PRIVATE from its condition variable.
+Sixteen host jobs and the iOS build pass; JavaVM creation still fails.
+
+The private requeue implementation moves real waiters between keys under the
+existing queue lock. A new regression fails before implementation and passes
+afterward; all 34 local CTests pass, including bitset selection, private/shared
+isolation, retained deadlines, moved-waiter interruption and 128 queue races.
+Native Linux comparisons, both signed Bionic modes and the next full JavaVM
+attempt are required next. See ADRs 0088-0089. Managed execution on Apple and
+ART inclusion in the iOS app remain unverified.
 
 At `1647514`, the dependency selection adds 57 unchanged Bionic units and AOSP-generated
 Android account IDs. New callers cover numeric address resolution, bounded

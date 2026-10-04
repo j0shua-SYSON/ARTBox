@@ -59,6 +59,7 @@ static int64_t vfork_cases;
 static int64_t libcore_frontend_cases;
 static int64_t unlink_cases;
 static int64_t cwd_cases;
+static int64_t futex_requeue_cases;
 static int64_t signal_wait_cases;
 static artbox_signals *process_signals;
 static artbox_signal_memory_range signal_code[IMAGE_CAPACITY],signal_data[IMAGE_CAPACITY];
@@ -587,8 +588,10 @@ static void *run(void *context) {
     int64_t scratch = artbox_vm_mmap(vm, 0, artbox_vm_page_size(vm), 3, 0x22, -1, 0);
     if (scratch < 0) fail("futex fixture storage");
     futex_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_futex_check"), (uint64_t)scratch, 0, 0, 0, 0, 0, 0);
+    futex_requeue_cases=(int64_t)artbox_call7(entry(&images[1],"artbox_futex_requeue_check"),(uint64_t)scratch,0,0,0,0,0,0);
     if (artbox_vm_munmap(vm, (uint64_t)scratch, artbox_vm_page_size(vm))) fail("futex fixture cleanup");
     if (futex_cases != 19) { fprintf(stderr, "futex caller: %" PRId64 "\n", futex_cases); fail("futex caller"); }
+    if(futex_requeue_cases!=18) { fprintf(stderr,"futex requeue caller: %" PRId64 "\n",futex_requeue_cases); fail("futex requeue caller"); }
     uint64_t before_vm = artbox_vm_reserved_bytes(vm);
     vm_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_vm_check"), artbox_vm_page_size(vm), 0, 0, 0, 0, 0, 0);
     if (vm_cases != 35 || artbox_vm_reserved_bytes(vm) != before_vm) {
@@ -779,12 +782,12 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
            ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"art_libc_cases\":%" PRId64 ",\"vfork_cases\":%" PRId64 ",\"libcore_frontend_cases\":%" PRId64 ",\"unlink_cases\":%" PRId64 ",\"signal_wait_cases\":%" PRId64 ",\"signal_handler_cases\":%d,\"signal_handler_mutation\":%d,"
            "\"signal_stack_cases\":%d,\"signal_stack_handler_cases\":%d,\"signal_stack_mutation\":%d,\"signal_stack_threads\":%" PRIu64 ","
            "\"signal_mask_cases\":%d,\"signal_mask_mutation\":%d,\"signal_mask_threads\":%" PRIu64 ","
-           "\"cwd_cases\":%" PRId64 ",\"signal_realtime_cases\":%d,\"signal_interrupt_cases\":%d,\"signal_interrupt_mutation\":%d,\"signal_interrupt_threads\":%" PRIu64 ","
+           "\"futex_requeue_cases\":%" PRId64 ",\"cwd_cases\":%" PRId64 ",\"signal_realtime_cases\":%d,\"signal_interrupt_cases\":%d,\"signal_interrupt_mutation\":%d,\"signal_interrupt_threads\":%" PRIu64 ","
            "\"signal_fault_cases\":%d,\"signal_fault_edit_mutation\":%d,\"signal_fault_address_mutation\":%d,\"unsupported_syscalls\":{",
            constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases, unlink_cases, signal_wait_cases,signal_handler_cases,signal_handler_mutation,
            signal_stack_cases,signal_stack_handler_cases,signal_stack_mutation,signal_stack_threads,
            signal_mask_cases,signal_mask_mutation,signal_mask_threads,
-           cwd_cases,signal_realtime_cases,signal_interrupt_cases,signal_interrupt_mutation,signal_interrupt_threads,
+           futex_requeue_cases,cwd_cases,signal_realtime_cases,signal_interrupt_cases,signal_interrupt_mutation,signal_interrupt_threads,
            signal_fault_cases,signal_fault_edit_mutation,signal_fault_address_mutation);
     if (length < 0 || (size_t)length >= sizeof(report)) fail("result formatting");
     size_t used_bytes = (size_t)length;

@@ -35,6 +35,11 @@ def main():
             digest(ROOT / "fixtures/bionic-futex/check.c") != metadata["source_sha256"]:
         raise RuntimeError("Futex caller differs from the signed Bionic startup input")
     records = {}
+    requeue = evidence / 'build/m2/bionic-startup/futex-requeue.o'
+    if (report['futex_requeue']['cases'] != 18 or digest(requeue) != report['futex_requeue']['object_sha256'] or
+            digest(ROOT / 'fixtures/bionic-futex/requeue.c') != report['futex_requeue']['source_sha256'] or
+            any(report[mode]['futex_requeue_cases'] != 18 for mode in ('native', 'sampled_native'))):
+        raise RuntimeError('Private requeue caller differs from the signed Bionic input')
     for profile in ("upstream", "native"):
         control = json.loads((evidence / f"artifacts/m2-bionic-{profile}.json").read_text(encoding="utf-8"))
         stubs = evidence / f"build/m2/bionic/{profile}/syscall-test.o"
@@ -42,18 +47,18 @@ def main():
             raise RuntimeError("Bionic syscall input changed")
         executable = build / profile
         subprocess.run([args.compiler, "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror", "-ffixed-x18",
-                        str(ROOT / "fixtures/bionic-futex/linux.c"), str(obj), str(stubs), "-o", str(executable)], check=True)
+                        str(ROOT / "fixtures/bionic-futex/linux.c"), str(obj), str(requeue), str(stubs), "-o", str(executable)], check=True)
         process = subprocess.run([str(executable)], capture_output=True, text=True, timeout=15)
         (build / (profile + ".log")).write_text(process.stdout + process.stderr, encoding="utf-8")
         process.check_returncode()
         result = json.loads(process.stdout)
-        if result["cases"] != 19:
+        if result["cases"] != 19 or result['requeue_cases'] != 18:
             raise RuntimeError("Futex caller did not complete")
         records[profile] = {**result, "syscall_object_sha256": digest(stubs)}
     (Path(os.environ["ARTBOX_ARTIFACTS_DIR"]) / "m2-futex-linux.json").write_text(json.dumps({
         "scope": "Identical NDK futex caller with actual Bionic syscall entries and errno helper",
-        "futex": metadata, "profiles": records}, indent=2) + "\n", encoding="utf-8")
-    print("Both Bionic Linux profiles passed all 19 futex caller cases")
+        "futex": metadata, "requeue": report['futex_requeue'], "profiles": records}, indent=2) + "\n", encoding="utf-8")
+    print("Both Bionic Linux profiles passed 19 futex and 18 requeue wire cases")
 
 
 if __name__ == "__main__":

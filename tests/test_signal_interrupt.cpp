@@ -97,6 +97,8 @@ int main() {
     while(!artbox_futex_waiters(futex,buffer+56,1)) {
         CHECK(std::chrono::steady_clock::now()<deadline); std::this_thread::yield();
     }
+    CHECK(artbox_futex_call(futex,buffer+56,131,0,1,buffer+60,0)==1);
+    CHECK(artbox_futex_waiters(futex,buffer+56,1)==0 && artbox_futex_waiters(futex,buffer+60,1)==1);
     CHECK(call(child,131,100,100,34)==0);
     CHECK(artbox_signals_take_interrupt(&main,0,&saved)==34);
     words[3]=saved;

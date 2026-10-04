@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <unistd.h>
 extern int64_t artbox_futex_check(void *);
+extern int64_t artbox_futex_requeue_check(void *);
 extern int64_t artbox_stub_syscall(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 static _Thread_local int guest_errno;
 int *artbox_stub___errno(void) { return &guest_errno; }
@@ -30,6 +31,11 @@ int main(void) {
         fprintf(stderr, "Bionic futex caller: %" PRId64 " (negative source line on failure)\n", cases);
         return 1;
     }
-    puts("{\"cases\":19}");
+    int64_t requeue=artbox_futex_requeue_check(scratch);
+    if(requeue!=18 || errno!=EDOM) {
+        fprintf(stderr,"Bionic futex requeue caller: %" PRId64 "\n",requeue);
+        return 1;
+    }
+    puts("{\"cases\":19,\"requeue_cases\":18}");
     return 0;
 }

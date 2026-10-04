@@ -98,6 +98,7 @@ def main():
     proc_object = build / "proc-check.o"
     unlink_object = build / "unlink-check.o"
     cwd_object = build / "cwd-check.o"
+    requeue_object = build / "futex-requeue.o"
     signal_object = build / "signal-wait.o"
     handler_object = build / "signal-handler.o"
     stack_object,stack_handler_object = build / "signal-stack.o",build / "signal-stack-handler.o"
@@ -113,6 +114,7 @@ def main():
     for source_name, target in (("fixtures/bionic-vm/check.c", vm_object), ("fixtures/bionic-startup/timeouts.c", timeout_object),
                                 ("fixtures/bionic-files/proc.c", proc_object), ("fixtures/bionic-files/unlink.c", unlink_object),
                                 ("fixtures/bionic-files/cwd.c", cwd_object),
+                                ("fixtures/bionic-futex/requeue.c", requeue_object),
                                 ("fixtures/kernel-signals/wait.c", signal_object),
                                 ("fixtures/kernel-signals/handler.c", handler_object),
                                 ("fixtures/kernel-signals/stack.c", stack_object),
@@ -188,7 +190,7 @@ def main():
             version_client_object, tls_access, tls_abi, vm_object, timeout_object, proc_object, art_libc_object, comparison,
             vfork_object, vfork_native_object,
             libcore_common, libcore_accounts, unlink_object, signal_object, handler_object, stack_object, stack_handler_object, mask_handler_object, fault_object,
-            realtime_object, interrupt_object, cwd_object,
+            realtime_object, interrupt_object, cwd_object, requeue_object,
             "--no-as-needed", libc, versions, tls_library, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator through a manifest load group; not full M2",
               "project_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
@@ -219,6 +221,8 @@ def main():
                            "provider_object_sha256": digest(version_object), "client_object_sha256": digest(version_client_object)},
               "rss_method": "Darwin getrusage RUSAGE_SELF ru_maxrss, bytes for the entire host process",
               "futex": {"cases": 19, "source_sha256": digest(futex_source), "object_sha256": digest(futex_object)},
+              "futex_requeue": {"cases": 18, "source_sha256": digest(ROOT / "fixtures/bionic-futex/requeue.c"),
+                                "object_sha256": digest(requeue_object)},
               "mappings": {"cases": 43, "source_sha256": digest(mapping_source), "object_sha256": digest(mapping_object)},
               "files": {"cases": 41, "source_sha256": digest(file_source), "object_sha256": digest(file_object)},
               "unlink": {"cases": 29, "source_sha256": digest(ROOT / "fixtures/bionic-files/unlink.c"),
@@ -284,6 +288,8 @@ def main():
             result[key] = json.loads(process.stdout)
             if result[key]["cases"] != 146 or result[key]["futex_cases"] != 19:
                 raise RuntimeError("NDK allocator client did not complete")
+            if result[key]['futex_requeue_cases'] != 18:
+                raise RuntimeError('Private futex requeue caller did not complete')
             if result[key]["version_result"] != 46 or result[key]["linked_images"] != 4:
                 raise RuntimeError("Versioned dependency calls did not complete")
             if result[key]["file_cases"] != 41 or result[key]["mapping_cases"] != 43:

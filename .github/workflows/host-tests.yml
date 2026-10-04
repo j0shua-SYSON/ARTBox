@@ -220,6 +220,7 @@ jobs:
             artifacts/m2-dynamic-wrapper.json
             artifacts/m2-bionic-startup.json
             build/m2/bionic-startup/futex-check.o
+            build/m2/bionic-startup/futex-requeue.o
             build/m2/bionic-startup/file-check.o
             build/m2/bionic-startup/mapping-check.o
             build/m2/bionic-startup/unlink-check.o

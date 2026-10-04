@@ -87,13 +87,41 @@ static int timeout_value(artbox_futex *f, uint64_t pointer, bool relative, artbo
 }
 static int64_t call(artbox_futex *f, artbox_kernel_thread *thread, uint64_t address, uint64_t operation,
                     uint64_t value, uint64_t timeout, uint64_t address2, uint64_t bitset) {
-    (void)address2;
     if (!f) return -22;
     if(thread && thread->vm!=f->vm) return -22;
     const bool interruptible=artbox_signals_interrupt_number(thread)!=0;
     const uint64_t epoch=artbox_signals_interrupt_epoch(thread);
     uint32_t op = static_cast<uint32_t>(operation), command = op & ~UINT32_C(384);
     bool private_key = (op & 128) != 0, realtime = (op & 256) != 0;
+    if(command==3) {
+        // ART moves condition-variable waiters to its guard mutex. For REQUEUE
+        // the fourth argument is a signed 32-bit count, not a timeout pointer.
+        if(!private_key || realtime) return -38;
+        const int32_t wakes=static_cast<int32_t>(value),moves=static_cast<int32_t>(timeout);
+        if(wakes<0 || moves<0) return -22;
+        const uint64_t keys[]={address,address2};
+        for(uint64_t key:keys) {
+            if(key&3) return -22;
+            if(key>static_cast<uint64_t>(INT64_MAX)-4) return -14;
+        }
+        // Private requeue keys, like private wake keys, need not be mapped.
+        // This operation neither reads nor changes either guest word.
+        try {
+            std::lock_guard<std::mutex> guard(f->lock);
+            unsigned woken=0,moved=0;
+            for(Waiter *waiter:f->active) {
+                if(waiter->woken || !waiter->private_key || waiter->address!=address) continue;
+                if(woken<static_cast<unsigned>(wakes)) {
+                    waiter->woken=true; ++woken; waiter->changed.notify_one();
+                } else if(moved<static_cast<unsigned>(moves)) {
+                    waiter->address=address2; ++moved;
+                } else break;
+            }
+            // Same-key movement counts each waiter once. Its bitset, deadline,
+            // condition variable and interruption owner remain unchanged.
+            return static_cast<int64_t>(woken)+moved;
+        } catch(const std::exception&) { return -5; }
+    }
     bool waiting = command == 0 || command == 9;
     artbox_timespec deadline{};
     // Linux validates a supplied timeout before dispatching its wait opcode.
