@@ -11,6 +11,7 @@
 namespace {
 enum { entered = 1, registered = 2, exited = 4, invalid = 8 };
 constexpr size_t packet_limit = 1024;
+constexpr size_t object_limit = 64, claim_limit = 4096;
 struct Thread {
     int32_t tid; unsigned looper;
     uint64_t incoming, outgoing;
@@ -43,9 +44,20 @@ struct Work {
     artbox_binder_transaction value;
 };
 struct Reference {
-    uint64_t endpoint, owner;
-    uint32_t handle, strong, weak;
+    uint64_t endpoint, owner, node;
+    uint32_t handle, strong, weak, temporary_strong;
     size_t death; // One-based slot; clearing detaches it immediately.
+};
+struct Node {
+    uint64_t id, owner, pointer, cookie;
+    uint32_t flags;
+    int32_t notification_tid;
+    bool manager, dead, has_strong, has_weak, pending_strong, pending_weak;
+};
+struct Claim {
+    uint64_t endpoint, buffer, node;
+    uint32_t handle;
+    bool remote;
 };
 enum DeathState { armed, death_queued, death_delivered, death_acknowledged, clear_queued };
 struct Death {
@@ -71,6 +83,7 @@ int read_work(artbox_binder_device *, Endpoint &, Thread &, unsigned char *);
 int free_packet(artbox_binder_device *, Endpoint &, uint64_t);
 int reference_command(artbox_binder_device *, Endpoint &, uint64_t, uint32_t);
 int death_command(artbox_binder_device *, Endpoint &, Thread &, uint64_t, uint32_t);
+int node_done_command(artbox_binder_device *, Endpoint &, uint64_t, uint32_t);
 int command(artbox_binder_device *device, Endpoint &endpoint, Thread &thread,
     uint64_t address, size_t &consumed) {
     unsigned char bytes[76] = {};
@@ -102,6 +115,9 @@ int command(artbox_binder_device *device, Endpoint &endpoint, Thread &thread,
     case ARTBOX_BC_DEAD_BINDER_DONE:
         consumed = read32(bytes) == ARTBOX_BC_DEAD_BINDER_DONE ? 12 : 16;
         return death_command(device, endpoint, thread, address, read32(bytes));
+    case ARTBOX_BC_INCREFS_DONE: case ARTBOX_BC_ACQUIRE_DONE:
+        consumed = 20;
+        return node_done_command(device, endpoint, address, read32(bytes));
     default:
         artbox_binder_frame frame;
         size_t cursor = 0;
@@ -116,7 +132,7 @@ int write_read(artbox_binder_device *device, Endpoint &endpoint, Thread &thread,
     uint64_t consumed = read64(bytes + 8);
     int result = 0;
     if (size > 65536) result = -7; // Explicit host work bound, not a Linux quota.
-    while (!result && consumed < size) {
+    while (!result && !thread.error && consumed < size) {
         if (consumed > UINT64_MAX - base || base + consumed > UINT64_MAX - 4) {
             result = -14;
             break;
@@ -150,6 +166,9 @@ struct artbox_binder_device {
     std::vector<Work> work;
     std::vector<Reference> references;
     std::vector<Death> deaths;
+    uint64_t manager_node = 0, next_node = 1;
+    std::vector<Node> nodes;
+    std::vector<Claim> claims;
 };
 
 namespace {
@@ -169,6 +188,58 @@ Reference *reference_for(artbox_binder_device *device, uint64_t endpoint, uint32
     for (auto &ref : device->references) if (ref.endpoint == endpoint && ref.handle == handle) return &ref;
     return nullptr;
 }
+Node *node_for(artbox_binder_device *device, uint64_t id) {
+    for (auto &node : device->nodes) if (id && node.id == id) return &node;
+    return nullptr;
+}
+Node *owned_node(artbox_binder_device *device, uint64_t owner, uint64_t pointer) {
+    for (auto &node : device->nodes) if (node.id && !node.dead && node.owner == owner && node.pointer == pointer) return &node;
+    return nullptr;
+}
+Node *create_node(artbox_binder_device *device, uint64_t owner, uint64_t pointer,
+                  uint64_t cookie, uint32_t flags, int32_t tid, bool manager) {
+    if (!device->next_node) return nullptr;
+    for (auto &node : device->nodes) if (!node.id) {
+        node = {device->next_node++, owner, pointer, cookie, flags, tid,
+                manager, false, manager, manager, false, false};
+        return &node;
+    }
+    return nullptr;
+}
+void node_usage(artbox_binder_device *device, const Node &node, bool &strong, bool &weak) {
+    strong = (node.manager && !node.dead) || node.pending_strong;
+    weak = node.pending_weak;
+    for (const auto &ref : device->references) if (ref.endpoint && ref.node == node.id) {
+        strong = strong || ref.strong || ref.temporary_strong;
+        weak = true;
+    }
+    for (const auto &claim : device->claims)
+        if (claim.endpoint && claim.node == node.id && !claim.remote) strong = true;
+    weak = weak || strong;
+}
+void collect_nodes(artbox_binder_device *device) {
+    for (auto &node : device->nodes) {
+        if (!node.id || node.has_strong || node.has_weak) continue;
+        bool strong, weak;
+        node_usage(device, node, strong, weak);
+        if (!strong && !weak) node = {};
+    }
+}
+Reference *ensure_reference(artbox_binder_device *device, uint64_t endpoint, const Node &node) {
+    Reference *available = nullptr;
+    for (auto &ref : device->references) {
+        if (ref.endpoint == endpoint && ref.node == node.id) return &ref;
+        if (!ref.endpoint && !available) available = &ref;
+    }
+    if (!available) return nullptr;
+    uint32_t handle = node.id == device->manager_node ? 0 : 1;
+    while (reference_for(device, endpoint, handle)) {
+        if (handle == UINT32_MAX) return nullptr;
+        ++handle;
+    }
+    *available = {endpoint, node.owner, node.id, handle, 0, 0, 0, 0};
+    return available;
+}
 void drop_reference(artbox_binder_device *device, Reference &ref) {
     if (ref.death) device->deaths[ref.death - 1] = {};
     ref = {};
@@ -184,14 +255,10 @@ int reference_command(artbox_binder_device *device, Endpoint &endpoint,
     Reference *ref = reference_for(device, endpoint.token, handle);
     if (increment && !handle && device->manager) {
         if (device->manager == endpoint.token) return -22;
-        // A new manager would require allocating a different handle while the
-        // old zero reference survives. Object/handle allocation is not enabled.
-        if (ref && ref->owner != device->manager) return -95;
-        if (!ref) {
-            for (auto &slot : device->references) if (!slot.endpoint) { ref = &slot; break; }
-            if (!ref) return -12;
-            *ref = {endpoint.token, device->manager, 0, 0, 0, 0};
-        }
+        Node *node = node_for(device, device->manager_node);
+        if (!node) return -5;
+        ref = ensure_reference(device, endpoint.token, *node);
+        if (!ref) return -12;
     }
     if (!ref) return 0; // Linux consumes unmatched reference operations.
     uint32_t &count = strong ? ref->strong : ref->weak;
@@ -199,7 +266,27 @@ int reference_command(artbox_binder_device *device, Endpoint &endpoint,
         if (count == UINT32_MAX) return -12;
         ++count;
     } else if (count) --count;
-    if (!ref->strong && !ref->weak) drop_reference(device, *ref);
+    if (!ref->strong && !ref->weak && !ref->temporary_strong) drop_reference(device, *ref);
+    collect_nodes(device);
+    return 0;
+}
+int node_done_command(artbox_binder_device *device, Endpoint &endpoint,
+                      uint64_t address, uint32_t command_word) {
+    if (!device->receive_limit) return -95;
+    unsigned char bytes[20];
+    if (artbox_vm_read(endpoint.vm, address, bytes, sizeof(bytes))) return -14;
+    Node *node = owned_node(device, endpoint.token, read64(bytes + 4));
+    if (!node || node->cookie != read64(bytes + 12)) return 0;
+    if (command_word == ARTBOX_BC_INCREFS_DONE) node->pending_weak = false;
+    else node->pending_strong = false;
+    if (!node->pending_weak && !node->pending_strong) {
+        bool strong, weak;
+        node_usage(device, *node, strong, weak);
+        // An INCREFS acknowledgement may precede delivery of ACQUIRE when the
+        // read buffer was short. Keep that initial callback on the exporter.
+        if (!(strong && !node->has_strong) && !(weak && !node->has_weak)) node->notification_tid = 0;
+    }
+    collect_nodes(device);
     return 0;
 }
 void queue_clear(Death &death, const Thread &thread) {
@@ -249,6 +336,23 @@ bool accepts_process_work(const Thread &thread) {
     return (thread.looper & entered) && !(thread.looper & (invalid | exited)) &&
            !thread.incoming && !thread.outgoing && !thread.dead_reply;
 }
+uint32_t node_command(artbox_binder_device *device, const Node &node) {
+    bool strong, weak;
+    node_usage(device, node, strong, weak);
+    if (weak && !node.has_weak) return ARTBOX_BR_INCREFS;
+    if (strong && !node.has_strong) return ARTBOX_BR_ACQUIRE;
+    if (!strong && node.has_strong) return ARTBOX_BR_RELEASE;
+    if (!weak && node.has_weak) return ARTBOX_BR_DECREFS;
+    return 0;
+}
+Node *node_event_for(artbox_binder_device *device, const Endpoint &endpoint, const Thread &thread) {
+    for (auto &node : device->nodes) {
+        if (node.id && node.owner == endpoint.token && !node.dead && !node.manager &&
+            (node.notification_tid == thread.tid || (!node.notification_tid && accepts_process_work(thread))) &&
+            node_command(device, node)) return &node;
+    }
+    return nullptr;
+}
 size_t death_for(artbox_binder_device *device, const Endpoint &endpoint, const Thread &thread) {
     for (size_t i = 0; i < device->deaths.size(); ++i) {
         const Death &death = device->deaths[i];
@@ -264,11 +368,45 @@ void release_references(artbox_binder_device *device, uint64_t token) {
         if (death.endpoint == token) death = {};
         else if (death.endpoint && death.owner == token && death.state == armed) death.state = death_queued;
     }
+    for (auto &node : device->nodes) if (node.id && node.owner == token) {
+        node.dead = true;
+        node.has_strong = node.has_weak = node.pending_strong = node.pending_weak = false;
+    }
+    collect_nodes(device);
+}
+void release_claims(artbox_binder_device *device, uint64_t endpoint, uint64_t buffer = 0) {
+    for (auto &claim : device->claims) {
+        if (claim.endpoint != endpoint || (buffer && claim.buffer != buffer)) continue;
+        if (claim.remote) {
+            Reference *ref = reference_for(device, endpoint, claim.handle);
+            if (ref && ref->node == claim.node) {
+                if (ref->temporary_strong) --ref->temporary_strong;
+                if (!ref->temporary_strong && !ref->strong && !ref->weak) drop_reference(device, *ref);
+            }
+        }
+        claim = {};
+    }
+    collect_nodes(device);
+}
+int add_claim(artbox_binder_device *device, Endpoint &target, uint64_t buffer,
+              const Node &node, bool remote, uint32_t &handle) {
+    Claim *available = nullptr;
+    for (auto &claim : device->claims) if (!claim.endpoint) { available = &claim; break; }
+    if (!available) return -12;
+    if (remote) {
+        Reference *ref = ensure_reference(device, target.token, node);
+        if (!ref || ref->temporary_strong == UINT32_MAX) return -12;
+        ++ref->temporary_strong;
+        handle = ref->handle;
+    }
+    *available = {target.token, buffer, node.id, handle, remote};
+    return 0;
 }
 void drop_work(artbox_binder_device *device, size_t index) {
     const Work &work = device->work[index];
     Endpoint *owner = endpoint_for(device, work.endpoint);
     if (owner && owner->arena) (void)artbox_binder_arena_cancel(owner->arena, work.value.data_buffer);
+    release_claims(device, work.endpoint, work.value.data_buffer);
     device->work.erase(device->work.begin() + static_cast<ptrdiff_t>(index));
 }
 // Reaping a process or thread must not strand its peer's synchronous wait.
@@ -292,23 +430,67 @@ void cancel_transactions(artbox_binder_device *device, uint64_t token, int32_t t
         else ++i;
     }
 }
-int reserve_payload(Endpoint &source, Endpoint &target, const artbox_binder_transaction &input,
-                    artbox_binder_buffer &buffer) {
+int reserve_payload(artbox_binder_device *device, Endpoint &source, Thread &thread,
+                    Endpoint &target, const artbox_binder_transaction &input,
+                    const Node *target_node, artbox_binder_buffer &buffer) {
     if ((artbox_vm_mapping_watch_state(target.receive_watch) & 3u) != 3u) return -95;
-    if (input.data_size > target.receive_size) return -12;
+    if (input.data_size > target.receive_size || input.offsets_size > target.receive_size) return -12;
+    if (input.offsets_size % 8) return -22;
+    if (input.offsets_size / 8 > object_limit) return -7;
     if (!target.arena) {
         target.arena = artbox_binder_arena_create(target.receive_writable, target.receive_base,
                                                 target.receive_size, packet_limit);
         if (!target.arena) return -12;
     }
-    std::vector<unsigned char> snapshot;
-    try { snapshot.resize(static_cast<size_t>(input.data_size)); }
+    std::vector<unsigned char> snapshot, offsets;
+    try {
+        snapshot.resize(static_cast<size_t>(input.data_size));
+        offsets.resize(static_cast<size_t>(input.offsets_size));
+    }
     catch (const std::exception &) { return -12; }
     if (artbox_vm_read(source.vm, input.data_buffer, snapshot.data(), snapshot.size())) return -14;
-    int result = artbox_binder_arena_reserve(target.arena, input.data_size, 0, 0, 0, &buffer);
+    if (artbox_vm_read(source.vm, input.offsets_buffer, offsets.data(), offsets.size())) return -14;
+    size_t count = 0;
+    if (artbox_binder_validate_objects(snapshot.data(), snapshot.size(), offsets.data(), offsets.size(), &count) != ARTBOX_BINDER_OK) return -22;
+    for (size_t i = 0; i < count; ++i) {
+        const uint32_t type = read32(snapshot.data() + static_cast<size_t>(read64(offsets.data() + i * 8)));
+        if (type != ARTBOX_BINDER_TYPE_BINDER && type != ARTBOX_BINDER_TYPE_HANDLE) return -95;
+    }
+    int result = artbox_binder_arena_reserve(target.arena, input.data_size, input.offsets_size, 0, 0, &buffer);
     if (result) return result;
-    result = artbox_binder_arena_write(target.arena, buffer.address, 0, snapshot.data(), snapshot.size());
-    if (result) (void)artbox_binder_arena_cancel(target.arena, buffer.address);
+    if (target_node && !target_node->manager) {
+        uint32_t unused = 0;
+        result = add_claim(device, target, buffer.address, *target_node, false, unused);
+    }
+    for (size_t i = 0; !result && i < count; ++i) {
+        unsigned char *object = snapshot.data() + static_cast<size_t>(read64(offsets.data() + i * 8));
+        Node *node = nullptr;
+        if (read32(object) == ARTBOX_BINDER_TYPE_BINDER) {
+            node = owned_node(device, source.token, read64(object + 8));
+            if (node && node->cookie != read64(object + 16)) { result = -22; break; }
+            if (!node) node = create_node(device, source.token, read64(object + 8), read64(object + 16),
+                                          read32(object + 4), thread.tid, false);
+            if (!node) { result = -12; break; }
+        } else {
+            Reference *ref = reference_for(device, source.token, read32(object + 8));
+            if (ref && (ref->strong || ref->temporary_strong)) node = node_for(device, ref->node);
+            if (!node) { result = -22; break; }
+        }
+        const bool remote = node->owner != target.token;
+        uint32_t handle = 0;
+        result = add_claim(device, target, buffer.address, *node, remote, handle);
+        if (result) break;
+        write32(object, remote ? ARTBOX_BINDER_TYPE_HANDLE : ARTBOX_BINDER_TYPE_BINDER);
+        write64(object + 8, remote ? handle : node->pointer);
+        write64(object + 16, remote ? 0 : node->cookie);
+    }
+    if (!result) result = artbox_binder_arena_write(target.arena, buffer.address, 0, snapshot.data(), snapshot.size());
+    if (!result) result = artbox_binder_arena_write(target.arena, buffer.address,
+        buffer.offsets_address - buffer.address, offsets.data(), offsets.size());
+    if (result) {
+        release_claims(device, target.token, buffer.address);
+        (void)artbox_binder_arena_cancel(target.arena, buffer.address);
+    }
     return result;
 }
 int transfer_packet(artbox_binder_device *device, Endpoint &source, Thread &thread,
@@ -319,19 +501,29 @@ int transfer_packet(artbox_binder_device *device, Endpoint &source, Thread &thre
     artbox_binder_frame frame{command_word, bytes + 4, 64};
     artbox_binder_transaction input;
     if (artbox_binder_decode_transaction(&frame, &input) != ARTBOX_BINDER_OK) return -22;
-    // Initial synchronous byte parcels. Objects/FDs, oneway, nested calls and
-    // other flags need their paired reference contracts before enabling them.
-    if (input.offsets_size || (input.flags & ~UINT32_C(0x10))) return -95;
+    // Synchronous bytes and strong flat objects. Other object kinds, oneway,
+    // nested calls and additional transaction flags need their own contracts.
+    if (input.flags & ~UINT32_C(0x10)) return -95;
     if (thread.error || thread.completions == packet_limit || device->work.size() == packet_limit) return -12;
     const bool reply = command_word == ARTBOX_BC_REPLY;
     Endpoint *target = nullptr;
     Thread *caller = nullptr;
     Transaction *transaction = nullptr;
+    Node *target_node = nullptr;
     if (!reply) {
-        if (static_cast<uint32_t>(input.target) || thread.incoming || thread.outgoing) return -95;
-        target = endpoint_for(device, device->manager);
+        if (thread.incoming || thread.outgoing) return -95;
+        const uint32_t handle = static_cast<uint32_t>(input.target);
+        if (!handle) target_node = node_for(device, device->manager_node);
+        else {
+            Reference *ref = reference_for(device, source.token, handle);
+            if (ref && (ref->strong || ref->temporary_strong)) target_node = node_for(device, ref->node);
+            if (!target_node) { thread.error = ARTBOX_BR_FAILED_REPLY; return 0; }
+        }
+        target = target_node && !target_node->dead ? endpoint_for(device, target_node->owner) : nullptr;
         if (!target) { thread.error = ARTBOX_BR_DEAD_REPLY; return 0; }
-        if (target->pid == source.pid) { thread.error = ARTBOX_BR_FAILED_REPLY; return 0; }
+        if (target->token == source.token || (!handle && target->pid == source.pid)) {
+            thread.error = ARTBOX_BR_FAILED_REPLY; return 0;
+        }
         if (!device->next_transaction) return -12;
         for (auto &t : device->transactions) if (!t.id) { transaction = &t; break; }
         if (!transaction) return -12;
@@ -344,15 +536,18 @@ int transfer_packet(artbox_binder_device *device, Endpoint &source, Thread &thre
         if (!caller || caller->outgoing != transaction->id) return -95;
     }
     artbox_binder_buffer buffer;
-    int result = reserve_payload(source, *target, input, buffer);
-    if (result) return result;
+    int result = reserve_payload(device, source, thread, *target, input, target_node, buffer);
+    if (result) {
+        if (result == -22 || result == -14) { thread.error = ARTBOX_BR_FAILED_REPLY; return 0; }
+        return result; // Explicit admission/unsupported-operation limits.
+    }
     Work work{};
     work.endpoint = target->token;
     work.tid = reply ? transaction->source_tid : 0;
     work.command = reply ? ARTBOX_BR_REPLY : ARTBOX_BR_TRANSACTION;
     work.value = input;
-    work.value.target = reply ? 0 : read64(device->manager_object + 8);
-    work.value.cookie = reply ? 0 : read64(device->manager_object + 16);
+    work.value.target = reply ? 0 : target_node->pointer;
+    work.value.cookie = reply ? 0 : target_node->cookie;
     work.value.sender_pid = reply ? 0 : source.pid;
     work.value.sender_euid = source.uid;
     work.value.data_buffer = buffer.address;
@@ -374,7 +569,10 @@ int free_packet(artbox_binder_device *device, Endpoint &endpoint, uint64_t addre
     if (artbox_vm_read(endpoint.vm, address, bytes, sizeof(bytes))) return -14;
     if (!endpoint.arena) return -95;
     // Invalid/interior/duplicate frees are not part of this initial contract.
-    return artbox_binder_arena_release(endpoint.arena, read64(bytes + 4)) ? -95 : 0;
+    const uint64_t buffer = read64(bytes + 4);
+    if (artbox_binder_arena_release(endpoint.arena, buffer)) return -95;
+    release_claims(device, endpoint.token, buffer);
+    return 0;
 }
 size_t work_for(artbox_binder_device *device, Endpoint &endpoint, Thread &thread) {
     const bool process_work = accepts_process_work(thread);
@@ -395,17 +593,23 @@ int read_work(artbox_binder_device *device, Endpoint &endpoint, Thread &thread, 
     if (artbox_vm_write(endpoint.vm, address, bytes, 4)) return -14;
     size_t consumed = 4;
     const bool pending = thread.error || thread.completions || work_for(device, endpoint, thread) != device->work.size() ||
-                         death_for(device, endpoint, thread) != device->deaths.size();
+                         death_for(device, endpoint, thread) != device->deaths.size() || node_event_for(device, endpoint, thread);
     if (!pending) { write64(header + 32, 0); return endpoint.nonblocking ? -11 : -95; }
     while (size - consumed >= 4) {
         const size_t index = work_for(device, endpoint, thread);
         const size_t death_index = death_for(device, endpoint, thread);
-        const bool error = thread.error != 0, completion = !error && thread.completions;
-        const bool notification = !error && !completion && index == device->work.size() && death_index != device->deaths.size();
-        if (!error && !completion && !notification && index == device->work.size()) break;
-        const size_t length = error || completion ? 4 : notification ? 12 : 68;
+        const bool error = thread.error != 0;
+        Node *node = error ? nullptr : node_event_for(device, endpoint, thread);
+        const uint32_t node_word = node ? node_command(device, *node) : 0;
+        const bool completion = !error && !node && thread.completions;
+        const bool notification = !error && !node && !completion && index == device->work.size() && death_index != device->deaths.size();
+        if (!error && !node && !completion && !notification && index == device->work.size()) break;
+        const size_t length = error || completion ? 4 : node ? 20 : notification ? 12 : 68;
         if (length > size - consumed) break;
         if (error) write32(bytes, thread.error);
+        else if (node) {
+            write32(bytes, node_word); write64(bytes + 4, node->pointer); write64(bytes + 12, node->cookie);
+        }
         else if (completion) write32(bytes, ARTBOX_BR_TRANSACTION_COMPLETE);
         else if (notification) {
             const Death &death = device->deaths[death_index];
@@ -427,6 +631,13 @@ int read_work(artbox_binder_device *device, Endpoint &endpoint, Thread &thread, 
         }
         consumed += length;
         if (error) thread.error = 0;
+        else if (node) {
+            if (node_word == ARTBOX_BR_INCREFS) node->has_weak = node->pending_weak = true;
+            else if (node_word == ARTBOX_BR_ACQUIRE) node->has_strong = node->pending_strong = true;
+            else if (node_word == ARTBOX_BR_RELEASE) node->has_strong = false;
+            else node->has_weak = false;
+            collect_nodes(device);
+        }
         else if (completion) --thread.completions;
         else if (notification) {
             Death &death = device->deaths[death_index];
@@ -455,6 +666,7 @@ int read_work(artbox_binder_device *device, Endpoint &endpoint, Thread &thread, 
 static int release_endpoint(artbox_binder_device *device, Endpoint &endpoint) {
     cancel_transactions(device, endpoint.token);
     release_references(device, endpoint.token);
+    release_claims(device, endpoint.token);
     if (endpoint.arena) {
         artbox_binder_arena_discard_all(endpoint.arena);
         (void)artbox_binder_arena_destroy(endpoint.arena);
@@ -464,6 +676,7 @@ static int release_endpoint(artbox_binder_device *device, Endpoint &endpoint) {
     artbox_vm_mapping_watch_destroy(endpoint.receive_watch);
     if (device->manager == endpoint.token) {
         device->manager = 0;
+        device->manager_node = 0;
         std::memset(device->manager_object, 0, sizeof(device->manager_object));
     }
     endpoint.token = 0; endpoint.vm = nullptr; endpoint.opened = false;
@@ -492,6 +705,8 @@ extern "C" artbox_binder_device *artbox_binder_device_create(size_t endpoints, s
         device->transactions.resize(packet_limit);
         device->references.resize(packet_limit);
         device->deaths.resize(packet_limit);
+        device->nodes.resize(packet_limit);
+        device->claims.resize(claim_limit);
         device->work.reserve(packet_limit);
         device->endpoints.resize(endpoints);
         for (auto &endpoint : device->endpoints) endpoint.threads.reserve(threads);
@@ -639,11 +854,19 @@ extern "C" int64_t artbox_binder_device_ioctl(artbox_binder_device *device, uint
             artbox_vm_read(endpoint.vm, argument, value, sizeof(value))) return -22;
         if (device->manager) return -16;
         if (device->uid_set && device->manager_uid != endpoint.uid) return -1;
+        if (owned_node(device, token, read64(value + 8))) return -95;
+        {
+            Node *node = create_node(device, token, read64(value + 8), read64(value + 16), read32(value + 4), 0, true);
+            if (!node) return -12;
+            device->manager_node = node->id;
+        }
         device->manager = token; device->manager_uid = endpoint.uid; device->uid_set = true;
         std::memcpy(device->manager_object, value, sizeof(value));
         return 0;
     case ARTBOX_BINDER_THREAD_EXIT:
         cancel_transactions(device, endpoint.token, tid);
+        for (auto &node : device->nodes)
+            if (node.id && node.owner == endpoint.token && node.notification_tid == tid) node.notification_tid = 0;
         for (auto &death : device->deaths)
             if (death.endpoint == endpoint.token && death.tid == tid) death = {};
         endpoint.threads.erase(thread);

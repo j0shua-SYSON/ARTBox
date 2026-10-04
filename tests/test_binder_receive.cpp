@@ -255,6 +255,85 @@ int main(int argc, char **argv) {
         CHECK(receive_words(observer) == -11);
         CHECK(close_device(&caller, observer) == 0 && provider.live == 0);
     }
+    // Inspect the driver alias directly under the injected provider. This
+    // verifies translation/ownership here; the shared native fixture separately
+    // requires guest-alias coherence and the complete round-trip call flow.
+    fd = open_device(&c); CHECK(fd >= 3);
+    CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_SET_CONTEXT_MGR, 0) == 0);
+    int64_t object_mapping = map_device(&c, fd, page, 1, 2, 0); CHECK(object_mapping > 0);
+    auto *object_alias = static_cast<unsigned char *>(provider.last->driver_alias);
+    int exporter = open_device(&caller); CHECK(exporter >= 3);
+    int64_t exporter_mapping = map_device(&caller, exporter, page, 1, 2, 0); CHECK(exporter_mapping > 0);
+    command[0] = ARTBOX_BC_ENTER_LOOPER;
+    CHECK(send_words(c, fd, 4) == 0 && send_words(caller, exporter, 4) == 0);
+    auto *flat = reinterpret_cast<uint32_t *>(c.path + 1024);
+    flat[0] = ARTBOX_BINDER_TYPE_BINDER; flat[1] = 0x100;
+    const uint64_t object_pointer = 0x10001000, object_cookie = 0x20002000;
+    std::memcpy(flat + 2, &object_pointer, 8); std::memcpy(flat + 4, &object_cookie, 8);
+    auto *offset = reinterpret_cast<uint64_t *>(c.path + 1104); *offset = 0;
+    std::memset(command, 0, 68); command[0] = ARTBOX_BC_TRANSACTION;
+    auto packet64 = [&](size_t at, uint64_t value) { std::memcpy(reinterpret_cast<unsigned char *>(command) + at, &value, 8); };
+    packet64(36, 24); packet64(44, 8); packet64(52, c.path + 1024); packet64(60, c.path + 1104);
+    // A valid prefix followed by a conflicting cookie must unwind its buffer
+    // and temporary handle without publishing reference callbacks.
+    std::memcpy(flat + 6, flat, 24);
+    const uint64_t wrong_cookie = object_cookie + 1;
+    std::memcpy(flat + 10, &wrong_cookie, 8); offset[1] = 24;
+    packet64(36, 48); packet64(44, 16);
+    command[17] = ARTBOX_BC_ENTER_LOOPER;
+    std::memset(transfer, 0, 48); transfer[0] = 72; transfer[2] = c.path + 256;
+    CHECK(ioctl_device(&caller, exporter, ARTBOX_BINDER_WRITE_READ, c.path + 128) == 0 && transfer[1] == 68);
+    CHECK(receive_words(exporter) == 0 && transfer[4] == 8 && reply[1] == ARTBOX_BR_FAILED_REPLY);
+    CHECK(receive_words(exporter) == -11);
+    std::memset(command, 0, 68); command[0] = ARTBOX_BC_TRANSACTION;
+    packet64(36, 24); packet64(44, 8); packet64(52, c.path + 1024); packet64(60, c.path + 1104);
+    CHECK(send_words(caller, exporter, 68) == 0);
+    CHECK(receive_words(exporter) == 0);
+    unsigned weak_callbacks = 0, strong_callbacks = 0, completions = 0;
+    size_t cursor = 0;
+    while (cursor < transfer[4]) {
+        artbox_binder_frame frame;
+        CHECK(artbox_binder_next(ARTBOX_BINDER_READ, reply, static_cast<size_t>(transfer[4]), &cursor, &frame) == ARTBOX_BINDER_OK);
+        if (frame.command == ARTBOX_BR_NOOP) continue;
+        if (frame.command == ARTBOX_BR_TRANSACTION_COMPLETE) { ++completions; continue; }
+        CHECK(frame.command == ARTBOX_BR_INCREFS || frame.command == ARTBOX_BR_ACQUIRE);
+        uint64_t observed_pointer, observed_cookie;
+        std::memcpy(&observed_pointer, frame.payload, 8); std::memcpy(&observed_cookie, frame.payload + 8, 8);
+        CHECK(observed_pointer == object_pointer && observed_cookie == object_cookie);
+        if (frame.command == ARTBOX_BR_INCREFS) ++weak_callbacks; else ++strong_callbacks;
+    }
+    CHECK(weak_callbacks == 1 && strong_callbacks == 1 && completions == 1);
+    command[0] = ARTBOX_BC_INCREFS_DONE; std::memcpy(command + 1, &object_pointer, 8); std::memcpy(command + 3, &object_cookie, 8);
+    command[5] = ARTBOX_BC_ACQUIRE_DONE; std::memcpy(command + 6, &object_pointer, 8); std::memcpy(command + 8, &object_cookie, 8);
+    CHECK(send_words(caller, exporter, 40) == 0);
+    std::memset(transfer, 0, 48); transfer[3] = 128; transfer[5] = c.path + 512;
+    CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_WRITE_READ, c.path + 128) == 0 && transfer[4] == 72);
+    cursor = 4; artbox_binder_frame object_frame; artbox_binder_transaction object_transaction;
+    CHECK(artbox_binder_next(ARTBOX_BINDER_READ, reply, 72, &cursor, &object_frame) == ARTBOX_BINDER_OK);
+    CHECK(object_frame.command == ARTBOX_BR_TRANSACTION && artbox_binder_decode_transaction(&object_frame, &object_transaction) == ARTBOX_BINDER_OK);
+    const uint64_t translated_at = object_transaction.data_buffer - static_cast<uint64_t>(object_mapping);
+    CHECK(translated_at <= page - 32 && object_transaction.offsets_size == 8);
+    uint32_t translated[6]; std::memcpy(translated, object_alias + translated_at, 24);
+    CHECK(translated[0] == ARTBOX_BINDER_TYPE_HANDLE && translated[1] == 0x100 && translated[2] == 1);
+    CHECK(!translated[3] && !translated[4] && !translated[5]);
+    // Finish the outgoing call so the owner can receive process-level node
+    // work. The original object parcel remains held until the free below.
+    std::memset(command, 0, 68); command[0] = ARTBOX_BC_REPLY;
+    CHECK(send_words(c, fd, 68) == 0 && receive_words(exporter) == 0 && transfer[4] == 72);
+    cursor = 4; artbox_binder_frame echo_frame; artbox_binder_transaction echo_transaction;
+    CHECK(artbox_binder_next(ARTBOX_BINDER_READ, reply, 72, &cursor, &echo_frame) == ARTBOX_BINDER_OK);
+    CHECK(echo_frame.command == ARTBOX_BR_REPLY && artbox_binder_decode_transaction(&echo_frame, &echo_transaction) == ARTBOX_BINDER_OK);
+    command[0] = ARTBOX_BC_FREE_BUFFER; std::memcpy(command + 1, &echo_transaction.data_buffer, 8);
+    CHECK(send_words(caller, exporter, 12) == 0);
+    // The buffer alone retains its imported reference until FREE_BUFFER. Once
+    // it is freed, the exporter must receive both reference-release callbacks.
+    command[0] = ARTBOX_BC_FREE_BUFFER; std::memcpy(command + 1, &object_transaction.data_buffer, 8);
+    CHECK(send_words(c, fd, 12) == 0);
+    CHECK(receive_words(exporter) == 0 && transfer[4] == 44);
+    CHECK(reply[1] == ARTBOX_BR_RELEASE && reply[6] == ARTBOX_BR_DECREFS);
+    CHECK(close_device(&c, fd) == 0 && unmap_device(&c, static_cast<uint64_t>(object_mapping), page) == 0);
+    CHECK(close_device(&caller, exporter) == 0 && unmap_device(&caller, static_cast<uint64_t>(exporter_mapping), page) == 0);
+    int reaper = open_device(&c); CHECK(reaper >= 3 && close_device(&c, reaper) == 0 && provider.live == 0);
     fd = open_device(&c); CHECK(fd >= 3);
     const unsigned creates = provider.creates;
     artbox_vm *foreign_vm = artbox_vm_create(&provider.memory, page, 1);

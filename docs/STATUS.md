@@ -82,12 +82,15 @@ provenance and all 96 source hashes verify. All 19 host jobs and the iOS build
 pass. The downloaded signed Mac runtime also verifies all managed/console
 controls and 96 source hashes.
 At `1f9f107`, manager strong/weak references and death/clear/acknowledgment
-delivery pass all three shared Linux/ARTBox lifetime cases; the artifact digest,
-merge parent and 96 input hashes verify. An exported-object reference fixture
-now checks handle retention, return-to-owner translation, a callback transaction
-and object-owner death. Its native execution and production integration remain
-pending, with `object_driver_compared` explicitly false.
-Objects, oneway/nested calls and blocking reads remain unsupported.
+delivery pass all three shared Linux/ARTBox lifetime cases; all 19 host jobs and
+iOS pass. Downloaded runtime/IPA evidence independently verifies. At `1423d52`,
+the native object fixture also passes handle retention, return-to-owner
+translation, a callback transaction and object-owner death; 96 source hashes
+verify, with `object_driver_compared` explicitly false at that checkpoint.
+Production strong-object translation and buffer-held references now pass local
+controls. The paired test adds three malformed-parcel rollback cases and awaits
+execution against the new implementation. Weak objects, FD transfer,
+oneway/nested calls and blocking reads remain unsupported.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

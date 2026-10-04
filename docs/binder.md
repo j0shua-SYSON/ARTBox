@@ -165,13 +165,19 @@ and endpoint-slot reuse. Three shared native cases additionally abandon an
 actual synchronous call and require its dead reply. All three Linux/ARTBox cases
 pass at `1f9f107`; artifact provenance and 96 input hashes verify. See ADR 0100
 for resource limits and remaining general-handle work.
-Reference-object transfer, blocking reads, polling and actual AOSP
-servicemanager still need implementation and acceptance.
+Blocking reads, polling and actual AOSP servicemanager still need implementation
+and acceptance.
 
 The next shared fixture exports a repeated strong object, retains and calls its
 receiver handle after freeing the original parcel, verifies return-to-owner
-pointer/cookie restoration, and observes the exported owner's death. Native
-execution is pending, and `object_driver_compared` remains false. See ADR 0101.
+pointer/cookie restoration, and observes the exported owner's death. It passes
+on native Linux at `1423d52`, where `object_driver_compared` remains false.
+Production translation now uses bounded node/handle tables and buffer-held
+references. Local controls verify driver-alias bytes, callback acknowledgments,
+free-triggered release and partial-failure rollback. The shared native-backed
+driver test adds the complete lifecycle and three malformed-parcel cases; its
+comparison is pending. Weak objects, FDs and scatter/gather remain unsupported.
+See ADRs 0101 and 0102 for exact scope and resource bounds.
 
 ## Evidence
 

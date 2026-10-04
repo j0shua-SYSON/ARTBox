@@ -263,13 +263,14 @@ def compare_driver(build, reference):
     transaction_result = json.loads(transaction_run.stdout)
     if transaction_result != dict(same_pid_rejected=reference['same_pid_rejected'],
                                  shared_threaded_ping_pong=reference['threaded_ping_pong'],
-                                 death_cases=reference['death_cases'], native_aliases=True, cleanup=True, passed=True):
+                                 death_cases=reference['death_cases'], object_handle_lifecycle=reference['object_handle_lifecycle'],
+                                 native_aliases=True, cleanup=True, passed=True):
         raise RuntimeError('Binder transaction driver did not pass the shared native fixture')
     return {**result, 'runner_sha256': digest(runner),
             'vfs': vfs_result, 'vfs_runner_sha256': digest(vfs_runner),
             'receive': receive_result, 'receive_runner_sha256': digest(receive_runner),
             'transactions': transaction_result, 'transaction_runner_sha256': digest(transaction_runner),
-            'scope': 'Same ioctl, descriptor, mapping, synchronous handle-zero byte parcels and manager-reference death fixtures; no object or polling comparison'}
+            'scope': 'Same ioctl, descriptor, mapping, synchronous parcels, strong-object handles and owner-death fixtures; no polling comparison'}
 
 
 def main():
@@ -305,6 +306,7 @@ def main():
             record['mapping_driver_compared'] = True
             record['transaction_driver_compared'] = True
             record['death_driver_compared'] = True
+            record['object_driver_compared'] = True
     record['project_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     sources = [
         ROOT / 'fixtures/binder-device/check.c', ROOT / 'fixtures/binder-device/check.h',

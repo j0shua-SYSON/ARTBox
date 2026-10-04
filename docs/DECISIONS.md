@@ -2699,8 +2699,8 @@ limit, not a claim about Linux allocation-failure notification behavior.
 
 ## 0101: Verify exported-object lifetime before admitting general Binder handles
 
-Status: original shared fixture compiles for NDK ARM64 and the portable host;
-native reference execution and production object translation are pending.
+Status: at 1423d52, the original shared fixture passes on native Linux. Artifact
+provenance and 96 input hashes verify; production comparison is false there.
 
 A byte-only call to handle zero cannot register a service. The next reference
 exports two occurrences of the same strong Binder object to a manager endpoint.
@@ -2723,3 +2723,45 @@ same flow. Existing ioctl, mapping, synchronous byte and manager-death compariso
 remain required. This fixture is a prerequisite for actual AOSP servicemanager
 integration, not a substitute for it. Weak-object transfer, file descriptors,
 scatter/gather fixups, nested calls and oneway delivery need additional cases.
+
+## 0102: Tie translated Binder references to receive-buffer lifetime
+
+Status: portable ownership and rollback controls pass. The shared object flow
+and three additional malformed-parcel cases await paired execution.
+
+Assign each exported node a monotonic context-local identity, its owning endpoint,
+and its opaque guest pointer/cookie. Each receiving endpoint gets its own handle
+for that node. Repeated objects reuse that handle; passing a handle back to its
+owner restores the original pointer/cookie. Routing a nonzero handle requires
+a strong reference and delivers the node's own target fields. These values
+remain guest data, never host callbacks.
+
+Copy parcel bytes and offsets into bounded snapshots before translation. Check
+the complete offset table and admit only strong BINDER/HANDLE objects. Track a
+temporary reference for every translated object and for the target of a nonzero
+handle call. Freeing or cancelling that receive buffer releases those holds.
+Owner teardown releases all its buffers, references and node ownership without
+allocating. Dead nodes remain identifiable while remote references survive.
+
+Explicit strong/weak counts are separate from buffer-held counts. Valid libbinder
+flows retain an explicit reference before freeing their parcel. Unbalanced guest
+reference commands cannot steal the buffer's temporary hold in ARTBox; misuse
+semantics beyond the shared fixture are not yet compared with Linux. Registering
+an already-exported node as context manager remains unsupported.
+
+Node INCREFS/ACQUIRE returns hold pending acknowledgments, so a remote release
+cannot retire the local object before its owner processes the callback. Initial
+callbacks target the exporting thread, including while it awaits a reply;
+subsequent release work can go to a looper. Acknowledgment validates the original
+pointer/cookie. Once no reference, buffer hold or callback remains, the node slot
+can be reused with a new identity.
+
+Reserve 1,024 node slots, 1,024 reference slots and 4,096 buffer-hold records per
+context. Limit each parcel to 64 objects. Bounded linear scans avoid allocation
+in teardown; their throughput cost remains unmeasured. On partial translation
+failure, unwind all earlier holds and arena storage. Malformed snapshots or
+unowned handles queue BR_FAILED_REPLY and stop write consumption at that packet;
+header/command copy errors retain ioctl EFAULT. The shared negative cases use a
+conflicting second cookie, truncated second object and unowned second handle,
+then run the valid lifecycle to expose leaked state. Admission limits remain
+explicit ARTBox errors; weak objects, FDs and scatter/gather are still unsupported.

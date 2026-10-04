@@ -387,7 +387,7 @@ static int configure_looper(struct endpoint *e) {
     put32(e->scratch->write, ARTBOX_BC_ENTER_LOOPER);
     return send(e, 4);
 }
-static int send_object(struct endpoint *e, uint32_t command, uint32_t type, uint32_t handle) {
+static size_t object_packet(struct endpoint *e, uint32_t command, uint32_t type, uint32_t handle) {
     unsigned char data[64];
     memset(data, 0xa5, sizeof(data));
     for (unsigned i = 0; i < 2; ++i) {
@@ -400,7 +400,42 @@ static int send_object(struct endpoint *e, uint32_t command, uint32_t type, uint
     size_t size = transaction(e, command, register_code, data, sizeof(data));
     put64(e->scratch->write + 44, 16);
     put64(e->scratch->write + 60, pointer(e->scratch->offsets));
-    return send(e, size);
+    return size;
+}
+static int send_object(struct endpoint *e, uint32_t command, uint32_t type, uint32_t handle) {
+    return send(e, object_packet(e, command, type, handle));
+}
+static int object_input_rejections(struct endpoint *e) {
+    for (unsigned kind = 0; kind < 3; ++kind) {
+        size_t bytes = object_packet(e, ARTBOX_BC_TRANSACTION, ARTBOX_BINDER_TYPE_BINDER, 0);
+        if (kind == 0) put64(e->scratch->data + 48, service_cookie + 1);
+        else if (kind == 1) put64(e->scratch->offsets + 8, 60); // Truncated second object.
+        else {
+            put32(e->scratch->data + 32, ARTBOX_BINDER_TYPE_HANDLE);
+            put64(e->scratch->data + 40, 0x7ffffffe); // First object valid, second handle unowned.
+            put64(e->scratch->data + 48, 0);
+        }
+        put32(e->scratch->write + bytes, ARTBOX_BC_ENTER_LOOPER);
+        memset(e->scratch->transfer, 0, sizeof(e->scratch->transfer));
+        e->scratch->transfer[0] = bytes + 4;
+        e->scratch->transfer[2] = pointer(e->scratch->write);
+        REQUIRE(call(e, ARTBOX_BINDER_WRITE_READ, pointer(e->scratch->transfer)) == 0);
+        REQUIRE(e->scratch->transfer[1] == bytes); // Stop this batch at the failed transaction.
+        unsigned rejected = 0;
+        for (unsigned attempt = 0; attempt < 5000 && !rejected; ++attempt) {
+            size_t size = 0, cursor = 0;
+            REQUIRE(receive(e, &size) == 0);
+            while (cursor < size) {
+                artbox_binder_frame frame;
+                REQUIRE(artbox_binder_next(ARTBOX_BINDER_READ, e->scratch->read, size, &cursor, &frame) == ARTBOX_BINDER_OK);
+                if (frame.command == ARTBOX_BR_NOOP) continue;
+                REQUIRE(frame.command == ARTBOX_BR_FAILED_REPLY && !rejected++);
+            }
+            if (!size) e->ops->pause(e->context);
+        }
+        REQUIRE(rejected == 1 && no_event(e) == 0);
+    }
+    return 0;
 }
 static int mapped_range(struct endpoint *e, uint64_t address, size_t length) {
     return address >= e->mapping && address - e->mapping <= e->length &&
@@ -483,6 +518,7 @@ static int object_manager_loop(void *opaque) {
 }
 static int object_owner_loop(struct endpoint *e) {
     REQUIRE(configure_looper(e) == 0);
+    REQUIRE(object_input_rejections(e) == 0);
     REQUIRE(send_object(e, ARTBOX_BC_TRANSACTION, ARTBOX_BINDER_TYPE_BINDER, 0) == 0);
     unsigned echoed = 0, called = 0, departing = 0, completed = 0, acquired = 0, increfs = 0;
     for (unsigned attempt = 0; attempt < 5000 && (!departing || completed != 2); ++attempt) {
