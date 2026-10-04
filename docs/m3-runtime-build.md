@@ -59,9 +59,15 @@ and instruction checks reject drift. Original and adapted assembly and objects
 are retained. This is a reproducible build input; linking, signing and full Apple
 runtime execution remain separate acceptance work.
 
-The native guest profile compiles 463 units, including a separate original
-sigchain caller, and excludes the host-owned VM and
+The native guest profile compiles 465 units, including original sigchain,
+JNI invocation and managed-acceptance callers, and excludes the host-owned VM and
 native VM implementation, which must be shared with Bionic's syscall mapper.
+This profile selects the unchanged Android `runtime_android.cc` platform unit
+and supplies the logical Android root `/system` during VM acceptance. The
+Linux references keep `runtime_linux.cc`. Host monitor/thread units remain in
+both profiles; this avoids unimplemented Android platform services while
+retaining their already tested pthread behavior. The native guest still uses
+the real ART fault manager and sigchain. See ADR 0085.
 Use `python -B scripts/build_art_runtime.py --profile android --managed-window
 --native-guest --all --jobs 2`. All 462 units compile in macOS CI at `44008be`.
 The downloaded artifact verifies against 100 canonical project files, 37

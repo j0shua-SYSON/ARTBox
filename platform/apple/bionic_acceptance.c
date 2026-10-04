@@ -87,6 +87,7 @@ static unsigned art_bootstrap;
 static unsigned tls_count;
 static uint64_t icu_check_ns;
 static uint64_t libcore_check_ns, integer128_check_ns;
+static uint64_t art_startup_ns, art_managed_bytes;
 static artbox_dlfcn *guest_loader;
 static artbox_guest_dlfcn *guest_dl_service;
 static uint64_t gwp_enabled, guarded_samples;
@@ -380,6 +381,9 @@ static void *run(void *context) {
     char android_data[] = "ANDROID_DATA=/data";
     char android_i18n[] = "ANDROID_I18N_ROOT=/system/i18n";
     char android_tzdata[] = "ANDROID_TZDATA_ROOT=/system/tzdata";
+    char android_root[] = "ANDROID_ROOT=/system";
+    char android_art[] = "ANDROID_ART_ROOT=/system/art";
+    char system_ext[] = "SYSTEM_EXT_ROOT=/system_ext";
     artbox_system_ops system = artbox_native_system();
     if (system.random(random, sizeof(random))) fail("AT_RANDOM");
     // argc, argv, envp, and the Linux ARM64 auxiliary vector. These live on
@@ -400,7 +404,13 @@ static void *run(void *context) {
         args[cursor++] = (uintptr_t)android_i18n;
         args[cursor++] = (uintptr_t)android_tzdata;
     }
+    if (art_bootstrap == 4) {
+        args[cursor++] = (uintptr_t)android_root;
+        args[cursor++] = (uintptr_t)android_art;
+        args[cursor++] = (uintptr_t)system_ext;
+    }
     args[cursor++] = 0;
+    if (sizeof(auxv)/sizeof(auxv[0]) > sizeof(args)/sizeof(args[0])-cursor) fail("startup argument capacity");
     memcpy(args + cursor, auxv, sizeof(auxv));
     current_kernel = &thread;
     const artbox_syscall_binding binding = {dispatch, &thread};
@@ -455,6 +465,19 @@ static void *run(void *context) {
             if (artbox_threads_drain(threads, 5000)) fail("libcore child thread reaper");
             reaped = artbox_threads_reaped(threads);
             if (reaped != 1) fail("libcore monitor worker count");
+        }
+        if (art_bootstrap == 4) {
+            uint64_t metrics[2] = {0, 0};
+            fprintf(stderr, "signed ART runtime acceptance entry\n");
+            int status = (int32_t)artbox_call7(entry(&images[1], "artbox_native_runtime_check"),
+                (uintptr_t)vm, artbox_vm_page_size(vm), (uintptr_t)metrics, 0, 0, 0, 0);
+            if (status || !metrics[0] || !metrics[1]) {
+                fprintf(stderr, "signed ART runtime result: %d\n", status);
+                fail("ART JavaVM, DEX and lifecycle acceptance");
+            }
+            art_startup_ns = metrics[0]; art_managed_bytes = metrics[1];
+            if (artbox_threads_drain(threads, 5000)) fail("ART child thread reaper");
+            reaped = artbox_threads_reaped(threads);
         }
         artbox_native_dlfcn_swap(old_dl);
         artbox_guest_dl_thread_destroy(dl_thread);
@@ -586,7 +609,7 @@ static void *run(void *context) {
 static int run_native(const native_input *input, const artbox_host *host, unsigned art_mode) {
     static atomic_flag used = ATOMIC_FLAG_INIT;
     if (!input || !input->root || !host || !host->log || input->sampled > 1) return -22;
-    if (art_mode > 3 || input->count != (art_mode == 3 ? 15u : art_mode == 2 ? 10u : 4u)) return -22;
+    if (art_mode > 4 || input->count != (art_mode >= 3 ? 15u : art_mode == 2 ? 10u : 4u)) return -22;
     for (unsigned i = 0; i < input->count; ++i)
         if (!input->frameworks[i] || !input->elfs[i]) return -22;
     if (atomic_flag_test_and_set(&used)) return -114;
@@ -632,7 +655,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
         modules[i] = (artbox_link_module){images[i].dynamic.soname, &images[i].dynamic, (uintptr_t)images[i].rx, &memory[i], 1};
     }
     artbox_elf_result linked = artbox_load_group_create(modules, image_count,
-        art_bootstrap == 3 ? "libartbox_libcore_check.so" :
+        art_bootstrap >= 3 ? "libartbox_libcore_check.so" :
         art_bootstrap == 2 ? "libartbox_icu_check.so" : art_bootstrap ? "libart.so" : "libstartup_client.so",
         resolve, NULL, &load_group);
     if (linked == ARTBOX_ELF_OK) linked = artbox_load_group_tls_resolver(load_group, (uintptr_t)entry(&images[0], "artbox_tlsdesc_absolute"));
@@ -702,12 +725,19 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
                 libcore_check_ns, integer128_check_ns, reaped);
             if (count < 0 || (size_t)count >= sizeof(extra)) fail("libcore result formatting");
         }
+        if (art_bootstrap == 4) {
+            int count = snprintf(extra, sizeof(extra),
+                "\"startup_ns\":%" PRIu64 ",\"managed_bytes\":%" PRIu64 ",\"threads_reaped\":%" PRIu64 ","
+                "\"process_peak_rss_bytes\":%ld,", art_startup_ns, art_managed_bytes, reaped, usage.ru_maxrss);
+            if (count < 0 || (size_t)count >= sizeof(extra)) fail("ART runtime result formatting");
+        }
         length = snprintf(report, sizeof(report),
             "{\"constructors\":%u,\"tls_modules\":%u,\"linked_images\":%u,\"registered_vms\":0,%s"
             "\"heap_binding_verified\":true,\"sigchain_cases\":22,\"sigchain_mutation\":-1005,"
-            "\"runtime_started\":false,\"dex_executed\":false,"
+            "\"runtime_started\":%s,\"dex_executed\":%s,"
             "\"load_relocate_ns\":%" PRIu64 ",\"bootstrap_ns\":%" PRIu64 ",\"cleanup\":true}",
             constructors, tls_count, image_count, extra,
+            art_bootstrap == 4 ? "true" : "false", art_bootstrap == 4 ? "true" : "false",
             loaded-start, finished-loaded);
         if (length < 0 || (size_t)length >= sizeof(report)) fail("ART result formatting");
         host->log(host->context, report, (size_t)length);
@@ -761,4 +791,9 @@ int artbox_run_native_libcore(const artbox_libcore_input *input, const artbox_ho
     if (!input) return -22;
     const native_input shared = {input->frameworks, input->elfs, input->root, 0, 15};
     return run_native(&shared, host, 3);
+}
+int artbox_run_native_art_runtime(const artbox_libcore_input *input, const artbox_host *host) {
+    if (!input) return -22;
+    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 15};
+    return run_native(&shared, host, 4);
 }

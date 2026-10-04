@@ -173,9 +173,19 @@ MTE, nested synchronous faults and other unmeasured cases remain unsupported.
 Thirty-two local portable tests pass, including 1,024 metadata-reader races and
 classification error cases. The Android caller compiles with no raw syscall,
 direct TLS or reserved-register instructions. Five delivered faults, mask/errno
-preservation and two mutation controls are now required in both signed Bionic
-modes and against the same source on Linux; their native CI execution is pending.
-This does not yet start an Apple JavaVM or complete M3.
+preservation and two mutation controls pass at `dbb7b1b` in both signed Bionic
+modes and against the same source on Linux. All 17 host jobs and the iOS build
+pass. Independent checks verify source/object/framework hashes, the real Mac
+mapper-lock-held query, and query disassembly with no calls on Mac or iOS.
+The 1,153,230-byte diagnostic IPA retains seven iOS 15 images, empty entitlements
+and M2's 328/328 score. It does not contain ART.
+
+The next acceptance invokes real `JNI_CreateJavaVM` through the signed
+15-image dependency group, with verified boot DEX, hello and the existing
+managed GC/exception/thread fixture. A guest-compiled entry performs JNI calls,
+checks the interpreter policy and destroys the VM; a missing-hello process must
+fail after successful VM startup. This is newly wired acceptance, not execution
+evidence. Apple JavaVM/DEX and shared iOS integration still remain to be proven.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

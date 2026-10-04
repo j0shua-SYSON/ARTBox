@@ -197,8 +197,11 @@ synchronous faults, nonlocal returns and the existing stack-alignment contract
 remain with the owner or unsupported. No handler executes VM writes or logging.
 The new same-source Android/Linux caller checks five real faults on a guarded
 alternate stack, full masks, errno/TLS, Linux siginfo/FAR and edited PC/x0 return.
-Dropping register edits or fault-address observations must fail. Signed Bionic
-execution and the Linux comparison are pending CI; no Apple JavaVM is claimed.
+Dropping register edits or fault-address observations must fail. At `dbb7b1b`,
+both signed Bionic modes and the Linux reference/comparison pass, and all 17
+host jobs plus the iOS build are green. Downloaded source/object/framework
+hashes verify; the actual Mac mapper-lock-held query and compiled Mac/iOS query
+paths also verify. This does not establish Apple JavaVM execution.
 
 The first signed delivery run rejected UDF with ENOTSUP: it compared Darwin's
 measured code 2 against ILL_ILLOPN, which is 4 in Darwin's public header. The

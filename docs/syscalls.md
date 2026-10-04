@@ -264,7 +264,7 @@ Mac at `886d1bb`; all host and iOS CI checks pass. Bionic's required timer-signa
 mask bit is asserted explicitly alongside requested bits. This does not enable
 other fault-signal registrations yet.
 
-### Synchronous fault delivery extension (native CI pending)
+### Synchronous fault delivery extension (verified at dbb7b1b)
 
 The action owner now accepts signals 4/5/7/11 for its measured synchronous
 paths, with SIGINFO, optional ONSTACK/RESTART and action masks. A portable

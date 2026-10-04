@@ -86,6 +86,7 @@ def preserve_sources(output, sources, generated, toolchain=None):
       'third_party/art/adapters/no_jit.cpp','third_party/art/adapters/artbox_host_stack.h',
       'third_party/art/host-build-boundary.json','third_party/bionic/builtins.json',
       'fixtures/art-runtime/linux_reference.cpp','fixtures/art-runtime/managed_checks.cpp',
+      'fixtures/art-runtime/native_runtime.cpp',
       'fixtures/art-runtime/thread_state.cpp','fixtures/art-runtime/thread_state.h',
       'fixtures/art-runtime/sigchain_check.cpp','fixtures/art-runtime/sigchain_linux.cpp',
       'fixtures/art-runtime/RuntimeChecks.java','fixtures/art-runtime/RuntimeChecksHost.java',
@@ -243,6 +244,8 @@ def main():
     generated_sources.append(time_unit)
     for group in ['runtime','support','platform']:
         for name in graph[group]:
+            if args.native_guest and name=='runtime/runtime_linux.cc':
+                name='runtime/runtime_android.cc'
             add(name.replace('/','-'),time_unit if name=='libartbase/base/time_utils.cc' else art/name,
                 runtime_flags+(['-DZ7_ST'] if group=='support' else []))
     for library,module in [('runtime','art_operator_srcs'),('libartbase','art_libartbase_operator_srcs'),('libdexfile','dexfile_operator_srcs')]:
@@ -296,6 +299,8 @@ def main():
     add('artbox-thread-state',ROOT/'fixtures/art-runtime/thread_state.cpp',runtime_flags)
     if args.native_guest:
         add('artbox-sigchain-contract',ROOT/'fixtures/art-runtime/sigchain_check.cpp',runtime_flags)
+        add('artbox-native-runtime',ROOT/'fixtures/art-runtime/native_runtime.cpp',runtime_flags)
+        add('artbox-managed-checks',ROOT/'fixtures/art-runtime/managed_checks.cpp',runtime_flags)
     if args.managed_window:
         add('artbox-managed-heap',ROOT/'third_party/art/adapters/managed_heap.cpp',runtime_flags)
         # CardTable is private to libart. Keep the acceptance helper beside the
@@ -314,7 +319,7 @@ def main():
         units=[u for u in units if u[0] in names]
         if len(units)!=4:raise RuntimeError('Incomplete preflight')
     if len({u[0] for u in units})!=len(units):raise RuntimeError('Duplicate object names')
-    expected_units=463 if args.native_guest else 464 if args.managed_window else 459
+    expected_units=465 if args.native_guest else 464 if args.managed_window else 459
     if args.all and len(units)!=expected_units:raise RuntimeError('Complete runtime source count changed')
     record={'profile':args.profile,'runtime_executed':False,'managed_window':args.managed_window,
       'native_guest':args.native_guest,'native_tls_header_adaptation':native_adaptation,

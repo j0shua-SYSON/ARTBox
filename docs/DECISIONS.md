@@ -2056,7 +2056,8 @@ to verify restoration before releasing the test's alternate-stack storage.
 
 ## 0084: Classify synchronous Android faults using nonblocking VM metadata
 
-Status: portable contracts pass; Android caller compiles; signed delivery CI pending.
+Status: verified at `dbb7b1b`; both signed Bionic modes, native Linux comparison,
+all 17 host jobs and the iOS build pass. Apple JavaVM remains pending.
 
 Measured Darwin SIGBUS covers both access violations and alignment faults. The
 ARM64 syndrome also reports a translation fault for a mapped PROT_NONE page.
@@ -2094,3 +2095,38 @@ then exercises five real faults with Linux codes, addresses, alternate-stack
 selection, masks, TLS/errno and edited register return. Two mutations must fail.
 Keep M2's denominator unchanged; these are separate M3 boundary checks. Neither
 the reference nor the new bridge establishes JavaVM/JNI/DEX startup on Apple.
+
+## 0085: Enter the real JavaVM through a signed Android JNI caller
+
+Status: acceptance wired; Apple execution pending.
+
+The signed dependency group already runs ART, ICU and libcore constructors and
+native checks. Add a separate runtime entry using that same group and the
+verified implementation DEX/managed fixture from CI. All JNI varargs and C++
+runtime APIs stay inside an NDK-compiled helper within libart. The Apple boundary
+passes fixed-width arguments and receives timing/memory observations. Keep
+the existing native-only and pre-start checks in their own processes.
+
+Require actual `JNI_CreateJavaVM`, the exact hello string, allocation/GC,
+exceptions, four native attachment cycles and successful VM destruction.
+Require the switch interpreter with no JIT or profiling cache before and after
+execution. Runtime executable mappings remain denied by the shared mapper;
+the existing compiler factory fails if invoked. A separate missing-hello process
+must start the VM and then fail class lookup. A build, constructor result or
+startup log alone cannot satisfy this acceptance.
+
+Select AOSP's unchanged `runtime_android.cc` in the native guest profile, as
+the pinned runtime Android.bp does for Android, and expose `/system` as the
+logical ANDROID_ROOT. This omits AOSP's Linux-host crash-dumper registration
+on the normal Android path; Runtime::Init still initializes the real fault
+manager and sigchain separately. Using the host crash-dumper would additionally
+require unimplemented fatal/timeout signal behavior before normal startup.
+Do not fake those registrations or use NoSigChain. Existing host monitor and
+thread units remain selected to preserve the tested pthread subset without
+adding Android kernel/HAL dependencies. Native Linux references keep their
+host platform unit and crash diagnostics.
+
+This initial execution uses the slower C++ interpreter. It proves neither
+OAT execution nor the temporary eight-byte stack alignment used by ARM64 AOT
+null-fault stubs. iOS embedding and managed execution still need their own
+signed artifact verification before M3 can be completed.

@@ -528,3 +528,10 @@ Their original headers and hash-checked ART NOTICE accompany its source archive.
 The signed ART guest already includes this implementation; its additional caller
 is original MIT code. The Linux reference links the runner's system C++ runtime
 and libc and does not represent an Android binary.
+
+The signed JavaVM startup selection additionally pins unchanged
+`runtime/runtime_android.cc` from the same ART revision (Apache-2.0). Its
+original header and the complete ART NOTICE remain in corresponding-source
+archives and signed frameworks. This selects upstream Android platform
+initialization; no third-party implementation is copied into the original
+MIT JNI invocation fixture.

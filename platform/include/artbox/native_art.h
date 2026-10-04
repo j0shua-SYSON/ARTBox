@@ -31,6 +31,11 @@ typedef struct artbox_libcore_input {
 } artbox_libcore_input;
 /* Plain native checks only: no JNI_OnLoad, JavaVM or DEX execution. */
 int artbox_run_native_libcore(const artbox_libcore_input *input, const artbox_host *host);
+/* Start the real ART VM, execute the supplied DEX acceptance and shut it down.
+ * The root supplies system/framework/{classes,classes2}.dex, data/hello.dex,
+ * data/runtime-checks.dex and the same ICU data as the native libcore runner.
+ * One-shot diagnostic; only a zero result establishes execution success. */
+int artbox_run_native_art_runtime(const artbox_libcore_input *input, const artbox_host *host);
 #ifdef __cplusplus
 }
 #endif

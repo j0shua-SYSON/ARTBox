@@ -725,7 +725,7 @@ jobs:
 
   art-guest-link:
     name: Full ART guest link, signed frameworks and native bootstrap
-    needs: [host, art-native-guest-build]
+    needs: [host, art-native-guest-build, class-library]
     runs-on: macos-15
     timeout-minutes: 20
     env:
@@ -746,6 +746,14 @@ jobs:
         with:
           name: libcore-native-guest-build
           path: build/m3/guest-libcore-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: class-library-macos-15
+          path: build/m3/guest-classlib-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: art-managed-fixture-macos-15
+          path: build/m3/guest-managed-inputs
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: bionic-startup
@@ -795,6 +803,24 @@ jobs:
         run: python3 -B scripts/link_libcore_guest.py --native-dir build/m3/guest-libcore-inputs --icu-dir build/m3/icu-guest-link --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
       - name: Execute native class libraries through signed Bionic and ART dependencies
         run: python3 -B scripts/test_icu_guest.py --libcore-dir build/m3/libcore-guest-link --icu-dir build/m3/icu-guest-link --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+      - name: Start signed ART and execute hello, GC, exceptions and native attachment
+        run: >-
+          python3 -B scripts/test_icu_guest.py
+          --libcore-dir build/m3/libcore-guest-link --icu-dir build/m3/icu-guest-link
+          --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+          --classlib-dir build/m3/guest-classlib-inputs/build/m3/classlib
+          --managed-fixture-dir build/m3/guest-managed-inputs
+      - name: Preserve signed JavaVM and DEX execution diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: art-runtime-guest
+          path: |
+            artifacts/m3-art-runtime-guest.json
+            build/m3/art-runtime-guest/
+            build/host/artbox_native_art_runtime
+          if-no-files-found: warn
+          retention-days: 7
       - name: Preserve signed class libraries and native execution evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
