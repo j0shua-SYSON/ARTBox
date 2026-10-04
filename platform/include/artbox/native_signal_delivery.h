@@ -24,11 +24,12 @@ enum { ARTBOX_SIGNAL_STACK_MINIMUM = 8192 };
 int artbox_native_signal_thread_attach(artbox_native_signal_thread *thread);
 int artbox_native_signal_thread_detach(artbox_native_signal_thread *thread);
 /* Caller owns stable signed RX, writable data and stack ranges throughout delivery. This
- * initial bridge handles BRK/SIGTRAP, SA_SIGINFO, optional SA_RESTART/SA_ONSTACK,
- * and Linux action masks. It never installs a process-wide host handler.
+ * bridge handles BRK/SIGTRAP, measured memory SIGSEGV/SIGBUS and UDF/SIGILL,
+ * SA_SIGINFO, optional SA_RESTART/SA_ONSTACK, and Linux action masks. It never
+ * installs a process-wide host handler.
  * Unsupported dispositions/flags must be rejected by the registration owner. */
-int artbox_native_signal_validate_trap(void *context,unsigned number,const artbox_signal_action *action);
-/* Called from a host SA_ONSTACK SIGTRAP callback on an attached thread. The
+int artbox_native_signal_validate_fault(void *context,unsigned number,const artbox_signal_action *action);
+/* Called from a host SA_SIGINFO|SA_ONSTACK fault callback on an attached thread. The
  * owner keeps registered guest stacks mapped and writable throughout delivery.
  * Captures Darwin
  * state, invokes a signed Android handler with Linux data and resumes validated
@@ -39,8 +40,13 @@ int artbox_native_signal_validate_trap(void *context,unsigned number,const artbo
  * masks preserve queued signals; unsupported pending-unblock delivery fails.
  * Active alternate-stack updates fail with EPERM; other alternate-stack
  * updates and edited return-stack metadata remain unsupported.
+ * Data faults use a nonblocking VM metadata query: a concurrent mapping change
+ * returns EAGAIN; file EOF/I/O faults, MTE and other unmeasured cases remain
+ * unsupported. Nested synchronous faults are not supported by this owner.
+ * host_info points to native siginfo_t, never the Android wire structure.
  * Host disposition/default handling remains the caller's responsibility. */
-int artbox_native_signal_deliver_trap(artbox_native_signal_thread *thread,void *host_context);
+int artbox_native_signal_deliver_fault(artbox_native_signal_thread *thread,int host_number,
+    const void *host_info,void *host_context);
 #ifdef __cplusplus
 }
 #endif

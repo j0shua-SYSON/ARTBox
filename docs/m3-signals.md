@@ -169,8 +169,36 @@ It triggers null/protected reads, a read-only write, an unaligned exclusive load
 and an undefined instruction, recording native signal/code and exception syndrome.
 Fault address, alternate-stack use and PC/x0 return are checked with mutation
 controls. Darwin classification is measured before assigning Linux signal codes.
-This reference has compiled for ARM64; actual execution is pending CI and no
-additional Android fault handler is enabled by it.
+At `f6251fd`, all five cases and both controls pass on Linux and signed Mac,
+with source/binary/signature verification and complete green CI. The reference
+itself does not enable an Android handler.
+
+The next delivery extension accepts Linux signals 4, 5, 7 and 11 for the measured
+returning-handler paths. BRK retains TRAP_BRKPT; UDF becomes ILL_ILLOPC. ARM64
+alignment faults become BUS_ADRALN. Translation/permission faults consult the
+guest mapping metadata, reporting SEGV_MAPERR for holes and SEGV_ACCERR when the
+mapping lacks the attempted access. A fault on an otherwise accessible mapping
+is rejected; it is not automatically converted to SIGSEGV. This leaves file
+truncation/I/O, external aborts and MTE for their own tested contracts.
+
+The metadata query uses a reader counter and a mutation gate with always
+lock-free atomics. Writers announce mutation under the normal VM mutex and wait
+for existing readers; signal readers return EAGAIN when a writer is active.
+The query never waits, allocates, enters the mapper mutex or retains a pointer
+after return. A VM I/O callback can invoke it while holding that mutex. The
+Apple signal-context test exercises this with a real BRK. The portable test
+also queries from native mutation callbacks and races insertion, removal,
+protection and managed-window holes against readers.
+
+EAGAIN leaves the host context unchanged and is handled by the owner's failure
+path. Fault delivery during a concurrent VM mutation is therefore an explicit
+limit, including changes to unrelated ranges. Default/fatal handling, nested
+synchronous faults, nonlocal returns and the existing stack-alignment contract
+remain with the owner or unsupported. No handler executes VM writes or logging.
+The new same-source Android/Linux caller checks five real faults on a guarded
+alternate stack, full masks, errno/TLS, Linux siginfo/FAR and edited PC/x0 return.
+Dropping register edits or fault-address observations must fail. Signed Bionic
+execution and the Linux comparison are pending CI; no Apple JavaVM is claimed.
 
 The pinned ART sources require a real boundary before JavaVM startup on Apple:
 

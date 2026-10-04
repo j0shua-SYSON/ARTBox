@@ -264,6 +264,29 @@ Mac at `886d1bb`; all host and iOS CI checks pass. Bionic's required timer-signa
 mask bit is asserted explicitly alongside requested bits. This does not enable
 other fault-signal registrations yet.
 
+### Synchronous fault delivery extension (native CI pending)
+
+The action owner now accepts signals 4/5/7/11 for its measured synchronous
+paths, with SIGINFO, optional ONSTACK/RESTART and action masks. A portable
+classifier supplies Linux encodings; Darwin signal numbers are never passed
+directly to Android handlers.
+
+| Native event | Linux delivery | Required evidence/state |
+| --- | --- | --- |
+| Data translation/permission fault outside a guest mapping | SIGSEGV, SEGV_MAPERR | Valid FAR and coherent VM metadata |
+| Data fault against a mapping without the attempted access | SIGSEGV, SEGV_ACCERR | Mapping presence is distinct from PROT_NONE |
+| Unaligned exclusive access | SIGBUS, BUS_ADRALN | ARM64 alignment syndrome and valid FAR |
+| UDF | SIGILL, ILL_ILLOPC | Verified signed instruction and fault PC |
+| BRK | SIGTRAP, TRAP_BRKPT | Existing signed breakpoint path |
+
+VM queries use a lock-free reader/writer handshake; an active mutation returns
+EAGAIN without output changes or waiting. The diagnostic owner fails delivery
+in that situation. File EOF/I/O faults, MTE, nested synchronous faults and
+unmeasured syndromes remain unsupported. Register/mask return checks and the
+existing guest stack constraints still apply. The five-case Android/Linux
+caller and dropped-edit/address controls are required in CI; local portable
+classification and metadata concurrency tests pass.
+
 ### File-backed data mapping extension (native CI green at b1a94c5)
 
 | ARM64 call | Implemented subset | Evidence |

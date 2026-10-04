@@ -155,12 +155,27 @@ the runtime and Bionic implementation are unchanged by this correction.
 Other fault signals and unblocked queued delivery remain incomplete.
 JavaVM/JNI/DEX execution on Apple is still required.
 
-The next reference measures actual Linux/Darwin metadata for null access,
+At `f6251fd`, the native reference verifies Linux/Darwin metadata for null access,
 protected-page reads, read-only-page writes, unaligned atomic loads and undefined
 instructions. It verifies alternate-stack delivery, fault PC/address, return
 register edits and x18 preservation, with dropped-edit/address controls. Its
-Linux path compiles with the NDK; native execution is pending CI. It does not
-yet add Android SIGSEGV delivery or accept additional handler registrations.
+five cases and both mutation controls pass on native Linux and signed ARM64 Mac.
+Source/binary hashes and thirteen Mac signature pages verify independently.
+All seventeen host jobs and the iOS workflow pass. Darwin reports protected
+memory access as SIGBUS where Linux reports SIGSEGV; even their matching ARM
+translation-fault syndromes cannot distinguish a mapping hole from PROT_NONE.
+
+The next bridge uses portable VM metadata to deliver Linux MAPERR/ACCERR,
+alignment BUS_ADRALN and UDF ILL_ILLOPC to Android handlers. Its read-only query
+uses lock-free counters without entering the VM mutex, allocating or waiting
+for a writer. Concurrent mapping mutation returns EAGAIN; file EOF/I/O faults,
+MTE, nested synchronous faults and other unmeasured cases remain unsupported.
+Thirty-two local portable tests pass, including 1,024 metadata-reader races and
+classification error cases. The Android caller compiles with no raw syscall,
+direct TLS or reserved-register instructions. Five delivered faults, mask/errno
+preservation and two mutation controls are now required in both signed Bionic
+modes and against the same source on Linux; their native CI execution is pending.
+This does not yet start an Apple JavaVM or complete M3.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

@@ -2021,7 +2021,8 @@ formatted only after the handler returns.
 
 ## 0083: Measure native fault metadata before extending ART signal delivery
 
-Status: native reference added; corrected alignment fixture awaiting native CI.
+Status: five native cases and both mutation controls verified on Linux and signed
+ARM64 Mac at `f6251fd`; all seventeen host jobs and the iOS workflow pass.
 
 ART's fault manager needs real SIGSEGV delivery. A Darwin signal number alone
 does not establish the corresponding Linux fault classification. First measure
@@ -2052,3 +2053,44 @@ observations before failing alternate-stack cleanup. Darwin validates the size
 even when restoring SS_DISABLE. Normalize that unused size to MINSIGSTKSZ, as
 the existing delivery owner already does, and query the resulting registration
 to verify restoration before releasing the test's alternate-stack storage.
+
+## 0084: Classify synchronous Android faults using nonblocking VM metadata
+
+Status: portable contracts pass; Android caller compiles; signed delivery CI pending.
+
+Measured Darwin SIGBUS covers both access violations and alignment faults. The
+ARM64 syndrome also reports a translation fault for a mapped PROT_NONE page.
+Use Linux mapping ownership and protections alongside the syndrome; copying
+Darwin's signal number or classifying from ESR alone produces incorrect signals.
+Keep this classification in portable C, with native signal/context validation
+and delivery in the existing Apple owner. BRK, UDF, data translation/permission
+faults and unaligned exclusive accesses have actual native reference cases.
+Do not classify an accessible file mapping's fault as SEGV; file EOF/I/O,
+external aborts, MTE and instruction fetch faults need separate contracts.
+
+A handler cannot take the VM mutex, and a published snapshot cannot point into
+vectors that another thread may resize or free. An immutable page mirror would
+require retention/reclamation and duplicate potentially large managed-window
+metadata. Use a lock-free reader counter and writer gate instead. Serialized
+writers announce mutation before waiting for existing readers to finish; new
+readers immediately return EAGAIN. Sequentially consistent operations make the
+gate/counter handshake coherent. Readers do bounded metadata work, never wait
+for the interrupted writer and release their count before returning. GCC and
+Clang ARM64 builds disable outlined atomic helpers. VM destruction requires
+quiescent readers, as it already requires stopped guest access.
+
+This adds two atomic words per VM and atomic operations around mapping changes
+and fault queries, without a per-page mirror. The cost is explicit failure of
+fault translation during a concurrent mapping change, even on another range.
+The owner takes its failure path without editing the host context in that case.
+This is a documented compatibility limit to improve before general concurrent
+AOT fault handling, not an approximation of a successful Linux delivery.
+
+Test mapper-mutex-held reads, mutation-callback rejection, poisoned-state output
+stability, file/anonymous replacement, borrowed boundaries, managed-window holes
+and 1,024 structural/page races. The real Apple BRK handler also reads metadata
+while its interrupted callback owns the mapper mutex. The Android/Linux caller
+then exercises five real faults with Linux codes, addresses, alternate-stack
+selection, masks, TLS/errno and edited register return. Two mutations must fail.
+Keep M2's denominator unchanged; these are separate M3 boundary checks. Neither
+the reference nor the new bridge establishes JavaVM/JNI/DEX startup on Apple.

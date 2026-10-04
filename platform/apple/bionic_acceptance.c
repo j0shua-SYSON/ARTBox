@@ -65,6 +65,7 @@ static int32_t signal_handler_cases,signal_handler_mutation;
 static int32_t signal_stack_cases,signal_stack_handler_cases,signal_stack_mutation;
 static uint64_t signal_stack_threads;
 static int32_t signal_mask_cases,signal_mask_mutation;
+static int32_t signal_fault_cases,signal_fault_edit_mutation,signal_fault_address_mutation;
 static uint64_t signal_mask_threads;
 static uint64_t file_ns;
 static artbox_futex *futex;
@@ -106,10 +107,9 @@ static void fault(int number) {
     (void)write(2, text, sizeof(text) - 1);
     _Exit(1); // No core dump or platform crash reporter needed by this fixture.
 }
-static void deliver_trap(int number,siginfo_t *info,void *context) {
-    (void)info;
+static void deliver_fault(int number,siginfo_t *info,void *context) {
     artbox_native_signal_thread *thread=artbox_native_signal_thread_context();
-    if(number!=SIGTRAP || artbox_native_signal_deliver_trap(thread,context)) fault(number);
+    if(artbox_native_signal_deliver_fault(thread,number,info,context)) fault(number);
 }
 static uint64_t unexpected(void) { fail("unexpected external loader/thread interface"); return 0; }
 static int target_sdk(void) { return 35; }
@@ -488,6 +488,14 @@ static void *run(void *context) {
         fprintf(stderr,"signal handler caller: %d mutation: %d\n",signal_handler_cases,signal_handler_mutation);
         fail("signed Android handler delivery");
     }
+    signal_fault_cases=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_fault_check"),0,0,0,0,0,0,0);
+    signal_fault_edit_mutation=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_fault_check"),1,0,0,0,0,0,0);
+    signal_fault_address_mutation=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_fault_check"),2,0,0,0,0,0,0);
+    if(signal_fault_cases!=5 || signal_fault_edit_mutation!=-1006 || signal_fault_address_mutation!=-1007) {
+        fprintf(stderr,"signal fault caller: %d edit: %d address: %d\n",signal_fault_cases,
+            signal_fault_edit_mutation,signal_fault_address_mutation);
+        fail("signal fault contract");
+    }
     signal_stack_cases=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_stack_check"),artbox_vm_page_size(vm),0,0,0,0,0,0);
     signal_stack_handler_cases=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_stack_handler_check"),0,signal_thread.stack_address,signal_thread.stack_size,0,0,0,0);
     signal_stack_mutation=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_stack_handler_check"),1,signal_thread.stack_address,signal_thread.stack_size,0,0,0,0);
@@ -587,7 +595,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     }
     signal_template.code=signal_code; signal_template.code_count=image_count;
     signal_template.data=signal_data; signal_template.data_count=image_count;
-    if(artbox_signals_enable_actions(process_signals,4096,artbox_native_signal_validate_trap,&signal_template,UINT64_C(0x18000004)) ||
+    if(artbox_signals_enable_actions(process_signals,4096,artbox_native_signal_validate_fault,&signal_template,UINT64_C(0x18000004)) ||
         artbox_signals_enable_stacks(process_signals,ARTBOX_SIGNAL_STACK_MINIMUM,4096) ||
         artbox_signals_attach(process_signals,&thread)) fail("signal action owner");
     signal_template.actions=artbox_signals_action_table(process_signals);
@@ -622,9 +630,12 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     int64_t stack = artbox_vm_mmap(vm, 0, stack_size + 2 * page, 0, 0x22, -1, 0);
     if (stack < 0 || artbox_vm_mprotect(vm, (uint64_t)stack + page, stack_size, 3)) fail("guest stack");
     signal_template.stack_address=(uint64_t)stack+page; signal_template.stack_size=stack_size;
-    struct sigaction trap={0},saved_trap;
-    trap.sa_sigaction=deliver_trap; trap.sa_flags=SA_SIGINFO|SA_RESTART|SA_ONSTACK;
-    if(sigemptyset(&trap.sa_mask) || sigaction(SIGTRAP,&trap,&saved_trap)) fail("host trap disposition");
+    const int host_faults[]={SIGTRAP,SIGSEGV,SIGBUS,SIGILL};
+    struct sigaction trap={0},saved_faults[4];
+    trap.sa_sigaction=deliver_fault; trap.sa_flags=SA_SIGINFO|SA_RESTART|SA_ONSTACK;
+    if(sigemptyset(&trap.sa_mask)) fail("host fault mask");
+    for(unsigned i=0;i<4;++i)
+        if(sigaction(host_faults[i],&trap,&saved_faults[i])) fail("host fault disposition");
     pthread_attr_t attr;
     pthread_t worker;
     if (pthread_attr_init(&attr) || pthread_attr_setstack(&attr, (void *)(uintptr_t)((uint64_t)stack + page), stack_size) ||
@@ -637,7 +648,8 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) || usage.ru_maxrss <= 0) fail("native resident-memory measurement");
     if (artbox_threads_destroy(threads)) fail("thread manager cleanup");
-    if(sigaction(SIGTRAP,&saved_trap,NULL)) fail("restore host trap disposition");
+    for(unsigned i=0;i<4;++i)
+        if(sigaction(host_faults[i],&saved_faults[i],NULL)) fail("restore host fault disposition");
     if (artbox_signals_thread_count(process_signals) != 1 || artbox_signals_waiter_count(process_signals) ||
         artbox_signals_detach(&thread) || artbox_signals_destroy(process_signals)) fail("signal process cleanup");
     artbox_guest_dlfcn_destroy(guest_dl_service);
@@ -683,10 +695,12 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
            "\"linked_images\":4,\"tls_modules\":2,\"tls_threads\":7,\"tls_result\":0,\"tls_queries\":%" PRIu64 ",\"version_result\":%" PRId64 ",\"mapping_cases\":%" PRId64 ",\"file_cases\":%" PRId64 ",\"file_client_ns\":%" PRIu64
            ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"art_libc_cases\":%" PRId64 ",\"vfork_cases\":%" PRId64 ",\"libcore_frontend_cases\":%" PRId64 ",\"unlink_cases\":%" PRId64 ",\"signal_wait_cases\":%" PRId64 ",\"signal_handler_cases\":%d,\"signal_handler_mutation\":%d,"
            "\"signal_stack_cases\":%d,\"signal_stack_handler_cases\":%d,\"signal_stack_mutation\":%d,\"signal_stack_threads\":%" PRIu64 ","
-           "\"signal_mask_cases\":%d,\"signal_mask_mutation\":%d,\"signal_mask_threads\":%" PRIu64 ",\"unsupported_syscalls\":{",
+           "\"signal_mask_cases\":%d,\"signal_mask_mutation\":%d,\"signal_mask_threads\":%" PRIu64 ","
+           "\"signal_fault_cases\":%d,\"signal_fault_edit_mutation\":%d,\"signal_fault_address_mutation\":%d,\"unsupported_syscalls\":{",
            constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases, unlink_cases, signal_wait_cases,signal_handler_cases,signal_handler_mutation,
            signal_stack_cases,signal_stack_handler_cases,signal_stack_mutation,signal_stack_threads,
-           signal_mask_cases,signal_mask_mutation,signal_mask_threads);
+           signal_mask_cases,signal_mask_mutation,signal_mask_threads,
+           signal_fault_cases,signal_fault_edit_mutation,signal_fault_address_mutation);
     if (length < 0 || (size_t)length >= sizeof(report)) fail("result formatting");
     size_t used_bytes = (size_t)length;
     unsigned printed = 0;

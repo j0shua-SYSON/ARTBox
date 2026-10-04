@@ -1,9 +1,10 @@
-// Original signed Android SIGTRAP delivery. SPDX-License-Identifier: MIT
+// Original signed Android synchronous fault delivery. SPDX-License-Identifier: MIT
 #define _DARWIN_C_SOURCE 1
 #include "artbox/native_signal_delivery.h"
 #include "artbox/native_signal_binding.h"
 #include "artbox/native_signal_context.h"
 #include "artbox/native_call.h"
+#include "artbox/signal_fault.h"
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -26,7 +27,7 @@ static int restore_host_stack(const host_stack *state) {
 }
 int artbox_native_signal_thread_attach(artbox_native_signal_thread *thread) {
     if(!thread || !thread->kernel || !thread->guest_tls || thread->platform_state) return -22;
-    if(!artbox_signals_handler_mask_support()) return -95;
+    if(!artbox_signals_handler_mask_support() || !artbox_vm_fault_snapshot_support()) return -95;
     if(artbox_native_signal_thread_context()) return -17;
     size_t page=artbox_vm_page_size(thread->kernel->vm);
     if(!page || page>65536 || (page&(page-1))) return -22;
@@ -80,10 +81,11 @@ static int executable(const artbox_native_signal_thread *thread,uint64_t address
         if(within(thread->code[i].address,thread->code[i].size,address,4)) return 1;
     return 0;
 }
-int artbox_native_signal_validate_trap(void *context,unsigned number,const artbox_signal_action *action) {
+int artbox_native_signal_validate_fault(void *context,unsigned number,const artbox_signal_action *action) {
     const artbox_native_signal_thread *thread=context;
     if(!thread || !action) return -22;
-    if(number!=5 || action->flags&~UINT64_C(0x18000004) || action->restorer) return -95;
+    if((number!=4 && number!=5 && number!=7 && number!=11) ||
+       action->flags&~UINT64_C(0x18000004) || action->restorer) return -95;
     if(!action->handler) return 0;
     if(action->handler==1 || !(action->flags&4)) return -95;
     return executable(thread,action->handler) ? 0 : -22;
@@ -147,19 +149,14 @@ static int64_t signal_call(void *raw,uint64_t number,uint64_t a0,uint64_t a1,
     word((void *)(uintptr_t)a2,previous,8);
     return 0;
 }
-static int deliver(artbox_native_signal_thread *thread,void *host_context) {
+static int deliver(artbox_native_signal_thread *thread,int host_number,const siginfo_t *host_info,void *host_context) {
     if(!thread || !thread->kernel || !thread->actions || !thread->guest_tls || !thread->platform_state) return -22;
+    if(!host_info || host_info->si_signo!=host_number) return -22;
     const host_stack *host=thread->platform_state;
     unsigned char host_marker;
     if(!within((uintptr_t)host->active.ss_sp,host->active.ss_size,(uintptr_t)&host_marker,1)) return -22;
-    artbox_signal_action action;
-    int error=artbox_signal_actions_snapshot(thread->actions,5,&action);
-    if(error) return error;
-    if(!action.handler) return -95; // Caller owns the fatal/default disposition.
-    error=artbox_native_signal_validate_trap(thread,5,&action);
-    if(error) return error;
     artbox_arm64_signal_state interrupted,resumed;
-    error=artbox_native_signal_capture(host_context,&interrupted);
+    int error=artbox_native_signal_capture(host_context,&interrupted);
     if(error) return error;
     artbox_signal_stack alternate;
     error=artbox_signals_stack_snapshot(thread->kernel,interrupted.sp,&alternate);
@@ -168,11 +165,35 @@ static int deliver(artbox_native_signal_thread *thread,void *host_context) {
     if(!executable(thread,interrupted.pc) || !guest_stack(&delivery,interrupted.sp,0)) return -22;
     uint32_t instruction;
     memcpy(&instruction,(const void *)(uintptr_t)interrupted.pc,sizeof(instruction));
-    if((instruction&UINT32_C(0xffe0001f))!=UINT32_C(0xd4200000)) return -95;
+    unsigned kind;
+    artbox_vm_fault_info memory={0,0,0};
+    if(host_number==SIGTRAP) kind=ARTBOX_FAULT_BREAKPOINT;
+    else if(host_number==SIGILL) {
+        if(host_info->si_code!=ILL_ILLOPN || (uintptr_t)host_info->si_addr!=interrupted.pc) return -95;
+        kind=ARTBOX_FAULT_UNDEFINED;
+    } else if(host_number==SIGSEGV || host_number==SIGBUS) {
+        if((host_info->si_code!=1 && host_info->si_code!=2) ||
+           (uintptr_t)host_info->si_addr!=interrupted.fault_address) return -95;
+        kind=ARTBOX_FAULT_DATA;
+        if((interrupted.esr&63)!=0x21) {
+            error=artbox_vm_fault_snapshot(thread->kernel->vm,interrupted.fault_address,&memory);
+            if(error) return error;
+        }
+    } else return -95;
+    artbox_signal_fault event;
+    error=artbox_signal_classify_fault(kind,instruction,&interrupted,&memory,&event);
+    if(error) return error;
+    artbox_signal_action action;
+    error=artbox_signal_actions_snapshot(thread->actions,event.number,&action);
+    if(error) return error;
+    if(!action.handler) return -95; // Caller owns the fatal/default disposition.
+    error=artbox_native_signal_validate_fault(thread,event.number,&action);
+    if(error) return error;
+    const uint64_t self=UINT64_C(1)<<(event.number-1);
     uint64_t original_mask;
     error=artbox_signals_mask_snapshot(thread->kernel,&original_mask);
     if(error) return error;
-    if(original_mask&16) return -95;
+    if(original_mask&self) return -95;
     const artbox_signal_frame_info meta={original_mask,alternate.address,alternate.size,alternate.flags};
     uint64_t base=thread->stack_address,top=interrupted.sp;
     if(alternate.flags==1 || ((action.flags&UINT64_C(0x08000000)) && alternate.size)) {
@@ -190,8 +211,8 @@ static int deliver(artbox_native_signal_thread *thread,void *host_context) {
     error=artbox_signal_context_encode(frame,ARTBOX_ARM64_UCONTEXT_BYTES,&interrupted,&meta);
     if(error) return error;
     memset(info,0,128);
-    word(info,5,4); word(info+8,1,4); word(info+16,interrupted.pc,8); // Linux TRAP_BRKPT.
-    uint64_t added_mask=action.mask|16,return_mask=original_mask;
+    word(info,event.number,4); word(info+8,event.code,4); word(info+16,event.address,8);
+    uint64_t added_mask=action.mask|self,return_mask=original_mask;
     error=artbox_signals_mask_update(thread->kernel,0,&added_mask,NULL);
     if(error) return error;
     const delivery_scope active={thread,alternate};
@@ -199,7 +220,7 @@ static int deliver(artbox_native_signal_thread *thread,void *host_context) {
     const artbox_native_signal_scope *previous,*replaced;
     error=artbox_native_signal_scope_swap(&scope,&previous);
     if(error) goto restore_mask;
-    artbox_call_on_stack((void *)(uintptr_t)action.handler,5,(uintptr_t)info,(uintptr_t)frame,frame_address);
+    artbox_call_on_stack((void *)(uintptr_t)action.handler,event.number,(uintptr_t)info,(uintptr_t)frame,frame_address);
     error=artbox_native_signal_scope_swap(previous,&replaced);
     if(error || replaced!=&scope) { error=-22; goto restore_mask; }
     uint64_t mask;
@@ -215,9 +236,10 @@ restore_mask:;
     if(error) return error;
     return artbox_native_signal_apply(host_context,&resumed);
 }
-int artbox_native_signal_deliver_trap(artbox_native_signal_thread *thread,void *host_context) {
+int artbox_native_signal_deliver_fault(artbox_native_signal_thread *thread,int host_number,
+    const void *host_info,void *host_context) {
     int saved=errno;
-    int result=deliver(thread,host_context);
+    int result=deliver(thread,host_number,host_info,host_context);
     errno=saved;
     return result;
 }
