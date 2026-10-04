@@ -2098,7 +2098,8 @@ the reference nor the new bridge establishes JavaVM/JNI/DEX startup on Apple.
 
 ## 0085: Enter the real JavaVM through a signed Android JNI caller
 
-Status: acceptance wired; Apple execution pending.
+Status: required acceptance reaches JNI_CreateJavaVM at `7d93946`, then fails
+initial-thread stack discovery. Apple JavaVM/DEX acceptance remains pending.
 
 The signed dependency group already runs ART, ICU and libcore constructors and
 native checks. Add a separate runtime entry using that same group and the
@@ -2130,3 +2131,32 @@ This initial execution uses the slower C++ interpreter. It proves neither
 OAT execution nor the temporary eight-byte stack alignment used by ARM64 AOT
 null-fault stubs. iOS embedding and managed execution still need their own
 signed artifact verification before M3 can be completed.
+
+## 0086: Own the JavaVM lifecycle on an explicit Bionic pthread
+
+Status: worker entry and stack checks implemented; signed execution pending.
+
+The first actual Apple invocation at `7d93946` enters ART initialization and
+fails in `Thread::GetThreadStack`: Bionic's primordial-thread attributes need
+`getrlimit(RLIMIT_STACK)`, then `/proc/self/stat` and `/proc/self/maps`. Those
+interfaces are outside the current kernel subset. The fatal path then hangs
+until the required acceptance timeout; this is not a successful VM startup.
+
+Create a real Bionic pthread with a requested 4 MiB stack and run creation,
+managed calls and destruction on it. This follows the JNI specification's
+[recommendation to create the VM on a new thread](https://docs.oracle.com/en/java/javase/24/docs/specs/jni/invocation.html#creating-the-vm).
+Before invoking ART, require a non-primordial guest TID, successful real
+`pthread_getattr_np`, and a local address inside the reported usable stack.
+Bionic includes its guard and excludes internal thread storage from reported
+stack bounds, so record the requested size, actual bounds size and guard
+separately. Join before releasing the worker's arguments or heap owner.
+
+Implementing complete initial-thread resource/proc metadata is an alternative,
+but would expand the kernel contract without benefiting this embedded VM's
+normal worker lifecycle. Keep those calls unsupported and do not synthesize
+successful replies. This choice uses the existing clone/pthread/TLS bridge,
+adds one native worker and its stack reservation, and requires no code
+generation. It does not resolve ART's other signal, syscall or shutdown needs.
+Keep the hello, GC, exception, attachment, policy, destruction and negative
+lookup checks mandatory. Failure artifacts record the phases actually reached;
+the overall result stays failed until the entire acceptance passes.

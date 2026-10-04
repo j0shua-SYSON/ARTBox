@@ -180,12 +180,17 @@ mapper-lock-held query, and query disassembly with no calls on Mac or iOS.
 The 1,153,230-byte diagnostic IPA retains seven iOS 15 images, empty entitlements
 and M2's 328/328 score. It does not contain ART.
 
-The next acceptance invokes real `JNI_CreateJavaVM` through the signed
+The required acceptance invokes real `JNI_CreateJavaVM` through the signed
 15-image dependency group, with verified boot DEX, hello and the existing
 managed GC/exception/thread fixture. A guest-compiled entry performs JNI calls,
 checks the interpreter policy and destroys the VM; a missing-hello process must
-fail after successful VM startup. This is newly wired acceptance, not execution
-evidence. Apple JavaVM/DEX and shared iOS integration still remain to be proven.
+fail after successful VM startup. At `7d93946`, signed execution enters actual
+ART initialization but fails initial-thread stack discovery on unsupported
+`getrlimit(RLIMIT_STACK)`, then times out in fatal handling. Sixteen other host
+jobs and the iOS workflow pass; the required runtime job remains red. The next
+entry owns the VM lifecycle on a real Bionic pthread with checked stack bounds,
+following the JNI embedding recommendation. Initial-thread resource/proc queries
+remain unsupported. Apple JavaVM/DEX and shared iOS integration remain unproven.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

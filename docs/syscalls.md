@@ -322,6 +322,13 @@ ownership and fault tests pass. Both signed Bionic profiles and Linux comparison
 pass all 22 cases at `e50ec7f`, completing [M2 acceptance](acceptance/m2.md).
 See [the proc scope](files.md#initial-process-command-line) for explicit limits.
 
+`getrlimit` (163), `/proc/self/stat` and `/proc/self/maps` remain unsupported.
+The first signed ART startup at `7d93946` fails when Bionic queries the primordial
+thread's stack through those interfaces. The embedded VM uses a dedicated
+Bionic pthread and validates its recorded stack attributes instead; this is
+not implementation or acceptance of those resource/proc interfaces. See
+[ADR 0086](DECISIONS.md#0086-own-the-javavm-lifecycle-on-an-explicit-bionic-pthread).
+
 ### M3 retained managed windows
 
 The runtime can attach an anonymous managed heap window to the existing VM

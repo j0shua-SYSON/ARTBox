@@ -19,6 +19,17 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def runtime_progress(stderr):
+    """Record observed phases even when a later operation fails or times out."""
+    lines = stderr.decode('utf-8', errors='replace').splitlines()
+    return {
+        'runtime_invocation_attempted': 'ARTBox: entering signed ART JNI_CreateJavaVM' in lines,
+        'runtime_started': 'ARTBox: signed ART started; switch interpreter, no JIT, no profiling cache' in lines,
+        'dex_executed': 'ARTBox: signed ART method returned the expected string' in lines,
+        'lifecycle_verified': 'ARTBox: signed ART lifecycle checks passed' in lines,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--icu-dir', required=True, type=Path)
@@ -129,6 +140,7 @@ def main():
               'jni_onload_invoked': False, 'device_execution_verified': False, 'passed': False}
     if runtime:
         result.update(scope='Signed ART JavaVM, hello DEX, managed checks and VM shutdown', **dex_inputs)
+        result.update(runtime_progress(b''))
         result.pop('jni_onload_invoked')  # No separate JNI_OnLoad call-count observation.
     process_label = 'native'
     try:
@@ -136,6 +148,7 @@ def main():
         (output / 'native.stdout').write_bytes(process.stdout)
         (output / 'native.stderr').write_bytes(process.stderr)
         result['exit'] = process.returncode
+        if runtime: result.update(runtime_progress(process.stderr))
         if process.returncode: sys.stderr.buffer.write(process.stderr)
         process.check_returncode()
         native = json.loads(process.stdout)
@@ -157,6 +170,13 @@ def main():
                 return json.loads(lines[0])
             managed = observation('ARTBox managed checks: ')
             threads = observation('ARTBox thread state: ')
+            worker = observation('ARTBox VM worker: ')
+            if (worker.get('primordial') is not False or worker.get('current_in_stack') is not True or
+                    worker.get('requested_stack_bytes') != 4 * 1024 * 1024 or
+                    type(worker.get('reported_stack_bytes')) is not int or
+                    type(worker.get('guard_bytes')) is not int or
+                    not (0 <= worker['guard_bytes'] < worker['reported_stack_bytes'])):
+                raise RuntimeError('Signed ART did not run on the checked Bionic worker stack')
             if (managed.get('heap_checksum') != 6496 or managed.get('exceptions') != 3 or
                     managed.get('attachments') != 4 or
                     not (type(managed.get('gc_before')) is int and type(managed.get('gc_after')) is int and
@@ -166,7 +186,7 @@ def main():
                         ('startup_ns', 'managed_bytes', 'process_peak_rss_bytes', 'threads_reaped'))):
                 raise RuntimeError('Signed ART managed, thread or memory contract failed')
             result.update(runtime_started=True, dex_executed=True, managed_checks=managed,
-                          thread_state_checks=threads, lifecycle_verified=True)
+                          thread_state_checks=threads, vm_worker=worker, lifecycle_verified=True)
             # A second process must reach the real VM and fail its missing-class lookup.
             hello.unlink()
             process_label = 'missing-hello'
@@ -190,7 +210,14 @@ def main():
     except subprocess.TimeoutExpired as error:
         (output / (process_label + '.stdout')).write_bytes(error.stdout or b'')
         (output / (process_label + '.stderr')).write_bytes(error.stderr or b'')
+        if runtime:
+            progress = runtime_progress(error.stderr or b'')
+            if process_label == 'native': result.update(progress)
+            else: result['missing_hello_progress'] = progress
+        sys.stderr.buffer.write((error.stderr or b'')[-32768:])
+        sys.stderr.buffer.flush()
         result['timeout'] = True
+        result['timeout_process'] = process_label
         raise
     finally:
         (artifacts / ('m3-' + label + '-guest.json')).write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')

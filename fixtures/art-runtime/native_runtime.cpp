@@ -3,6 +3,9 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <cstdlib>
+#include <pthread.h>
+#include <unistd.h>
 #include "runtime.h"
 #include "instrumentation.h"
 #include "jit/jit_options.h"
@@ -25,12 +28,8 @@ static bool interpreter_policy() {
 }
 
 // JNI varargs and C++ calls stay inside this Android-compiled signed image.
-// Output words are startup nanoseconds and managed bytes before shutdown.
-extern "C" int artbox_native_runtime_check(artbox_vm* owner, size_t page, uint64_t* metrics) {
-  if (!owner || !metrics) return -22;
-  metrics[0] = metrics[1] = 0;
+static int run_runtime(artbox_vm* owner, size_t page, uint64_t* metrics) {
   if (artbox_art_heap_initialize(owner, UINT64_C(0x100000000), page)) return 76;
-  setvbuf(stdout, nullptr, _IONBF, 0);
   const char* values[] = {"-Xint", "-Xusejit:false", "-Xuseprofiledjit:false",
       "-Xnoimage-dex2oat", "-Ximage:/system/art/artbox-boot.art", "-Xms16m", "-Xmx128m",
       "-Xbootclasspath:/system/framework/classes.dex:/system/framework/classes2.dex",
@@ -85,4 +84,57 @@ extern "C" int artbox_native_runtime_check(artbox_vm* owner, size_t page, uint64
   artbox_art_heap_unbind();
   puts("ARTBox: signed ART lifecycle checks passed");
   return 0;
+}
+
+namespace {
+constexpr size_t kVmStackBytes = 4 * 1024 * 1024;
+struct RuntimeWorker {
+  artbox_vm* owner;
+  size_t page;
+  uint64_t* metrics;
+  int result = 77;
+};
+
+void* runtime_worker(void* opaque) {
+  auto* worker = static_cast<RuntimeWorker*>(opaque);
+  // Use the actual Bionic pthread attributes that ART's GetThreadStack reads.
+  // The primordial thread instead requires Linux resource/proc metadata.
+  pthread_attr_t attr;
+  if (gettid() == getpid() || pthread_getattr_np(pthread_self(), &attr)) return nullptr;
+  void* base = nullptr;
+  size_t size = 0, guard = 0;
+  bool valid = pthread_attr_getstack(&attr, &base, &size) == 0 &&
+      pthread_attr_getguardsize(&attr, &guard) == 0;
+  if (pthread_attr_destroy(&attr)) valid = false;
+  const uintptr_t start = reinterpret_cast<uintptr_t>(base);
+  const uintptr_t current = reinterpret_cast<uintptr_t>(&attr);
+  valid = valid && base && size > guard && size - guard >= PTHREAD_STACK_MIN &&
+      current >= start && current - start >= guard && current - start < size;
+  if (!valid) return nullptr;
+  printf("ARTBox VM worker: {\"primordial\":false,\"requested_stack_bytes\":%zu,"
+         "\"reported_stack_bytes\":%zu,\"guard_bytes\":%zu,\"current_in_stack\":true}\n",
+         kVmStackBytes, size, guard);
+  worker->result = run_runtime(worker->owner, worker->page, worker->metrics);
+  return nullptr;
+}
+}  // namespace
+
+// Output words are startup nanoseconds and managed bytes before shutdown.
+extern "C" int artbox_native_runtime_check(artbox_vm* owner, size_t page, uint64_t* metrics) {
+  if (!owner || !metrics) return -22;
+  metrics[0] = metrics[1] = 0;
+  setvbuf(stdout, nullptr, _IONBF, 0);
+  RuntimeWorker worker{owner, page, metrics};
+  pthread_attr_t attr;
+  if (pthread_attr_init(&attr)) return 78;
+  size_t requested = 0;
+  bool valid = pthread_attr_setstacksize(&attr, kVmStackBytes) == 0 &&
+      pthread_attr_getstacksize(&attr, &requested) == 0 && requested == kVmStackBytes;
+  pthread_t thread;
+  const int created = valid ? pthread_create(&thread, &attr, runtime_worker, &worker) : -1;
+  const int destroyed = pthread_attr_destroy(&attr);
+  if (created) return 78;
+  // Never release the worker's arguments or heap owner while it can still run.
+  if (pthread_join(thread, nullptr)) abort();
+  return destroyed ? 79 : worker.result;
 }

@@ -44,6 +44,7 @@ jobs:
           ${{ matrix.python }} -B tests/test_art_native_tls.py
           ${{ matrix.python }} -B tests/test_art_guest_link.py
           ${{ matrix.python }} -B tests/test_icu_guest_link.py
+          ${{ matrix.python }} -B tests/test_art_runtime_progress.py
           ${{ matrix.python }} -B tests/test_libcore_guest_link.py
           ${{ matrix.python }} -B tests/test_m2_acceptance.py
           ${{ matrix.python }} -B scripts/build.py host
