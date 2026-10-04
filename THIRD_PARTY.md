@@ -25,7 +25,9 @@ running kernel. `third_party/binder/kernel-reference.json` records the official
 package URL, package/module/copyright sizes and SHA-256 hashes. Its reviewed
 copyright declares GPL-2.0. The script extracts only the Binder module and
 notice into its configured cache, verifies module vermagic/license, and uses
-the existing host kernel in a private binderfs mount. Nothing is installed;
+the existing host kernel in a private binderfs mount on a disposable CI host.
+This module has no exit hook and remains loaded until the host is discarded;
+the private mount and module references must be cleaned up. No package is installed;
 no kernel is booted. The module/package are not uploaded as project artifacts,
 linked into ARTBox, copied into an Apple bundle or relicensed. ARTBox's original
 MIT ioctl fixture runs as an independent userspace program. Kernel reference

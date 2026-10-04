@@ -111,11 +111,13 @@ The Ubuntu runner uses `6.17.0-1022-azure` with Binder configured as a module,
 but the module package is absent. The matching official package and its single
 Binder module were downloaded and hash-verified; six malformed-package/cache
 controls pass locally. `scripts/binder_reference.py` prepares those pinned
-bytes on any host. The explicit `--run-native` mode requires the matching
-Linux kernel, existing compiler/module tools and passwordless sudo. A required
+bytes on any host. The explicit `--run-native --disposable-host` mode requires
+the matching Linux kernel, existing compiler/module tools and passwordless sudo. A required
 Linux CI job loads the unmodified module, mounts a private binderfs below the
 build directory and creates one fresh context for an original ioctl fixture.
-It then unmounts and unloads the module, retaining logs and byte provenance.
+It then unmounts, requires zero module references and checks the normal unload
+attempt returns EBUSY. The pinned module has no exit hook; it remains loaded
+until the disposable hosted runner is discarded. Logs and byte provenance are retained.
 No package installation, kernel boot or CPU emulation is involved.
 
 The fixture tests version/canaries, invalid pointers and ioctl words, thread
@@ -125,6 +127,13 @@ manager registration, duplicate ownership and delayed close/re-registration.
 Its callbacks can later drive ARTBox's implementation with the same assertions.
 Native execution is pending CI at this checkpoint; preparing a module is not
 execution, and even a passed Linux reference is not an ARTBox comparison.
+
+The first live attempt at `d67b7f8` confirmed two contract corrections before
+any ARTBox ioctl implementation: BINDER_VERSION's invalid output pointer returns
+EINVAL rather than EFAULT, and the module cannot be unloaded. Its decoded ELF
+has `init_module` and no `cleanup_module` symbol. Private mount cleanup remains
+required; a positive reference count is a failure, and force unloading is never
+used. Native execution is restricted to explicitly disposable test hosts.
 
 ## References and source scope
 

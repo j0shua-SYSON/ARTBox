@@ -4,6 +4,7 @@ sys.dont_write_bytecode = True
 
 import hashlib
 import io
+from contextlib import redirect_stderr
 import json
 import os
 from pathlib import Path
@@ -14,7 +15,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from environment import environment
-from binder_reference import prepare, unpack_selected
+from binder_reference import main, prepare, unpack_selected
 
 
 def ar_member(name, data):
@@ -121,6 +122,15 @@ class ReferencePackages(unittest.TestCase):
             with patch('binder_reference.subprocess.run', side_effect=AssertionError('No network expected')):
                 with self.assertRaises(RuntimeError):
                     prepare(spec, self.root / 'cache')
+
+    def test_native_execution_requires_disposable_host_acknowledgement(self):
+        errors = io.StringIO()
+        with patch.object(sys, 'argv', ['binder_reference.py', '--run-native']), redirect_stderr(errors):
+            with patch('binder_reference.prepare', side_effect=AssertionError('No preparation before acknowledgement')):
+                with self.assertRaises(SystemExit) as stopped:
+                    main()
+        self.assertEqual(stopped.exception.code, 2)
+        self.assertIn('--disposable-host', errors.getvalue())
 
 
 if __name__ == '__main__':

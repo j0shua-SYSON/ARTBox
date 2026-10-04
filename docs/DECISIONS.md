@@ -2419,8 +2419,8 @@ An explicit native-reference command requires the matching host release and
 architecture, checks module vermagic/license, then uses the runner's existing
 sudo/module tools. Refuse to replace an already-loaded module. Mount a private
 binderfs in an empty owned build directory, create one fresh device and run the
-ioctl fixture there. Unmount before unloading, and retain cleanup failures as
-test failures. Windows/macOS preparation never loads anything. A changed runner
+ioctl fixture there. Require private mount cleanup and retain cleanup failures
+as test failures. Windows/macOS preparation never loads anything. A changed runner
 kernel requires a reviewed new package pin, not disabled checks or an assumed
 success. This reference uses a native Linux host; ARTBox still has no guest kernel.
 
@@ -2430,3 +2430,21 @@ thread exit and context-manager lifetime before driver implementation. Linux's
 deferred close cleanup is polled with a bounded deadline; an instantaneous-close
 assumption would encode the wrong contract. Subsequent transactions, references
 and death notifications need additional paired cases.
+
+The `d67b7f8` native attempt reaches the real ioctl fixture and shows that
+BINDER_VERSION returns EINVAL for an invalid output address. The corresponding
+Linux put_user error path deliberately selects EINVAL; other copy-based Binder
+requests use EFAULT. Correct the shared test before implementing the driver.
+The earlier license check was also corrected from `GPL` to the module's exact
+`GPL v2` declaration, verified in downloaded modinfo output.
+
+Normal module removal returns EBUSY. Independent decoding of the pinned module
+(453,745 bytes, SHA-256 `2b95b19919744a597d2d0074207729261ed4d83bbd83311979e82cc599a469b5`)
+finds init_module and no cleanup_module. Options are to modify/build a module
+with an exit path or retain the unmodified reference on a disposable host.
+Choose the latter to preserve reference fidelity. Require an explicit
+`--disposable-host` acknowledgement, unmount binderfs, wait for zero module
+references and verify the non-forced unload syscall returns EBUSY. Record that
+the module remains until the hosted test VM is discarded. No force removal or
+claim of successful unload is permitted; ordinary developer workstations must
+not be used for this native mode.

@@ -19,7 +19,9 @@ int artbox_binder_device_check(void *context, const artbox_binder_device_ops *op
     b = ops->open(context); CHECK(b >= 0 && b != a);
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_VERSION, PTR(&version[1])) == 0);
     CHECK(version[1] == 8 && version[0] == 0xfeedface && version[2] == 0xc001cafe);
-    CHECK(ops->ioctl(context, a, ARTBOX_BINDER_VERSION, 1) == -14);
+    /* BINDER_VERSION historically reports EINVAL for a failed put_user,
+     * unlike the EFAULT from the copy-based requests below. */
+    CHECK(ops->ioctl(context, a, ARTBOX_BINDER_VERSION, 1) == -22);
     CHECK(ops->ioctl(context, a, UINT32_C(0xffffffff), 1) == -22);
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_MAX_THREADS, PTR(&threads)) == 0);
     threads = 0;

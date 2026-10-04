@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/syscall.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -20,7 +21,9 @@ static int close_device(void *context, int fd) {
 static int64_t call_device(void *context, int fd, uint32_t request, uint64_t argument) {
     (void)context;
     int result = ioctl(fd, (unsigned long)request, (unsigned long)argument);
-    return result < 0 ? -errno : result;
+    int64_t answer = result < 0 ? -errno : result;
+    if (answer < 0) fprintf(stderr, "native ioctl 0x%08x -> %lld\n", request, (long long)answer);
+    return answer;
 }
 static void pause_device(void *context) {
     (void)context;
@@ -28,6 +31,15 @@ static void pause_device(void *context) {
     nanosleep(&delay, NULL);
 }
 int main(int argc, char **argv) {
+    if (argc == 2 && !strcmp(argv[1], "--probe-module-unload")) {
+        /* No force flag. The pinned Binder module has no cleanup_module hook;
+         * record the real EBUSY instead of pretending it can be unloaded. */
+        errno = 0;
+        long result = syscall(SYS_delete_module, "binder_linux", O_NONBLOCK);
+        int error = errno;
+        printf("{\"result\":%ld,\"errno\":%d}\n", result, error);
+        return 0;
+    }
     if (argc != 3) return 2; /* control path, expected newly-created device path */
     int control = open(argv[1], O_RDONLY | O_CLOEXEC);
     if (control < 0) { perror("binder-control"); return 2; }

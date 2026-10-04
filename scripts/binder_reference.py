@@ -1,7 +1,8 @@
 """Prepare a pinned native Linux Binder reference without installing packages.
 
-Preparation works on every host. --run-native mounts a private binderfs on the
-matching Linux host and needs its existing passwordless sudo and module tools.
+Preparation works on every host. --run-native --disposable-host mounts a private
+binderfs on the matching Linux host using existing sudo and module tools. The
+pinned module has no exit hook and remains loaded until that host is discarded.
 No kernel is booted, emulated, installed or included in an Apple artifact.
 """
 import sys
@@ -18,6 +19,7 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
+import time
 from urllib.parse import urlsplit
 
 from environment import ROOT, environment
@@ -134,7 +136,7 @@ def prepare(spec, cache):
 def run_native(spec, installed, build):
     if sys.platform != 'linux' or platform.release() != spec['kernel'] or platform.machine() != spec['architecture']:
         raise RuntimeError('Native execution requires the exact pinned Linux kernel and architecture')
-    required = ('cc', 'sudo', 'insmod', 'rmmod', 'modinfo', 'mount', 'umount')
+    required = ('cc', 'sudo', 'insmod', 'modinfo', 'mount', 'umount')
     commands = {name: shutil.which(name) for name in required}
     if not all(commands.values()):
         raise RuntimeError('Native reference needs existing compiler, sudo and module/mount tools; nothing was installed')
@@ -157,6 +159,7 @@ def run_native(spec, installed, build):
         return result.stdout
 
     loaded = mounted = False
+    record = None
     try:
         version = invoke(commands['modinfo'], '-F', 'vermagic', module).strip()
         if not version or version.split()[0] != spec['kernel']:
@@ -176,23 +179,39 @@ def run_native(spec, installed, build):
         expected = len(re.findall(r'\bCHECK\(', (ROOT / 'fixtures/binder-device/check.c').read_text())) - 1
         if result != {'protocol': 8, 'cases': expected, 'fresh_binderfs_context': True, 'passed': True}:
             raise RuntimeError('Native Binder reference did not execute every expected case')
-        return {**result, 'vermagic': version, 'module_license': license_name,
-                'runner_sha256': digest(executable)}
+        record = {**result, 'vermagic': version, 'module_license': license_name,
+                  'runner_sha256': digest(executable)}
     finally:
         try:
             if mounted:
                 invoke(commands['sudo'], '-n', commands['umount'], mount)
             if loaded:
-                invoke(commands['sudo'], '-n', commands['rmmod'], 'binder_linux')
+                refcount = Path('/sys/module/binder_linux/refcnt')
+                deadline = time.monotonic() + 5
+                while int(refcount.read_text()) != 0 and time.monotonic() < deadline:
+                    time.sleep(0.01)
+                if int(refcount.read_text()) != 0:
+                    raise RuntimeError('Binder device/mount references remain after private context cleanup')
+                unload = json.loads(invoke(commands['sudo'], '-n', executable, '--probe-module-unload'))
+                if unload != {'result': -1, 'errno': 16} or not Path('/sys/module/binder_linux').exists():
+                    raise RuntimeError('Pinned module unload behavior differs from its missing exit hook')
+                if record is not None:
+                    record['cleanup'] = {'binderfs_unmounted': True, 'module_references': 0,
+                                         'unload_probe': unload, 'module_remains_loaded_until_host_disposal': True}
         finally:
             (build / 'reference.log').write_text('\n'.join(logs), encoding='utf-8')
+    return record
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run-native', action='store_true')
+    parser.add_argument('--disposable-host', action='store_true',
+                        help='Acknowledge that the non-unloadable module remains until this test host is discarded')
     parser.add_argument('--kernel', help='Package kernel to prepare; native execution must match it')
     args = parser.parse_args()
+    if args.run_native and not args.disposable_host:
+        parser.error('--run-native requires --disposable-host; the pinned module has no exit hook')
     os.environ.update(environment())
     pins = json.loads((ROOT / 'third_party/binder/kernel-reference.json').read_text())
     kernel = args.kernel or (platform.release() if args.run_native else pins['packages'][0]['kernel'])
