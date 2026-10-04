@@ -69,9 +69,14 @@ cases, with 92 input hashes verified; mapping comparison remains explicitly
 false. Passive VM lifetime watches now pass local ownership/failure checks and
 128 concurrent teardown cycles. The receive path now retains independent native
 aliases and mapped endpoint ownership through descriptor close. Its 35-case shared
-fixture and allocation, replacement and concurrent-close controls pass locally;
-the paired Linux/native-provider comparison is pending. Delivery, polling,
+fixture and allocation, replacement and concurrent-close controls pass locally.
+At `db73182`, Linux and ARTBox pass the same 35 mapping cases, including native
+alias coherence, with artifact provenance and 93 input hashes verified. Delivery, polling,
 references, death notifications and real servicemanager are next; M4 is not complete.
+
+A shared original threaded transaction fixture now builds for ARM64 Android
+and the portable host compiler. Native execution is pending; it does not yet
+establish ARTBox transaction delivery.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

@@ -2,6 +2,7 @@
 #include "../fixtures/binder-device/check.h"
 #include "../fixtures/binder-file/check.h"
 #include "../fixtures/binder-mapping/check.h"
+#include "../fixtures/binder-transaction/check.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/android/binderfs.h>
@@ -13,6 +14,7 @@
 #include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
+#include <pthread.h>
 
 static int open_device(void *context) {
     int fd = open(context, O_RDWR | O_CLOEXEC | O_NONBLOCK);
@@ -33,6 +35,41 @@ static void pause_device(void *context) {
     (void)context;
     const struct timespec delay = {0, 1000000};
     nanosleep(&delay, NULL);
+}
+static int64_t transaction_ioctl(void *context, int fd, int32_t tid, uint32_t request, uint64_t argument) {
+    (void)context; (void)tid; // The native kernel observes the actual calling pthread.
+    int result = ioctl(fd, (unsigned long)request, (unsigned long)argument);
+    return result < 0 ? -errno : result;
+}
+static int64_t transaction_map(void *context, int fd, size_t length) {
+    (void)context;
+    void *address = mmap(NULL, length, PROT_READ, MAP_PRIVATE, fd, 0);
+    return address == MAP_FAILED ? -errno : (int64_t)(uintptr_t)address;
+}
+static int transaction_unmap(void *context, uint64_t address, size_t length) {
+    (void)context;
+    return munmap((void *)(uintptr_t)address, length) ? -errno : 0;
+}
+static int transaction_read(void *context, uint64_t address, void *out, size_t length) {
+    (void)context; memcpy(out, (const void *)(uintptr_t)address, length); return 0;
+}
+struct parallel_call { int (*function)(void *); void *argument; int result; };
+static void *parallel_entry(void *opaque) {
+    struct parallel_call *call = opaque;
+    call->result = call->function(call->argument);
+    return NULL;
+}
+static int transaction_parallel(void *context, int (*left)(void *), void *left_arg,
+    int (*right)(void *), void *right_arg, int results[2]) {
+    (void)context;
+    struct parallel_call call = {left, left_arg, -1};
+    pthread_t thread;
+    int result = pthread_create(&thread, NULL, parallel_entry, &call);
+    if (result) return -result;
+    results[1] = right(right_arg);
+    if (pthread_join(thread, NULL)) _exit(2); // Never return with a live callback.
+    results[0] = call.result;
+    return 0;
 }
 static int open_file(void *context, uint32_t flags) {
     int native = (int)(flags & 3);
@@ -104,6 +141,12 @@ int main(int argc, char **argv) {
     const artbox_binder_mapping_ops memory = {(uint64_t)sysconf(_SC_PAGESIZE), map_file, protect_file, unmap_file, open_file};
     int mapping_cases = artbox_binder_mapping_check(argv[2], &ops, &memory);
     if (mapping_cases < 0) return 1;
-    printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"mapping_cases\":%d,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases);
+    const artbox_binder_transaction_ops transactions = {(int32_t)getpid(), (uint32_t)geteuid(),
+        (size_t)sysconf(_SC_PAGESIZE), open_device, close_device, transaction_map, transaction_unmap,
+        transaction_ioctl, transaction_read, pause_device, transaction_parallel};
+    artbox_binder_transaction_scratch server = {0}, client = {0};
+    if (artbox_binder_transaction_check(argv[2], &transactions, &server, &client)) return 1;
+    printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"mapping_cases\":%d,"
+           "\"threaded_ping_pong\":true,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases);
     return 0;
 }

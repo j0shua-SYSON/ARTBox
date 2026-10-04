@@ -171,7 +171,8 @@ def run_native(spec, installed, build):
                '-I', ROOT / 'core/include', ROOT / 'fixtures/binder-device/check.c',
                ROOT / 'fixtures/binder-file/check.c',
                ROOT / 'fixtures/binder-mapping/check.c',
-               ROOT / 'tests/native_binder_device.c', '-o', executable)
+               ROOT / 'fixtures/binder-transaction/check.c', ROOT / 'core/src/binder_wire.c',
+               ROOT / 'tests/native_binder_device.c', '-pthread', '-o', executable)
         invoke(commands['sudo'], '-n', commands['insmod'], module, 'devices=')
         loaded = True
         invoke(commands['sudo'], '-n', commands['mount'], '-t', 'binder', '-o', 'max=1', 'binder', mount)
@@ -182,7 +183,7 @@ def run_native(spec, installed, build):
         file_cases = len(re.findall(r'\bCHECK\(', (ROOT / 'fixtures/binder-file/check.c').read_text())) - 1
         mapping_cases = len(re.findall(r'\bCHECK\(', (ROOT / 'fixtures/binder-mapping/check.c').read_text())) - 1
         if result != {'protocol': 8, 'cases': expected, 'file_cases': file_cases, 'mapping_cases': mapping_cases,
-                      'fresh_binderfs_context': True, 'passed': True}:
+                      'threaded_ping_pong': True, 'fresh_binderfs_context': True, 'passed': True}:
             raise RuntimeError('Native Binder reference did not execute every expected case')
         record = {**result, 'vermagic': version, 'module_license': license_name,
                   'runner_sha256': digest(executable)}
@@ -279,7 +280,7 @@ def main():
     installed = prepare(spec, Path(os.environ['ARTBOX_CACHE_DIR']))
     record = {'scope': pins['scope'], 'package': spec, 'prepared': True,
               'native_execution_verified': False, 'artbox_driver_compared': False,
-              'mapping_driver_compared': False}
+              'mapping_driver_compared': False, 'transaction_driver_compared': False}
     if args.run_native:
         record['native'] = run_native(spec, installed, Path(os.environ['ARTBOX_BUILD_DIR']) / 'm4/kernel-reference')
         record['native_execution_verified'] = True
@@ -292,6 +293,8 @@ def main():
         ROOT / 'fixtures/binder-device/check.c', ROOT / 'fixtures/binder-device/check.h',
         ROOT / 'fixtures/binder-file/check.c', ROOT / 'fixtures/binder-file/check.h',
         ROOT / 'fixtures/binder-mapping/check.c', ROOT / 'fixtures/binder-mapping/check.h',
+        ROOT / 'fixtures/binder-transaction/check.c', ROOT / 'fixtures/binder-transaction/check.h',
+        ROOT / 'core/src/binder_wire.c',
         ROOT / 'tests/native_binder_device.c', ROOT / 'core/include/artbox/binder_wire.h',
         ROOT / 'third_party/binder/kernel-reference.json', Path(__file__).resolve()]
     if args.compare_driver:
@@ -305,6 +308,7 @@ def main():
     print(json.dumps({'prepared': True, 'kernel': kernel, 'native_execution_verified': record['native_execution_verified'],
                       'artbox_driver_compared': record['artbox_driver_compared'],
                       'mapping_driver_compared': record['mapping_driver_compared'],
+                      'transaction_driver_compared': False,
                       'native': record.get('native'), 'driver': record.get('driver')}, indent=2))
 
 

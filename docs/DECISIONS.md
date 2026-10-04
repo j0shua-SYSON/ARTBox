@@ -2558,8 +2558,8 @@ atomic state changes; it adds no executable memory or platform entitlement.
 
 ## 0097: Own Binder receive views independently of guest descriptors
 
-Status: portable lifetime controls pass; native provider and paired Linux
-mapping comparison are awaiting CI.
+Status: portable lifetime controls pass. Native provider and paired Linux
+mapping comparison pass all 35 cases at db73182; 93 input hashes verify.
 
 Configure a private backing factory before opening a Binder context. Each
 successful receive mmap acquires two shared views of fresh, unlinked storage:

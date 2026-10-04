@@ -130,11 +130,21 @@ retains context-manager ownership until the last original file page disappears;
 later calls reap it without VM-to-device callbacks. The same open cannot remap
 after unmap. Portable checks pass the shared 35-case mapping fixture, failure
 cleanup, replacement, cross-VM rejection and close during an in-flight mmap.
-Native alias coherence and paired Linux mapping comparison await CI. Unused
+At `db73182`, native alias coherence and paired Linux mapping comparison pass;
+the artifact, PR parent and 93 input hashes verify. Unused
 bytes are zero-backed rather than Linux's faulting demand-populated pages;
 fixed mappings, nonzero offsets and transactions remain unsupported. The fixture
-adds seven access-mode checks to the already verified 28-case Linux baseline;
-their native comparison is pending. See ADR 0097.
+adds seven access-mode checks to the earlier 28-case Linux baseline.
+See ADR 0097.
+
+The next shared transaction fixture uses separate endpoints and a real second
+thread for handle-zero ping/reply. It checks caller credentials, target/cookie,
+receive-buffer bounds, payload bytes, both completion messages and consumption
+of both buffer-free commands. Reference waits are bounded and endpoints are
+nonblocking. ARM64 Android and portable C compilation pass; native execution
+is pending. `transaction_driver_compared` remains false: the production driver
+still rejects transactions and receives with EOPNOTSUPP. Reference-object
+transfer, death notifications, blocking reads and polling need their own checks.
 
 ## Evidence
 

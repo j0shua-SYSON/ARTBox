@@ -379,7 +379,7 @@ The signed ART startup has not attached this context yet.
 | ioctl 29 | VERSION, MAX_THREADS, CONTEXT_MGR/EXT, THREAD_EXIT, WRITE_READ looper commands | Linux/direct endpoint pass 32 cases at 517ad1c; VFS passes the same cases at ba255d2 |
 | fstat 80, newfstatat 79 | Virtual character-device metadata | Host device identities are not exposed |
 | read 63, write 64, lseek 62 | Unsupported Binder transfers and non-seekability, with descriptor access checks | Separate 22-case Linux/VFS comparison passes at ba255d2; no parcel transfer through read/write |
-| mmap 222, mprotect 226, munmap 215 | Configured read-only receive aliases, write ceilings and mapped endpoint retention after FD close | Local 35-case shared fixture and rollback/close controls pass; paired native comparison pending. No fixed, executable or nonzero-offset maps; unused pages differ from Linux's demand population |
+| mmap 222, mprotect 226, munmap 215 | Configured read-only receive aliases, write ceilings and mapped endpoint retention after FD close | Linux and ARTBox pass 35 shared cases at db73182, including native alias coherence. Local rollback/close controls pass. No fixed, executable or nonzero-offset maps; unused pages differ from Linux's demand population |
 
 Ioctl pins its open description before releasing the VFS lock. Unknown Binder
 ioctl words return EINVAL; recognized unimplemented work returns EOPNOTSUPP.
