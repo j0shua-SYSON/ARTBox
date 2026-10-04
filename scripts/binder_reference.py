@@ -162,7 +162,7 @@ def run_native(spec, installed, build):
         if not version or version.split()[0] != spec['kernel']:
             raise RuntimeError('Module vermagic does not match the native kernel')
         license_name = invoke(commands['modinfo'], '-F', 'license', module).strip()
-        if license_name != 'GPL':
+        if license_name != 'GPL v2':
             raise RuntimeError('Unexpected native module license declaration')
         invoke(commands['cc'], '-std=c11', '-D_DEFAULT_SOURCE', '-O2', '-Wall', '-Wextra', '-Werror',
                '-I', ROOT / 'core/include', ROOT / 'fixtures/binder-device/check.c',
