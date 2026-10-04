@@ -155,7 +155,17 @@ int main(int argc,char **argv) {
     }
     CHECK(region[2*page]==0x7c); // The failed store must not change read-only data.
     for(unsigned i=0;i<3;++i) CHECK(!sigaction(signals[i],&saved[i],NULL));
-    CHECK(!sigaltstack(&saved_stack,NULL));
+    stack_t restore=saved_stack,restored;
+#if defined(__APPLE__)
+    // Darwin checks the supplied size even for SS_DISABLE. It will not use this
+    // storage when disabling, but requires a minimum size at the API boundary.
+    if((restore.ss_flags&SS_DISABLE) && restore.ss_size<(size_t)MINSIGSTKSZ)
+        restore.ss_size=(size_t)MINSIGSTKSZ;
+#endif
+    CHECK(!sigaltstack(&restore,NULL) && !sigaltstack(NULL,&restored));
+    CHECK((restored.ss_flags&SS_DISABLE)==(saved_stack.ss_flags&SS_DISABLE));
+    if(!(saved_stack.ss_flags&SS_DISABLE))
+        CHECK(restored.ss_sp==saved_stack.ss_sp && restored.ss_size==saved_stack.ss_size);
     CHECK(!munmap(pool,pool_bytes) && !munmap(region,3*page));
     if(missing_edit) {
         if(!drop_edit) dump_observations();

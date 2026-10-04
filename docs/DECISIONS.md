@@ -2046,3 +2046,9 @@ accesses contained within one aligned 16-byte quantity; see the
 Use an eight-byte access at byte offset 9 to cross that boundary while remaining
 inside writable mapped memory. Keep the required alignment-fault assertion;
 accepting a nonfaulting execution would invalidate this reference.
+
+At `549b221`, Linux passes the full reference and Darwin passes all five fault
+observations before failing alternate-stack cleanup. Darwin validates the size
+even when restoring SS_DISABLE. Normalize that unused size to MINSIGSTKSZ, as
+the existing delivery owner already does, and query the resulting registration
+to verify restoration before releasing the test's alternate-stack storage.
