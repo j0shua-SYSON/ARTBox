@@ -127,7 +127,11 @@ int main(int argc,char **argv) {
     action.sa_sigaction=handler; action.sa_flags=SA_SIGINFO|SA_ONSTACK;
     CHECK(!sigemptyset(&action.sa_mask));
     for(unsigned i=0;i<3;++i) CHECK(!sigaction(signals[i],&action,&saved[i]));
-    uintptr_t targets[]={0,(uintptr_t)(region+page),(uintptr_t)(region+2*page),(uintptr_t)(region+1),0};
+    // FEAT_LSE2 permits an unaligned exclusive access contained within one
+    // aligned 16-byte quantity. Cross that boundary while staying in mapped RW
+    // memory, so this case requires an alignment fault on either CPU profile.
+    CHECK(page>=32 && !((uintptr_t)region&15));
+    uintptr_t targets[]={0,(uintptr_t)(region+page),(uintptr_t)(region+2*page),(uintptr_t)(region+9),0};
     int missing_edit=0,bad_address=0;
     for(unsigned i=0;i<FAULTS;++i) {
         received=0; active=(sig_atomic_t)i; errno=EDOM;

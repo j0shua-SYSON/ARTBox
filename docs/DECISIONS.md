@@ -2021,7 +2021,7 @@ formatted only after the handler returns.
 
 ## 0083: Measure native fault metadata before extending ART signal delivery
 
-Status: native reference added and Linux path cross-compiled; native CI pending.
+Status: native reference added; corrected alignment fixture awaiting native CI.
 
 ART's fault manager needs real SIGSEGV delivery. A Darwin signal number alone
 does not establish the corresponding Linux fault classification. First measure
@@ -2038,3 +2038,11 @@ PC/x0 and preserve x18 and errno. Dropping return edits or fault-address metadat
 must fail. Diagnostic formatting occurs after return, never inside the handler.
 These measurements are prerequisites for translation, not proof of Android
 SIGSEGV transport or Apple JavaVM startup.
+
+The first reference run (`7a70c04`) reached the intended LDXR instruction but
+did not fault at byte offset 1 on either ARM64 host. FEAT_LSE2 permits exclusive
+accesses contained within one aligned 16-byte quantity; see the
+[Arm maintainer's architecture explanation](https://lists.infradead.org/pipermail/linux-arm-kernel/2024-September/959501.html).
+Use an eight-byte access at byte offset 9 to cross that boundary while remaining
+inside writable mapped memory. Keep the required alignment-fault assertion;
+accepting a nonfaulting execution would invalidate this reference.
