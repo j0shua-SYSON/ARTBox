@@ -114,7 +114,7 @@ def compile_aidl(executable, source, destination, inputs, log):
     (destination / 'src').mkdir(); (destination / 'include').mkdir()
     args = [str(executable), '--lang=cpp', '--structured', '--min_sdk_version=29',
             '--out=' + str(destination / 'src'), '--header_out=' + str(destination / 'include'),
-            '-I', str(source), *inputs]
+            '-I', '.', *inputs]
     result = subprocess.run(args, cwd=source, capture_output=True, timeout=60)
     with log.open('ab') as output:
         output.write(result.stdout + result.stderr)
