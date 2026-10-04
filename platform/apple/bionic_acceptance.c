@@ -10,6 +10,7 @@
 #include "artbox/native_syscall.h"
 #include "artbox/native_signal_binding.h"
 #include "artbox/native_signal_delivery.h"
+#include "artbox/native_signal_context.h"
 #include "artbox/signals.h"
 #include "artbox/native_vm.h"
 #include "artbox/native_system.h"
@@ -107,9 +108,35 @@ static void fault(int number) {
     (void)write(2, text, sizeof(text) - 1);
     _Exit(1); // No core dump or platform crash reporter needed by this fixture.
 }
+static char *fault_text(char *out,const char *text) {
+    while(*text) *out++=*text++;
+    return out;
+}
+static char *fault_hex(char *out,uint64_t value) {
+    static const char digits[]="0123456789abcdef";
+    for(unsigned i=0;i<16;++i) *out++=digits[(value>>(60-4*i))&15];
+    return out;
+}
 static void deliver_fault(int number,siginfo_t *info,void *context) {
     artbox_native_signal_thread *thread=artbox_native_signal_thread_context();
-    if(artbox_native_signal_deliver_fault(thread,number,info,context)) fault(number);
+    int error=artbox_native_signal_deliver_fault(thread,number,info,context);
+    if(error) {
+        // The owner is terminating. Format fixed-size diagnostics without stdio,
+        // allocation, TLS lookup or entering any guest/VM service.
+        artbox_arm64_signal_state state={0};
+        (void)artbox_native_signal_capture(context,&state);
+        char message[256],*at=message;
+        at=fault_text(at,"startup fault: number="); at=fault_hex(at,(unsigned)number);
+        at=fault_text(at," error="); at=fault_hex(at,(uint64_t)(int64_t)error);
+        at=fault_text(at," code="); at=fault_hex(at,(unsigned)info->si_code);
+        at=fault_text(at," pc="); at=fault_hex(at,state.pc);
+        at=fault_text(at," address="); at=fault_hex(at,(uintptr_t)info->si_addr);
+        at=fault_text(at," far="); at=fault_hex(at,state.fault_address);
+        at=fault_text(at," esr="); at=fault_hex(at,state.esr);
+        *at++='\n';
+        (void)write(2,message,(size_t)(at-message));
+        fault(number);
+    }
 }
 static uint64_t unexpected(void) { fail("unexpected external loader/thread interface"); return 0; }
 static int target_sdk(void) { return 35; }

@@ -15,7 +15,7 @@ typedef struct artbox_signal_fault { unsigned number,code; uint64_t address; } a
  * file truncation, external aborts, MTE and other cases require separate support.
  * UNDEFINED currently covers the UDF encoding, BREAKPOINT the BRK encoding.
  * The platform owner validates the native event, signed PC and fault address.
- * No allocation, locking or memory dereference occurs here. Output is unchanged
+ * No allocation, locking or guest-address dereference occurs here. Output is unchanged
  * on failure; unsupported syndromes/encodings return ENOTSUP. */
 int artbox_signal_classify_fault(unsigned kind,uint32_t instruction,
     const artbox_arm64_signal_state *state,const artbox_vm_fault_info *memory,
