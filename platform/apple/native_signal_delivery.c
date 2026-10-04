@@ -169,7 +169,9 @@ static int deliver(artbox_native_signal_thread *thread,int host_number,const sig
     artbox_vm_fault_info memory={0,0,0};
     if(host_number==SIGTRAP) kind=ARTBOX_FAULT_BREAKPOINT;
     else if(host_number==SIGILL) {
-        if(host_info->si_code!=ILL_ILLOPN || (uintptr_t)host_info->si_addr!=interrupted.pc) return -95;
+        // Darwin reports UDF as ILL_ILLTRP (2); its ILL_ILLOPN is 4.
+        // Linux's identically numbered code 2 has a different symbolic name.
+        if(host_info->si_code!=ILL_ILLTRP || (uintptr_t)host_info->si_addr!=interrupted.pc) return -95;
         kind=ARTBOX_FAULT_UNDEFINED;
     } else if(host_number==SIGSEGV || host_number==SIGBUS) {
         if((host_info->si_code!=1 && host_info->si_code!=2) ||

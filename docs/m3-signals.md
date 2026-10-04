@@ -200,6 +200,13 @@ alternate stack, full masks, errno/TLS, Linux siginfo/FAR and edited PC/x0 retur
 Dropping register edits or fault-address observations must fail. Signed Bionic
 execution and the Linux comparison are pending CI; no Apple JavaVM is claimed.
 
+The first signed delivery run rejected UDF with ENOTSUP: it compared Darwin's
+measured code 2 against ILL_ILLOPN, which is 4 in Darwin's public header. The
+adapter now requires ILL_ILLTRP (2), and the native Apple reference checks the
+symbolic constant. Linux still receives ILL_ILLOPC (1). This follows the
+[Darwin signal ABI](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/sys/signal.h);
+the existing opcode, exception-class and fault-PC checks remain required.
+
 The pinned ART sources require a real boundary before JavaVM startup on Apple:
 
 - `sigchainlib/sigchain.cc` installs SA_SIGINFO, SA_ONSTACK and SA_RESTART,

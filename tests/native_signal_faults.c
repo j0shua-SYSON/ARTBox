@@ -151,6 +151,8 @@ int main(int argc,char **argv) {
 #else
         // Characterize actual Darwin values before implementing a translation.
         CHECK(i==4 ? seen->number==SIGILL : seen->number==SIGSEGV || seen->number==SIGBUS);
+        // Darwin code 2 names an illegal trap, unlike Linux's illegal operand.
+        if(i==4) CHECK(seen->code==ILL_ILLTRP);
 #endif
     }
     CHECK(region[2*page]==0x7c); // The failed store must not change read-only data.
