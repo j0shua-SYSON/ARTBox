@@ -402,6 +402,11 @@ write-consumption preservation, read-buffer faults and O_NONBLOCK, including the
 initial thread NOOP. The production path now waits with the mutex released and
 preserves an in-flight ioctl across descriptor close. Local injected-epoch tests
 verify EINTR and consumed writes; passive final unmap wakes death delivery.
-Signals and passive watches use 5 ms ordinary-context checks. The shared
-blocking ping/reply and paired wait comparison remain pending CI; this does not
+Signals and passive watches use 5 ms ordinary-context checks. At `e53e803`, shared blocking ping/reply and the paired four-case wait comparison
+pass with independently verified provenance and input hashes. This does not
 claim readiness polling or native signal delivery through signed Bionic.
+
+The native readiness reference adds 19 assertions for poll snapshots without
+consumption, initial-return lifecycle, event filtering and queued error delivery.
+Execution is pending and `poll_driver_compared` is false; no guest poll/epoll
+syscall is enabled by adding this reference.

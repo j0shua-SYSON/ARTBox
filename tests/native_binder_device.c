@@ -3,6 +3,7 @@
 #include "../fixtures/binder-file/check.h"
 #include "../fixtures/binder-mapping/check.h"
 #include "../fixtures/binder-transaction/check.h"
+#include "../fixtures/binder-poll/check.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/android/binderfs.h>
@@ -15,6 +16,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <poll.h>
 #include <sys/wait.h>
 
 int artbox_native_binder_wait_check(const char *path);
@@ -38,6 +40,12 @@ static int open_device(void *context) {
 static int close_device(void *context, int fd) {
     (void)context;
     return close(fd) ? -errno : 0;
+}
+static int poll_device(void *context, int fd, unsigned events) {
+    (void)context;
+    struct pollfd descriptor = {fd, (short)events, 0};
+    int result = poll(&descriptor, 1, 0);
+    return result < 0 ? -errno : descriptor.revents;
 }
 static int64_t call_device(void *context, int fd, uint32_t request, uint64_t argument) {
     (void)context;
@@ -187,9 +195,12 @@ int main(int argc, char **argv) {
     if (wait_cases != 4) return 1;
     context.nonblocking = 0;
     if (artbox_binder_transaction_check(&context, &transactions, &server, &client)) return 1;
+    artbox_binder_poll_scratch poll_scratch;
+    int poll_cases = artbox_binder_poll_check(argv[2], &ops, poll_device, &poll_scratch);
+    if (poll_cases < 0) return 1;
     printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"mapping_cases\":%d,"
            "\"same_pid_rejected\":true,\"threaded_ping_pong\":true,\"death_cases\":%d,"
            "\"object_handle_lifecycle\":true,\"oneway_lifecycle\":true,\"wait_cases\":%d,\"blocking_threaded_ping_pong\":true,"
-           "\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases, wait_cases);
+           "\"poll_cases\":%d,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases, wait_cases, poll_cases);
     return 0;
 }

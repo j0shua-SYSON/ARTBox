@@ -131,9 +131,19 @@ Production blocking reads now release the device mutex, retain the open
 operation across descriptor close, and observe delivered-interrupt epochs.
 Local tests cover consumed writes, thread-vector changes, close/reuse and death
 notification after passive final unmap. All 40 Windows host contracts pass;
-three native-backing contracts remain unavailable there. The shared blocking
-ping/reply and Linux/ARTBox wait comparison await CI. Readiness polling, actual
-service execution and signed Binder attachment remain ahead.
+three native-backing contracts remain unavailable there. At `e53e803`, both blocking and nonblocking ping/reply and all four wait
+contracts pass Linux/ARTBox comparison. The downloaded artifact and 97 source
+hashes verify; ARTBox's interrupt epoch is injected, not native signal delivery.
+All 20 host jobs and iOS pass at that head. The downloaded signed Mac runtime
+and integrated IPA verify managed/console acceptance, 16 iOS 15 images,
+15 ELF/layout pairs, five runtime resources and 175 notices with empty
+entitlements. No physical execution is claimed.
+
+A 19-case shared readiness fixture is now prepared for native Linux, covering
+initial returns, repeated poll, output-event filtering, thread recreation and
+consumption of queued errors. Compilation passes; native execution is pending
+and `poll_driver_compared` remains false. Readiness integration, actual service
+execution and signed Binder attachment remain ahead.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

@@ -1,8 +1,9 @@
 # Userspace Binder
 
 M4 is in progress. The current implementation validates the 64-bit Android
-Binder wire boundary and implements an endpoint/ioctl API. Synchronous parcels, strong objects, one-way ordering and death notifications
-pass paired Linux/ARTBox execution; servicemanager and M4 acceptance remain incomplete. A configured VFS now
+Binder wire boundary and implements an endpoint/ioctl API. Synchronous parcels,
+strong objects, one-way ordering and death notifications pass paired Linux/ARTBox
+execution; servicemanager and M4 acceptance remain incomplete. A configured VFS
 exposes `/dev/binder` for the tested ioctl subset and configured receive mappings.
 Polling remains pending. Recognizing other commands does not implement them.
 
@@ -36,7 +37,7 @@ for opens from the same virtual PID. Monotonic tokens never reuse a closed
 endpoint's identity. A fixed virtual UID owns the context-manager registration;
 the UID restriction survives its owner's close. An unmapped manager is removed
 on close; a mapped one remains until the final original page disappears and a
-device operation reaps it. Callers must tolerate deferred release. No host
+device operation or waiting reader reaps it. Callers must tolerate deferred release. No host
 credentials or descriptors are exposed.
 
 VERSION, MAX_THREADS, CONTEXT_MGR/EXT, THREAD_EXIT and WRITE_READ's three looper
@@ -51,8 +52,7 @@ endpoint. These are explicit admission bounds, independent of MAX_THREADS's
 Linux threadpool setting. Endpoint exhaustion returns EMFILE, thread exhaustion
 ENOMEM, and write batches over 64 KiB E2BIG. The first implementation serializes
 state under one context mutex, with lock order device then VM. No transaction
-performance claim is made; these limits and scans need measurement once IPC
-exists. See ADR 0094 for ownership and integration requirements.
+performance claim is made; these limits and scans still need workload measurements. See ADR 0094 for ownership and integration requirements.
 
 The same original fixture can run in real Linux userspace or in VM-owned
 storage through ARTBox. The native 30-case baseline passed at `c773122`; the
@@ -83,7 +83,7 @@ hashes verify. Portable controls cover relative lookup through `/dev`, failed-op
 table teardown, descriptor/command argument widths and 4,000 concurrent opens.
 Virtual device/inode numbers are ARTBox identities, not copied host metadata.
 The signed ART startup does not attach this context yet; guest-native Binder
-acceptance will follow receive mapping and transaction support.
+acceptance still requires signed runtime integration and the real service.
 
 ## Receive-buffer ownership primitive
 
@@ -100,11 +100,10 @@ list; it does not allocate memory per transaction.
 Tests cover ownership transitions, interior/duplicate release, overflow,
 zero-length transactions, extent boundaries, fragmentation, recycling,
 byte/metadata exhaustion and 8,000 lifecycles across eight concurrent workers.
-This is an internal storage primitive, not a Binder ioctl implementation or
-Linux quota comparison. The caller must provide valid writable storage and its
-guest alias. The arena is not yet connected to transaction delivery or async
-quotas. The synthetic-address host test
-does not establish native alias permissions.
+The transaction path uses this primitive with driver-owned writable backing
+and a read-only guest alias. Linux asynchronous quotas remain unsupported. The
+primitive tests use synthetic addresses and do not establish native alias
+permissions; native-backed integration is tested separately.
 
 `test_binder_mapping` exercises the existing native file/VM providers with two
 shared views of an unlinked backing file: writable in the driver's VM,
@@ -234,8 +233,20 @@ in-flight descriptor close/reuse, removal of another thread, and death delivery
 after passive final unmap without a subsequent device mutation. ARTBox's signal
 epoch is injected in ordinary test context; native handler delivery into this
 Binder path is not yet verified. Required CI also runs the shared ping/reply
-fixture with both blocking and nonblocking endpoints. Paired execution of these
-new production waits is pending.
+fixture with both blocking and nonblocking endpoints. At `e53e803`, both modes
+and all four wait cases pass Linux/ARTBox comparison. The downloaded artifact,
+merge-parent identity and 97 project input hashes verify; injected signal epochs
+remain explicitly distinguished from native handler execution.
+
+## Readiness reference
+
+The next shared fixture records input readiness without consuming it. It checks
+initial thread returns, repeated polling, absence of writable readiness, clearing
+on successful and failed ioctls, thread recreation, and a queued failed reply
+remaining readable until consumed. The native runner uses zero-timeout `poll`;
+ARM64 compilation passes, and native execution is pending. `poll_driver_compared`
+remains false. Persistent epoll registration, blocking waits, cross-thread wakeups
+and the service event loop need additional contracts before implementation.
 
 ## Evidence
 
@@ -280,13 +291,12 @@ semantic oracle or an iPhone execution claim.
 
 ## Next contracts
 
-1. Add bounded read-only receive mappings to the VFS boundary, preserving
-   mappings after descriptor close until unmap.
-2. Synchronous transactions/replies across threads, thread-affine reply stacks,
-   copied payloads, explicit buffer release and resource exhaustion.
-3. Node/handle translation, reference acknowledgements, ordered one-way queues,
-   polling/threadpool wakeups, close/death/clear/done races and invalid commands.
-4. Build the pinned real AOSP servicemanager and libbinder with reviewed
+1. Readiness snapshots, persistent polling/epoll registrations and wakeups, with
+   native thread-exit and descriptor-lifetime controls.
+2. Threadpool behavior and additional protocol requests actually needed by
+   servicemanager, including node client-count observations.
+3. Complete the remaining dependencies and link the pinned real AOSP
+   servicemanager and libbinder with reviewed
    dependencies and narrow platform adapters. Test registration, discovery,
    ping/pong and death notification through distinct driver endpoints.
 
