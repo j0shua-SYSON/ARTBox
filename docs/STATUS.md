@@ -134,13 +134,19 @@ and the 1,148,066-byte diagnostic IPA verify independently. Compiled iOS mask
 updates tail-call a local helper containing exclusive-pair loops, with no
 library calls. No physical execution or Apple JavaVM is claimed.
 
-The current change adds delivery-owner flag probing and a real pinned AOSP
-sigchain caller. The caller invokes libart's named sigaction/sigprocmask wrappers,
+At `886d1bb`, delivery-owner flag probing and a real pinned AOSP
+sigchain caller pass native acceptance. The caller invokes libart's named sigaction/sigprocmask wrappers,
 registers a special handler, tests accepted and forwarded faults on an alternate
 stack, removes that handler and verifies ordinary user forwarding. It checks
 the scoped handling TLS bit through actual mask behavior. A removed-handler
-control must fail. Thirty portable tests pass; the NDK caller compiles and its
-instruction boundary is checked. Native sigchain validation is pending CI.
+control fails as intended. Thirty portable tests pass, and all 22 sigchain
+assertions pass on native Linux and the signed ARM64 Mac bootstrap. All 17 host
+jobs and the iOS build pass. Source/binary/framework checks verify independently:
+463 guest objects, 207 project sources and 44 runtime-framework notices. The
+1,148,514-byte integrated diagnostic IPA verifies seven iOS 15 images and empty
+entitlements; it still contains M1/M2 diagnostics rather than ART. One Mac sample
+reports 30.943 ms for load/relocation and 0.805 ms for constructor/acceptance
+execution; these are not JavaVM startup or interpreter performance measurements.
 The first signed run exposed a test expectation error: Bionic forces its reserved
 POSIX-timer bit into sigprocmask, unlike glibc. All eleven recorded masks and the
 assertion failure bitmap match that difference exactly at `87f866f`. The caller
@@ -148,6 +154,13 @@ now checks the complete Bionic mask using its pinned timer-signal constant;
 the runtime and Bionic implementation are unchanged by this correction.
 Other fault signals and unblocked queued delivery remain incomplete.
 JavaVM/JNI/DEX execution on Apple is still required.
+
+The next reference measures actual Linux/Darwin metadata for null access,
+protected-page reads, read-only-page writes, unaligned atomic loads and undefined
+instructions. It verifies alternate-stack delivery, fault PC/address, return
+register edits and x18 preservation, with dropped-edit/address controls. Its
+Linux path compiles with the NDK; native execution is pending CI. It does not
+yet add Android SIGSEGV delivery or accept additional handler registrations.
 
 The native-class-library dependency set now includes the pinned AOSP vfork frontend.
 Its native overlay keeps Bionic's state/errno logic while routing TLS and the

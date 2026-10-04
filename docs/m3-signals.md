@@ -147,7 +147,7 @@ accepted alongside attached stacks; dynamic heap buffers are not yet supported
 by the handler copy path. Restoring a mask that requires unblocked queued delivery
 still fails explicitly, preserving the pending bits.
 
-The next caller executes the unchanged pinned AOSP sigchain implementation. Its
+The caller verified at `886d1bb` executes the unchanged pinned AOSP sigchain implementation. Its
 registration probes SA_UNSUPPORTED and SA_EXPOSE_TAGBITS; the kernel facade now
 clears probe flags outside the delivery owner's advertised 0x18000004 set.
 Without a probe, unsupported flags still return ENOTSUP. No tagged-address
@@ -156,12 +156,21 @@ The guest caller uses named libart wrapper addresses to avoid libc interposition
 warms sigchain's real pthread key before delivery, then exercises special-handler
 acceptance, fallback, removal, alternate-stack execution and scoped TLS mask
 behavior. Twenty-two assertions and a removed-handler control are required on
-both signed Mac and a same-source native Linux reference. Native execution of
-this extension is pending; it does not start a JavaVM.
+both signed Mac and a same-source native Linux reference. Both pass, including
+the removed-handler control; all 17 host jobs and iOS CI are green. It does not
+start a JavaVM.
 The reference compares each libc's actual policy: Bionic adds its reserved
 POSIX-timer signal to sigprocmask, so the Android caller checks that bit alongside
 the requested bits. The glibc caller expects no added bit. Masks are compared in
 full, including the saved ucontext and restored state.
+
+`native_signal_faults.c` is the next host reference for memory-fault translation.
+It triggers null/protected reads, a read-only write, an unaligned exclusive load
+and an undefined instruction, recording native signal/code and exception syndrome.
+Fault address, alternate-stack use and PC/x0 return are checked with mutation
+controls. Darwin classification is measured before assigning Linux signal codes.
+This reference has compiled for ARM64; actual execution is pending CI and no
+additional Android fault handler is enabled by it.
 
 The pinned ART sources require a real boundary before JavaVM startup on Apple:
 

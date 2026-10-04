@@ -249,7 +249,7 @@ The signed Android and same-source Linux caller add 18 handler checks, a queued
 signal across return and an omitted-unblock control. Native Linux, both signed
 Bionic modes and the comparison pass at `e8408fd`; all CI is green.
 
-### Signal action capability probing (native sigchain CI pending)
+### Signal action capability probing (native CI green at 886d1bb)
 
 With SA_UNSUPPORTED (0x400), rt_sigaction intersects requested flags with the
 delivery owner's supported set before handler validation and publication.
@@ -259,7 +259,10 @@ Without the probe bit, unsupported flags return ENOTSUP rather than Linux's
 unconditional unknown-bit clearing. Portable tests cover input preservation,
 invalid-handler rejection and publication before a failing old-action copyout.
 The real AOSP sigchain caller adds 22 native assertions and a removed-handler
-control; execution remains pending CI.
+control. All 22 assertions and the control pass on native Linux and signed ARM64
+Mac at `886d1bb`; all host and iOS CI checks pass. Bionic's required timer-signal
+mask bit is asserted explicitly alongside requested bits. This does not enable
+other fault-signal registrations yet.
 
 ### File-backed data mapping extension (native CI green at b1a94c5)
 

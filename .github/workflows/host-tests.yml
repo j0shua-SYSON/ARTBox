@@ -57,6 +57,8 @@ jobs:
           path: |
             build/host/signal-context/
             build/host/test_signal_context_apple
+            build/host/signal-faults/
+            build/host/test_signal_faults
             build/host/Testing/Temporary/LastTest.log
           if-no-files-found: warn
           retention-days: 7
@@ -524,6 +526,8 @@ jobs:
             build/m3/art-sigchain-reference/
             build/host/signal-context/
             build/host/test_signal_context_linux
+            build/host/signal-faults/
+            build/host/test_signal_faults
             build/host/Testing/Temporary/LastTest.log
           if-no-files-found: warn
           retention-days: 7

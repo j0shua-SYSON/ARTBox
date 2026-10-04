@@ -1980,7 +1980,8 @@ remain separate acceptance work; this change does not establish Apple JavaVM.
 
 ## 0082: Probe delivery capabilities and exercise the actual AOSP signal chain
 
-Status: portable flag negotiation and NDK caller compile pass; native sigchain CI pending.
+Status: 22 real sigchain checks and removal control verified on native Linux and
+signed ARM64 Mac at `886d1bb`; all CI green.
 
 Pinned ART installs its handler with SA_UNSUPPORTED and SA_EXPOSE_TAGBITS, then
 reads back the accepted flags. Give the delivery owner an explicit supported
@@ -2017,3 +2018,23 @@ including Bionic's required bit, using the pinned header's constant. Do not
 discard reserved bits from observations or change Bionic's behavior to fit a
 glibc expectation. Per-assertion failure bits and mask snapshots are read and
 formatted only after the handler returns.
+
+## 0083: Measure native fault metadata before extending ART signal delivery
+
+Status: native reference added and Linux path cross-compiled; native CI pending.
+
+ART's fault manager needs real SIGSEGV delivery. A Darwin signal number alone
+does not establish the corresponding Linux fault classification. First measure
+the public siginfo and ARM64 exception state for null access, protected reads,
+read-only writes, misaligned exclusive loads and an undefined instruction.
+Execute real faulting instructions in signed/native host code and resume through
+the public signal context; do not allocate executable memory or emulate them.
+
+Linux reference assertions require MAPERR/ACCERR, BUS_ADRALN and ILL_ILLOPC where
+specified by each case. The Darwin reference records its actual signal/code and
+ESR, accepting SIGSEGV or SIGBUS for the data faults during characterization.
+Both must preserve fault addresses, use a guarded alternate stack, resume edited
+PC/x0 and preserve x18 and errno. Dropping return edits or fault-address metadata
+must fail. Diagnostic formatting occurs after return, never inside the handler.
+These measurements are prerequisites for translation, not proof of Android
+SIGSEGV transport or Apple JavaVM startup.
