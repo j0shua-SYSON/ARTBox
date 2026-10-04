@@ -29,5 +29,10 @@ class RuntimeProgress(unittest.TestCase):
             b'ARTBox: signed ART method returned the expected str\xff')
         self.assertFalse(any(result.values()))
 
+    def test_interleaved_startup_is_not_a_complete_phase_line(self):
+        result = runtime_progress(b'ARTBox: signed ART started; switch interpreter, no JIT, no profiling cache'
+                                  b'syscall 167(0,0,0,0) = -38\n\n')
+        self.assertFalse(result['runtime_started'])
+
 
 if __name__ == '__main__': unittest.main()

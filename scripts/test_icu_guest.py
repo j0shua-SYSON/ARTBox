@@ -126,6 +126,7 @@ def main():
         'scripts/test_icu_guest.py', 'tests/native_icu.c', 'fixtures/art-runtime/native_icu.cpp',
         'tests/native_libcore.c', 'fixtures/art-runtime/native_libcore.cpp', 'fixtures/libcore-integer128/check.c',
         'tests/native_art_runtime.c', 'fixtures/art-runtime/native_runtime.cpp', 'fixtures/art-runtime/managed_checks.cpp',
+        'fixtures/art-runtime/record.h', 'fixtures/art-runtime/record_guest.h',
         'scripts/test_art_startup.py', 'scripts/build_art_managed_fixture.py', 'scripts/dex_fixture.py', 'LICENSE'],
         text=True).splitlines()
     bundle = output / 'corresponding-source.zip'
@@ -207,9 +208,10 @@ def main():
             (output / 'missing-hello.stdout').write_bytes(negative.stdout)
             (output / 'missing-hello.stderr').write_bytes(negative.stderr)
             result['missing_hello_exit'] = negative.returncode
+            negative_lines = negative.stderr.decode('utf-8', errors='replace').splitlines()
             if (negative.returncode != 1 or negative.stdout or
-                    b'ARTBox: signed ART started; switch interpreter' not in negative.stderr or
-                    b'signed ART runtime result: 3\n' not in negative.stderr):
+                    not runtime_progress(negative.stderr)['runtime_started'] or
+                    'signed ART runtime result: 3' not in negative_lines):
                 raise RuntimeError('Missing hello DEX did not fail the intended lookup')
             result['missing_hello_detected'] = True
             hello.write_bytes(make_hello()[0])

@@ -355,3 +355,21 @@ thread suspension/signals and shutdown across native boundaries, and iOS memory
 limits. The existing M2 Apple Bionic runner reserves about 8.25 GiB of virtual
 address space; combining it with ART has not been validated. Neither host virtual
 mapping totals nor build success establish an iPhone memory budget.
+
+## Post-acceptance record framing during M4
+
+At `4d3a124`, 18 of 19 host jobs pass but integrated ART IPA staging rejects
+the missing-class control. The retained negative process reaches the VM, emits
+ClassNotFoundException and returns the expected status. Its startup marker is
+joined to another thread's syscall diagnostic before Bionic puts emits the
+newline, so it fails the required exact-line check.
+
+Keep that check. The original acceptance fixtures now format bounded records
+with both line boundaries and emit each in one console write. Short/failed
+writes and oversized records fail acceptance. Deterministic writer tests insert
+unrelated diagnostics around each call, verify exact boundaries and exercise
+failure controls. The producer now requires the same complete startup line as
+IPA staging. Both Linux and signed Android fixture builds include the output
+adapter and preserve its source hashes. This changes diagnostic framing, not
+ART's interpreter policy or the required managed/console outcomes. New full
+CI and signed IPA verification remain required before reporting recovery.

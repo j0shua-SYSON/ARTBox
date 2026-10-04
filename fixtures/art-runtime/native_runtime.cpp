@@ -11,6 +11,7 @@
 #include "jit/jit_options.h"
 #include "gc/heap.h"
 #include "artbox_art_heap.h"
+#include "record_guest.h"
 
 bool artbox_run_managed_checks(JavaVM*, JNIEnv*);
 
@@ -42,7 +43,7 @@ static int run_runtime(artbox_vm* owner, size_t page, uint64_t* metrics) {
       options, JNI_FALSE};
   JavaVM* vm = nullptr;
   JNIEnv* env = nullptr;
-  puts("ARTBox: entering signed ART JNI_CreateJavaVM");
+  if (!ARTBOX_RUNTIME_RECORD("ARTBox: entering signed ART JNI_CreateJavaVM")) return 79;
   uint64_t before = monotonic_ns();
   jint created = JNI_CreateJavaVM(&vm, &env, &args);
   uint64_t after = monotonic_ns();
@@ -52,7 +53,7 @@ static int run_runtime(artbox_vm* owner, size_t page, uint64_t* metrics) {
   }
   if (!before || after <= before || !interpreter_policy()) return 67;
   metrics[0] = after - before;
-  puts("ARTBox: signed ART started; switch interpreter, no JIT, no profiling cache");
+  if (!ARTBOX_RUNTIME_RECORD("ARTBox: signed ART started; switch interpreter, no JIT, no profiling cache")) return 79;
   JavaVM* registered = nullptr;
   jsize count = 0;
   if (JNI_GetCreatedJavaVMs(&registered, 1, &count) != JNI_OK || count != 1 || registered != vm) return 70;
@@ -65,10 +66,10 @@ static int run_runtime(artbox_vm* owner, size_t page, uint64_t* metrics) {
   const char* text = env->GetStringUTFChars(value, nullptr);
   if (!text) { env->ExceptionDescribe(); return 6; }
   bool matched = !strcmp(text, "hello from ARTBox ART");
-  puts(text);
+  bool printed = ARTBOX_RUNTIME_RECORD("%s", text);
   env->ReleaseStringUTFChars(value, text);
   if (!matched) return 7;
-  puts("ARTBox: signed ART method returned the expected string");
+  if (!printed || !ARTBOX_RUNTIME_RECORD("ARTBox: signed ART method returned the expected string")) return 79;
   if (!artbox_run_managed_checks(vm, env)) return 71;
   if (!interpreter_policy()) return 68;
   metrics[1] = art::Runtime::Current()->GetHeap()->GetBytesAllocated();
@@ -82,7 +83,7 @@ static int run_runtime(artbox_vm* owner, size_t page, uint64_t* metrics) {
   registered = nullptr; count = -1;
   if (JNI_GetCreatedJavaVMs(&registered, 1, &count) != JNI_OK || count != 0) return 74;
   artbox_art_heap_unbind();
-  puts("ARTBox: signed ART lifecycle checks passed");
+  if (!ARTBOX_RUNTIME_RECORD("ARTBox: signed ART lifecycle checks passed")) return 79;
   return 0;
 }
 
@@ -111,9 +112,9 @@ void* runtime_worker(void* opaque) {
   valid = valid && base && size > guard && size - guard >= PTHREAD_STACK_MIN &&
       current >= start && current - start >= guard && current - start < size;
   if (!valid) return nullptr;
-  printf("ARTBox VM worker: {\"primordial\":false,\"requested_stack_bytes\":%zu,"
-         "\"reported_stack_bytes\":%zu,\"guard_bytes\":%zu,\"current_in_stack\":true}\n",
-         kVmStackBytes, size, guard);
+  if (!ARTBOX_RUNTIME_RECORD("ARTBox VM worker: {\"primordial\":false,\"requested_stack_bytes\":%zu,"
+         "\"reported_stack_bytes\":%zu,\"guard_bytes\":%zu,\"current_in_stack\":true}",
+         kVmStackBytes, size, guard)) { worker->result = 79; return nullptr; }
   worker->result = run_runtime(worker->owner, worker->page, worker->metrics);
   return nullptr;
 }

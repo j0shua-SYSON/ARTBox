@@ -20,6 +20,7 @@ PROJECT_INPUTS = (
     'LICENSE', 'THIRD_PARTY.md', 'docs/m3-managed-checks.md',
     'fixtures/art-runtime/RuntimeChecks.java', 'fixtures/art-runtime/RuntimeChecksHost.java',
     'fixtures/art-runtime/managed_checks.cpp', 'fixtures/art-runtime/linux_reference.cpp',
+    'fixtures/art-runtime/record.h', 'fixtures/art-runtime/record_guest.h',
     'scripts/build_art_managed_fixture.py', 'scripts/build_art_classlib.py',
     'scripts/environment.py', 'scripts/sources.py', 'scripts/jdk.py',
     'third_party/jdk.json', 'third_party/sources.json',

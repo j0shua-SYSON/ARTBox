@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "thread_state.h"
+#include "record_guest.h"
 
 static bool no_exception(JNIEnv* env) {
   if (!env->ExceptionCheck()) return true;
@@ -143,14 +144,14 @@ bool artbox_run_managed_checks(JavaVM* vm, JNIEnv* env) {
   if (!no_exception(env) || !key) return false;
   unsigned long long before = 0, after = 0;
   if (!gc_count(env, debug, stat, key, &before)) return false;
-  puts("ARTBox: running managed allocation, collection and dispatch checks");
+  if (!ARTBOX_RUNTIME_RECORD("ARTBox: running managed allocation, collection and dispatch checks")) return false;
   jint heap_result = env->CallStaticIntMethod(fixture, heap);
   if (!no_exception(env) || heap_result != 6496) return false;
   if (!gc_count(env, debug, stat, key, &after) || after <= before) return false;
-  printf("ARTBox: managed heap checksum %d; collections %llu -> %llu\n", heap_result, before, after);
+  if (!ARTBOX_RUNTIME_RECORD("ARTBox: managed heap checksum %d; collections %llu -> %llu", heap_result, before, after)) return false;
   jint caught = env->CallStaticIntMethod(fixture, exceptions);
   if (!no_exception(env) || caught != 3) return false;
-  puts("ARTBox: managed null and bounds exceptions passed");
+  if (!ARTBOX_RUNTIME_RECORD("ARTBox: managed null and bounds exceptions passed")) return false;
   env->DeleteLocalRef(key);
   env->DeleteLocalRef(debug);
 
@@ -199,9 +200,8 @@ bool artbox_run_managed_checks(JavaVM* vm, JNIEnv* env) {
   jint total = env->CallStaticIntMethod(fixture, calls);
   if (!no_exception(env) || total != 4) return false;
   env->DeleteLocalRef(fixture);
-  puts("ARTBox thread state: {\"threads\":3,\"attach_cycles\":4,\"tls_isolated\":true,\"main_tls_restored\":true}");
-  printf("ARTBox managed checks: {\"heap_checksum\":%d,\"exceptions\":%d,"
-         "\"gc_before\":%llu,\"gc_after\":%llu,\"attachments\":%d}\n",
+  if (!ARTBOX_RUNTIME_RECORD("ARTBox thread state: {\"threads\":3,\"attach_cycles\":4,\"tls_isolated\":true,\"main_tls_restored\":true}")) return false;
+  return ARTBOX_RUNTIME_RECORD("ARTBox managed checks: {\"heap_checksum\":%d,\"exceptions\":%d,"
+         "\"gc_before\":%llu,\"gc_after\":%llu,\"attachments\":%d}",
          heap_result, caught, before, after, total);
-  return true;
 }
