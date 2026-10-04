@@ -2595,3 +2595,29 @@ The native provider test additionally checks driver-to-guest byte coherence
 and absence of retained directory entries. Windows runs injected ownership
 controls; Mac/Linux must run native backing and the real Linux reference job
 must compare the same fixture before mapping compatibility is reported.
+
+## 0098: Preserve virtual process identity for context-manager transactions
+
+Status: the first native ping fixture fails at 517e126. Its corrected positive
+path and explicit same-PID rejection control await native execution.
+
+Two independent Binder opens do not make handle-zero self-calls legal. Linux
+compares the sender's PID with the context manager's owner and returns
+BR_FAILED_REPLY when they match. The initial fixture incorrectly expected a
+second pthread in the same process to bypass that rule. The retained native
+failure and read-only kernel-source review expose this before driver delivery
+code is added.
+
+Keep same-PID rejection as a negative control. For the positive native Linux
+reference, prepare the manager first, then fork a client that opens its own
+endpoint. A server pthread handles delivery; both owners are joined before
+cleanup. A client using an inherited Binder open would retain the original
+owner identity and is not a substitute. Fork exists only in the native Linux
+test adapter, not in the portable runtime or iOS.
+
+The portable fixture adapter uses distinct trusted virtual PIDs for the two
+service/app owners while running them on host threads. That preserves the
+driver's identity rule within a single host process. It does not implement
+guest fork, process isolation or general multi-process applications. The same
+fixture checks sender identity, reply bytes and completion/free command flow;
+reference-object transfer and death notifications remain subsequent contracts.

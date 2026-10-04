@@ -142,7 +142,12 @@ thread for handle-zero ping/reply. It checks caller credentials, target/cookie,
 receive-buffer bounds, payload bytes, both completion messages and consumption
 of both buffer-free commands. Reference waits are bounded and endpoints are
 nonblocking. ARM64 Android and portable C compilation pass; native execution
-is pending. `transaction_driver_compared` remains false: the production driver
+is pending. The first native attempt at `517e126` exposed Linux's rejection of
+handle-zero calls from the manager's own PID, even with independent opens.
+The revised fixture retains that rejection control and opens the positive
+client in a separate native Linux process. ARTBox's adapter uses trusted virtual
+PIDs across host threads; no runtime fork is introduced. See ADR 0098.
+`transaction_driver_compared` remains false: the production driver
 still rejects transactions and receives with EOPNOTSUPP. Reference-object
 transfer, death notifications, blocking reads and polling need their own checks.
 

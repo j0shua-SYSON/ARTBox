@@ -15,6 +15,19 @@
 #include <time.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/wait.h>
+
+struct transaction_context { const char *path; int32_t server_pid, client_pid; };
+static int32_t transaction_pid(void *opaque, int32_t role) {
+    struct transaction_context *context = opaque;
+    return role == 1 ? context->server_pid : context->client_pid;
+}
+static int transaction_open(void *opaque, int32_t role) {
+    (void)role;
+    struct transaction_context *context = opaque;
+    int fd = open(context->path, O_RDWR | O_CLOEXEC | O_NONBLOCK);
+    return fd < 0 ? -errno : fd;
+}
 
 static int open_device(void *context) {
     int fd = open(context, O_RDWR | O_CLOEXEC | O_NONBLOCK);
@@ -61,13 +74,26 @@ static void *parallel_entry(void *opaque) {
 }
 static int transaction_parallel(void *context, int (*left)(void *), void *left_arg,
     int (*right)(void *), void *right_arg, int results[2]) {
-    (void)context;
+    struct transaction_context *owner = context;
+    // Native reference only. The child opens its own endpoint after fork;
+    // inheriting a parent-created Binder open would keep the parent's PID.
+    pid_t client = fork();
+    if (client < 0) return -errno;
+    if (!client) {
+        owner->client_pid = (int32_t)getpid();
+        _exit(right(right_arg) ? 1 : 0);
+    }
+    owner->client_pid = (int32_t)client;
     struct parallel_call call = {left, left_arg, -1};
     pthread_t thread;
     int result = pthread_create(&thread, NULL, parallel_entry, &call);
+    int status = 0;
+    pid_t waited;
+    do { waited = waitpid(client, &status, 0); } while (waited < 0 && errno == EINTR);
+    if (!result && pthread_join(thread, NULL)) _exit(2); // Never return with a live callback.
     if (result) return -result;
-    results[1] = right(right_arg);
-    if (pthread_join(thread, NULL)) _exit(2); // Never return with a live callback.
+    if (waited != client) return -1;
+    results[1] = WIFEXITED(status) && WEXITSTATUS(status) == 0 ? 0 : -1;
     results[0] = call.result;
     return 0;
 }
@@ -141,12 +167,14 @@ int main(int argc, char **argv) {
     const artbox_binder_mapping_ops memory = {(uint64_t)sysconf(_SC_PAGESIZE), map_file, protect_file, unmap_file, open_file};
     int mapping_cases = artbox_binder_mapping_check(argv[2], &ops, &memory);
     if (mapping_cases < 0) return 1;
-    const artbox_binder_transaction_ops transactions = {(int32_t)getpid(), (uint32_t)geteuid(),
-        (size_t)sysconf(_SC_PAGESIZE), open_device, close_device, transaction_map, transaction_unmap,
+    struct transaction_context context = {argv[2], (int32_t)getpid(), (int32_t)getpid()};
+    const artbox_binder_transaction_ops transactions = {transaction_pid, (uint32_t)geteuid(),
+        (size_t)sysconf(_SC_PAGESIZE), transaction_open, close_device, transaction_map, transaction_unmap,
         transaction_ioctl, transaction_read, pause_device, transaction_parallel};
     artbox_binder_transaction_scratch server = {0}, client = {0};
-    if (artbox_binder_transaction_check(argv[2], &transactions, &server, &client)) return 1;
+    if (artbox_binder_transaction_same_pid_check(&context, &transactions, &server, &client)) return 1;
+    if (artbox_binder_transaction_check(&context, &transactions, &server, &client)) return 1;
     printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"mapping_cases\":%d,"
-           "\"threaded_ping_pong\":true,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases);
+           "\"same_pid_rejected\":true,\"threaded_ping_pong\":true,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases);
     return 0;
 }

@@ -183,7 +183,8 @@ def run_native(spec, installed, build):
         file_cases = len(re.findall(r'\bCHECK\(', (ROOT / 'fixtures/binder-file/check.c').read_text())) - 1
         mapping_cases = len(re.findall(r'\bCHECK\(', (ROOT / 'fixtures/binder-mapping/check.c').read_text())) - 1
         if result != {'protocol': 8, 'cases': expected, 'file_cases': file_cases, 'mapping_cases': mapping_cases,
-                      'threaded_ping_pong': True, 'fresh_binderfs_context': True, 'passed': True}:
+                      'same_pid_rejected': True, 'threaded_ping_pong': True,
+                      'fresh_binderfs_context': True, 'passed': True}:
             raise RuntimeError('Native Binder reference did not execute every expected case')
         record = {**result, 'vermagic': version, 'module_license': license_name,
                   'runner_sha256': digest(executable)}

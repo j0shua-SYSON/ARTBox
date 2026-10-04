@@ -62,8 +62,11 @@ static int ref_command(struct endpoint *e, const artbox_binder_frame *frame) {
         memcpy(e->scratch->write + 4, frame->payload, 16);
         return send(e, 20);
     }
-    REQUIRE(frame->command == ARTBOX_BR_NOOP || frame->command == ARTBOX_BR_RELEASE ||
-            frame->command == ARTBOX_BR_DECREFS);
+    if (frame->command != ARTBOX_BR_NOOP && frame->command != ARTBOX_BR_RELEASE &&
+            frame->command != ARTBOX_BR_DECREFS) {
+        fprintf(stderr, "Binder role %d unexpected return 0x%08x\n", e->tid, frame->command);
+        return -1;
+    }
     return 0;
 }
 static int payload(struct endpoint *e, const artbox_binder_transaction *t,
@@ -91,7 +94,7 @@ static int server_loop(void *opaque) {
                 artbox_binder_transaction t;
                 REQUIRE(!received++ && artbox_binder_decode_transaction(&frame, &t) == ARTBOX_BINDER_OK);
                 REQUIRE(t.target == object_pointer && t.cookie == object_cookie && t.code == transaction_code);
-                REQUIRE(t.sender_pid == e->ops->pid && t.sender_euid == e->ops->uid);
+                REQUIRE(t.sender_pid == e->ops->pid(e->context, 2) && t.sender_euid == e->ops->uid);
                 REQUIRE(payload(e, &t, ping, sizeof(ping)) == 0);
                 size_t bytes = transaction(e, ARTBOX_BC_REPLY, 0, pong, sizeof(pong));
                 free_buffer(e->scratch->write + bytes, t.data_buffer);
@@ -130,37 +133,78 @@ static int client_loop(void *opaque) {
     REQUIRE(replies == 1 && completed == 1);
     return 0;
 }
+static int prepare(struct endpoint *e) {
+    e->fd = e->ops->open(e->context, e->tid);
+    REQUIRE(e->fd >= 0);
+    int64_t mapped = e->ops->map(e->context, e->fd, e->length);
+    REQUIRE(mapped > 0);
+    e->mapping = (uint64_t)mapped;
+    return 0;
+}
+static int cleanup(struct endpoint *e, int result) {
+    if (e->mapping && e->ops->unmap(e->context, e->mapping, e->length)) result = -1;
+    if (e->fd >= 0 && e->ops->close(e->context, e->fd)) result = -1;
+    e->mapping = 0; e->fd = -1;
+    return result;
+}
+static int become_manager(struct endpoint *e) {
+    unsigned char *write = e->scratch->write;
+    memset(write, 0, 24);
+    put32(write, ARTBOX_BINDER_TYPE_BINDER);
+    put64(write + 8, object_pointer); put64(write + 16, object_cookie);
+    int manager = -16;
+    for (unsigned attempt = 0; attempt < 2000 && manager == -16; ++attempt) {
+        manager = call(e, ARTBOX_BINDER_SET_CONTEXT_MGR_EXT, pointer(write));
+        if (manager == -16) e->ops->pause(e->context);
+    }
+    REQUIRE(manager == 0);
+    memset(write, 0, 4);
+    REQUIRE(call(e, ARTBOX_BINDER_SET_MAX_THREADS, pointer(write)) == 0);
+    return 0;
+}
+static int client_run(void *opaque) {
+    struct endpoint *e = opaque;
+    int result = prepare(e);
+    if (!result) result = client_loop(e);
+    return cleanup(e, result);
+}
 int artbox_binder_transaction_check(void *context, const artbox_binder_transaction_ops *ops,
     artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client) {
     const size_t size = ops->page_size * 16;
     struct endpoint a = {context, ops, server, -1, 1, 0, size};
     struct endpoint b = {context, ops, client, -1, 2, 0, size};
-    int result = -1;
-    a.fd = ops->open(context); b.fd = ops->open(context);
-    if (a.fd < 0 || b.fd < 0) goto cleanup;
-    int64_t mapped = ops->map(context, a.fd, size);
-    if (mapped < 0) goto cleanup;
-    a.mapping = (uint64_t)mapped;
-    mapped = ops->map(context, b.fd, size);
-    if (mapped < 0) goto cleanup;
-    b.mapping = (uint64_t)mapped;
-    memset(server->write, 0, 24);
-    put32(server->write, ARTBOX_BINDER_TYPE_BINDER);
-    put64(server->write + 8, object_pointer); put64(server->write + 16, object_cookie);
-    int manager = -16;
-    for (unsigned attempt = 0; attempt < 2000 && manager == -16; ++attempt) {
-        manager = call(&a, ARTBOX_BINDER_SET_CONTEXT_MGR_EXT, pointer(server->write));
-        if (manager == -16) ops->pause(context);
-    }
-    if (manager) goto cleanup;
-    memset(server->write, 0, 4);
-    if (call(&a, ARTBOX_BINDER_SET_MAX_THREADS, pointer(server->write))) goto cleanup;
+    int result = prepare(&a);
+    if (result || become_manager(&a)) return cleanup(&a, -1);
     int results[2] = {-1, -1};
-    if (!ops->parallel(context, server_loop, &a, client_loop, &b, results) && !results[0] && !results[1]) result = 0;
-cleanup:
-    if (a.mapping && ops->unmap(context, a.mapping, size)) result = -1;
-    if (b.mapping && ops->unmap(context, b.mapping, size)) result = -1;
-    if (a.fd >= 0 && ops->close(context, a.fd)) result = -1;
-    if (b.fd >= 0 && ops->close(context, b.fd)) result = -1;
-    return result;
+    result = ops->parallel(context, server_loop, &a, client_run, &b, results);
+    if (results[0] || results[1]) result = -1;
+    return cleanup(&a, result);
+}
+static int expect_self_rejection(struct endpoint *e) {
+    REQUIRE(send(e, transaction(e, ARTBOX_BC_TRANSACTION, transaction_code, ping, sizeof(ping))) == 0);
+    for (unsigned attempt = 0; attempt < 2000; ++attempt) {
+        size_t size = 0, cursor = 0;
+        REQUIRE(receive(e, &size) == 0);
+        while (cursor < size) {
+            artbox_binder_frame frame;
+            REQUIRE(artbox_binder_next(ARTBOX_BINDER_READ, e->scratch->read, size, &cursor, &frame) == ARTBOX_BINDER_OK);
+            if (frame.command == ARTBOX_BR_FAILED_REPLY) return 0;
+            REQUIRE(frame.command == ARTBOX_BR_NOOP);
+        }
+        e->ops->pause(e->context);
+    }
+    REQUIRE(0 && "Same-PID context-manager call was not rejected");
+}
+int artbox_binder_transaction_same_pid_check(void *context, const artbox_binder_transaction_ops *ops,
+    artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client) {
+    const size_t size = ops->page_size * 16;
+    struct endpoint a = {context, ops, server, -1, 1, 0, size};
+    struct endpoint b = {context, ops, client, -1, 2, 0, size};
+    REQUIRE(ops->pid(context, 1) == ops->pid(context, 2));
+    int result = prepare(&a);
+    if (!result) result = prepare(&b);
+    if (!result) result = become_manager(&a);
+    if (!result) result = expect_self_rejection(&b);
+    result = cleanup(&b, result);
+    return cleanup(&a, result);
 }
