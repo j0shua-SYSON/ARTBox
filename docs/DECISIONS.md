@@ -492,6 +492,8 @@ Linux. Copying file contents into anonymous buffers would lose that behavior.
 Use native POSIX mappings behind portable reference/map/sync callbacks. Duplicate
 the backing descriptor while the VFS holds its lock, then retain it in VM metadata
 until the reservation ends. The guest descriptor may close independently.
+ADR 0096 refines release to the last original file page, including anonymous
+replacement of every file page within a still-live reservation.
 
 Per-page metadata preserves backing kind and write ceilings when protections
 change or anonymous fixed replacements split a file reservation. Discard remaps
@@ -2516,3 +2518,40 @@ translates ARM64 O_DIRECTORY to the host's named constant rather than assuming
 x86 and ARM flag layouts match. Cross-VM descriptor use, mmap/poll and attachment
 to signed ART startup remain explicitly pending. Shared description allocation
 costs one host allocation per open; no executable memory or entitlement is added.
+
+## 0096: Observe receive-mapping lifetime without callbacks into Binder
+
+Status: native Linux passes all 28 mapping/lifetime cases at 4d3a124. Passive
+VM lifetime tracking and its local tests pass; Binder receive integration is pending.
+
+The native fixture confirms that mappings retain context-manager ownership
+after FD close, including after a partial unmap. Final unmap permits deferred
+release. Remapping the same open remains EBUSY even after its VMA is gone.
+Write-enabled mmap fails EPERM; subsequent write escalation fails EACCES.
+The reference compares those results directly without reading unpopulated
+receive pages or creating executable mappings.
+
+A guest mapping cannot simply own a Binder open-description object whose
+destructor enters the device mutex: file release happens under the VM lock,
+opposing the device-to-VM lock order used by ioctl. Instead give the VM mapping
+an optional passive watch with shared atomic LIVE/INTACT state. The watch retains
+neither VM nor file, takes no VM/device lock, and invokes no device callback.
+It survives VM destruction so the future Binder owner can reap closed endpoints
+outside the VM lock. A state read is only a snapshot, not a pin against unmap.
+
+Partial unmap or anonymous MAP_FIXED replacement permanently clears INTACT.
+Protection changes preserve it. Failed native replacement invalidates it too,
+because the VM is poisoned and its old page state is no longer trustworthy.
+Dropping the last original file page releases the backing reference even when
+anonymous pages remain in the reservation; LIVE then clears. This refines the
+older reservation-wide file-reference lifetime from ADR 0024. The original
+unwatched mapping API remains available without allocating watch state.
+
+Tests cover early watch destruction, post-VM observation, partial unmap,
+replacement, failed-map output preservation, protection changes, poisoned
+replacement and 128 concurrent read/teardown cycles. Receive integration must
+still retain the writable alias safely, keep context ownership while LIVE,
+reject incoming allocations after loss of INTACT and preserve mapped-once
+state after unmap. Descriptor-close flush/wakeup needs its own contract before
+blocking Binder reads are enabled. Each watch adds bounded host metadata and
+atomic state changes; it adds no executable memory or platform entitlement.

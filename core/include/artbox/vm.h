@@ -19,8 +19,8 @@ typedef struct artbox_vm_ops {
     int (*release)(void *address, size_t length);
 } artbox_vm_ops;
 
-/* A mapping owns an acquired file reference until its last reservation is
- * released. map replaces only mapper-owned storage with a native non-executable
+/* A mapping owns an acquired file reference until its last file page is
+ * unmapped or replaced. map replaces only mapper-owned storage with a native non-executable
  * file view; sharing is Linux MAP_SHARED=1 or MAP_PRIVATE=2. Callbacks run under
  * the mapping lock and must not reenter the mapper. Errors are Linux errno. */
 typedef struct artbox_vm_file_ops {
@@ -63,6 +63,22 @@ int64_t artbox_vm_mmap(artbox_vm *space, uint64_t address, uint64_t length,
 int64_t artbox_vm_map_file(artbox_vm *space, uint64_t address, uint64_t length,
     uint64_t protection, uint64_t flags, uint64_t offset, void *file,
     const artbox_vm_file_ops *ops, unsigned maximum_protection);
+typedef struct artbox_vm_mapping_watch artbox_vm_mapping_watch;
+#define ARTBOX_VM_MAPPING_LIVE 1u
+#define ARTBOX_VM_MAPPING_INTACT 2u
+/* Same mapping contract, plus passive atomic lifetime state. The watch owns no
+ * file, mapping or VM reference. It remains readable after VM destruction.
+ * INTACT clears permanently when any original file page is unmapped/replaced,
+ * including a failed native mutation that poisons the VM. LIVE clears when the
+ * last original file page is gone. Protection changes do not clear INTACT.
+ * A snapshot is not a pin against concurrent mutation. No device callback or
+ * VM/device lock is taken by a watch read. Output is unchanged on map failure.
+ * Stop watch readers before destroying the watch itself. */
+int64_t artbox_vm_map_file_watched(artbox_vm *space, uint64_t address, uint64_t length,
+    uint64_t protection, uint64_t flags, uint64_t offset, void *file,
+    const artbox_vm_file_ops *ops, unsigned maximum_protection, artbox_vm_mapping_watch **watch);
+unsigned artbox_vm_mapping_watch_state(const artbox_vm_mapping_watch *watch);
+void artbox_vm_mapping_watch_destroy(artbox_vm_mapping_watch *watch);
 int artbox_vm_mprotect(artbox_vm *space, uint64_t address, uint64_t length, uint64_t protection);
 int artbox_vm_munmap(artbox_vm *space, uint64_t address, uint64_t length);
 int artbox_vm_madvise(artbox_vm *space, uint64_t address, uint64_t length, int advice);

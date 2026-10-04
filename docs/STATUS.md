@@ -51,7 +51,7 @@ Unsupported operations retain explicit errors. See the individual contracts.
 ## Current work
 
 M4: the [Binder wire boundary](binder.md) recognizes the Android 15 ARM64
-commands and validates transaction/object snapshots. Local checks pass 38 host
+commands and validates transaction/object snapshots. Local checks pass 39 host
 contracts and 60 comparisons against actual NDK UAPI constants plus an
 independently produced byte fixture. A bounded receive-arena primitive also
 passes local ownership/exhaustion checks and 8,000 concurrent lifecycles;
@@ -64,9 +64,16 @@ fixture; 87 input hashes and artifact provenance verify. A configured VFS now
 routes `/dev/binder` open/ioctl/close to that API and passes the same local fixture,
 a 22-case file contract, cleanup controls and 4,000 concurrent descriptor lifecycles.
 At `ba255d2`, Linux and VFS pass the same 32 ioctl/22 file cases, with 90 input
-hashes verified. A 28-case native mapping/lifetime fixture is prepared next;
-mapping comparison remains explicitly false. Receive mappings, delivery, polling, references,
+hashes verified. At `4d3a124`, the native mapping/lifetime fixture passes 28
+cases, with 92 input hashes verified; mapping comparison remains explicitly
+false. Passive VM lifetime watches now pass local ownership/failure checks and
+128 concurrent teardown cycles. Receive integration, delivery, polling, references,
 death notifications and real servicemanager are next; M4 is not complete.
+
+At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
+an interleaved startup log line in the missing-class control. Bounded single-write
+acceptance records fix the framing locally without weakening the exact-line
+checks. Full CI and integrated IPA verification remain pending for that fix.
 
 M3 main artifacts were downloaded and verified independently: 16 signed iOS 15
 images, 15 ELF/layout pairs, five runtime resources and 175 notice hashes.

@@ -12,12 +12,20 @@
 namespace {
 constexpr unsigned mapped = 0x80;
 constexpr unsigned file_page = 0x40, deny_write = 0x20;
+struct MappingState { std::atomic<unsigned> flags{ARTBOX_VM_MAPPING_LIVE | ARTBOX_VM_MAPPING_INTACT}; };
 struct FileMapping {
     artbox_vm_file_ops ops{};
     void *reference = nullptr;
     uint64_t offset = 0;
     unsigned sharing = 0;
-    ~FileMapping() { if (reference) ops.release(reference); }
+    std::shared_ptr<MappingState> tracking;
+    void invalidate() {
+        if (tracking) tracking->flags.fetch_and(ARTBOX_VM_MAPPING_LIVE, std::memory_order_release);
+    }
+    ~FileMapping() {
+        if (tracking) tracking->flags.store(0, std::memory_order_release);
+        if (reference) ops.release(reference);
+    }
 };
 struct Region {
     uintptr_t base = 0;
@@ -29,6 +37,17 @@ struct Region {
     std::vector<unsigned char> pages;
     std::shared_ptr<FileMapping> file;
 };
+void invalidate_file_pages(Region &region, size_t first, size_t count) {
+    if (!region.file) return;
+    for (size_t n = first; n < first + count; ++n) if (region.pages[n] & file_page) {
+        region.file->invalidate();
+        return;
+    }
+}
+void release_unused_file(Region &region) {
+    if (region.file && std::none_of(region.pages.begin(), region.pages.end(),
+        [](unsigned char page) { return (page & file_page) != 0; })) region.file.reset();
+}
 int protection(uint64_t value) {
     if (value & ~UINT64_C(7)) return -22;
     if (value & 4) return -1;
@@ -39,6 +58,12 @@ bool overlaps(uint64_t a, uint64_t a_size, uint64_t b, uint64_t b_size) {
     return a < b + b_size && b < a + a_size;
 }
 }
+
+struct artbox_vm_mapping_watch { std::shared_ptr<MappingState> state; };
+unsigned artbox_vm_mapping_watch_state(const artbox_vm_mapping_watch *watch) {
+    return watch ? watch->state->flags.load(std::memory_order_acquire) : 0;
+}
+void artbox_vm_mapping_watch_destroy(artbox_vm_mapping_watch *watch) { delete watch; }
 
 struct artbox_vm {
     artbox_vm_ops ops;
@@ -208,8 +233,10 @@ int artbox_vm_reserve_window(artbox_vm *space, uint64_t length,
 int artbox_vm_destroy(artbox_vm *space) {
     if (!space) return -22;
     int result = 0;
-    for (const auto &region : space->regions)
+    for (const auto &region : space->regions) {
+        if (region.file) region.file->invalidate();
         if (region.owned && space->ops.release(reinterpret_cast<void *>(region.base), region.length)) result = -5;
+    }
     delete space;
     return result;
 }
@@ -256,13 +283,15 @@ static int64_t mmap_locked(artbox_vm *space, Region *window, uint64_t address,
         if (window && region != window) return -95;
         if (!region->owned) return -1;
         if (address < region->base + region->guard_bytes) return -1;
+        size_t first = static_cast<size_t>(address - region->base) / space->ops.page_size;
+        invalidate_file_pages(*region, first, size / space->ops.page_size);
         int result = space->mutation(space->ops.reset(reinterpret_cast<void *>(address), size, static_cast<unsigned>(permissions)));
         if (result) return result;
-        size_t first = static_cast<size_t>(address - region->base) / space->ops.page_size;
         for (size_t n = first; n < first + size / space->ops.page_size; ++n) {
             if (!(region->pages[n] & mapped)) ++region->live;
             region->pages[n] = static_cast<unsigned char>(mapped | static_cast<unsigned>(permissions));
         }
+        release_unused_file(*region);
         return static_cast<int64_t>(address);
     }
     // An ordinary address argument is a hint; the host may choose another VA.
@@ -312,9 +341,9 @@ int64_t artbox_vm_mmap_window(artbox_vm *space, uint64_t window_base,
     return mmap_locked(space, window, address, length, prot, flags, fd, offset);
 }
 
-int64_t artbox_vm_map_file(artbox_vm *space, uint64_t address, uint64_t length,
+static int64_t map_file(artbox_vm *space, uint64_t address, uint64_t length,
     uint64_t prot, uint64_t flags, uint64_t offset, void *file,
-    const artbox_vm_file_ops *ops, unsigned maximum) {
+    const artbox_vm_file_ops *ops, unsigned maximum, artbox_vm_mapping_watch **out_watch) {
     if (!space || !file || !ops || !ops->acquire || !ops->release || !ops->map || !ops->sync ||
         (maximum != 1 && maximum != 3)) return -22;
     FaultMutationGuard guard(space);
@@ -332,11 +361,17 @@ int64_t artbox_vm_map_file(artbox_vm *space, uint64_t address, uint64_t length,
     (void)address; // Ordinary hints may be ignored, as with anonymous storage.
     if (space->regions.size() == space->region_limit || size > space->limit - space->reserved) return -12;
     Region region;
+    std::unique_ptr<artbox_vm_mapping_watch> watch;
     region.length = size; region.live = size / space->ops.page_size;
     try {
         region.pages.assign(region.live, static_cast<unsigned char>(mapped | file_page |
             (maximum == 1 ? deny_write : 0) | static_cast<unsigned>(permissions)));
         region.file = std::make_shared<FileMapping>();
+        if (out_watch) {
+            watch.reset(new artbox_vm_mapping_watch);
+            watch->state = std::make_shared<MappingState>();
+            region.file->tracking = watch->state;
+        }
     } catch (const std::exception &) { return -12; }
     region.file->ops = *ops; region.file->offset = offset; region.file->sharing = sharing;
     int error = ops->acquire(file, &region.file->reference);
@@ -361,7 +396,20 @@ int64_t artbox_vm_map_file(artbox_vm *space, uint64_t address, uint64_t length,
     }
     space->reserved += size;
     space->regions.push_back(std::move(region));
+    if (out_watch) *out_watch = watch.release();
     return static_cast<int64_t>(reinterpret_cast<uintptr_t>(storage));
+}
+
+int64_t artbox_vm_map_file(artbox_vm *space, uint64_t address, uint64_t length,
+    uint64_t prot, uint64_t flags, uint64_t offset, void *file,
+    const artbox_vm_file_ops *ops, unsigned maximum) {
+    return map_file(space, address, length, prot, flags, offset, file, ops, maximum, nullptr);
+}
+int64_t artbox_vm_map_file_watched(artbox_vm *space, uint64_t address, uint64_t length,
+    uint64_t prot, uint64_t flags, uint64_t offset, void *file,
+    const artbox_vm_file_ops *ops, unsigned maximum, artbox_vm_mapping_watch **watch) {
+    if (!watch) return -22;
+    return map_file(space, address, length, prot, flags, offset, file, ops, maximum, watch);
 }
 
 int artbox_vm_mprotect(artbox_vm *space, uint64_t address, uint64_t length, uint64_t prot) {
@@ -406,6 +454,7 @@ int artbox_vm_munmap(artbox_vm *space, uint64_t address, uint64_t length) {
         size_t count = static_cast<size_t>(end - begin) / space->ops.page_size;
         size_t removed = 0;
         for (size_t n = first; n < first + count; ++n) removed += !!(region.pages[n] & mapped);
+        invalidate_file_pages(region, first, count);
         if (removed == region.live && !region.guard_bytes) {
             int result = space->mutation(space->ops.release(reinterpret_cast<void *>(region.base), region.length));
             if (result) return result;
@@ -418,6 +467,7 @@ int artbox_vm_munmap(artbox_vm *space, uint64_t address, uint64_t length) {
             if (result) return result;
             std::fill_n(region.pages.begin() + static_cast<ptrdiff_t>(first), count, static_cast<unsigned char>(0));
             region.live -= removed;
+            release_unused_file(region);
         }
         ++i;
     }

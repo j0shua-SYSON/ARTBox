@@ -319,7 +319,7 @@ also passes startup and shutdown. See [the full futex contract](futex.md) and AD
 | --- | --- | --- |
 | mmap 222 | Private/shared regular-file data, independent FD lifetime, offset and permission checks; no executable or fixed file maps | 43-case identical NDK mapping caller; portable ownership tests |
 | mprotect 226 | Preserve shared read-only descriptor ceiling across protection changes | NDK mapping caller and injected backing |
-| munmap 215 | Partial file views, final reservation/reference cleanup | NDK mapping caller and injected backing |
+| munmap 215 | Partial file views; release backing after the last original file page is unmapped/replaced | NDK mapping caller, injected backing and passive lifetime tests |
 | madvise 233 | DONTNEED restores private file pages and preserves shared changes; anonymous replacements remain zero-fill | NDK mapping caller |
 | msync 227 | Shared MS_SYNC writeback, private/ASYNC no-op after validation; one reservation | NDK mapping caller |
 

@@ -116,6 +116,14 @@ Apple/Linux must execute both checks. Windows reports this check unexecuted
 while its native file provider is unavailable; the portable arena tests still
 run. This fixture verifies primitives for integration, not `/dev/binder` itself.
 
+The VM now has optional passive mapping watches. INTACT clears on partial
+unmap or anonymous replacement; LIVE clears after the last original file page
+is gone, even if anonymous reservation pages remain. Watches retain no file or
+VM and are readable after VM teardown. They avoid callbacks into Binder under
+the VM lock; their snapshots do not pin memory. Local tests include poisoned
+replacement and 128 concurrent observation/teardown cycles. Production Binder
+mapping integration is still pending; see ADR 0096.
+
 ## Evidence
 
 The portable test covers all command encodings, every truncated write frame,
@@ -190,11 +198,12 @@ fixture result only after the reference succeeds. Record both executable
 hashes and all core/platform input hashes. The VFS/file comparison passes at
 `ba255d2`, adds a third executable hash and retains separate case counts.
 
-The next original mapping fixture defines 28 native checks for rejected write
+At `4d3a124`, the original mapping fixture passes 28 native checks for rejected write
 permissions, zero/unaligned inputs, private/shared mappings, write-protection
 ceilings, partial unmap, repeated mapping and context-manager ownership across
 descriptor close/final unmap. It never reads unused receive pages: Linux has
-not populated those pages with transaction data. Native results are pending;
+not populated those pages with transaction data. The artifact digest, PR parent
+and 92 input hashes verify. These are native Linux results;
 `mapping_driver_compared` remains false until the production mapping boundary
 runs the same fixture. The existing alias test is not that implementation.
 
