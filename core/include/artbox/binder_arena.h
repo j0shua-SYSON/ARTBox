@@ -21,6 +21,9 @@ artbox_binder_arena *artbox_binder_arena_create(void *writable, uint64_t guest_b
     size_t capacity, size_t limit);
 /* EBUSY leaves the arena intact while any buffer remains reserved/delivered. */
 int artbox_binder_arena_destroy(artbox_binder_arena *arena);
+/* Owner teardown only, after stopping all users: clear every live extent and
+ * forget reserved/delivered buffers. The backing must remain writable. */
+void artbox_binder_arena_discard_all(artbox_binder_arena *arena);
 /* Best-fit allocation, eight-byte internal alignment, at least eight bytes for
  * empty transactions. Always zero reused bytes/padding. clear_on_free is 0 or 1.
  * Offset-table length must be a multiple of eight. ENOMEM means bounded bytes

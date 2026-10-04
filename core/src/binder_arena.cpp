@@ -37,6 +37,14 @@ extern "C" int artbox_binder_arena_destroy(artbox_binder_arena *arena) {
     delete arena;
     return 0;
 }
+extern "C" void artbox_binder_arena_discard_all(artbox_binder_arena *arena) {
+    if (!arena) return;
+    std::lock_guard<std::mutex> guard(arena->lock);
+    for (const auto &slot : arena->buffers)
+        std::memset(arena->writable + static_cast<size_t>(slot.value.address - arena->base),
+                    0, static_cast<size_t>(slot.value.extent));
+    arena->buffers.clear();
+}
 extern "C" int artbox_binder_arena_reserve(artbox_binder_arena *arena,
     uint64_t data_size, uint64_t offsets_size, uint64_t extra_size,
     unsigned clear_on_free, artbox_binder_buffer *out) {

@@ -115,8 +115,27 @@ static void concurrency() {
     CHECK(artbox_binder_arena_destroy(arena) == 0);
 }
 
+static void owner_teardown() {
+    unsigned char bytes[128]; std::memset(bytes, 0xab, sizeof(bytes));
+    auto *arena = artbox_binder_arena_create(bytes, base, sizeof(bytes), 4);
+    CHECK(arena);
+    artbox_binder_buffer a, b;
+    CHECK(artbox_binder_arena_reserve(arena, 32, 0, 0, 0, &a) == 0);
+    CHECK(artbox_binder_arena_reserve(arena, 16, 0, 0, 0, &b) == 0);
+    const unsigned char pattern = 0x71;
+    CHECK(artbox_binder_arena_write(arena, a.address, 0, &pattern, 1) == 0);
+    CHECK(artbox_binder_arena_write(arena, b.address, 0, &pattern, 1) == 0);
+    CHECK(artbox_binder_arena_publish(arena, b.address) == 0);
+    CHECK(artbox_binder_arena_destroy(arena) == -16);
+    artbox_binder_arena_discard_all(arena);
+    for (size_t i = 0; i < 48; ++i) CHECK(bytes[i] == 0);
+    for (size_t i = 48; i < sizeof(bytes); ++i) CHECK(bytes[i] == 0xab);
+    CHECK(artbox_binder_arena_cancel(arena, a.address) == -22);
+    CHECK(artbox_binder_arena_release(arena, b.address) == -22);
+    CHECK(artbox_binder_arena_destroy(arena) == 0);
+}
 int main() {
-    lifetime(); exhaustion(); concurrency();
+    lifetime(); exhaustion(); concurrency(); owner_teardown();
     std::puts("Binder arena: reserve/publish/release, bounds, exhaustion, recycling and 8000 concurrent lifecycles pass");
     return 0;
 }
