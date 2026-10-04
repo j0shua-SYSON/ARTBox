@@ -19,7 +19,7 @@ struct waiting_read {
     _Atomic int tid, done;
     uint64_t transfer[6];
     uint32_t command, read[64];
-    int result;
+    int result, initial_return_verified;
 };
 
 static void pause_reader(void) {
@@ -34,6 +34,18 @@ static void *read_entry(void *opaque) {
     if (pthread_sigmask(SIG_UNBLOCK, &set, NULL)) {
         r->result = -1;
     } else {
+        /* A newly allocated native Binder thread has looper_need_return set.
+         * Its first read returns just NOOP; verify that event before observing
+         * a subsequent empty read. Do not mistake initialization for blocking. */
+        uint64_t initial[6] = {0, 0, 0, sizeof(r->read), 0, (uint64_t)(uintptr_t)r->read};
+        int first = ioctl(r->fd, (unsigned long)ARTBOX_BINDER_WRITE_READ, initial);
+        if (first || initial[4] != 4 || r->read[0] != ARTBOX_BR_NOOP) {
+            r->result = first < 0 ? -errno : -EPROTO;
+            atomic_store(&r->done, 1);
+            return NULL;
+        }
+        r->initial_return_verified = 1;
+        r->read[0] = 0;
         atomic_store(&r->tid, (int)syscall(SYS_gettid));
         int result = ioctl(r->fd, (unsigned long)ARTBOX_BINDER_WRITE_READ, r->transfer);
         r->result = result < 0 ? -errno : result;
@@ -90,10 +102,11 @@ static int interrupted_read(const char *path, int enter_looper) {
     if (!atomic_load(&r.done) && pthread_kill(reader, SIGUSR1)) _exit(2);
     for (unsigned attempt = 0; attempt < 5000 && !atomic_load(&r.done); ++attempt) pause_reader();
     if (!atomic_load(&r.done) || pthread_join(reader, NULL)) _exit(2);
-    int result = observed == 1 && r.result == -EINTR &&
+    int result = observed == 1 && r.initial_return_verified && r.result == -EINTR &&
         r.transfer[1] == r.transfer[0] && r.transfer[4] == 0 && r.read[0] == ARTBOX_BR_NOOP ? 0 : -1;
-    if (result) fprintf(stderr, "Binder interrupted read: enter=%d observed=%d result=%d write=%llu read=%llu\n",
-        enter_looper, observed, r.result, (unsigned long long)r.transfer[1], (unsigned long long)r.transfer[4]);
+    if (result) fprintf(stderr, "Binder interrupted read: enter=%d initial=%d observed=%d result=%d write=%llu read=%llu\n",
+        enter_looper, r.initial_return_verified, observed, r.result,
+        (unsigned long long)r.transfer[1], (unsigned long long)r.transfer[4]);
     if (munmap(mapping, length)) result = -1;
     if (close(r.fd)) result = -1;
     return result;

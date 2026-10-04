@@ -222,6 +222,13 @@ worker fails the disposable reference process. Linux execution is pending for
 this addition, and `wait_driver_compared` stays false. Host `/proc` inspection is
 test-only and does not become part of the portable Binder implementation.
 
+The first run at `c70452f` observed an immediate four-byte NOOP on a newly
+allocated kernel Binder thread. Linux initializes `looper_need_return` for that
+thread and clears it when the ioctl returns. The fixture now requires that
+initial event explicitly, then observes and interrupts the following empty read.
+This avoids treating initialization as a blocking-read failure or overlooking
+the first-read behavior in the future production implementation.
+
 The portable test covers all command encodings, every truncated write frame,
 unaligned storage, wrong direction/type/size, preserved prefix progress,
 full-width transaction values, packed death cookies, object boundary cuts,
