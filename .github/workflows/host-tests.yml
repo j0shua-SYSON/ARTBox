@@ -203,6 +203,7 @@ jobs:
             artifacts/host-metrics.json
             artifacts/m4-binder-wire.json
             artifacts/m4-binder-capabilities.json
+            artifacts/m4-binder-mapping.log
             build/m4/binder-wire/
             build/host/test_binder_wire
             build/host/Release/test_binder_wire.exe

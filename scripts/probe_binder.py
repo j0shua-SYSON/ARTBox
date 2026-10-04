@@ -8,8 +8,10 @@ import json
 import os
 from pathlib import Path
 import platform
+import shutil
 import stat
 import struct
+import subprocess
 
 from environment import environment
 
@@ -69,6 +71,23 @@ def probe():
             record['errors'].append(f'{path}: {error}')
     if not record['available']:
         record['reason'] = 'No accessible protocol-8 Binder device; no kernel semantic comparison ran'
+    # Hosted images can enable Binder in their kernel while omitting the module
+    # package. Inspect their existing authenticated package index. No update,
+    # download, installation, module load or system cache write happens here.
+    apt = shutil.which('apt-cache')
+    if not record['modules'] and apt:
+        record['package_candidates'] = []
+        wanted = {'Package', 'Version', 'Architecture', 'Size', 'SHA256', 'Filename'}
+        for prefix in ('linux-modules-', 'linux-modules-extra-'):
+            package = prefix + platform.release()
+            result = subprocess.run([apt, '-o', 'Dir::Cache::pkgcache=', '-o', 'Dir::Cache::srcpkgcache=',
+                                     'show', '--no-all-versions', package], capture_output=True, text=True, timeout=30)
+            selected = {}
+            for line in result.stdout.splitlines():
+                key, sep, value = line.partition(': ')
+                if sep and key in wanted:
+                    selected[key] = value
+            record['package_candidates'].append({'query': package, 'exit': result.returncode, 'metadata': selected})
     return record
 
 

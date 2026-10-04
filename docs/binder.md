@@ -49,6 +49,16 @@ guest alias. A native read-only guest mapping, VM registration, async quotas and
 driver-close lifetime are not integrated yet. The synthetic-address host test
 does not establish native alias permissions.
 
+`test_binder_mapping` exercises the existing native file/VM providers with two
+shared views of an unlinked backing file: writable in the driver's VM,
+read-only in the guest's VM. It requires byte coherence, guest protection
+ceilings, clear-on-free visibility, guest-view survival after driver-side close
+and final unmap. A separate child attempts a raw write and must fault at that
+exact address. The signal handler exits directly, avoiding crash/core artifacts.
+Apple/Linux must execute both checks. Windows reports this check unexecuted
+while its native file provider is unavailable; the portable arena tests still
+run. This fixture verifies primitives for integration, not `/dev/binder` itself.
+
 ## Evidence
 
 The portable test covers all command encodings, every truncated write frame,
@@ -90,6 +100,8 @@ established. Missing access must not be reported as a passed kernel comparison.
 paths and Binder kernel configuration without loading anything. Its default
 success means the inventory completed; `--require-device` fails unless an
 accessible protocol-8 device exists. It does not run lifecycle tests.
+If modules are missing, it records exact matching package metadata from the
+runner's existing package index without updating, downloading or installing.
 Multi-process APKs, FD transfer, buffer-parent fixups, scheduling/priority
 inheritance and SELinux enforcement are outside this first boundary checkpoint.
 
