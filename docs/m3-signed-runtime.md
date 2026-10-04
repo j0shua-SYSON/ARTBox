@@ -43,7 +43,8 @@ both Linux syscall paths. Native Linux additionally compares actual blocked
 waiter movement, masks, isolation, timeouts and 128 races against the kernel.
 The earlier worker-stack, signal-34 and virtual cwd prerequisites remain tested.
 
-M3 remains open until the app embeds the runtime and its actual stdout reaches
-the console through the shared entry. The verified IPA at this checkpoint still
-contains M1/M2 diagnostics. Physical-device execution is waived and unverified;
-successful Mac execution or signed packaging does not establish iPhone behavior.
+The verified IPA at this checkpoint contains M1/M2 diagnostics. The subsequent
+[M3 acceptance at c7807da](acceptance/m3.md) verifies the actual stdout callback,
+its dropped-output control and the integrated ART IPA. Physical-device execution
+is waived and unverified; successful Mac execution or signed packaging does not
+establish iPhone behavior.

@@ -2292,8 +2292,9 @@ these narrower tests do not complete M3.
 
 ## 0090: Embed the verified ART group and expose actual guest stdout
 
-Status: device staging and console wiring implemented; new signed console
-acceptance and integrated ART IPA validation are pending.
+Status: signed console acceptance, both controls and integrated ART IPA pass
+at `c7807da`; all 18 host jobs and iOS CI pass. Downloaded bytes verify 16 signed
+iOS images, 15 ELF pairs, five runtime resources and 175 notices.
 
 The complete signed ARM64 Mac runtime passes at `68400fe`. Package that same
 15-library ELF group, boot DEX, hello/managed DEX and ICU data in the iOS app.

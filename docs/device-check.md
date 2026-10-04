@@ -44,3 +44,12 @@ its JSON result. On a Mac, the equivalent build command is
 `python3 scripts/build.py ios --with-guest --m2-evidence PATH_TO_STARTUP_ARTIFACT`;
 the artifact must be from the exact checked-out project revision. All embedded
 frameworks need ordinary provisioning signatures for installation.
+
+For M3, use `ARTBox-M3-ipa` from a passing `host-tests` run. This is a separate
+ART diagnostic build with 15 embedded frameworks; sign all of them and the app
+with the same ordinary team/profile. Expected guest output includes
+`hello from ARTBox ART`, followed by `ART: DEX and lifecycle checks passed`.
+The equivalent Mac build command is
+`python3 scripts/build.py ios --m3-evidence PATH_TO_MERGED_ART_ARTIFACTS`.
+See [M3 acceptance](acceptance/m3.md) for the required same-run inputs and
+automated evidence. Physical checks remain optional and unperformed.

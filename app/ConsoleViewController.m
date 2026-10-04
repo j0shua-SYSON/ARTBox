@@ -22,19 +22,22 @@
 @end
 
 static void app_log(void *context, const char *message, size_t length) {
-    ConsoleViewController *controller = (__bridge ConsoleViewController *)context;
-    NSString *copy = [[NSString alloc] initWithBytes:message
-                                            length:length
-                                          encoding:NSUTF8StringEncoding];
-    if (copy == nil) {
-        copy = @"[invalid UTF-8 log message]";
-    }
-    if ([NSThread isMainThread]) {
-        [controller appendMessage:copy];
-    } else {
-        dispatch_async(dispatch_get_main_queue(), ^{
+    // Guest pthreads do not come from UIKit's run loop or its autorelease pool.
+    @autoreleasepool {
+        ConsoleViewController *controller = (__bridge ConsoleViewController *)context;
+        NSString *copy = [[NSString alloc] initWithBytes:message
+                                                length:length
+                                              encoding:NSUTF8StringEncoding];
+        if (copy == nil) {
+            copy = @"[invalid UTF-8 log message]";
+        }
+        if ([NSThread isMainThread]) {
             [controller appendMessage:copy];
-        });
+        } else {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [controller appendMessage:copy];
+            });
+        }
     }
 }
 
@@ -153,6 +156,7 @@ static void app_log(void *context, const char *message, size_t length) {
         if (!root || ![manager copyItemAtURL:[resources URLByAppendingPathComponent:@"root" isDirectory:YES]
                                       toURL:root error:&error]) {
             [self logRuntimeError:@"ART storage setup failed" detail:error];
+            if (root) [manager removeItemAtURL:root error:NULL];
             return;
         }
         for (NSString *directory in @[@"system/art", @"system/tzdata", @"system_ext", @"data/scratch"]) {

@@ -10,8 +10,9 @@ passing 328/328 M2 expectations. CI builds an iOS 15 app with the same suite and
 signed libraries; physical iPhone execution is unverified. Original AOSP ART now
 executes a hello DEX and passes collection, exceptions, native-thread attachment
 and shutdown on native Linux ARM64 and through signed frameworks on macOS ARM64,
-with JIT disabled. ART's iOS app integration and Android app execution remain
-under development.**
+with JIT disabled. CI also builds and verifies an iOS app containing ART and the
+same DEX suite. Physical execution and general Android app support remain
+unverified.**
 See [status](docs/STATUS.md), [architecture decisions](docs/DECISIONS.md), and the
 [ELF-to-Mach-O versus wrapper design](docs/loader-design.md).
 
