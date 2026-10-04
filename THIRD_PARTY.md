@@ -1,5 +1,24 @@
 # Third-party provenance
 
+## M4 Binder references and UAPI boundary
+
+`binder-references` in `third_party/sources.json` selects 15 reference files from
+`aosp-mirror-neo/platform_frameworks_native`, tag `android-15.0.0_r1`, commit
+`f7274fca5e36082674740bc6c976f73c4578d009`. Each file records its size, SHA-256
+and Git blob identity. The selection includes root NOTICE/license metadata,
+servicemanager source/build/tests, libbinder process/thread source/build and
+two service AIDL files. The selected source files carry Apache-2.0 notices;
+the parent Android.bp lists additional licenses covering unrelated files.
+Preserve the complete NOTICE; do not relicense AOSP code as MIT. These files
+are reference inputs only and are not compiled or included in the IPA yet.
+
+The original MIT Binder wire parser and tests copy no kernel implementation.
+Linux v6.12 `drivers/android/binder.c` (GPL-2.0) is consulted only for ABI behavior
+and is not vendored or shipped. The existing pinned NDK r28c supplies its UAPI
+header for a compile-time comparison and data fixture; its existing bundled
+license terms continue to apply. No additional runtime library is imported.
+See [the Binder contract](docs/binder.md).
+
 ## M3 ART math dependency
 
 The [math subset](docs/m3-math.md) selects 28 unchanged source units from

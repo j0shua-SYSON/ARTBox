@@ -67,6 +67,9 @@ jobs:
       - name: Build the pinned NDK ELF and test both packaging inputs
         if: matrix.os == 'macos-15'
         run: python3 -B scripts/test_pack.py
+      - name: Compare the Binder boundary with actual ARM64 NDK UAPI bytes
+        if: matrix.os == 'macos-15'
+        run: python3 -B scripts/test_binder_wire.py --host-test build/host/test_binder_wire
       - name: Execute both signed inputs on the native ARM64 CPU
         if: matrix.os == 'macos-15'
         run: python3 -B scripts/test_native.py
@@ -196,6 +199,10 @@ jobs:
           name: host-evidence-${{ matrix.os }}
           path: |
             artifacts/host-metrics.json
+            artifacts/m4-binder-wire.json
+            build/m4/binder-wire/
+            build/host/test_binder_wire
+            build/host/Release/test_binder_wire.exe
             artifacts/m3-low-address.json
             build/m3/low-address/
             artifacts/m3-art-references.json

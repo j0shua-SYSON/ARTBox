@@ -18469,5 +18469,105 @@
         "bytes": 10695
       }
     ]
+  },
+  "binder-references": {
+    "repository": "aosp-mirror-neo/platform_frameworks_native",
+    "tag": "android-15.0.0_r1",
+    "commit": "f7274fca5e36082674740bc6c976f73c4578d009",
+    "upstream": "https://android.googlesource.com/platform/frameworks/native",
+    "files": [
+      {
+        "path": "Android.bp",
+        "bytes": 3054,
+        "sha256": "d8f7fb9e6313104597698adea2b232a8b857118c19dc56392af2ce383db020e6",
+        "git_blob": "2520a71968d84e76836bcbb1fe0c1ccef7732f93"
+      },
+      {
+        "path": "cmds/servicemanager/Access.cpp",
+        "bytes": 4866,
+        "sha256": "78256b7806e387fa35d2b349bdab696209d203107582128fd098284e8199e7cd",
+        "git_blob": "809872417de7ed78825ae6d16270825104775974"
+      },
+      {
+        "path": "cmds/servicemanager/Access.h",
+        "bytes": 1636,
+        "sha256": "e5b0610f29394c8a8d0daddc36b0acea2cc448ce399890b939c18b58b8635da5",
+        "git_blob": "4ee9b907d7bbbf31b6d95b75f5d4401950bd9cae"
+      },
+      {
+        "path": "cmds/servicemanager/Android.bp",
+        "bytes": 2663,
+        "sha256": "f7654526f8025b437c77093040240d7474ebd6607249cab58f9b77b9cf049098",
+        "git_blob": "3897197bd552f1a97d45fb5712885ce40009fcad"
+      },
+      {
+        "path": "cmds/servicemanager/main.cpp",
+        "bytes": 5789,
+        "sha256": "d2d278fb224401554b4fd0c6f925582d05c5f7f388799d6e9111834c329b019d",
+        "git_blob": "07908ba5b30272b8e3ad796700f0f4a53970f646"
+      },
+      {
+        "path": "cmds/servicemanager/ServiceManager.cpp",
+        "bytes": 38353,
+        "sha256": "441284d144748110e89127f80df836c353378a9c90387c66fad4b6e4ccb0bc57",
+        "git_blob": "95a05cdcdec0e672032d4f10f801e3db9f7e8d27"
+      },
+      {
+        "path": "cmds/servicemanager/ServiceManager.h",
+        "bytes": 5280,
+        "sha256": "7b8a00d190e124aeb0a017a1e4439892f192c9bba35deda7b7879f375b3478a6",
+        "git_blob": "3b925a48cb5172f5dfb7d11cc32e7bba47e46066"
+      },
+      {
+        "path": "cmds/servicemanager/ServiceManagerUnittest.cpp",
+        "bytes": 1287,
+        "sha256": "27db1d4f292079f1a3f6bb92723877fcd9b97ccc91aefd0b867c125cdfdee268",
+        "git_blob": "39d20b00255ef015ac9b5f0e0b5bde59d94bda78"
+      },
+      {
+        "path": "libs/binder/aidl/android/os/IServiceCallback.aidl",
+        "bytes": 946,
+        "sha256": "031e31e46fc31cfaececb3b9eb69b3bd4792b07a16549212fa1d1b5ae8cc0989",
+        "git_blob": "b29dfedf703c0d78c0fc5de28fc73154689e393e"
+      },
+      {
+        "path": "libs/binder/aidl/android/os/IServiceManager.aidl",
+        "bytes": 4848,
+        "sha256": "421015fe28ea0f9c437758020412bfcbb91840b9624f36d3df3216844db0cc5c",
+        "git_blob": "0fb1615391453581b761748d53dc8cfe9e51ccef"
+      },
+      {
+        "path": "libs/binder/Android.bp",
+        "bytes": 21128,
+        "sha256": "30a27f83ee9d45f78b1c5c02271a329adcd5db5a12d755a3094b2176efb7c05a",
+        "git_blob": "7d1535065c1bf234d5b2c26e4f00dc1fcc5ee016"
+      },
+      {
+        "path": "libs/binder/IPCThreadState.cpp",
+        "bytes": 54120,
+        "sha256": "9dcc9fde4e003de4a42901e021f1d3de5948d73ec6ebf056c74b0d71a2a5ba24",
+        "git_blob": "fbc812571a276a1e8b22a8d9ca4be27837ab8da8"
+      },
+      {
+        "path": "libs/binder/ProcessState.cpp",
+        "bytes": 20610,
+        "sha256": "09570b18bbf50c740a715d3943a57134662d10028c7a9de34e07eaac424943a5",
+        "git_blob": "8485ecd8354004abff44ac6e1776c5b8fddb94db"
+      },
+      {
+        "path": "MODULE_LICENSE_APACHE2",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "NOTICE",
+        "bytes": 17680,
+        "sha256": "5f28c11f8b1b3f97b9d42c74b85371ebf4127f241b799279bcecd69f7ee542dc",
+        "git_blob": "152be2059579780efa1e1ff9f914ff17af575bfe"
+      }
+    ],
+    "notice": "NOTICE",
+    "notice_sha256": "5f28c11f8b1b3f97b9d42c74b85371ebf4127f241b799279bcecd69f7ee542dc"
   }
 }

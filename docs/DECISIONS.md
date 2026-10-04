@@ -2328,3 +2328,46 @@ and imageless interpreter startup are explicit initial costs; no iPhone memory
 or startup measurement is inferred from Mac tests. Physical checks remain waived
 and unperformed. General AOT/OAT packaging, repeated runs and process isolation
 need separate contracts.
+
+## 0091: Establish Binder's ARM64 wire boundary before service integration
+
+Status: boundary implemented; local portable and NDK comparisons pass.
+Driver delivery and real servicemanager remain pending M4 contracts.
+
+Use Android 15's 64-bit Linux Binder ABI, retaining the AOSP tag already used
+by Bionic/ART. Pin only the 15 reference files needed to inspect libbinder,
+servicemanager, AIDL and licenses. Its Android.bp disables Darwin and its main
+loop uses Binder polling and timerfd; an upstream host build is not a ready-made
+Darwin runtime. Keep real ServiceManager registration/death behavior as the
+integration target and review its libutils/libbase/SELinux/VINTF dependencies
+before selecting additional code. Do not substitute fakeservicemanager.
+
+Start with a portable, allocation-free command/snapshot validator. Match full
+Linux ioctl words rather than host `_IO*` macros or arbitrary encoded lengths.
+Retain full-width addresses without dereferencing them. Decode the packed
+12-byte death payload, distinguish transaction extensions and validate object
+offset ordering, bounds and four-byte alignment. Test actual NDK-produced bytes
+and constants independently of the parser's C layout. Recognizing a command
+does not enable its semantics, and the parser's errors are not syscall errno.
+The eventual driver must define consumption/error ordering separately.
+
+The planned driver owns an endpoint per Binder open, including separate handle
+tables and receive arenas, with thread-specific synchronous call stacks. Linux
+creates a binder_proc on each open even when the host PID is the same; this
+permits a raw native test client to reach the real service manager in the first
+single-process runtime. A single libbinder ProcessState cannot be used to prove
+cross-endpoint delivery by invoking a local BBinder object. Model close/death
+at endpoint lifetime; distinct Android application processes remain future work.
+
+Use a bounded portable queue for owned transaction state and a thin Unix socket
+notification provider for Apple/Linux polling. Windows host tests can inject a
+provider. Socket readiness is a wakeup; the driver must retain queue/arena
+ownership until delivery and explicit release. This plan still needs concurrency
+and native Linux reference tests before it becomes a supported transport.
+Mach ports would make early iteration and Linux comparison less portable.
+
+Copying parcels and serializing shared driver state cost CPU and memory; measure
+those costs after a real ping/pong path exists. No dynamic executable memory,
+JIT, entitlement or guest kernel is needed. The Apple signed-library packaging
+and source-level syscall boundary from M3 remain the execution model. See the
+[Binder contract](binder.md) for completed checks and outstanding behavior.

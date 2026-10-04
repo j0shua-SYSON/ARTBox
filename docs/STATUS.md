@@ -1,6 +1,6 @@
 # ARTBox status
 
-M0-M2 are merged and tagged. **Real AOSP ART now executes hello DEX on macOS
+M0-M3 are merged and tagged. **Real AOSP ART executes hello DEX on macOS
 ARM64 through signed frameworks**, with collection, exceptions, native-thread
 attachment and shutdown verified. M3's shared console and integrated ART IPA
 also pass automated acceptance. Target: ordinary signed arm64 **iOS 15+**, no JIT or private
@@ -27,8 +27,8 @@ entitlements. Physical checks are waived; iPhone execution is unverified.
   object passes both signed Bionic modes and both Linux syscall paths; C++ tests
   compare blocked-waiter behavior and 128 races against the Linux kernel.
 
-At `c7807da`, all 18 host jobs and the iOS build pass, including console controls
-and the integrated ART IPA. The 34 Windows contracts,
+At merged M3 head `8cf6315`, all 18 host jobs and the iOS build pass on both the
+PR and main, including console controls and the integrated ART IPA. The 34 M3 Windows contracts,
 36 native Linux ARM64 contracts, downloaded source/object hashes, signed
 framework layouts and diagnostic IPA verify independently. See
 [M3 acceptance](acceptance/m3.md), [M2 acceptance](acceptance/m2.md),
@@ -50,22 +50,26 @@ Unsupported operations retain explicit errors. See the individual contracts.
 
 ## Current work
 
-M3's implementation and downloaded artifact verification pass at `c7807da`.
-Complete final review, CI, merge and tag before starting M4's userspace Binder
-and real AOSP servicemanager. The console includes scoped autorelease handling
-for guest pthread callbacks and cleans partial resource copies on setup failure.
+M4: the [Binder wire boundary](binder.md) recognizes the Android 15 ARM64
+commands and validates transaction/object snapshots. Local checks pass 35 host
+contracts and 60 comparisons against actual NDK UAPI constants plus an
+independently produced byte fixture. Driver delivery, polling, references,
+death notifications and real servicemanager are next; M4 is not complete.
+
+M3 main artifacts were downloaded and verified independently: 16 signed iOS 15
+images, 15 ELF/layout pairs, five runtime resources and 175 notice hashes.
 Launcher UI remains deferred. Historical debugging results are retained in
 [the bring-up history](m3-bringup-history.md).
 
 ## Measurements and risks
 
-One signed Mac correctness run at `c7807da` creates the VM in **113.287 ms**,
-loads/relocates in 85.288 ms and reaches **67,420,160 bytes peak process RSS**.
-The complete bootstrap/runtime phase is 121.504 ms and includes VM creation. Managed bytes
+One signed Mac main-branch run at `8cf6315` creates the VM in **54.157 ms**,
+loads/relocates in 32.226 ms and reaches **66,699,264 bytes peak process RSS**.
+The complete bootstrap/runtime phase is 57.948 ms and includes VM creation. Managed bytes
 before shutdown are 636,072. These are traced correctness observations, not
 interpreter throughput or iPhone memory measurements.
 
-The next three risks are iOS virtual/resident memory limits under an ordinary
-profile; extending tested synchronization and signal subsets to Binder/services;
-and matching Binder ownership, wire semantics and death notifications without
-a guest kernel. Physical execution remains a separate unverified evidence level.
+The next three risks are transaction-buffer ownership and bounded memory;
+reference/death-notification races; and real servicemanager's polling and
+dependency requirements. Physical execution remains unverified; checks are
+waived for every milestone.
