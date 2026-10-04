@@ -94,11 +94,19 @@ All 19 host jobs and iOS pass. Downloaded runtime/IPA evidence independently
 verifies the managed/console controls, 16 iOS 15 images, 15 ELF/layout pairs,
 five runtime resources and 175 notice hashes with empty entitlements.
 
-One-way delivery now passes local per-node queue, buffer-release, copy-fault,
-sender/receiver teardown and cleanup controls. A new shared native-backed test
-covers callbacks inside synchronous handlers, two independent nodes and queued
-delivery after sender death; paired execution is pending. Weak objects, FD
-transfer, nested synchronous calls, blocking reads and polling remain unsupported.
+At `f8b21fb`, one-way delivery passes the shared Linux/ARTBox lifecycle: callbacks
+inside synchronous handlers, two independent nodes, buffer-release ordering and
+queued delivery after sender death. Artifact provenance and 96 input hashes
+verify; all 19 host jobs and iOS pass. Local copy-fault and sender/receiver teardown
+controls also pass. Weak objects, FD transfer, nested synchronous calls, blocking
+reads and polling remain unsupported.
+
+The real servicemanager dependency pipeline now pins its five AOSP AIDL inputs
+and the native host compiler with source-manifest-linked notices. Windows verifies
+preparation and cache integrity; required Mac/Linux CI generates the C++ bindings,
+compares two generation directories and checks malformed-input rejection. Compiler
+execution is pending for this new step. Actual libbinder/servicemanager compilation,
+runtime attachment and acceptance remain required.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

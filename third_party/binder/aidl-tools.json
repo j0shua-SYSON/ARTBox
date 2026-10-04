@@ -1,0 +1,187 @@
+{
+  "repository": "aosp-mirror-neo/platform_prebuilts_build-tools",
+  "tag": "android-15.0.0_r1",
+  "commit": "d91d878ca61f179f08161888beab574aa38bcddd",
+  "upstream": "https://android.googlesource.com/platform/prebuilts/build-tools",
+  "compiler_source_commit": "1c5712d44317bdbfaeab915c2666f2b662d6b528",
+  "scope": "Build-host compiler only; never embedded in ARTBox or uploaded with generated bindings",
+  "profiles": {
+    "darwin-arm64": {
+      "directory": "darwin-x86",
+      "executable": "bin/aidl",
+      "library": "lib64/libc++.dylib"
+    },
+    "darwin-x86_64": {
+      "directory": "darwin-x86",
+      "executable": "bin/aidl",
+      "library": "lib64/libc++.dylib"
+    },
+    "linux-x86_64": {
+      "directory": "linux-x86",
+      "executable": "bin/aidl",
+      "library": "lib64/libc++.so"
+    }
+  },
+  "files": [
+    {
+      "path": "darwin-x86/bin/aidl",
+      "bytes": 7499688,
+      "sha256": "b7d8e7c77264cd5155f14f05cfbaa9c9fe1c5442eade4c64ddcc3b01b929147a",
+      "git_blob": "5e2f53b2892fa47b85f9ce3fb5f670eb8fc2973f"
+    },
+    {
+      "path": "darwin-x86/lib64/libc++.dylib",
+      "bytes": 2202064,
+      "sha256": "b1ffa429053102d6d4585d33591ced9c8c8a0d2377831c4421f3bd555c55b775",
+      "git_blob": "169c12a9769853cc08ddd81867ae548a477e6744"
+    },
+    {
+      "path": "linux-x86/bin/aidl",
+      "bytes": 4253784,
+      "sha256": "618a6ccb60a7210e40a3f8064d0af7cc8da926ebda7579ff44c461641fcf2bc8",
+      "git_blob": "0c292a537d8f39f7176a6abe34e98f47e6eb9dc7"
+    },
+    {
+      "path": "linux-x86/lib64/libc++.so",
+      "bytes": 1243904,
+      "sha256": "dbf10d96b476657061e5d3e10920becd9edfda858bcf101dccfeca092cbce84d",
+      "git_blob": "de0eabbf7b0a2061a677bb6562d8efc8099bfb9d"
+    },
+    {
+      "path": "manifest.xml",
+      "bytes": 77116,
+      "sha256": "ec3b26350de1cb1baa3a3910e457d4d55653c7fce2273e431adc86bede60991e",
+      "git_blob": "f0344f90730bf481146ea8d64ac621ac9f37f4a9"
+    },
+    {
+      "path": "Android.bp",
+      "bytes": 7858,
+      "sha256": "adb23d12a09a428a0922bc2de3d75590f787e5bb0919f6b837338c3b30ba5772",
+      "git_blob": "5931686901b05f3f18470efda5aafa59e4789f7c"
+    },
+    {
+      "path": "build-prebuilts.sh",
+      "bytes": 11830,
+      "sha256": "ae5e5f638e88d87b69cd0d382041d7042d2fb87ac506c0011ea7c1e346766801",
+      "git_blob": "02895076b8d7c6f5acd5c05d19a15f513514e66c"
+    },
+    {
+      "path": "METADATA",
+      "bytes": 266,
+      "sha256": "922ccc7c2059f1697ebe14e2f1840fb52fe46d02cabb6c95a4ce1916d0b41eda",
+      "git_blob": "aba8e2df2eaf5ad545a67c509a3094d24248fdae"
+    }
+  ],
+  "notices": [
+    {
+      "project": "system/tools/aidl",
+      "repository": "aosp-mirror-neo/platform_system_tools_aidl",
+      "commit": "1c5712d44317bdbfaeab915c2666f2b662d6b528",
+      "path": "NOTICE",
+      "bytes": 10695,
+      "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+      "git_blob": "c5b1efa7aac764ae6d8da63476a2d5cec02a6a5d",
+      "license": "Apache-2.0"
+    },
+    {
+      "project": "system/libbase",
+      "repository": "aosp-mirror-neo/platform_system_libbase",
+      "commit": "62b726f750a8832fffe3f556306922e9c348a462",
+      "path": "NOTICE",
+      "bytes": 12840,
+      "sha256": "e0afbb47be661ce2076d21a1d4dc02caa58b7c215ab7ff9d151b6724be341f77",
+      "git_blob": "311c3b883b49ccf5d78cdda0a5f307bba764c1e6",
+      "license": "Apache-2.0"
+    },
+    {
+      "project": "system/logging",
+      "repository": "aosp-mirror-neo/platform_system_logging",
+      "commit": "30d9c511b56b1697de1ea636a5a2294c39c4382e",
+      "path": "liblog/NOTICE",
+      "bytes": 10695,
+      "sha256": "f09747e3bc87e0ec3bdea983b37e18eeda223e01e678f76418a8a731ed8f590f",
+      "git_blob": "06a9081ca6475c0046240bb064e193b614a1e36c",
+      "license": "Apache-2.0"
+    },
+    {
+      "project": "external/googletest",
+      "repository": "aosp-mirror-neo/platform_external_googletest",
+      "commit": "324e5b008d37a6e10ad0f0c41c8a5a990de91dba",
+      "path": "LICENSE",
+      "bytes": 1475,
+      "sha256": "9702de7e4117a8e2b20dafab11ffda58c198aede066406496bef670d40a22138",
+      "git_blob": "1941a11f8ce94389160b458927a29ba217542818",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "project": "external/libcxx",
+      "repository": "aosp-mirror-neo/platform_external_libcxx",
+      "commit": "91124bc4b58fba93aac80e3c457d4b4ffc4688b4",
+      "path": "LICENSE.TXT",
+      "bytes": 3493,
+      "sha256": "c1938c0e9e90639d1e8f5a7f6bebaab83a3642e0ee44295a4c69934686d0bda8",
+      "git_blob": "c278f2c92833887086b646b68e74f1f0422316c4",
+      "license": "MIT OR NCSA"
+    },
+    {
+      "project": "external/libcxxabi",
+      "repository": "aosp-mirror-neo/platform_external_libcxxabi",
+      "commit": "06569fb13687c6f51fcaa0b6f5626c8579d229e4",
+      "path": "LICENSE.TXT",
+      "bytes": 3499,
+      "sha256": "8b756f8a0b731b67d18714ee3d11b2e182e5c8dac49ddad542e6237ce513d7c6",
+      "git_blob": "f1f163f38fdbec28188b9480d202130b6b4ebe6d",
+      "license": "MIT OR NCSA"
+    },
+    {
+      "project": "external/compiler-rt",
+      "repository": "aosp-mirror-neo/platform_external_compiler-rt",
+      "commit": "a4d1998659a580c72d0b33ced8b13a8e6b7fb61e",
+      "path": "LICENSE.TXT",
+      "bytes": 4289,
+      "sha256": "415ec2b15961f8b34859a50af386663f552bb62b9fffd69e8eb676c792ea022e",
+      "git_blob": "a17dc12b272fb9f4be5601958873fa67701c6eec",
+      "license": "MIT OR NCSA"
+    },
+    {
+      "project": "external/fmtlib",
+      "repository": "aosp-mirror-neo/platform_external_fmtlib",
+      "commit": "722ab740b1b0158db010101d5e8b18b7cdd3d5f7",
+      "path": "LICENSE",
+      "bytes": 1431,
+      "sha256": "07580f2a3b35709ce703d523f447b242f6dfec7582a8c0df102c7fa2849375f8",
+      "git_blob": "1cd1ef92696b65b2ecb0e560e622f0a0e869dcf3",
+      "license": "MIT"
+    },
+    {
+      "project": "external/bison",
+      "repository": "aosp-mirror-neo/platform_external_bison",
+      "commit": "a453e6dcb6f3efb5049d4118fc99b85f7c9a3a18",
+      "path": "COPYING",
+      "bytes": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "git_blob": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+      "license": "GPL-3.0-or-later"
+    },
+    {
+      "project": "external/bison",
+      "repository": "aosp-mirror-neo/platform_external_bison",
+      "commit": "a453e6dcb6f3efb5049d4118fc99b85f7c9a3a18",
+      "path": "data/skeletons/bison.m4",
+      "bytes": 43379,
+      "sha256": "a3056074b9d6da3866e4dff3d8fba2b9d81d1ca2ca74920718586822d60df767",
+      "git_blob": "b7bf5c5c7bd153ea9c7359a04040dd94f3c95835",
+      "license": "GPL-3.0-or-later WITH Bison-exception-2.2"
+    },
+    {
+      "project": "external/flex",
+      "repository": "aosp-mirror-neo/platform_external_flex",
+      "commit": "e058c910354051d00ffa40f58df150a105fd31cb",
+      "path": "COPYING",
+      "bytes": 1855,
+      "sha256": "97fd685958d93be7f8dab939bb8161dbd6afb0718c63bfc337c24321aea44273",
+      "git_blob": "684b011026dd719137ef01764f002c2c27a2bb52",
+      "license": "BSD-3-Clause"
+    }
+  ]
+}

@@ -62,6 +62,7 @@ jobs:
           ${{ matrix.python }} -B tests/test_environment.py
           ${{ matrix.python }} -B tests/test_sources.py
           ${{ matrix.python }} -B tests/test_binder_reference.py
+          ${{ matrix.python }} -B tests/test_binder_aidl.py
           ${{ matrix.python }} -B tests/test_classlib_build.py
           ${{ matrix.python }} -B tests/test_jdk.py
           ${{ matrix.python }} -B tests/test_bionic_adapt.py
@@ -81,6 +82,19 @@ jobs:
         run: ${{ matrix.python }} -B scripts/test_low_address.py
       - name: Record native Binder reference availability
         run: ${{ matrix.python }} -B scripts/probe_binder.py
+      - name: Generate real AOSP servicemanager interfaces with the native host compiler
+        if: matrix.os != 'windows-latest'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ${{ matrix.python }} -B scripts/binder_aidl.py
+      - name: Preserve generated interfaces and corresponding source without host binaries
+        if: always() && matrix.os != 'windows-latest'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: binder-aidl-${{ matrix.os }}
+          path: build/m4/binder-aidl/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Preserve native Darwin signal-context diagnostics
         if: always() && matrix.os == 'macos-15'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

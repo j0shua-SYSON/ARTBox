@@ -187,9 +187,27 @@ The sender gets completion without a reply, and sender teardown preserves accept
 receiver work. Local queue/fault/teardown controls pass. The new shared fixture
 checks four callbacks across two nodes, sends from a synchronous handler, issues
 a synchronous call while holding a one-way buffer, and requires final delivery
-after sender death. Paired execution is pending. Linux asynchronous byte quotas,
+after sender death. At `f8b21fb`, Linux and ARTBox pass this same lifecycle; the
+downloaded artifact and 96 source hashes verify. Linux asynchronous byte quotas,
 spam detection and transaction replacement remain unsupported; explicit ARTBox
 admission bounds apply. See ADR 0103.
+
+## AOSP servicemanager build inputs
+
+`python -B scripts/binder_aidl.py` generates the five actual AOSP interfaces on a
+native macOS arm64/x86_64 or Linux x86_64 host. It fetches only that host's pinned
+compiler and C++ dependency, source definitions and notices into configured
+`ARTBOX_CACHE_DIR`. Output defaults to
+`ARTBOX_BUILD_DIR/m4/binder-aidl/<profile>`; `--output` selects another directory.
+An existing generated tree must match the newly verified output before reuse.
+
+Other hosts can run, for example,
+`python -B scripts/binder_aidl.py --prepare-only --profile darwin-arm64` to verify
+all inputs without execution. Preparation is not a compiler test. Native CI must
+generate 16 C++/header files twice with identical hashes and reject malformed
+syntax and an unresolved type. Artifacts retain original source, notices and
+provenance without the host binaries. This builds an input to servicemanager;
+it does not yet compile or run the service. See ADR 0104 and `THIRD_PARTY.md`.
 
 ## Evidence
 

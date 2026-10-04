@@ -18569,5 +18569,57 @@
     ],
     "notice": "NOTICE",
     "notice_sha256": "5f28c11f8b1b3f97b9d42c74b85371ebf4127f241b799279bcecd69f7ee542dc"
+  },
+  "binder-aidl": {
+    "repository": "aosp-mirror-neo/platform_frameworks_native",
+    "tag": "android-15.0.0_r1",
+    "commit": "f7274fca5e36082674740bc6c976f73c4578d009",
+    "upstream": "https://android.googlesource.com/platform/frameworks/native",
+    "notice": "NOTICE",
+    "notice_sha256": "5f28c11f8b1b3f97b9d42c74b85371ebf4127f241b799279bcecd69f7ee542dc",
+    "files": [
+      {
+        "path": "libs/binder/aidl/android/os/ConnectionInfo.aidl",
+        "bytes": 972,
+        "sha256": "2d8ba6075b12d0667824386790518cc956c04e811c9b6080444f214fb49a21fa",
+        "git_blob": "160c9ea51edcddd6f480aac35b1948a46868ecdd"
+      },
+      {
+        "path": "libs/binder/aidl/android/os/IClientCallback.aidl",
+        "bytes": 1550,
+        "sha256": "287e2c4ce4debe0d1d883d66eee8cbf63910b86bd3e508fab64f5b806d15776a",
+        "git_blob": "36d7ee61fbf453639328b05a116b8e5cbfa33f07"
+      },
+      {
+        "path": "libs/binder/aidl/android/os/IServiceCallback.aidl",
+        "bytes": 946,
+        "sha256": "031e31e46fc31cfaececb3b9eb69b3bd4792b07a16549212fa1d1b5ae8cc0989",
+        "git_blob": "b29dfedf703c0d78c0fc5de28fc73154689e393e"
+      },
+      {
+        "path": "libs/binder/aidl/android/os/IServiceManager.aidl",
+        "bytes": 4848,
+        "sha256": "421015fe28ea0f9c437758020412bfcbb91840b9624f36d3df3216844db0cc5c",
+        "git_blob": "0fb1615391453581b761748d53dc8cfe9e51ccef"
+      },
+      {
+        "path": "libs/binder/aidl/android/os/ServiceDebugInfo.aidl",
+        "bytes": 980,
+        "sha256": "f62aaf6f4606609daec0995b234281bc73cf74d3ed4e9f8c46f516c4b3aa2f6b",
+        "git_blob": "b95d222394a84065944e7aadb9de9705af07edd1"
+      },
+      {
+        "path": "NOTICE",
+        "bytes": 17680,
+        "sha256": "5f28c11f8b1b3f97b9d42c74b85371ebf4127f241b799279bcecd69f7ee542dc",
+        "git_blob": "152be2059579780efa1e1ff9f914ff17af575bfe"
+      },
+      {
+        "path": "libs/binder/Android.bp",
+        "bytes": 21128,
+        "sha256": "30a27f83ee9d45f78b1c5c02271a329adcd5db5a12d755a3094b2176efb7c05a",
+        "git_blob": "7d1535065c1bf234d5b2c26e4f00dc1fcc5ee016"
+      }
+    ]
   }
 }

@@ -33,6 +33,32 @@ linked into ARTBox, copied into an Apple bundle or relicensed. ARTBox's original
 MIT ioctl fixture runs as an independent userspace program. Kernel reference
 coverage is reported separately from comparisons with the ARTBox driver.
 
+`binder-aidl` adds only the five unchanged `libs/binder/aidl/android/os` inputs
+listed by libbinder's Android.bp, plus that build file and the full NOTICE, at
+the same Android 15 frameworks/native pin. They remain Apache-2.0. The generated
+C++ interfaces are build inputs for real libbinder/servicemanager; generation
+alone does not run either component or include them in an IPA.
+
+`third_party/binder/aidl-tools.json` pins AOSP build-tools tag
+`android-15.0.0_r1`, commit `d91d878ca61f179f08161888beab574aa38bcddd`.
+Only the selected host's `aidl` and companion C++ library are downloaded, along
+with build provenance. The macOS files contain native arm64 and x86_64 slices;
+the Linux profile uses native x86_64 and its existing system libc. There is no
+host binary for Windows in this selection; cross-host preparation verifies bytes
+without executing them. The build manifest identifies the compiler source as
+`system/tools/aidl` commit `1c5712d44317bdbfaeab915c2666f2b662d6b528`.
+
+The compiler's AOSP source, libbase and liblog notices are Apache-2.0. Its pinned
+build manifest also supplies exact revisions for googletest (BSD-3-Clause), fmt
+(MIT), libc++/libc++abi/compiler-rt (their retained MIT/NCSA notices), Flex (BSD
+terms), and Bison's GPL-3.0 text and parser-skeleton exception. Preserve these
+complete notices and the skeleton's exception text; do not label host tooling
+as ARTBox MIT code. Each selected notice is checked against the build manifest,
+SHA-256 and Git blob. No host compiler/library binary is uploaded with generated
+bindings or embedded in ARTBox. Generated artifacts retain the original AIDL,
+AOSP NOTICE, tool source provenance and license records. A future distribution
+of these host binaries needs its own complete redistribution review.
+
 ## M3 ART math dependency
 
 The [math subset](docs/m3-math.md) selects 28 unchanged source units from

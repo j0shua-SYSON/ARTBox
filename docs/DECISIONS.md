@@ -2768,7 +2768,9 @@ explicit ARTBox errors; weak objects, FDs and scatter/gather are still unsupport
 
 ## 0103: Serialize one-way Binder delivery by node and receive-buffer lifetime
 
-Status: local queue/teardown controls pass; the shared native comparison is pending.
+Status: at f8b21fb, the complete shared one-way lifecycle passes on Linux and
+ARTBox. Artifact provenance and 96 source hashes verify; all 19 host jobs and
+iOS pass.
 
 AOSP servicemanager sends one-way callbacks while processing synchronous calls.
 Permit TF_ONE_WAY without occupying or changing the sender's synchronous call
@@ -2799,3 +2801,31 @@ ARTBox's documented byte/metadata admission bounds apply. TF_UPDATE_TXN, frozen
 processes, threadpool wakeups, blocking/poll integration, FD transfer and nested
 synchronous calls still need separate contracts. This is a prerequisite for real
 servicemanager, not its acceptance test.
+
+## 0104: Generate real servicemanager interfaces with a pinned AOSP host compiler
+
+Status: source/tool preparation and local integrity controls pass. Native compiler
+execution is required in Mac and Linux CI; real servicemanager is not built yet.
+
+Use the five AIDL definitions listed by the Android 15 libbinder build, unchanged,
+to generate their C++ interface, proxy and native-stub classes. Avoid handwritten
+service-manager parcels or replacing the AOSP implementation with our own
+registration table. These generated interfaces will be inputs to the real
+libbinder/servicemanager build, alongside its pinned source.
+
+Select AOSP's build-tools prebuilt at the same named Android 15 tag instead of
+bootstrapping Soong, Bison, Flex and the entire compiler dependency tree. Its
+manifest identifies the actual compiler source revision separately from the
+interface revision. Preserve both identities, exact file hashes and the selected
+dependency notices. Native profiles cover macOS arm64/x86_64 and Linux x86_64;
+other hosts can prepare these inputs as data without executing a foreign binary.
+No installer, translated CPU execution or tool binary inside the app is required.
+
+Run generation twice in different output directories and require the same 16
+nonempty output files and hashes. Reject a syntax error and an unresolved type
+with compiler diagnostics. Generated artifacts include original AIDL and notices,
+the tool's build manifest and license records, and independent provenance for
+both inputs and outputs. Compiler/library binaries stay in the configured cache.
+Hash/cache/path controls run on every CI host; the compiler itself must execute
+on Mac and Linux. Generation is a dependency check, not Binder transport or
+servicemanager runtime acceptance.
