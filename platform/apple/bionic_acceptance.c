@@ -329,6 +329,10 @@ static void check_art_bootstrap(void) {
     int positive=(int32_t)artbox_call7(sigchain_check,chain_action,chain_mask,0,0,0,0,0);
     if(positive!=22) {
         fprintf(stderr,"ART sigchain result: %d\n",positive);
+        const void *detail=entry(&images[1],"artbox_sigchain_detail");
+        for(unsigned i=0;i<25;++i)
+            fprintf(stderr,"ART sigchain detail[%u]=0x%" PRIx64 "\n",i,
+                artbox_call7(detail,i,0,0,0,0,0,0));
         fail("ART sigchain registration and forwarding");
     }
     int negative=(int32_t)artbox_call7(sigchain_check,chain_action,chain_mask,1,0,0,0,0);

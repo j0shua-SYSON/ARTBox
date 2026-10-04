@@ -16,18 +16,21 @@ using Action = int (*)(int, const struct sigaction*, struct sigaction*);
 using Mask = int (*)(int, const sigset_t*, sigset_t*);
 Mask chain_mask;
 volatile sig_atomic_t phase, special_calls, user_calls, failed, checks;
+volatile uint32_t failed_bits,mask_count;
+volatile uint64_t masks[32];
 uintptr_t stack_base;
 int* owner_errno;
 constexpr size_t stack_bytes=65536;
 constexpr uint64_t usr1=UINT64_C(1)<<9, usr2=UINT64_C(1)<<11, trap=UINT64_C(1)<<4;
 
 void observe(bool passed) {
-    if(!passed) failed=1;
+    if(!passed) { failed=1; failed_bits=failed_bits|(UINT32_C(1)<<checks); }
     checks=checks+1;
 }
 uint64_t current_mask() {
     uint64_t value=UINT64_MAX;
     if(syscall(SYS_rt_sigprocmask,0,nullptr,&value,8)) failed=1;
+    if(mask_count<32) { masks[mask_count]=value; mask_count=mask_count+1; }
     return value;
 }
 void handler_context(int signal,siginfo_t* info,void* raw) {
@@ -77,6 +80,7 @@ int artbox_sigchain_check(uint64_t action_address,uint64_t mask_address,int drop
     auto chain_action=reinterpret_cast<Action>(action_address);
     chain_mask=reinterpret_cast<Mask>(mask_address);
     phase=0; special_calls=0; user_calls=0; failed=0; checks=0;
+    failed_bits=0; mask_count=0;
     owner_errno=&errno;
     uint64_t saved_mask;
     struct sigaction saved_action{},action{};
@@ -128,4 +132,15 @@ int artbox_sigchain_check(uint64_t action_address,uint64_t mask_address,int drop
     if(chain_action(SIGTRAP,&saved_action,nullptr) || sigaltstack(&saved_stack,nullptr) ||
        munmap(memory,stack_bytes) || syscall(SYS_rt_sigprocmask,SIG_SETMASK,&saved_mask,nullptr,8)) return -6;
     return failed ? -1005 : checks;
+}
+
+// Read only after the caller returns. Never format/log inside a handler.
+extern "C" __attribute__((visibility("default")))
+uint64_t artbox_sigchain_detail(unsigned index) {
+    if(index==0) return failed_bits;
+    if(index==1) return checks;
+    if(index==2) return special_calls;
+    if(index==3) return user_calls;
+    if(index==4) return mask_count;
+    return index-5<mask_count ? masks[index-5] : UINT64_MAX;
 }
