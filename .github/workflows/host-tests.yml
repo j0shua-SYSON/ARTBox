@@ -10,6 +10,32 @@ concurrency:
   group: host-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  binder-native-build:
+    name: AOSP Binder Android ARM64 build
+    needs: host
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: binder-aidl-macos-15
+          path: build/m4/binder-aidl
+      - name: Compile real libbinder and libutils with the Android kernel IPC profile
+        run: python3 -B scripts/build_binder.py --aidl-dir build/m4/binder-aidl/darwin-arm64 --jobs 2
+      - name: Preserve archives, unresolved imports, sources and notices
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: binder-native-build
+          path: build/m4/binder-native
+          if-no-files-found: error
+          retention-days: 7
   binder-kernel-reference:
     name: Binder device reference (native Linux)
     runs-on: ubuntu-24.04
@@ -63,6 +89,7 @@ jobs:
           ${{ matrix.python }} -B tests/test_sources.py
           ${{ matrix.python }} -B tests/test_binder_reference.py
           ${{ matrix.python }} -B tests/test_binder_aidl.py
+          ${{ matrix.python }} -B tests/test_binder_build.py
           ${{ matrix.python }} -B tests/test_classlib_build.py
           ${{ matrix.python }} -B tests/test_jdk.py
           ${{ matrix.python }} -B tests/test_bionic_adapt.py

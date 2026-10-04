@@ -59,6 +59,27 @@ bindings or embedded in ARTBox. Generated artifacts retain the original AIDL,
 AOSP NOTICE, tool source provenance and license records. A future distribution
 of these host binaries needs its own complete redistribution review.
 
+`third_party/binder/native-sources.json` additionally pins 144 libbinder source,
+header and build/notice files at the same frameworks/native revision, 58 libutils
+Binder support files and 43 system headers/build/notice files from system/core
+`fc7bc8c4bfb4c6095e34ea784509dae56f25b486`, four APEX API/reference files from
+system/apex `896cdde58b67ddbf37ffdfe06f5b2567ef770f70`, and Soong's build-flag
+reference at `3fe78dc9b32f1ac3f7eb279ae9376d7037b18452`. All use the named tag
+`android-15.0.0_r1`. This selection compiles unchanged AOSP libbinder and eight
+libutils units into Android ARM64 archives; it is not embedded in the IPA yet.
+
+The implementations and APEX/Soong reference files retain Apache-2.0 notices.
+Keep the complete frameworks/native NOTICE, libutils NOTICE and libcutils NOTICE.
+The small forwarding and generated graphics headers inherit their package's
+Apache-2.0 declaration. `vm_sockets.h` retains its original generated-UAPI
+declaration and uses the NDK's real Linux UAPI header in Bionic builds; no kernel
+implementation is compiled. APEX/Soong have per-file license declarations and
+use the complete Apache text retained with libutils. Existing libbase/liblog
+header pins and their notices are reused. Preserve the full reviewed NDK NOTICE
+for compiled-in header definitions. Source artifacts include all selected
+originals, generated bindings, build recipes and notices. Original build scripts
+and artifact-integrity tests are MIT; AOSP files are not relicensed.
+
 ## M3 ART math dependency
 
 The [math subset](docs/m3-math.md) selects 28 unchanged source units from
@@ -108,7 +129,8 @@ ARTBox's MIT license covers its original code, not future dependencies.
 
 Bionic's inspected `libc/private/bionic_tls.h` at `android-15.0.0_r1` carries
 a BSD-style notice. The inspected libbinder `IPCThreadState.cpp` and
-servicemanager `main.cpp` at that tag use Apache-2.0. Neither has been imported.
+servicemanager `main.cpp` at that tag use Apache-2.0. Their later imports are
+recorded in the M4 section above.
 Do not replace these licenses with ARTBox's MIT license. AOSP origin does not
 mean that every file is Apache-2.0; review libcore/OpenJDK and transitive
 dependencies before the ART milestone.

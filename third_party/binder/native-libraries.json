@@ -1,0 +1,89 @@
+{
+  "target": "aarch64-linux-android35",
+  "cpp_standard": "c++20",
+  "libraries": {
+    "libbinder": {
+      "source": "binder-frameworks",
+      "units": [
+        "libs/binder/Binder.cpp",
+        "libs/binder/BpBinder.cpp",
+        "libs/binder/Debug.cpp",
+        "libs/binder/FdTrigger.cpp",
+        "libs/binder/IInterface.cpp",
+        "libs/binder/IResultReceiver.cpp",
+        "libs/binder/Parcel.cpp",
+        "libs/binder/ParcelFileDescriptor.cpp",
+        "libs/binder/RecordedTransaction.cpp",
+        "libs/binder/RpcSession.cpp",
+        "libs/binder/RpcServer.cpp",
+        "libs/binder/RpcState.cpp",
+        "libs/binder/RpcTransportRaw.cpp",
+        "libs/binder/Stability.cpp",
+        "libs/binder/Status.cpp",
+        "libs/binder/TextOutput.cpp",
+        "libs/binder/Utils.cpp",
+        "libs/binder/file.cpp",
+        "libs/binder/OS_android.cpp",
+        "libs/binder/OS_unix_base.cpp",
+        "libs/binder/BufferedTextOutput.cpp",
+        "libs/binder/IPCThreadState.cpp",
+        "libs/binder/IServiceManager.cpp",
+        "libs/binder/ProcessState.cpp",
+        "libs/binder/Static.cpp",
+        "libs/binder/IPermissionController.cpp",
+        "libs/binder/PermissionCache.cpp",
+        "libs/binder/PermissionController.cpp",
+        "libs/binder/IMemory.cpp",
+        "libs/binder/IShellCallback.cpp",
+        "libs/binder/LazyServiceRegistrar.cpp",
+        "libs/binder/MemoryBase.cpp",
+        "libs/binder/MemoryDealer.cpp",
+        "libs/binder/MemoryHeapBase.cpp",
+        "libs/binder/ParcelableHolder.cpp",
+        "libs/binder/PersistableBundle.cpp"
+      ],
+      "generated_aidl": true
+    },
+    "libutils_binder": {
+      "source": "binder-utils",
+      "units": [
+        "libutils/binder/Errors.cpp",
+        "libutils/binder/RefBase.cpp",
+        "libutils/binder/SharedBuffer.cpp",
+        "libutils/binder/String16.cpp",
+        "libutils/binder/String8.cpp",
+        "libutils/binder/StrongPointer.cpp",
+        "libutils/binder/Unicode.cpp",
+        "libutils/binder/VectorImpl.cpp"
+      ]
+    }
+  },
+  "includes": {
+    "binder-frameworks": [
+      "libs/binder/include",
+      "include",
+      "libs/binder/ndk/include_cpp",
+      "libs/binder/ndk/include_platform"
+    ],
+    "binder-utils": [
+      "libutils/binder/include",
+      "libutils/include"
+    ],
+    "binder-system": [
+      "libcutils/include",
+      "libprocessgroup/include",
+      "libvndksupport/include",
+      "libsystem/include",
+      "libvendorsupport/include_llndk"
+    ],
+    "binder-apex-headers": [
+      "libs/libapexsupport/include"
+    ],
+    "libbase-dex": [
+      "include"
+    ],
+    "liblog-dex": [
+      "liblog/include"
+    ]
+  }
+}

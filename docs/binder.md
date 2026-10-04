@@ -312,7 +312,10 @@ returns EBUSY with zero remaining module references.
 from AOSP `frameworks/native`, tag `android-15.0.0_r1`, commit
 `f7274fca5e36082674740bc6c976f73c4578d009`. The selection includes the real
 `cmds/servicemanager` implementation/build/test, Binder process/thread paths,
-service AIDL and license files; these are not built or shipped yet.
+service AIDL and license files. The separate [native build](binder-build.md)
+now compiles the real libbinder kernel-IPC profile and libutils support using
+generated AOSP interfaces. The real servicemanager and signed runtime attachment
+remain pending; the Binder libraries are not embedded in the IPA yet.
 
 The selected AOSP code is Apache-2.0. Linux's
 [Binder driver at v6.12](https://github.com/torvalds/linux/blob/v6.12/drivers/android/binder.c)

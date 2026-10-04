@@ -2804,8 +2804,9 @@ servicemanager, not its acceptance test.
 
 ## 0104: Generate real servicemanager interfaces with a pinned AOSP host compiler
 
-Status: source/tool preparation and local integrity controls pass. Native compiler
-execution is required in Mac and Linux CI; real servicemanager is not built yet.
+Status: native compiler execution passes on Mac ARM64 and Linux x86_64 at
+49e3786. All 20 generated files verify byte-identical across hosts; both malformed
+inputs are rejected. Real servicemanager execution remains required.
 
 Use the five AIDL definitions listed by the Android 15 libbinder build, unchanged,
 to generate their C++ interface, proxy and native-stub classes. Avoid handwritten
@@ -2842,3 +2843,33 @@ command line, including absolute temporary paths. Use its upstream
 `--omit_invocation` option and retain the relevant options in provenance instead.
 This keeps the output portable and permits strict byte-for-byte comparison
 without rewriting generated source or filtering differences after generation.
+
+## 0105: Compile the real Android libbinder profile before adapting its imports
+
+Use the unchanged Android 15 libbinder kernel-IPC source selection, its five
+generated service units and the eight libutils Binder support units. Build
+Android ARM64 relocatable archives with the pinned NDK, preserving x18 and the
+existing baseline ARMv8 profile. Do not substitute libbinder's RPC-only SDK or
+select vendor/recovery defines to remove platform dependencies. Pin transitive
+headers, including graphics constants and APEX declarations, without replacing
+them with empty compatibility headers.
+
+The build emits unresolved required and optional imports separately. Archive
+creation is not a link or an execution test; actual platform dependencies must
+be implemented, linked and tested before M4 acceptance. This inventory makes
+that remaining work explicit, including real servicemanager's access-policy,
+VINTF and event-loop requirements. No APEX loading stub is introduced here.
+
+Reserve x18 in every unit. Disable exceptions/RTTI as in AOSP and use its
+RefBase option to omit callstack diagnostics, retaining reference ownership.
+Use the upstream Soong warning policy for C99 designators, missing initializer
+fields and unused-but-set variables; the latter remains a visible warning.
+Pin Soong's original configuration as supporting evidence. No source body is
+edited to satisfy a newer compiler.
+
+Validate generated-input provenance and exact bytes before compiling. Check
+each object's target header and the archives' member inventories, then preserve
+input/object/archive hashes, compiler flags, symbol inventory and corresponding
+source with notices. Mac CI must build the same 49 units; Windows can use verified
+CI-generated bindings without executing a foreign host compiler. This adds no
+executable-memory permission and makes no device or service-execution claim.

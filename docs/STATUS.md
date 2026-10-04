@@ -105,8 +105,17 @@ The real servicemanager dependency pipeline now pins its five AOSP AIDL inputs
 and the native host compiler with source-manifest-linked notices. Windows verifies
 preparation and cache integrity; required Mac/Linux CI generates the C++ bindings,
 compares two generation directories and checks malformed-input rejection. Compiler
-execution is pending for this new step. Actual libbinder/servicemanager compilation,
-runtime attachment and acceptance remain required.
+execution passes at `49e3786` on Mac ARM64 and Linux x86_64, with all 20 generated
+files independently verified byte-identical across hosts. All 19 host jobs and
+iOS pass; kernel comparison, signed Mac runtime and integrated IPA artifacts
+independently verify at that head.
+
+The [native Binder build](binder-build.md) now compiles the real Android kernel-IPC
+libbinder profile and its libutils support into ARM64 archives, consuming those
+verified generated bindings. The build records unresolved imports and retains
+exact corresponding source and notices. Its new required CI job is pending.
+Linking, real servicemanager execution, runtime attachment and M4 acceptance
+remain required; producing archives does not satisfy those checks.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

@@ -1,0 +1,1554 @@
+{
+  "binder-frameworks": {
+    "repository": "aosp-mirror-neo/platform_frameworks_native",
+    "tag": "android-15.0.0_r1",
+    "commit": "f7274fca5e36082674740bc6c976f73c4578d009",
+    "upstream": "https://android.googlesource.com/platform/frameworks/native",
+    "files": [
+      {
+        "path": "NOTICE",
+        "bytes": 17680,
+        "sha256": "5f28c11f8b1b3f97b9d42c74b85371ebf4127f241b799279bcecd69f7ee542dc",
+        "git_blob": "152be2059579780efa1e1ff9f914ff17af575bfe"
+      },
+      {
+        "path": "include/android/asset_manager.h",
+        "bytes": 6769,
+        "sha256": "cb845cb8b5ad4154311129103e3eb17bcdc67d6b1476da8bd0fe274a28a8ab91",
+        "git_blob": "6420cd0064a621a4a82fb60e456c47bd7a517ce0"
+      },
+      {
+        "path": "include/android/asset_manager_jni.h",
+        "bytes": 1297,
+        "sha256": "1cc3d193d044c640dc508a71edade54dfbc8eda63ecd8357a56140040b9c7edb",
+        "git_blob": "dcee17e10f143b73bf2e09339b41cf36c1441c12"
+      },
+      {
+        "path": "include/android/bitmap.h",
+        "bytes": 9372,
+        "sha256": "e11877474f799c75f384bf4bb6bfb3c8b6980951b7bfb0f196606c2baf7c0c82",
+        "git_blob": "87a14c021de370118575df7d5b7c38f185c1e45f"
+      },
+      {
+        "path": "include/android/choreographer.h",
+        "bytes": 15563,
+        "sha256": "422e5a11e100fc039bfa9e6623529a0b6e6352b257ccbc6edae5f2aa3ccbcc6e",
+        "git_blob": "bec3283cd816ee0874756b9e282c88c57a44edc2"
+      },
+      {
+        "path": "include/android/configuration.h",
+        "bytes": 27268,
+        "sha256": "875ffbed98e906a67d0f654bc7131611fa3281b196b55041196694a8be1fabee",
+        "git_blob": "46c7dfeceb58172554b8d0bca198ce3c69888806"
+      },
+      {
+        "path": "include/android/font.h",
+        "bytes": 9630,
+        "sha256": "77d650ce91086e252aa67e42b2ba5f5abf4015ed9a134d326977aff38e9edf6c",
+        "git_blob": "022572535b47baf46f1070ed4645fe49bf704c88"
+      },
+      {
+        "path": "include/android/font_matcher.h",
+        "bytes": 7698,
+        "sha256": "97ecd18ccadc7b35f18a20fd1c22791429317dbfd070c0981156ccc473243f8e",
+        "git_blob": "60ff95e1235219308b11aa48542cb087eb9b0754"
+      },
+      {
+        "path": "include/android/hardware_buffer_jni.h",
+        "bytes": 2429,
+        "sha256": "6523d98fd88135396293ba59741250d6279f4ebe46d1604b30bfd1a5bb272dee",
+        "git_blob": "ae208a6e75b934a2ccc40e8621d452d14ad2d39e"
+      },
+      {
+        "path": "include/android/imagedecoder.h",
+        "bytes": 41697,
+        "sha256": "9877f33f718506e12ae41ecab72e29eb3f4367eb81fc5e8e717de39672285d82",
+        "git_blob": "fb7d09c04d61a390cc3c283b573f61d740a66341"
+      },
+      {
+        "path": "include/android/input.h",
+        "bytes": 60692,
+        "sha256": "3fe3b472c1886fa8ffb21aa1391288c1138e6839b994488b4e4ac7a0ec78d803",
+        "git_blob": "ee98d7aee99af3e8e498b000065fc5815e198d84"
+      },
+      {
+        "path": "include/android/input_transfer_token_jni.h",
+        "bytes": 2127,
+        "sha256": "43e59b410cddce8a7b2b727a10c20315b51aee17a7cc1e0bc2df38d3784a5ac9",
+        "git_blob": "92fe9b69218b64c813759afea1b624cee18c5dde"
+      },
+      {
+        "path": "include/android/keycodes.h",
+        "bytes": 32095,
+        "sha256": "2eecb01d0c779272e171bbe469f0425d51d9e7be6bfd2db6f227fd7d453ce938",
+        "git_blob": "79cdbcaf7b48f02f749a1b634fa6b6567f12781b"
+      },
+      {
+        "path": "include/android/looper.h",
+        "bytes": 10760,
+        "sha256": "e5e7198cadb31077648292abc3ae08245ef33df0982fad2c3ccc5187e046cb41",
+        "git_blob": "d80a3660a669cf8b389077bf5ffeeb812be9341f"
+      },
+      {
+        "path": "include/android/multinetwork.h",
+        "bytes": 10857,
+        "sha256": "e5a4e4db1dd3e1d5ceef0e448792b93debcf0cc0da12cde641cf4386a770610c",
+        "git_blob": "ee392fc4014ceb2e20bc27a7d33018072eb2e5bb"
+      },
+      {
+        "path": "include/android/native_activity.h",
+        "bytes": 11780,
+        "sha256": "04f85d119fc222abd65aef1f57f8e03a94134c272b95ed781e8f3791c64d973a",
+        "git_blob": "d3d99cf7a9b95edac0bc19a48989a60b808e2b2b"
+      },
+      {
+        "path": "include/android/native_window_jni.h",
+        "bytes": 1802,
+        "sha256": "3aa5336080521bc0a9ea194936a73e6a9391a24db3b8df04069f4ecbdd2e416a",
+        "git_blob": "071ec798b49d346b1fb2f247beec930d77607001"
+      },
+      {
+        "path": "include/android/obb.h",
+        "bytes": 1645,
+        "sha256": "fd3e7a17778fa696a0fce301b5d50ed840d555b804f6d1b5b8f03d7fbb39283b",
+        "git_blob": "4c6d9d7badd5b6a94333da3ce00313b5996e2ff1"
+      },
+      {
+        "path": "include/android/performance_hint.h",
+        "bytes": 13221,
+        "sha256": "a9256c54dd983adef1c190915f81411a660ba246742ab6d58dfacde4567ec84b",
+        "git_blob": "97e4dc05dd541ca5696e66cae2df0ec2c7541d32"
+      },
+      {
+        "path": "include/android/permission_manager.h",
+        "bytes": 2980,
+        "sha256": "278bd46ce2c6917f5c369b49b595994f0590318ffe956fa811191b3917c42e85",
+        "git_blob": "753b6d16de1cb085c57d1715b1049d0fb9f96797"
+      },
+      {
+        "path": "include/android/sensor.h",
+        "bytes": 39338,
+        "sha256": "c4bbd6a6534a76fb9693f5ca94ca1a52982ade92d02ed350eaf105800757a298",
+        "git_blob": "e3c1ccfc6c7507ecb5350e9fcfed59289403abe3"
+      },
+      {
+        "path": "include/android/sharedmem.h",
+        "bytes": 4649,
+        "sha256": "2314b7b0d81b77b23e99094911cbcc603e10e1860740c3546b0dfca683e3e9c4",
+        "git_blob": "1d513a6abef6f2023f4b93c66a7344a1211ca80b"
+      },
+      {
+        "path": "include/android/sharedmem_jni.h",
+        "bytes": 2430,
+        "sha256": "565875c92ecd629339c5e9ec599520f16b2e02413956f27882faf4014bfb3a7a",
+        "git_blob": "bbac785a337db0ba7a6e21fdb0cb92dd2511c02d"
+      },
+      {
+        "path": "include/android/storage_manager.h",
+        "bytes": 4843,
+        "sha256": "89230d45400e7182ba845d67e9b747c6a1e2be33644ee195fab6263300b70272",
+        "git_blob": "270570e0dfb984306b852f781e38b182285b7387"
+      },
+      {
+        "path": "include/android/surface_control.h",
+        "bytes": 35744,
+        "sha256": "04c6e7808216cc1ccc91ed0400f14bedfdcc299d6abd537c19c1d1120cd65616",
+        "git_blob": "099a2bc6aff5dc1de275c34fe5a2aafb36f61baa"
+      },
+      {
+        "path": "include/android/surface_control_input_receiver.h",
+        "bytes": 8962,
+        "sha256": "f9bdeef76ad6d79508beccd0bb9982df02e57c5c42f42bb79e2f472b37e557d4",
+        "git_blob": "bdc52490d5a2fc2fabff61b4a734bcb6f57dd07d"
+      },
+      {
+        "path": "include/android/surface_control_jni.h",
+        "bytes": 2117,
+        "sha256": "905b25ba33fd8110b40653e70c4123c296813b86e9c67f7dd629b26dd663af51",
+        "git_blob": "840f6e724b034dea8adab1291dec913e356971bd"
+      },
+      {
+        "path": "include/android/surface_texture.h",
+        "bytes": 7541,
+        "sha256": "6f640f369c1bf07ea81e05cf7f5f7b84c7b195a535a70107ac5cb76bf414f555",
+        "git_blob": "9ae211ea148efd237ad4d30a7ac6f23ebebf7307"
+      },
+      {
+        "path": "include/android/surface_texture_jni.h",
+        "bytes": 1801,
+        "sha256": "1360d5adea5931ceea4ea54aad61d69387edbb4c39d6f5e3b72b5e9d60304488",
+        "git_blob": "8448d8cafa3b8ad9b275358e5dd247fe8ada8152"
+      },
+      {
+        "path": "include/android/system_fonts.h",
+        "bytes": 4223,
+        "sha256": "7ff7e914b3a5150e264ca54329d14bbc460b0a252205a7da5c9cbb072a25ce2b",
+        "git_blob": "94484eaf54cef1c06702137919aec78a5592cdd0"
+      },
+      {
+        "path": "include/android/thermal.h",
+        "bytes": 12959,
+        "sha256": "c17d4a839b574c981a4663f4dd2ff6d6654faa0e19e0b94a89a8240e0f894056",
+        "git_blob": "fa168cdecb316f883f9f6cfba212b07493effe8e"
+      },
+      {
+        "path": "include/android/trace.h",
+        "bytes": 3953,
+        "sha256": "8b4af25ee7cdfcb78b7385acc0f8423ec7a257c16b4a9c02ef7dd1a2868b281d",
+        "git_blob": "d11158bb747f00e1bc8c6c192816f79f54a44f86"
+      },
+      {
+        "path": "include/android/window.h",
+        "bytes": 9640,
+        "sha256": "4731d77cf37ba0159659083d269301c492c083dd77026bd5ff21f209db872ec6",
+        "git_blob": "c1448646b65039c176f1143aead5e79ead6dcc72"
+      },
+      {
+        "path": "libs/binder/Android.bp",
+        "bytes": 21128,
+        "sha256": "30a27f83ee9d45f78b1c5c02271a329adcd5db5a12d755a3094b2176efb7c05a",
+        "git_blob": "7d1535065c1bf234d5b2c26e4f00dc1fcc5ee016"
+      },
+      {
+        "path": "libs/binder/Binder.cpp",
+        "bytes": 26979,
+        "sha256": "9bcf7dffc735186c10d2686d9b9418d0bd6a4f3c1fe633df1d3ee316bbbc22ba",
+        "git_blob": "c57c9cdd62d734265661aec87eb662bdc544722c"
+      },
+      {
+        "path": "libs/binder/BpBinder.cpp",
+        "bytes": 25994,
+        "sha256": "5faa49b04cb986753f58cfc1b5990fca418da3142f09f5dd79ea596b0ac63312",
+        "git_blob": "6594aa63090f12a68584acde8e0d149b81de2309"
+      },
+      {
+        "path": "libs/binder/BufferedTextOutput.cpp",
+        "bytes": 7452,
+        "sha256": "5e5686ccdc94c69f3b3de079c7f035d7bef375e0496a2427ca5c51043e08d094",
+        "git_blob": "a90bfd29badcf8c5c6dde7ee8d56e96e50687cf4"
+      },
+      {
+        "path": "libs/binder/BufferedTextOutput.h",
+        "bytes": 1868,
+        "sha256": "dcdacce04e51ef992c39b4b4e0298842b6530358a1403276075c8b728d594a8a",
+        "git_blob": "1c074e65c8f5aa01bd8e3ae87f19bc55060c1982"
+      },
+      {
+        "path": "libs/binder/BuildFlags.h",
+        "bytes": 974,
+        "sha256": "5beccd0d1a2cb161c8e5ee5a29e1352ef1de982a6e00fcaed3e6b0e3ec2412fc",
+        "git_blob": "3e9d1c2b4a2e2e266c170fc79019917ecde60472"
+      },
+      {
+        "path": "libs/binder/Debug.cpp",
+        "bytes": 8716,
+        "sha256": "035b409670cdc7096dfdb311e933462cc44e3387363b2cb07479f5cbd7523714",
+        "git_blob": "7ae616e2b0bc4eace431e42a0e49f33b4d90d851"
+      },
+      {
+        "path": "libs/binder/Debug.h",
+        "bytes": 1504,
+        "sha256": "29226184e990ef1e140270c2bebff3762b5174faf97978c0a5666a82e504958e",
+        "git_blob": "c3d03f8918836ea717734287750eda12c95e9a6a"
+      },
+      {
+        "path": "libs/binder/FdTrigger.cpp",
+        "bytes": 3970,
+        "sha256": "6001ec78eabef92a2e8133497e12fc3f2b1cb95c50d0335f9272786cbdcec3c4",
+        "git_blob": "455a4338e5b892c4c1bfb04a4fdb86976e1a0ef2"
+      },
+      {
+        "path": "libs/binder/FdTrigger.h",
+        "bytes": 1977,
+        "sha256": "e8347e3f376c8521a4d0f49d95483fb6c0b6234ebe8fa9f0173c4cd6293f7b69",
+        "git_blob": "78cdaaa4083bec710658bd926844616668070d4d"
+      },
+      {
+        "path": "libs/binder/FdUtils.h",
+        "bytes": 2746,
+        "sha256": "98839cc1c1929ebf39c1f2f00206efcc9c0171ddd41caf5dfc6cae24ada1d7eb",
+        "git_blob": "52ae48728f16e6d1f36b5a275a5e08caa4624f4b"
+      },
+      {
+        "path": "libs/binder/IInterface.cpp",
+        "bytes": 1342,
+        "sha256": "e1cfc31bc9009e4fdefb1e88e52c6d87788dec91e4fa103892a2865de649313b",
+        "git_blob": "dea26038cf3fae6887f2de62d0459cd967b44dc4"
+      },
+      {
+        "path": "libs/binder/IMemory.cpp",
+        "bytes": 15759,
+        "sha256": "2397cc23944b65acab2c43ac8dfca070d8a5f0c998dd5c746c6b041874d5f191",
+        "git_blob": "c6b0cb7b01ba4ed3edcc9d16ada8507ab55228b7"
+      },
+      {
+        "path": "libs/binder/IPCThreadState.cpp",
+        "bytes": 54120,
+        "sha256": "9dcc9fde4e003de4a42901e021f1d3de5948d73ec6ebf056c74b0d71a2a5ba24",
+        "git_blob": "fbc812571a276a1e8b22a8d9ca4be27837ab8da8"
+      },
+      {
+        "path": "libs/binder/IPermissionController.cpp",
+        "bytes": 6200,
+        "sha256": "c3ca9eeeb73b3b94314aaa9448699e672ab1d334d0a3a465471582dbe10eccca",
+        "git_blob": "f94f413d8b40bf99d6062978a7f7eed864828c61"
+      },
+      {
+        "path": "libs/binder/IResultReceiver.cpp",
+        "bytes": 2042,
+        "sha256": "3981922d0930cf486c67ee27da6098f7dc05e49f040b2b3a6ba67d83567e5d19",
+        "git_blob": "60ece7269cd25477a4b6b41dcddc1aab39397820"
+      },
+      {
+        "path": "libs/binder/IServiceManager.cpp",
+        "bytes": 26406,
+        "sha256": "32c1a351ca13469a2d6650f6790b9497208321c4ba352f6b1ed81f213031792e",
+        "git_blob": "fbcf823045c8c60b3210a7642f20b59e70f4dbaf"
+      },
+      {
+        "path": "libs/binder/IShellCallback.cpp",
+        "bytes": 2814,
+        "sha256": "a3a7d812759c80b2069a57f89ae395d05303618b11a8722db384a835586f63e4",
+        "git_blob": "86dd5c4f4b3c73703a3a683a5e4bb3f380de7b3c"
+      },
+      {
+        "path": "libs/binder/LazyServiceRegistrar.cpp",
+        "bytes": 12225,
+        "sha256": "496e00e324a7077253c311ef98a8cf88b89804b58c92afc1650f5bc0145b742d",
+        "git_blob": "7644806e2b1493bebfd369640efcb7d035065b6c"
+      },
+      {
+        "path": "libs/binder/MemoryBase.cpp",
+        "bytes": 1236,
+        "sha256": "2f687817e6ea0304e7270ba202f7dde79cdb8b290ab267a1fa8592ae9b581e04",
+        "git_blob": "32300dfbb672eeeee754822fe5229a5bed947ecd"
+      },
+      {
+        "path": "libs/binder/MemoryDealer.cpp",
+        "bytes": 13976,
+        "sha256": "eed2bdb92e055a60a8f6dd01b53387e88fa146383c46796123e175ca565a79fe",
+        "git_blob": "95bdbb4b65dd63421c1ba4f8a70a25739428ac07"
+      },
+      {
+        "path": "libs/binder/MemoryHeapBase.cpp",
+        "bytes": 7084,
+        "sha256": "335befc602600de85805ebf53df5856a1654c608c25d415ef14ff058d840bb97",
+        "git_blob": "fc273e0367385940774da8c1c88efc3b2038a2d0"
+      },
+      {
+        "path": "libs/binder/OS.h",
+        "bytes": 1725,
+        "sha256": "3a21045fcadb761089fd90b9eed8959dfdf8cb3474d074a0e19b64a1ec780a2f",
+        "git_blob": "04869a170f72a7ebd5be42c5dcc05e8fef18eb74"
+      },
+      {
+        "path": "libs/binder/OS_android.cpp",
+        "bytes": 1554,
+        "sha256": "80b4123062174e2f09eef2289e1687e8c60e3de4e5e1b9a3d942b5055ede6c9d",
+        "git_blob": "893ee155788d7a1d8a636ea8e88d532fabff46bf"
+      },
+      {
+        "path": "libs/binder/OS_unix_base.cpp",
+        "bytes": 5911,
+        "sha256": "7a013928a87285d30772ef8d5dd14a62ee5389be51d79d15398d9fc0a6e28abf",
+        "git_blob": "ca998d46d3bfcc0d9ad6fed6732e0936fadb250d"
+      },
+      {
+        "path": "libs/binder/Parcel.cpp",
+        "bytes": 110189,
+        "sha256": "078e55f7dd9972d92f85beb07e1aaf03dd79934881358144adb024cd3b205d96",
+        "git_blob": "3f70e8c104fe8af9c0ed158a694c927f4637c30e"
+      },
+      {
+        "path": "libs/binder/ParcelFileDescriptor.cpp",
+        "bytes": 1234,
+        "sha256": "4f3d253274b99107802403fee9a23080caed9afe10150917159d0c170585a020",
+        "git_blob": "c3c487442bd6f699e3003787decab53ec719c868"
+      },
+      {
+        "path": "libs/binder/ParcelValTypes.h",
+        "bytes": 1581,
+        "sha256": "9bcd33c7232c1217018f6b94d9b846590bbb9bbd68d30eae01e6d2508404c5be",
+        "git_blob": "80736c81a8bbca49374e25a1897f4bf4efbe3def"
+      },
+      {
+        "path": "libs/binder/ParcelableHolder.cpp",
+        "bytes": 3222,
+        "sha256": "e51d2ad361770a3a8ae58f80d0a11c9286b1be153c3e70095de7844e85661860",
+        "git_blob": "3cf94e3047348e5eb744f1c3da529974e67c6031"
+      },
+      {
+        "path": "libs/binder/PermissionCache.cpp",
+        "bytes": 3621,
+        "sha256": "fbb3b35d4f1cf6f62973fdaadc68d83f0bab82451120266a12c0f4a200be6e88",
+        "git_blob": "658686d2db49b5515c7a4d1393a5f6e57d5c3007"
+      },
+      {
+        "path": "libs/binder/PermissionController.cpp",
+        "bytes": 3004,
+        "sha256": "9c125bb4c813d3ce6e4e40996c43e04281f6121ee0f416e764d3165eac9ff694",
+        "git_blob": "0c8924503d29e6e1024144a42c8f7fc6d905fa52"
+      },
+      {
+        "path": "libs/binder/PersistableBundle.cpp",
+        "bytes": 16330,
+        "sha256": "67d30f8e26fb0ac7af10e1f3102af2a8749c326eddb25f6304a8efe1d6372ce0",
+        "git_blob": "5b157cc7c384d6d32513d92ab2c18eb9c837c37b"
+      },
+      {
+        "path": "libs/binder/ProcessState.cpp",
+        "bytes": 20610,
+        "sha256": "09570b18bbf50c740a715d3943a57134662d10028c7a9de34e07eaac424943a5",
+        "git_blob": "8485ecd8354004abff44ac6e1776c5b8fddb94db"
+      },
+      {
+        "path": "libs/binder/RecordedTransaction.cpp",
+        "bytes": 17315,
+        "sha256": "0b7cbc31b9ac8e3987e687c30497172e9fbd6cfcac6e0e38ba503355456b567c",
+        "git_blob": "924537e63a0f1695f835a53fca0201d2653bb9dd"
+      },
+      {
+        "path": "libs/binder/RpcServer.cpp",
+        "bytes": 25156,
+        "sha256": "e6941583749fc60791b1d8ddb89835e5dfcc12288c8e2424f366614afc78df22",
+        "git_blob": "d9e926a9d5c4a641903d2f2428f217b88de85487"
+      },
+      {
+        "path": "libs/binder/RpcSession.cpp",
+        "bytes": 39869,
+        "sha256": "dc06bb3df7c535dd95087ca3a1511c7c9f678a8aab4be01197f826510a66a483",
+        "git_blob": "16a7f9fd489d261ddbc2a2a5d52935e2371472bb"
+      },
+      {
+        "path": "libs/binder/RpcSocketAddress.h",
+        "bytes": 3984,
+        "sha256": "0d2848ee937f4dc83195fb433541ca0a58190fe6c0157c8a8bd123a2ac02b27d",
+        "git_blob": "c7ba5d96a798a2dfde8b42e24f13d39495852363"
+      },
+      {
+        "path": "libs/binder/RpcState.cpp",
+        "bytes": 53892,
+        "sha256": "43bf3c8d356e752f35245c47d0a3aa89777a6506fdb54cbfd461e3aee260b360",
+        "git_blob": "fe6e1a33183368b79aa946a237eb55d0508e9210"
+      },
+      {
+        "path": "libs/binder/RpcState.h",
+        "bytes": 13560,
+        "sha256": "233b0b1c3ae2f5bef6cdd1590598e4fbf05205f5504ad75fd53c99d9c81bab53",
+        "git_blob": "94013cc95228ff794d72669a0a3f1aed93fdc05e"
+      },
+      {
+        "path": "libs/binder/RpcTransportRaw.cpp",
+        "bytes": 4166,
+        "sha256": "e3c42a8315530eab72527a35cd6743e95a96be50f0d4ca8dfdee9b2909f9a570",
+        "git_blob": "aa3a6e506d7014f04e0f32b91918d3a18e24fc5f"
+      },
+      {
+        "path": "libs/binder/RpcTransportUtils.h",
+        "bytes": 3893,
+        "sha256": "066fbe202e893290f4b542cecb506480c1fd859c54b585eccb9af4fde0dfb28a",
+        "git_blob": "fcf6675588700fc409eea6642573a847f4973112"
+      },
+      {
+        "path": "libs/binder/RpcWireFormat.h",
+        "bytes": 4987,
+        "sha256": "5bda53ae274e161eb1ea78c0c0a9a090a8d9a523c8ff65360b95d8eda4609569",
+        "git_blob": "ff1b01a2134c7639dc1c7b65882f2648c5b8469b"
+      },
+      {
+        "path": "libs/binder/ServiceManagerHost.h",
+        "bytes": 1197,
+        "sha256": "6d05f4c42e3d77abb78de1c82f1f7829a2df0cf63b05ef2f6b6d5180fb46c2cc",
+        "git_blob": "941ba3a7577da874de39ec30b2024860bc424f70"
+      },
+      {
+        "path": "libs/binder/Stability.cpp",
+        "bytes": 6200,
+        "sha256": "789641b09afa283a6a7d70268f21b67ed2cdd735aaa8cf6b2d54ee748f48c1eb",
+        "git_blob": "4fb8fa08bc68f0c6258e7ea75cccc04ed047b98b"
+      },
+      {
+        "path": "libs/binder/Static.cpp",
+        "bytes": 2024,
+        "sha256": "44a1cadaf5a8980f965af8f6658eabe416117556c77d62f550962fdc26a3ca93",
+        "git_blob": "565f2e25f3600b54d33bd97bbaafdfeefaf64925"
+      },
+      {
+        "path": "libs/binder/Static.h",
+        "bytes": 890,
+        "sha256": "cb2dfb3fe4ae5b717f8cae8bacdb6b7213e229bb449dc32827f4a9825ad06d43",
+        "git_blob": "8444fe780c7c291eaf121a8a21070df6eda24e07"
+      },
+      {
+        "path": "libs/binder/Status.cpp",
+        "bytes": 8673,
+        "sha256": "ab2807a57992c61c7d91b350c6de01e088e9e61cd2f2f2aa863a10f650f7eaf6",
+        "git_blob": "dba65878fb9fa2199b2bdc1d526a39cc78f05ea4"
+      },
+      {
+        "path": "libs/binder/TextOutput.cpp",
+        "bytes": 1916,
+        "sha256": "9829983e4d7cee3b65a18218a2adec70ba676af7944344fc3a606042e5d7829d",
+        "git_blob": "5dd1f902f80b558ade2870c6f0d621383437dcd4"
+      },
+      {
+        "path": "libs/binder/Utils.cpp",
+        "bytes": 1353,
+        "sha256": "e285714b1be653fa7dceed9e049cfbadddd0997201f27d4c406ef4c188c9ff80",
+        "git_blob": "d9a96af80a85277afe8a0f50c43011ceac7d482a"
+      },
+      {
+        "path": "libs/binder/Utils.h",
+        "bytes": 3983,
+        "sha256": "41c1f428411664b22a8fbe391e1be2b080b9627b83fa1b047f519a4db37ed60f",
+        "git_blob": "df8a4ce1f1476dbbaa468a182d13d2b82eead374"
+      },
+      {
+        "path": "libs/binder/UtilsHost.h",
+        "bytes": 3728,
+        "sha256": "6807f2501b7494380df2af89e53f89aad0789d1d1474bfb12ce47973b4fb8202",
+        "git_blob": "03af1e72f075a28edba579427c573aed87c96211"
+      },
+      {
+        "path": "libs/binder/binder_module.h",
+        "bytes": 1055,
+        "sha256": "48f0e0a19af6fd6fdc5fc2a1a8cf47d119ee0c699d64187f013a9b437ac70272",
+        "git_blob": "b3a2d9ec2830f61ac4b26773f93a01c7c0d283d1"
+      },
+      {
+        "path": "libs/binder/file.cpp",
+        "bytes": 1559,
+        "sha256": "e387be62580c65b31f15e637c9272e85510cfed1a5562f3f069337285b5841c6",
+        "git_blob": "6e450b90b72539260822c4bbebe9e65c3c040660"
+      },
+      {
+        "path": "libs/binder/file.h",
+        "bytes": 1125,
+        "sha256": "3d44805203831a0d7753e67f52d8dec61d55fb3c39ca5d0a5ae5246945011824",
+        "git_blob": "bcbfa31836d7e965851794a75ddea3a60a78e12f"
+      },
+      {
+        "path": "libs/binder/include/binder/Binder.h",
+        "bytes": 6835,
+        "sha256": "b7c8226bfbb9702f888e8357e7357063d926e77c8152bb9606bf20533250d647",
+        "git_blob": "135be89c6c1ac46de023299c1020074638ddd5dc"
+      },
+      {
+        "path": "libs/binder/include/binder/BinderService.h",
+        "bytes": 2957,
+        "sha256": "0a2ba40bec643efaacac0f8e6825fdf63e30811a5efff9c063b2f5240154bbd7",
+        "git_blob": "e58d4894d973fb81f989661e109e4eef66594239"
+      },
+      {
+        "path": "libs/binder/include/binder/BpBinder.h",
+        "bytes": 8700,
+        "sha256": "2b1810976bdf908a2e0e0307e9738a887bf3973e04a314ba799161c0efb3c757",
+        "git_blob": "8ac30ba02fd6dd63c29a11cc34d02451dde97d55"
+      },
+      {
+        "path": "libs/binder/include/binder/Common.h",
+        "bytes": 1953,
+        "sha256": "7ff4dfcb3b659dc352ebb12b1aaac014c44f8e9574308be37b19f5965c13c2be",
+        "git_blob": "ed10154ca14f4b97c2cc007e97f297625e6f862e"
+      },
+      {
+        "path": "libs/binder/include/binder/Delegate.h",
+        "bytes": 3398,
+        "sha256": "51e12c212ae01d390b0edf9962edce5c9cb3e417f04caf9482bb34714b055dfd",
+        "git_blob": "7aaa7a0f54e0ea954460fac64792bf2eb114c7ae"
+      },
+      {
+        "path": "libs/binder/include/binder/Enums.h",
+        "bytes": 1421,
+        "sha256": "57a62020282e25133dd1dd0ea9522e8408efbfc5681e3de55393d1f7ed53079f",
+        "git_blob": "c6803bd7c88b69f86fd7db04c205576d099caa64"
+      },
+      {
+        "path": "libs/binder/include/binder/Functional.h",
+        "bytes": 1711,
+        "sha256": "2f6ee590b2074a8c03586e27632eb205aac4b6c3cc2d53dbe8499417fa479179",
+        "git_blob": "08e3b214da1e8a932d0f1e9f65e4f9aa76197be7"
+      },
+      {
+        "path": "libs/binder/include/binder/IBinder.h",
+        "bytes": 12692,
+        "sha256": "781a3665c5b9d8eaaf9ad2baea661e7ec9581a9b99c3e4479d66fd6b9889e8eb",
+        "git_blob": "17248ce2894b2d24a4431c71bdab9b2e5a6435c5"
+      },
+      {
+        "path": "libs/binder/include/binder/IInterface.h",
+        "bytes": 14013,
+        "sha256": "d2695cacd028407fddc3d0be56d694e6aafe99a8b56149cd052eafb90292c750",
+        "git_blob": "30e005c2d2645beb70128824081e93c80df6d105"
+      },
+      {
+        "path": "libs/binder/include/binder/IMemory.h",
+        "bytes": 4007,
+        "sha256": "7cca32495862a898dc4d5f056127edee64f7a6d06fced55899b2f1114f94dd72",
+        "git_blob": "12c5c618327b16bd569366e3e8e59866fecc3f1b"
+      },
+      {
+        "path": "libs/binder/include/binder/IPCThreadState.h",
+        "bytes": 11364,
+        "sha256": "9230bf1b0ff9304f04e113164facbc6c6de03e124f7ee71cc92fc1e679caeaf0",
+        "git_blob": "09ab442c7d51bb6c62d72f4af7247100987daa37"
+      },
+      {
+        "path": "libs/binder/include/binder/IPermissionController.h",
+        "bytes": 2419,
+        "sha256": "25b7118587f52c883ce74814fe1a6cc0463d2ace98755d1faf37a29d87237d53",
+        "git_blob": "2bf9e712759177e5e4e98587e6050af611502338"
+      },
+      {
+        "path": "libs/binder/include/binder/IResultReceiver.h",
+        "bytes": 1555,
+        "sha256": "b9c7cb5ef8a653cea35158ab8da9ebf80d22cba2c91b1f5dc364daef054471cf",
+        "git_blob": "b72cf11831d61f9a73ad03157ab48ec0281db707"
+      },
+      {
+        "path": "libs/binder/include/binder/IServiceManager.h",
+        "bytes": 9287,
+        "sha256": "1b697ec6517b21c686dff76592abb619e4bafecdc867288bf9bc19513adbb7ad",
+        "git_blob": "5fb73079cbfc80361015b636cc7ade2a2a27a062"
+      },
+      {
+        "path": "libs/binder/include/binder/IShellCallback.h",
+        "bytes": 1634,
+        "sha256": "3e2ccc98d8f5185dfc3e366bfa78ce0c93b13d249654a1f56d50a82137a73e36",
+        "git_blob": "4324afc4d061e8869d9c7df356becaae50f83c5a"
+      },
+      {
+        "path": "libs/binder/include/binder/LazyServiceRegistrar.h",
+        "bytes": 4378,
+        "sha256": "dbf2c92a7a0d2c94698e560027708f625584ed42a44cb75d16217b331c25d590",
+        "git_blob": "3436b11bd12767774d5ef1fc95dc2712d708a7cf"
+      },
+      {
+        "path": "libs/binder/include/binder/MemoryBase.h",
+        "bytes": 1442,
+        "sha256": "a142a51662f93154b4656b36593cdc266db2ab105b12e55dac3d1992c2a7f482",
+        "git_blob": "04cd1a43e0c6ef26f2c86ac4b7d99acfcf3e2d4b"
+      },
+      {
+        "path": "libs/binder/include/binder/MemoryDealer.h",
+        "bytes": 2023,
+        "sha256": "89f32e54e1282e62fdf18ec0ffe479a7897431ca98ff9a826b4a84a80fd17859",
+        "git_blob": "b979da52cf2f9577decfc57a16ca93fb98a982c8"
+      },
+      {
+        "path": "libs/binder/include/binder/MemoryHeapBase.h",
+        "bytes": 4135,
+        "sha256": "f2bcc777d814c3af0b105b833a0fca762ec18a4905817aff4411801ba898c01f",
+        "git_blob": "ff2d09fc2b806f386b1ac16c82ddd7fcb958cc36"
+      },
+      {
+        "path": "libs/binder/include/binder/Parcel.h",
+        "bytes": 74078,
+        "sha256": "66f51bdd6e87ab1ea1503064955c4b6f234bc525351865ea7e7c9ec5459b619b",
+        "git_blob": "5cc0830c88993d4c5710246b205976981a67d872"
+      },
+      {
+        "path": "libs/binder/include/binder/ParcelFileDescriptor.h",
+        "bytes": 2515,
+        "sha256": "61b54e2b7120fcf408a0fcc1030fe48f3c38d203c5f6e064c82dfe863278cad1",
+        "git_blob": "50a1d399ac17d1e8017b816bb81f6e2169aa7a5d"
+      },
+      {
+        "path": "libs/binder/include/binder/Parcelable.h",
+        "bytes": 2574,
+        "sha256": "c7314298d5c561c37373acab6c9164975d6c469a0067248db1ad0d9b4eb78b8d",
+        "git_blob": "0b707b35d4f7d443c0360cdb0dffe9cd71ee548a"
+      },
+      {
+        "path": "libs/binder/include/binder/ParcelableHolder.h",
+        "bytes": 5270,
+        "sha256": "ed6cb5ca2e38dc75dbc0c4815c48929ac537ba059efe248d480087a0cc7e7b58",
+        "git_blob": "965d0970a272cfd5464f6bf95790f4db75096e72"
+      },
+      {
+        "path": "libs/binder/include/binder/PermissionCache.h",
+        "bytes": 2804,
+        "sha256": "6ceb36142d10fea41d288e58266d07db14f6eaccd3b12b0038bbfb44da103a18",
+        "git_blob": "9c08016af83648a73c1c0c5c038415d8a039e741"
+      },
+      {
+        "path": "libs/binder/include/binder/PermissionController.h",
+        "bytes": 1995,
+        "sha256": "6c0a53f2f5b648ae02f3eaef3f7b3132ca3a7b6effc55a6b56f31596dc82db63",
+        "git_blob": "0cf0b701feda78f6d6b37ca6d76e2c2b902ff48f"
+      },
+      {
+        "path": "libs/binder/include/binder/PersistableBundle.h",
+        "bytes": 5579,
+        "sha256": "23a43a92f47946df8037fa8de47785f4b837a98384aaf7153d0207b6f0de591a",
+        "git_blob": "7c3b625872a3863658109fa65244559505b70db1"
+      },
+      {
+        "path": "libs/binder/include/binder/ProcessState.h",
+        "bytes": 6949,
+        "sha256": "1a13f2d21decb4bea4e01af50d89a5dd84a8da4f492b412b7ac56c7ab6bfbd48",
+        "git_blob": "a46663867c58176b6df86edd7a3f330f94582e7b"
+      },
+      {
+        "path": "libs/binder/include/binder/RecordedTransaction.h",
+        "bytes": 3174,
+        "sha256": "fd7734fbadce5cc73d12b34716876122b31e560ec36375b9b24a6ef8453cc266",
+        "git_blob": "ed75e43487fb0d60f724796e8a69ee1911caaa3b"
+      },
+      {
+        "path": "libs/binder/include/binder/RpcCertificateFormat.h",
+        "bytes": 1082,
+        "sha256": "1271d4869ca90ed369068c3d91f2c493251a5d82765e507d89ce133a249033f7",
+        "git_blob": "bc9d814773f367110b9bdc9944ba764d6dd6b665"
+      },
+      {
+        "path": "libs/binder/include/binder/RpcKeyFormat.h",
+        "bytes": 1051,
+        "sha256": "ead34da0ccda73dbbc6d63d6d5963da611768d914299aaaaa81de5ba2491839b",
+        "git_blob": "5099c2eacb00eb9a2d9e916a83d7faaa091afb14"
+      },
+      {
+        "path": "libs/binder/include/binder/RpcServer.h",
+        "bytes": 11613,
+        "sha256": "0cb09bc30f14f97d4976528215ae38b4bd922262d758325a1383c250b9b65dee",
+        "git_blob": "abea0fb40cbb8438947ab099de242368a467150e"
+      },
+      {
+        "path": "libs/binder/include/binder/RpcSession.h",
+        "bytes": 16280,
+        "sha256": "53e6dc67b65fb200789e8db46a30c9a1c62bcef329f43911324ffa3fd13a2bcf",
+        "git_blob": "40102bb9f0223d9c75446ab825a011a8ca23c57e"
+      },
+      {
+        "path": "libs/binder/include/binder/RpcThreads.h",
+        "bytes": 4147,
+        "sha256": "69438214c83dbae142afa1fa8887fb1bca4ae09ed284f0c24b090ed0bcf1c02a",
+        "git_blob": "99fa6b8b2952e148518aac684c68f98aebe221c3"
+      },
+      {
+        "path": "libs/binder/include/binder/RpcTransport.h",
+        "bytes": 7281,
+        "sha256": "f0364f503d72426b34c322571ff9705b1291884b7c84d96802aecf08d9e3dc72",
+        "git_blob": "843c4bf32fe74a75b812e708278c8bf8a207befb"
+      },
+      {
+        "path": "libs/binder/include/binder/RpcTransportRaw.h",
+        "bytes": 1424,
+        "sha256": "e184caecbfd1f2db87337a1c9af7a66e84f84fb84bd91dd17dac67ea150c93bc",
+        "git_blob": "bfa73ead3adaec9902f0ce963e72f44d34237ba0"
+      },
+      {
+        "path": "libs/binder/include/binder/SafeInterface.h",
+        "bytes": 31844,
+        "sha256": "65d62211af569727ddf05ba5415afd225e91e7d02f61a80b8eb4a6157a0c2fbc",
+        "git_blob": "c671eed0394e58b3f88fe33ddf5ebe85f6506fad"
+      },
+      {
+        "path": "libs/binder/include/binder/Stability.h",
+        "bytes": 7971,
+        "sha256": "40276fdc42af403a57e4c6119fe4c053f575e27f5bf1aabde3e496a2e3951447",
+        "git_blob": "cafb8aa04b1a7f79ec89db031ec46989352d17a1"
+      },
+      {
+        "path": "libs/binder/include/binder/Status.h",
+        "bytes": 6627,
+        "sha256": "2dfc95170337fa576865c92e7b7e044c3b62e976e5e71ba22f32a0530f6e67eb",
+        "git_blob": "49ccf7c36c7fabaf3ff2d2c2c7a7b072aa306d89"
+      },
+      {
+        "path": "libs/binder/include/binder/TextOutput.h",
+        "bytes": 5841,
+        "sha256": "e6510d7bf17b373ed1598c80e7db49cf79e77445adbc40215dcd2394da212cc7",
+        "git_blob": "0527eeb0c021e012342a0d6c41c0dc69cd215a12"
+      },
+      {
+        "path": "libs/binder/include/binder/Trace.h",
+        "bytes": 1571,
+        "sha256": "725a3c023768663b74f5d2dcd6f8b2f71b8e441f06bb3b786966b4ea5070d344",
+        "git_blob": "2f450cb36b20ac0e985aa1441f5321e67da4ccd9"
+      },
+      {
+        "path": "libs/binder/include/binder/unique_fd.h",
+        "bytes": 3344,
+        "sha256": "89ae0cb6bcb2517093128d25a9bea12311df436773b58f953b4ada2f510b46f1",
+        "git_blob": "3de41493280ee1b92a5de262436649164fef2003"
+      },
+      {
+        "path": "libs/binder/ndk/include_cpp/android/binder_auto_utils.h",
+        "bytes": 13362,
+        "sha256": "8de4018f17330e3cb68eacd66ef2f10da19ae22b2da0e7f6f6ad4d100607a5f4",
+        "git_blob": "8c62924beb952df95e78be95d011e7fbb3fc26fe"
+      },
+      {
+        "path": "libs/binder/ndk/include_cpp/android/binder_enums.h",
+        "bytes": 1723,
+        "sha256": "a4f3b34f5478d5ad820e93eabfa0d5fe82e53a71727ad6f48b5932a043060189",
+        "git_blob": "ee819c0b231e516525214f04a5ca83c4a9879fb8"
+      },
+      {
+        "path": "libs/binder/ndk/include_cpp/android/binder_interface_utils.h",
+        "bytes": 12514,
+        "sha256": "617be0ef4cf0386b62e5ee362c98206ffe2f9a5949e3a881138cf244a0d5b440",
+        "git_blob": "62738041bab2203d7e7e955dff9515782bd4fcd0"
+      },
+      {
+        "path": "libs/binder/ndk/include_cpp/android/binder_internal_logging.h",
+        "bytes": 1010,
+        "sha256": "b3dc27d60e3c75629f231f94ab24779af9faeede2c4d605401179265d6d5eea8",
+        "git_blob": "88c6443f71790c461dc4928624b1fe4676cf4a47"
+      },
+      {
+        "path": "libs/binder/ndk/include_cpp/android/binder_parcel_utils.h",
+        "bytes": 72077,
+        "sha256": "8a2171d1b7259a39326e7475f481e54bddbe4d48e7f21e6b865cd8ebb0479dcd",
+        "git_blob": "95eee26eedc767d3bbf1eb53ccf79655ff33627b"
+      },
+      {
+        "path": "libs/binder/ndk/include_cpp/android/binder_parcelable_utils.h",
+        "bytes": 5730,
+        "sha256": "9c330de3ef09843d69d54116616efb52e7f442fb3bca28dc7d22f26c8f0fb869",
+        "git_blob": "caee4711a495ad965846c4c2b0df445c6b4ed47c"
+      },
+      {
+        "path": "libs/binder/ndk/include_cpp/android/binder_to_string.h",
+        "bytes": 7773,
+        "sha256": "f5333debafd787a6dd0ad000fa08f8a0e585764bf994e75dc15a6fe7dd7da6da",
+        "git_blob": "b0c7f6d4a9ebc6e01733e5e41195d610d286087b"
+      },
+      {
+        "path": "libs/binder/ndk/include_cpp/android/persistable_bundle_aidl.h",
+        "bytes": 19864,
+        "sha256": "5713f856cdc474d3ce3ecb7e8b6ab18ac676b5fb322bba0525c0a996a64aa5bd",
+        "git_blob": "d570eab9765459ed96236c4a383ec48f2c46d536"
+      },
+      {
+        "path": "libs/binder/ndk/include_platform/android/binder_ibinder_platform.h",
+        "bytes": 2898,
+        "sha256": "35e0c22a5aa5df893b1f32dc0755803463a7d43653124a6f66f569e8e8a73b01",
+        "git_blob": "89f21dda21ed8eb8298353e4d30831e0518200aa"
+      },
+      {
+        "path": "libs/binder/ndk/include_platform/android/binder_libbinder.h",
+        "bytes": 2618,
+        "sha256": "4a9784bac4bfb857d2f1eeed529f62c158824a598a8518fecf49d3487a175d32",
+        "git_blob": "74a7157314db63d1d3af15253a05133e5787e912"
+      },
+      {
+        "path": "libs/binder/ndk/include_platform/android/binder_manager.h",
+        "bytes": 13514,
+        "sha256": "bb97e883a1c302dd7520c8bec77226dc63d6389405b908506103e21daf8b84eb",
+        "git_blob": "41b30a0a0f6c159c617c93a49c77bd91382a78a2"
+      },
+      {
+        "path": "libs/binder/ndk/include_platform/android/binder_parcel_platform.h",
+        "bytes": 1466,
+        "sha256": "f322bdab762a121b557be401be732098715847956b4be24fa1b2ecfb7281d9d1",
+        "git_blob": "b24094ef16c334f7000a82079c5ea3b1efe4cc7c"
+      },
+      {
+        "path": "libs/binder/ndk/include_platform/android/binder_process.h",
+        "bytes": 4268,
+        "sha256": "6e05d78c2f6d8677bb96ca7d6656c6a1c9683d0a8b9eeb959e5bb090a0f119dc",
+        "git_blob": "68528e100417b34b66ea821927361f2f32787dc8"
+      },
+      {
+        "path": "libs/binder/ndk/include_platform/android/binder_shell.h",
+        "bytes": 1895,
+        "sha256": "9ad33163a5849625869264748224c425980b96581346de55602f8b89733d8821",
+        "git_blob": "07d89e67fcef4aeb9c12d7155491ae40da9330f9"
+      },
+      {
+        "path": "libs/binder/ndk/include_platform/android/binder_stability.h",
+        "bytes": 4107,
+        "sha256": "087c181919621db0574140d95cdf5e2b04f6c1495a0c91698196db4e0bb87912",
+        "git_blob": "089c775eca33bae8f2bf5b14c049994b1ddf4f05"
+      },
+      {
+        "path": "libs/binder/vm_sockets.h",
+        "bytes": 2011,
+        "sha256": "737aedcf864f617151e1bc0ab833559b58b42c2c9a80be5f766271175c9763f1",
+        "git_blob": "7d9732b0fa50fb1b0d145048aed562e4e660a19e"
+      }
+    ],
+    "notice": "NOTICE",
+    "notice_sha256": "5f28c11f8b1b3f97b9d42c74b85371ebf4127f241b799279bcecd69f7ee542dc"
+  },
+  "binder-utils": {
+    "repository": "aosp-mirror/platform_system_core",
+    "tag": "android-15.0.0_r1",
+    "commit": "fc7bc8c4bfb4c6095e34ea784509dae56f25b486",
+    "upstream": "https://android.googlesource.com/platform/system/core",
+    "files": [
+      {
+        "path": "libutils/NOTICE",
+        "bytes": 10695,
+        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+        "git_blob": "c5b1efa7aac764ae6d8da63476a2d5cec02a6a5d"
+      },
+      {
+        "path": "libutils/Android.bp",
+        "bytes": 8626,
+        "sha256": "2834b03e789af42680eaee9e3e0d3f062a15a7a4d96230451d10a5f31724436d",
+        "git_blob": "4877caeeebf65c3e01517dc8bd5b3ed579fda3b9"
+      },
+      {
+        "path": "libutils/binder/Android.bp",
+        "bytes": 3221,
+        "sha256": "289e689e5d91bc6d595e23dfb70fbced35ccc80ef4835c8b51bd89f37457a066",
+        "git_blob": "e3583912d8d4c9b0f8c1a33b7b59cc3da932bd4d"
+      },
+      {
+        "path": "libutils/binder/SharedBuffer.h",
+        "bytes": 4923,
+        "sha256": "996a2b4a2afbffeaa0fdfbf6d593111b0567df59d14ffd2e92be643d5707abb1",
+        "git_blob": "476c842fe034d9312c8118ccb5ebc1d175c6c8cf"
+      },
+      {
+        "path": "libutils/binder/Errors.cpp",
+        "bytes": 1611,
+        "sha256": "4a6bea1d894dca6af4445cda1c02a3f2afefb100dbbfab8f4e65d3e36265346d",
+        "git_blob": "dfb4d9b95c05c9d465408f3ac47ee311928ed1ad"
+      },
+      {
+        "path": "libutils/binder/RefBase.cpp",
+        "bytes": 30475,
+        "sha256": "16b4975ea9099a40f3dac9eb939bbac8745f7b66880c587c75360422a2e74654",
+        "git_blob": "2d2e40b7e3b5e0fb4fb85f091eef06dc9c9717bd"
+      },
+      {
+        "path": "libutils/binder/SharedBuffer.cpp",
+        "bytes": 4011,
+        "sha256": "e464121e103a4be47aa48b187c6d880b19d0909a4a59de26d646f79b689c692c",
+        "git_blob": "d16bdb08670c5916ba628af99851869e4d2a162e"
+      },
+      {
+        "path": "libutils/binder/String16.cpp",
+        "bytes": 10812,
+        "sha256": "f6463cd49160ef2c7aebff1a026f8de7599209011c319036240da7403a84a2ae",
+        "git_blob": "96e1477215339a68eec3342f819b7321577fa9ad"
+      },
+      {
+        "path": "libutils/binder/String8.cpp",
+        "bytes": 11333,
+        "sha256": "a270d8e6d9927118f300f91ab68b22ea753eba0d3e14c691afeead09f255360b",
+        "git_blob": "1de9e8b1736253a348f0feb92c889d0cafea4b3b"
+      },
+      {
+        "path": "libutils/binder/StrongPointer.cpp",
+        "bytes": 770,
+        "sha256": "5b941e5966aa017a6eba227e76668ed731360054145c31b314a9a96c92c511ac",
+        "git_blob": "ba52502ec0cd2007f9d0ea60de94b613bffaa0b2"
+      },
+      {
+        "path": "libutils/binder/Unicode.cpp",
+        "bytes": 16622,
+        "sha256": "a8a7c7cb1b1995ae10a13472c467047d3aaacdc6303257a6a0fd9ab4a24f817c",
+        "git_blob": "2ed2d4f80ae28abde8fe7fcc9576e5843b3ce855"
+      },
+      {
+        "path": "libutils/binder/VectorImpl.cpp",
+        "bytes": 20198,
+        "sha256": "33676204f022460217837393312ea9e7ee8f8c265211491d4f2f4902192eccd2",
+        "git_blob": "d951b8bbbc3c8b71d8fc0f9b2d003c8a5d823e9f"
+      },
+      {
+        "path": "libutils/binder/include/utils/Errors.h",
+        "bytes": 2389,
+        "sha256": "001f9c16788f4dbe3a6d70f2a8e9b55d6928f91e086de498d86ad327d869ff19",
+        "git_blob": "22fb36d2500ee482e27d7c19fc0021dd50449abd"
+      },
+      {
+        "path": "libutils/binder/include/utils/LightRefBase.h",
+        "bytes": 2354,
+        "sha256": "69e4814a1fb150b747bfff3a144535c6cc8584e037a2b847b7b719c1a75e94f1",
+        "git_blob": "40edf6718d33b67a74884574c0543af98206fe92"
+      },
+      {
+        "path": "libutils/binder/include/utils/RefBase.h",
+        "bytes": 28690,
+        "sha256": "58949eeb23be4e5ff91c4904d9c643e6ed9b9f96a0b789b5aa04f679602c0373",
+        "git_blob": "b6a8707a830feb4bdcd14020d329744e577c1c49"
+      },
+      {
+        "path": "libutils/binder/include/utils/String16.h",
+        "bytes": 13055,
+        "sha256": "154468dae9daa35835789c7d171a91ae582b6e81fad8a47b5fc05b29bd83e63a",
+        "git_blob": "867dbac34a0d387151c6a7e60a6bd1a4c24fdd28"
+      },
+      {
+        "path": "libutils/binder/include/utils/String8.h",
+        "bytes": 10887,
+        "sha256": "0a30270b1029d9f01f7e7c69f500466a3a52e3801ef163d8670a37c990b9f0d7",
+        "git_blob": "e0d7588f6a19ca9263c178703111d81029b9a13d"
+      },
+      {
+        "path": "libutils/binder/include/utils/StrongPointer.h",
+        "bytes": 12334,
+        "sha256": "992b24f3902fc8540021cd14f65b4a18c36101a4c34ff5e4b6a3857f33e7b6d2",
+        "git_blob": "fb9b8e899bb4ecc8580638f013b23219b703c98f"
+      },
+      {
+        "path": "libutils/binder/include/utils/TypeHelpers.h",
+        "bytes": 10256,
+        "sha256": "36973dcbd99139f3af9c1d4a9487d1e0315c0c2555eebd6aecedd2185ee27107",
+        "git_blob": "007036bbdb9c09ebe245c01074a12b25c803ff54"
+      },
+      {
+        "path": "libutils/binder/include/utils/Unicode.h",
+        "bytes": 5359,
+        "sha256": "ddd4c6cee350ada5e9a5e22412219f29eb690612c0eee1567fe4909cc0c663cc",
+        "git_blob": "d60d5d6ba634599ded38e60a8fd6ac582680678a"
+      },
+      {
+        "path": "libutils/binder/include/utils/Vector.h",
+        "bytes": 13493,
+        "sha256": "81aa7c328ab0c2722a2eec9d2979c85d519eeeab78d68cf58e566122f7613294",
+        "git_blob": "d5db3cb482fe7b06f4274ce5a569511120599fa0"
+      },
+      {
+        "path": "libutils/binder/include/utils/VectorImpl.h",
+        "bytes": 7414,
+        "sha256": "2c0d7bff0eb9e8aee019ec5c2a939951200104068ece641485014f0c5f4c2bf2",
+        "git_blob": "41b9f331060d7ec2230c3bd00145cd72fbd150e5"
+      },
+      {
+        "path": "libutils/include/utils/AndroidThreads.h",
+        "bytes": 4749,
+        "sha256": "684561d203a63d3825a7a881d8c29cc63108e85e63aaca8b53e4c412b0098f78",
+        "git_blob": "a8d7851759d20c472631e65712bea3d7bd0566c6"
+      },
+      {
+        "path": "libutils/include/utils/Atomic.h",
+        "bytes": 792,
+        "sha256": "ad9b77d0f773513dd74d170925acd91adf07c5277bdd9f754e8363c837565a7b",
+        "git_blob": "0f592fe042590dfd0309fc9bf1a96b3257e4c09f"
+      },
+      {
+        "path": "libutils/include/utils/BitSet.h",
+        "bytes": 11634,
+        "sha256": "8a9ae59996ddb1f64f6764be7a7c3bf3a3bcd22c0cf09385103ea69e2046fa6d",
+        "git_blob": "0fb1a6aca2b08e10f06a39807fb93382f7594060"
+      },
+      {
+        "path": "libutils/include/utils/ByteOrder.h",
+        "bytes": 1363,
+        "sha256": "c85f694a48a48b7fcc5ba3501f20e17c2728eb3b4e620960449d0689baa1c8a7",
+        "git_blob": "9b940e6e00c8bc1dfacc72daee4294efb573d115"
+      },
+      {
+        "path": "libutils/include/utils/CallStack.h",
+        "bytes": 6718,
+        "sha256": "852203c6f1db5b235d8efc407f7c4b15f6c9dbc135c805462700a72d06012153",
+        "git_blob": "0239b682e94c0b286205ce49f6b0d01a46e32042"
+      },
+      {
+        "path": "libutils/include/utils/Compat.h",
+        "bytes": 2697,
+        "sha256": "ac4a73a4893c874b91880c58eac7a2aacd94ff086579c4fdf5ee5bf7d94f31b5",
+        "git_blob": "3221899f7a4d74d08b1708f5730eb4abe32e7877"
+      },
+      {
+        "path": "libutils/include/utils/Condition.h",
+        "bytes": 4785,
+        "sha256": "277962fe2496381c9a6071f0a20faa5beacc0929ee0ef855fdaf6da84df87ff6",
+        "git_blob": "540ed829246f4891548b54f56312919d4789f458"
+      },
+      {
+        "path": "libutils/include/utils/Debug.h",
+        "bytes": 788,
+        "sha256": "a4e15e419976085e71c68bed5decf4c1cf00d6ec811ee44549cb2618b519b106",
+        "git_blob": "c3b902617f825d1e835f01387571bf23937e6c69"
+      },
+      {
+        "path": "libutils/include/utils/Endian.h",
+        "bytes": 926,
+        "sha256": "7d8249ec3b5c3f8f2a158f746602bdf521b85dba9b9fe3bb13f4bf01ef691f16",
+        "git_blob": "591cae0d3461d278b31fab4767cfbf53ddc9cb42"
+      },
+      {
+        "path": "libutils/include/utils/ErrorsMacros.h",
+        "bytes": 6704,
+        "sha256": "c49142b3b3354078beb7ccbeb001764323b1aa60c25c18fb8b9c8a7f191615f4",
+        "git_blob": "fdc46e617923c63865fa23f61cd85143451dfe39"
+      },
+      {
+        "path": "libutils/include/utils/FastStrcmp.h",
+        "bytes": 2984,
+        "sha256": "e34d87a7d09dc0f33bc700a2df8837c70820e7736ef372a4bc95f72254338e0f",
+        "git_blob": "5cadc943a62a8bd8fa0a1bdb432f43c66c824f19"
+      },
+      {
+        "path": "libutils/include/utils/FileMap.h",
+        "bytes": 3690,
+        "sha256": "ee9ec4b3425fbb8c0697ce566685a65f7323b8d80c9cd31b99f546114f24246a",
+        "git_blob": "f9f8f3c60096d6209971a4ae523c111554f020e0"
+      },
+      {
+        "path": "libutils/include/utils/Flattenable.h",
+        "bytes": 7889,
+        "sha256": "a680c619d1e3d5e2e4640eab3e9295528065c72b8ac3eedddc97c4ffc4d2c5e1",
+        "git_blob": "8aa381a8f9e5d0cb688bb6fdf0481f9ffb9a05e5"
+      },
+      {
+        "path": "libutils/include/utils/Functor.h",
+        "bytes": 1037,
+        "sha256": "ff353a17c188e104e41aca2631c27364e80157dad23ebe5c591af25e6870629e",
+        "git_blob": "c45869917a28a932b4dcda43d694436e59ff0cb9"
+      },
+      {
+        "path": "libutils/include/utils/JenkinsHash.h",
+        "bytes": 1555,
+        "sha256": "945d3a562cf24f6d5d065d3517609c87792eda505a3f41dca01ff895b3d28bb9",
+        "git_blob": "027c10c7e0a25d4154dedcfb834d1dfb90d81b61"
+      },
+      {
+        "path": "libutils/include/utils/KeyedVector.h",
+        "bytes": 6950,
+        "sha256": "a1d7f02d7a3b0b74629521f7e796342e16a968f11bfdd620589e62d71b5d426b",
+        "git_blob": "5cf7a11659bcb24c4d14a6feb55f9f0078177e44"
+      },
+      {
+        "path": "libutils/include/utils/List.h",
+        "bytes": 10292,
+        "sha256": "c0bcc937d1cdb45054058e1c269fa14a1aaa4fe780705c83373040bd3de4b587",
+        "git_blob": "25b56fd21d7e67ac6baf386bd25d3561643585b3"
+      },
+      {
+        "path": "libutils/include/utils/Log.h",
+        "bytes": 270,
+        "sha256": "74f0f6c731593ec8c2bcd05e71c74372b469236977136af113ac8a15bdfbf939",
+        "git_blob": "42e03e7c44e8cdd6953582d31471f0594d692029"
+      },
+      {
+        "path": "libutils/include/utils/Looper.h",
+        "bytes": 17708,
+        "sha256": "fa803e2631a388e55d8f96d6aaa9e248ab806a0b1f1fa4b716e45c4231da28bc",
+        "git_blob": "41c5536f4d33027f65bfd441e385850a21e47dc6"
+      },
+      {
+        "path": "libutils/include/utils/LruCache.h",
+        "bytes": 8551,
+        "sha256": "4bee07d263c3df17ea2f6bb4683dade5d3a33ae90f19d701ea57b29108744b40",
+        "git_blob": "70901b63b4c517f43cf8c75f33c5d81685fbe92b"
+      },
+      {
+        "path": "libutils/include/utils/Mutex.h",
+        "bytes": 7276,
+        "sha256": "f1e0cb4a0068c6b12caa0aa412897f4bad4e6a990c8caad93bca3af7b721dc65",
+        "git_blob": "1325bf37fe22dc36991d505641f72a80fc27bfba"
+      },
+      {
+        "path": "libutils/include/utils/NativeHandle.h",
+        "bytes": 1746,
+        "sha256": "31e661049dde019c491f24d42016feaf61393a8dabcacf5d7ff7858868f69df6",
+        "git_blob": "f26a1a4d95b3e566e11b7e027a11372e83198741"
+      },
+      {
+        "path": "libutils/include/utils/Printer.h",
+        "bytes": 3823,
+        "sha256": "cfb24d0f1a3db4c015ce685befdfaf10278d6cfe5df1f356349d104de845cda7",
+        "git_blob": "7465927c8565d828622f4a382db7d6b2df405c19"
+      },
+      {
+        "path": "libutils/include/utils/ProcessCallStack.h",
+        "bytes": 2454,
+        "sha256": "1505721561e7dc0e036f0f6393a069923170aa3f934c60df16946e76c2b0d13f",
+        "git_blob": "7e0608677b81c59da1831c6f65b67b89514818a7"
+      },
+      {
+        "path": "libutils/include/utils/RWLock.h",
+        "bytes": 3542,
+        "sha256": "7819fc00e5c5ccd16507d87663f635d1700cddc1fdda591728da7582c2a1d988",
+        "git_blob": "64e370e3e28469497991cf189f2335c63c057d5e"
+      },
+      {
+        "path": "libutils/include/utils/Singleton.h",
+        "bytes": 3162,
+        "sha256": "b3699ec350a1b1c1958785f999c6a604b0031b4c1f17541402be0eca5c6e39e9",
+        "git_blob": "44d8ad79cc4bdaea8e898a2d108f5b188c5b2703"
+      },
+      {
+        "path": "libutils/include/utils/SortedVector.h",
+        "bytes": 9856,
+        "sha256": "31c23ef164a4215aacfa3b76cfcc0cef8b327cf3464d222ecf4864b1e07e64df",
+        "git_blob": "394db12153067b12eed4556fffc81c7c8a5cb86c"
+      },
+      {
+        "path": "libutils/include/utils/StopWatch.h",
+        "bytes": 1028,
+        "sha256": "472e128dd8e4c2011dc5f13c7236824aafa265ef7a4429c2973cc32eda5a26d2",
+        "git_blob": "4e53edaabfee0269cad04917e651f1f8d6cd6f15"
+      },
+      {
+        "path": "libutils/include/utils/SystemClock.h",
+        "bytes": 1339,
+        "sha256": "eaf14a37425f6c1a5179c3188cbe245191f8cbd8fda4a3fbe322afae482d14af",
+        "git_blob": "3c59297a68db9506e23f93abfe2a42bc086f8ca9"
+      },
+      {
+        "path": "libutils/include/utils/Thread.h",
+        "bytes": 4548,
+        "sha256": "5c84a6a10daba4c36d85e3a8058883f64762b9b19e988c9fb7a6b9b62b9a04c5",
+        "git_blob": "5cf6b47a5cc93facaf5464005afad5c21721bb10"
+      },
+      {
+        "path": "libutils/include/utils/ThreadDefs.h",
+        "bytes": 2363,
+        "sha256": "a79d24c4b914966236fb95bd97ea360d9fff75dbc28e0c6b0753abab1d1956ea",
+        "git_blob": "8eb3d1cbe8790585bb38acb91458e116ecedfa8b"
+      },
+      {
+        "path": "libutils/include/utils/Timers.h",
+        "bytes": 3466,
+        "sha256": "d4ca83693f7ed1ae6a2f637aa803baa70f17460593488b2a22c9b870e48c9d79",
+        "git_blob": "197fc26b8b6c14c8348625d4e8410d24fcb3c24f"
+      },
+      {
+        "path": "libutils/include/utils/Tokenizer.h",
+        "bytes": 3894,
+        "sha256": "3f7a352552e9dae2cefb5b9189fb8daef70a122710dd174716ff6eccf09dd928",
+        "git_blob": "61c5ff7be0b3ea91901fe4225da9515a467919a4"
+      },
+      {
+        "path": "libutils/include/utils/Trace.h",
+        "bytes": 1531,
+        "sha256": "65743704df99a89e76fdf4053af6c482adb262684ef1df02b0e5e4338b0b2a81",
+        "git_blob": "9986bf5f9004a832bbe71ac499b4973339b915b7"
+      },
+      {
+        "path": "libutils/include/utils/misc.h",
+        "bytes": 1163,
+        "sha256": "aed1fcf2ac76073e219c09a3b5919bc253b7b7d656cf0c57eb62154b44a7e0b7",
+        "git_blob": "32615b3e5c372f97be1fe04d28ef55c8ab768291"
+      },
+      {
+        "path": "libutils/include/utils/threads.h",
+        "bytes": 1048,
+        "sha256": "5041ef681318648bbe35dee6c703823a693270c104f3592a9ce7bdcb956dfbeb",
+        "git_blob": "9de3382118697fffe0a97037346c4e3e338a5fd6"
+      }
+    ],
+    "notice": "libutils/NOTICE",
+    "notice_sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+  },
+  "binder-system": {
+    "repository": "aosp-mirror/platform_system_core",
+    "tag": "android-15.0.0_r1",
+    "commit": "fc7bc8c4bfb4c6095e34ea784509dae56f25b486",
+    "upstream": "https://android.googlesource.com/platform/system/core",
+    "files": [
+      {
+        "path": "libcutils/NOTICE",
+        "bytes": 10695,
+        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+        "git_blob": "c5b1efa7aac764ae6d8da63476a2d5cec02a6a5d"
+      },
+      {
+        "path": "libcutils/include/cutils/android_get_control_file.h",
+        "bytes": 1115,
+        "sha256": "97fee089fc1d6d7116c0a64417177632502c051821bcb4541b818480c3e9c827",
+        "git_blob": "ed8fbf830b077aed7e2fe8b88c2e5a8407d9cf02"
+      },
+      {
+        "path": "libcutils/include/cutils/android_reboot.h",
+        "bytes": 1443,
+        "sha256": "c925bcd399d7998b92213d6e4d9c1986ebce5af29e69a8fe5427ad32e7c3f825",
+        "git_blob": "24e32d560a2f73adf4d10b3361225a1f1c8cccfd"
+      },
+      {
+        "path": "libcutils/include/cutils/ashmem.h",
+        "bytes": 1066,
+        "sha256": "1617b960e398e20fc9a66ae482034cb67894a3b22563cf305dd020c4eb6a8b22",
+        "git_blob": "1913c1e4e716c046aa6e11e181c27215ae4850de"
+      },
+      {
+        "path": "libcutils/include/cutils/atomic.h",
+        "bytes": 9390,
+        "sha256": "7d092a456839e930cf3dee8038d31b8edb7745097fd9813f910a2f6433909dc0",
+        "git_blob": "0c88bfedd3a2a987a21e8daddebf3f3fbf3ed92c"
+      },
+      {
+        "path": "libcutils/include/cutils/bitops.h",
+        "bytes": 1078,
+        "sha256": "98cc23dc740cf827c27804f3f221abe7842c5c157cbb5f7a579294fe0c1b9dcd",
+        "git_blob": "38d284039aa6d18b477696cc52548f67cd8d1ff1"
+      },
+      {
+        "path": "libcutils/include/cutils/compiler.h",
+        "bytes": 1359,
+        "sha256": "b544a1f41e0ec7592773af661cd21ba53c3e1165dd4a67c32d6cd9d79cf2abd6",
+        "git_blob": "70f884a1e701f5961874cb9b43df2fbd70a0f326"
+      },
+      {
+        "path": "libcutils/include/cutils/config_utils.h",
+        "bytes": 1767,
+        "sha256": "8bc869b58adeeac00fd53cf106b636dba8c84e70839409c48ac960ecffb25e62",
+        "git_blob": "2dea6f19fa1882e3348ad1e397d0b5f1d96a96f8"
+      },
+      {
+        "path": "libcutils/include/cutils/fs.h",
+        "bytes": 2728,
+        "sha256": "d76597d29b0e2570d7d0eae03386c210a105e48c06b2737407b9ba5d89d57d55",
+        "git_blob": "a34ce86022a3532cb04b083b82f2ddd4aa9a528e"
+      },
+      {
+        "path": "libcutils/include/cutils/hashmap.h",
+        "bytes": 2661,
+        "sha256": "48ad8513b79fb44ad9c93907a778bf5e96350ade8c29b9fc7e2c9ce72b30979f",
+        "git_blob": "9cfd66942eb36dd50f311c0d955a96f6a178ddd1"
+      },
+      {
+        "path": "libcutils/include/cutils/iosched_policy.h",
+        "bytes": 1066,
+        "sha256": "e6b4543e0aa9cf521b3cd1ecf889c4c845f306603266669c20224dd38c51a41a",
+        "git_blob": "07c5d1fca501d7422d9f94890f8eafe24cf389f2"
+      },
+      {
+        "path": "libcutils/include/cutils/klog.h",
+        "bytes": 1505,
+        "sha256": "4b198f58de46cab917142143506ad1b45c99b1f5fa448b72a5d8c3c1b29df5d0",
+        "git_blob": "5ae6216eb03b06738a337291a0fa8d13f3e2c03a"
+      },
+      {
+        "path": "libcutils/include/cutils/list.h",
+        "bytes": 2310,
+        "sha256": "a9c672c93718dc24586cbabc25170c9d242920e3c4b5af96fb2dba4afba23dd2",
+        "git_blob": "7eb8725473d20645ac12d04bc8445c3b2c378dd4"
+      },
+      {
+        "path": "libcutils/include/cutils/log.h",
+        "bytes": 21,
+        "sha256": "73abb3a501626b16b0dc2eb77947aec6ab27f294f478b5f3828e4eada2dd601e",
+        "git_blob": "0e0248e50fa7aa2370a12398e361e76e31e2686b"
+      },
+      {
+        "path": "libcutils/include/cutils/memory.h",
+        "bytes": 941,
+        "sha256": "008626cb983359616843aad70f903e7ad6584248f9361ac860742302fb1bea43",
+        "git_blob": "c6476c13805469c0b6dabe02aeaf06993f7a7943"
+      },
+      {
+        "path": "libcutils/include/cutils/misc.h",
+        "bytes": 1248,
+        "sha256": "d8c23c79390c7cb394f7020cffa159bc09a316534f36b0f5fce24a3e905cee79",
+        "git_blob": "0de505f277c18ef27620f5d2ea581a97c9d6b071"
+      },
+      {
+        "path": "libcutils/include/cutils/multiuser.h",
+        "bytes": 1574,
+        "sha256": "ae01afdae692628b5f0d442d1f8eec196d44abf62add8a3d8216740f1fb220bd",
+        "git_blob": "0575ccf721c8ce19945015d40ec78d88c4d0ffa2"
+      },
+      {
+        "path": "libcutils/include/cutils/native_handle.h",
+        "bytes": 4535,
+        "sha256": "af0277ffd3756c4c1047071742c362ef1b3f036552eefad98980266fc4660e9c",
+        "git_blob": "e46e7cdb54e498ddb17be5cbcf0fa62622552bec"
+      },
+      {
+        "path": "libcutils/include/cutils/partition_utils.h",
+        "bytes": 828,
+        "sha256": "3089d05638cf8a30681d8419e99ce52da1b3a533ccae9cd2bc16a831cc034d5a",
+        "git_blob": "8bc9b48b30bfe59dc293c8b38c2b2b1cbc07cea9"
+      },
+      {
+        "path": "libcutils/include/cutils/properties.h",
+        "bytes": 5138,
+        "sha256": "6adc9eb77ecd5b9ac559312d424c17171a8f91150cb7e57ce9018d639745d610",
+        "git_blob": "78d8bc65440114163ae56b7512b3b0b8dd1af4a8"
+      },
+      {
+        "path": "libcutils/include/cutils/qtaguid.h",
+        "bytes": 1017,
+        "sha256": "32fefa225c23852756dc6096a0a7b8aeb7ca6f5ce27267dc3355f4b0f82d4eca",
+        "git_blob": "8902c2be3a496ba2ed862c4006236f6df21e8b6e"
+      },
+      {
+        "path": "libcutils/include/cutils/record_stream.h",
+        "bytes": 1190,
+        "sha256": "2f007c9ebcdb5b054d769a62d60ef647f49902285212ac59317940afe4200f98",
+        "git_blob": "bcfc80d5dd85df5d026b29e501aeb9449f87bf2f"
+      },
+      {
+        "path": "libcutils/include/cutils/sched_policy.h",
+        "bytes": 872,
+        "sha256": "4172fc55678de1dce90b704d96232c698172c0d27a5084afeff63be9dea15bed",
+        "git_blob": "538ff6b9b3706de6a2f2328b2538405cd45f81cd"
+      },
+      {
+        "path": "libcutils/include/cutils/sockets.h",
+        "bytes": 4405,
+        "sha256": "855276e46e22ef6cad64682b2c067b8ebea9517b1fbc57a676758bd3ed9a327a",
+        "git_blob": "be21a8f7f752b69aec55879ab44c7d9f7e97fea1"
+      },
+      {
+        "path": "libcutils/include/cutils/str_parms.h",
+        "bytes": 2178,
+        "sha256": "f7d0b83838c2526b15b624435ff37088aa43bcd584d1597470e2acfa9fdc3f97",
+        "git_blob": "aa1435a080e2efe4cc8fbeeb33efe14779933617"
+      },
+      {
+        "path": "libcutils/include/cutils/trace.h",
+        "bytes": 11901,
+        "sha256": "118278d32f4301d05e67223f03004025d143dc78a2c7c14d41f1914d495d80ac",
+        "git_blob": "7f57637ec116bc7d6e692ca9d4575104a18384c5"
+      },
+      {
+        "path": "libcutils/include/cutils/uevent.h",
+        "bytes": 1147,
+        "sha256": "4a21fe897406d8c017fe936aaa98c6ae7bf61487588c769b5066be920dfc9a2c",
+        "git_blob": "da1c2aae6b37e8f2e1990c01ebf558b3ac1d8d8e"
+      },
+      {
+        "path": "libprocessgroup/include/processgroup/processgroup.h",
+        "bytes": 4540,
+        "sha256": "6a51d83ab5558c3a2ebae25dd298893bbf893d45ed84ca76bd044ac9eaf52bcd",
+        "git_blob": "ffffeb48b0c1127d6869e6e62334414a2c359c70"
+      },
+      {
+        "path": "libprocessgroup/include/processgroup/sched_policy.h",
+        "bytes": 3128,
+        "sha256": "69024cd1b355840d715f8c6bb636b027079a0e7130ebfa6131d5cf42b8b992e0",
+        "git_blob": "a18847ee7dddac60a443b42a0025df8268ec4683"
+      },
+      {
+        "path": "libvndksupport/include/vndksupport/linker.h",
+        "bytes": 1037,
+        "sha256": "1fe65aa1c0afb3e4063cfebf54c69ac4250e59d434d2e1ba19c8ea09958b19b7",
+        "git_blob": "684513565242fef03bb09beb162e6727f96c113f"
+      },
+      {
+        "path": "libcutils/Android.bp",
+        "bytes": 7773,
+        "sha256": "25c867b1228f9c7a5354acf74efc644b563fefdad1b81ca8fb067a9c0ff310d4",
+        "git_blob": "e2975813ced1d6219030ce58f01b1d80eab038cc"
+      },
+      {
+        "path": "libprocessgroup/Android.bp",
+        "bytes": 2727,
+        "sha256": "78ffeda145ad887b0965f2e619b8f0a9633b5474f43a9ee5b3c365b589c94ade",
+        "git_blob": "d40be9f9ed6d90246ba2a726ea6f2ecf20f92e9e"
+      },
+      {
+        "path": "libvndksupport/Android.bp",
+        "bytes": 593,
+        "sha256": "fc72ba0b719beb5cb4b28ac11cbd3721679c43546fc80708b9b1017e08f4580e",
+        "git_blob": "f800bf7a01010810c2698159bbb5b69c95640018"
+      },
+      {
+        "path": "libsystem/Android.bp",
+        "bytes": 626,
+        "sha256": "0696bc0471db3ae3e0906bb5e55079c044079c30d97e1c442a79e379dfd450f3",
+        "git_blob": "dacc8cad31d2d4338165ccffd297d3a6bcbd3af2"
+      },
+      {
+        "path": "libvendorsupport/Android.bp",
+        "bytes": 1828,
+        "sha256": "e6151677a0e40126cadec96958a8ce774edc541aef1a1c4007184a8d6a9422d2",
+        "git_blob": "a22737c0696765b06472221054659a95e2f23523"
+      },
+      {
+        "path": "libvendorsupport/include_llndk/android/llndk-versioning.h",
+        "bytes": 2025,
+        "sha256": "b1b626909baf2fb45bbfcfb9f3482272309733c7d4caf8879942f7f21580921e",
+        "git_blob": "cf82fb71259a3903c5bab869b4b9567493e26c72"
+      },
+      {
+        "path": "libsystem/include/system/graphics.h",
+        "bytes": 9158,
+        "sha256": "3ad78e6b394e080fb034e1ae4ff6f893e2ecf6c093235990b3d9e8d0daf8250d",
+        "git_blob": "a3c23b20c2fb1aac700ea2bc03d066030b82f9da"
+      },
+      {
+        "path": "libsystem/include/system/graphics-base.h",
+        "bytes": 212,
+        "sha256": "58dadf516c74c48ebf0ca652f5eb5fb15a0f432fe7b4d18888bf36b42444fa4a",
+        "git_blob": "92ee077a65e5914ff9c9b8a35a84d0d92f4b0009"
+      },
+      {
+        "path": "libsystem/include/system/graphics-base-v1.0.h",
+        "bytes": 6868,
+        "sha256": "1950723d8660b2c00cf5685f51031e79af0814ad4c00b94ef48caf4af3646d1f",
+        "git_blob": "44913cc61f25a1cdf7ac3d3413e049212569f08a"
+      },
+      {
+        "path": "libsystem/include/system/graphics-base-v1.1.h",
+        "bytes": 1644,
+        "sha256": "8e22bfdc66a7ec548e972238b53e827574303ea3c066a7cd4e9708159b5b6d39",
+        "git_blob": "f95b9ba213f65cf924353fa9606592eb9e3189f3"
+      },
+      {
+        "path": "libsystem/include/system/graphics-base-v1.2.h",
+        "bytes": 1029,
+        "sha256": "37cc94dc65e7cd6cf370332c7c580a831f53b3a8e80b701a6c5777caf54e3b4f",
+        "git_blob": "624912cae595bd78e158a6f2d8db85508b33dfc7"
+      },
+      {
+        "path": "libsystem/include/system/graphics-sw.h",
+        "bytes": 574,
+        "sha256": "957e089937f69aee425c4a2de7995ab42bfbee606567963af625fa429e7f5497",
+        "git_blob": "9e1a88e9e395b3068bf36d7a8a600932ad0efb39"
+      },
+      {
+        "path": "libsystem/include/system/thread_defs.h",
+        "bytes": 2690,
+        "sha256": "61bfca4ee0e3c9bc6515a973d7f9a71a4f1712eb3d09f72053fbcdb52713c2e1",
+        "git_blob": "80d11608b377d89ffb10cad2c7ff0cb2fe993ac6"
+      }
+    ],
+    "notice": "libcutils/NOTICE",
+    "notice_sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+  },
+  "binder-apex-headers": {
+    "repository": "aosp-mirror-neo/platform_system_apex",
+    "tag": "android-15.0.0_r1",
+    "commit": "896cdde58b67ddbf37ffdfe06f5b2567ef770f70",
+    "files": [
+      {
+        "path": "Android.bp",
+        "bytes": 1747,
+        "sha256": "5b0155bfdd281312578587e8ef9cfbb14bf5671c0196adb1800fb70acf15cf61",
+        "git_blob": "aec006ee6786c1a1fb15b146f26dfa72ab224346"
+      },
+      {
+        "path": "libs/libapexsupport/Android.bp",
+        "bytes": 1138,
+        "sha256": "bb079d46ee22fb0ef29ee606c4642b165b0aaaac8246d3ca947e6c6ddaaa581d",
+        "git_blob": "a3d128cf8e02100e0b4f7aa32db5e897fd03fdba"
+      },
+      {
+        "path": "libs/libapexsupport/include/android/apexsupport.h",
+        "bytes": 3715,
+        "sha256": "dd768f76ca956910b611c64eb7cf99ac124df278fce1631bcdf1d5ae611a0c00",
+        "git_blob": "3be311e0ba04d49d789c5d25268e103efc65d28b"
+      },
+      {
+        "path": "libs/libapexsupport/apexsupport.cpp",
+        "bytes": 1661,
+        "sha256": "f45318bb0a721f91b69de214a12325feab55f52e33f48f200e090b87a95747e9",
+        "git_blob": "307cd829023587c7901a122b2ea07c2c400be361"
+      }
+    ],
+    "upstream": "https://android.googlesource.com/platform/system/apex",
+    "notice": "libs/libapexsupport/include/android/apexsupport.h",
+    "notice_sha256": "dd768f76ca956910b611c64eb7cf99ac124df278fce1631bcdf1d5ae611a0c00",
+    "license_note": "Apache-2.0 declarations; full license text is retained in binder-utils/libutils/NOTICE"
+  },
+  "binder-build-reference": {
+    "repository": "aosp-mirror-neo/platform_build_soong",
+    "tag": "android-15.0.0_r1",
+    "commit": "3fe78dc9b32f1ac3f7eb279ae9376d7037b18452",
+    "upstream": "https://android.googlesource.com/platform/build/soong",
+    "notice": "cc/config/global.go",
+    "notice_sha256": "de4c200e66ba0e75aa237cf90fec64a3f3924fd029790e921bb2034f6491891e",
+    "license_note": "Apache-2.0 build reference only; full license text is retained in binder-utils/libutils/NOTICE",
+    "files": [
+      {
+        "path": "cc/config/global.go",
+        "bytes": 21363,
+        "sha256": "de4c200e66ba0e75aa237cf90fec64a3f3924fd029790e921bb2034f6491891e",
+        "git_blob": "62a4765f4526d28ad12a1ea753c90507ab6fb321"
+      }
+    ]
+  }
+}
