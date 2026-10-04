@@ -11,7 +11,9 @@ typedef struct artbox_binder_device artbox_binder_device;
  * BINDER_SET_MAX_THREADS. Both limits are in [1, 1024]; all metadata is reserved
  * up front. Receive mappings require explicit backing configuration.
  * The first delivery subset is synchronous handle-zero byte parcels, one call
- * per thread. Object transfer, oneway/nesting and death notifications are pending. */
+ * per thread. Context-manager strong/weak references and cookie-based death
+ * subscriptions have separate pools of 1,024 entries. Object transfer and
+ * oneway/nesting remain pending. */
 artbox_binder_device *artbox_binder_device_create(size_t endpoints, size_t threads_per_endpoint);
 /* Private, non-executable receive backing. create returns fresh zero-filled
  * storage of exactly length bytes, already unlinked from any guest namespace.
@@ -54,7 +56,8 @@ int artbox_binder_device_set_nonblocking(artbox_binder_device *device, uint64_t 
  * VERSION, MAX_THREADS, CONTEXT_MGR[_EXT], THREAD_EXIT and WRITE_READ's
  * ENTER/REGISTER/EXIT_LOOPER commands are implemented. Configured receive
  * contexts additionally carry BC_TRANSACTION/BC_REPLY/BC_FREE_BUFFER for the
- * documented byte-parcel subset. Unsupported operations return EOPNOTSUPP;
+ * documented byte-parcel subset, manager references and death/clear/ack flow.
+ * Unsupported operations return EOPNOTSUPP;
  * unknown words return EINVAL. Empty nonblocking reads return EAGAIN.
  * Write batches above 64 KiB return E2BIG without consuming commands.
  * Lock order is device then VM; VM callbacks must not enter this device. */

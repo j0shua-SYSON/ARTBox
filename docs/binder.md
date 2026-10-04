@@ -141,21 +141,31 @@ The next shared transaction fixture uses separate endpoints and a real second
 thread for handle-zero ping/reply. It checks caller credentials, target/cookie,
 receive-buffer bounds, payload bytes, both completion messages and consumption
 of both buffer-free commands. Reference waits are bounded and endpoints are
-nonblocking. ARM64 Android and portable C compilation pass; native execution
-is pending. The first native attempt at `517e126` exposed Linux's rejection of
+nonblocking. The first native attempt at `517e126` exposed Linux's rejection of
 handle-zero calls from the manager's own PID, even with independent opens.
 The revised fixture retains that rejection control and opens the positive
 client in a separate native Linux process. ARTBox's adapter uses trusted virtual
 PIDs across host threads; no runtime fork is introduced. See ADR 0098.
 At `200b910`, both native controls pass and 95 source hashes verify.
 The production driver now queues synchronous handle-zero byte parcels, replies,
-completion messages and buffer frees through the receive arena. Its new required
-native-backed VFS test runs the same fixture; comparison remains pending.
+completion messages and buffer frees through the receive arena. At `bf36338`,
+the required native-backed VFS test passes the same fixture on Linux and Mac;
+the Linux comparison artifact and all 96 source hashes independently verify.
 Error/owner controls pass locally, including delayed failure after a mapped
 manager's final unmap. Empty nonblocking reads return EAGAIN. Blocking empty
 reads, nonzero initial read-consumed, invalid buffer frees, nested/oneway calls
-and object/FD transfer remain unsupported. See ADR 0099. Reference-object
-transfer, death notifications, blocking reads and polling need their own checks.
+and object/FD transfer remain unsupported. See ADR 0099.
+
+Manager strong/weak references and death subscriptions now use bounded pools
+independent of endpoint lifetime. Opaque cookies survive owner loss; clearing
+detaches a subscription immediately but waits for its delivered death to be
+acknowledged before returning clear completion. Local controls cover live
+cancellation, duplicate/wrong cookies, last-reference release, retained mappings
+and endpoint-slot reuse. Three shared native cases additionally abandon an
+actual synchronous call and require its dead reply. Their Linux comparison is
+pending. See ADR 0100 for resource limits and remaining general-handle work.
+Reference-object transfer, blocking reads, polling and actual AOSP
+servicemanager still need implementation and acceptance.
 
 ## Evidence
 

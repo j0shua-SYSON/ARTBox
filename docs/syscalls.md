@@ -386,7 +386,9 @@ ioctl words return EINVAL; recognized unimplemented work returns EOPNOTSUPP.
 Non-Binder unknown ioctls return ENOTTY and absent descriptors return EBADF.
 The initial synchronous handle-zero byte-parcel WRITE_READ path is implemented
 with nonblocking receives, completion messages and buffer release. Its required
-native-backed comparison is pending; the native reference passes at 200b910.
+native-backed comparison passes at bf36338 with artifact/source verification.
+Manager strong/weak references and death/clear/ack commands pass local controls;
+the three-case shared native lifetime comparison is pending.
 Object/FD transfer, nested/oneway calls, blocking empty reads and polling remain
 pending. See
 [the Binder contract](binder.md) for host resource limits and comparison scope.

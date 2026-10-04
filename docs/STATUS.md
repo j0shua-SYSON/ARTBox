@@ -71,15 +71,19 @@ false. Passive VM lifetime watches now pass local ownership/failure checks and
 aliases and mapped endpoint ownership through descriptor close. Its 35-case shared
 fixture and allocation, replacement and concurrent-close controls pass locally.
 At `db73182`, Linux and ARTBox pass the same 35 mapping cases, including native
-alias coherence, with artifact provenance and 93 input hashes verified. Delivery, polling,
-references, death notifications and real servicemanager are next; M4 is not complete.
+alias coherence, with artifact provenance and 93 input hashes verified. Polling,
+object translation and real servicemanager remain ahead; M4 is not complete.
 
 At `200b910`, the shared threaded transaction fixture passes against real Linux,
 including same-PID context-manager rejection and a separate-process positive
-client. Its artifact and 95 source hashes verify. The production synchronous
-handle-zero byte-parcel path is now implemented; local owner/error controls pass,
-but paired payload execution is pending. Objects, oneway/nested calls, blocking
-reads and death notifications remain unsupported.
+client. Its artifact and 95 source hashes verify. At `bf36338`, the production
+synchronous handle-zero byte-parcel path passes the same Linux fixture; artifact
+provenance and all 96 source hashes verify. All 19 host jobs and the iOS build
+pass. The downloaded signed Mac runtime also verifies all managed/console
+controls and 96 source hashes.
+Manager strong/weak references and death/clear/acknowledgment delivery now pass
+local owner/error controls; their three-case paired Linux fixture is pending.
+Objects, oneway/nested calls and blocking reads remain unsupported.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

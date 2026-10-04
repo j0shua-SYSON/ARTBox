@@ -2624,8 +2624,8 @@ reference-object transfer and death notifications remain subsequent contracts.
 
 ## 0099: Start transaction delivery with bounded synchronous byte parcels
 
-Status: native reference passes at 200b910. The production path compiles and
-portable owner/error controls pass; paired payload execution is pending.
+Status: native reference passes at 200b910. At bf36338 the production driver
+passes the same fixture; artifact provenance and all 96 input hashes verify.
 
 Connect the existing receive arena to BC_TRANSACTION, BC_REPLY and
 BC_FREE_BUFFER. Copy source bytes through the VM into a bounded snapshot, then
@@ -2655,3 +2655,44 @@ There is one outstanding synchronous call per thread in this first subset.
 Those limits keep incomplete work explicit while the shared ping/reply test
 establishes actual byte delivery. Reference translation, death notifications
 and real servicemanager acceptance remain required to complete M4.
+
+## 0100: Keep Binder references and death acknowledgments separate from owner lifetime
+
+Status: local reference/death controls pass. Three shared Linux lifetime cases
+are implemented and awaiting native comparison.
+
+Retain context-manager strong/weak references using immutable endpoint tokens.
+Closing and unmapping the owner releases its endpoint even while remote
+references remain; those references still identify the dead owner. A newly
+registered manager cannot take over an old subscription merely by reusing an
+endpoint slot. Reference increments on the owner itself fail EINVAL; unmatched
+reference/death commands and duplicate subscriptions are consumed without
+creating work, following the observed kernel command boundary.
+
+Reserve separate pools of 1,024 reference records and 1,024 death records.
+Clearing detaches a subscription from its reference immediately, permitting a
+new subscription while the old clear completion is pending. A death record
+moves through armed, queued, delivered and acknowledged states. Clearing a
+queued or delivered death waits for BC_DEAD_BINDER_DONE before returning
+BR_CLEAR_DEATH_NOTIFICATION_DONE. A cleared live or already acknowledged
+subscription can complete immediately. An opaque 64-bit cookie is copied as
+data; it is never dereferenced. Owner loss queues work without allocating.
+
+The shared fixture runs an actual synchronous call whose recipient closes
+without replying, requiring both completion and BR_DEAD_REPLY. Its three cases
+cover live cancellation, clear before death acknowledgement, and subscription
+after owner loss with acknowledgment before clear. Wrong cookies, duplicate
+requests and unmatched acknowledgments are negative controls. The native Linux
+child explicitly closes its inherited manager descriptor before opening its
+own endpoint; otherwise it could accidentally keep the parent's owner alive.
+This fork remains native-reference-only. ARTBox runs trusted virtual owners on
+host threads.
+
+Injected local controls additionally check mapped-FD retention, last-reference
+release, overlapping clear/new-subscription lifetime, and manager-slot reuse.
+These are local invariants until individually paired with Linux. General
+object/handle translation, node reference callbacks, blocking/poll wakeups and
+real servicemanager remain required. Reacquiring a replaced manager while an
+old handle-zero reference survives is explicitly unsupported until general
+handle allocation exists. Pool exhaustion returns ENOMEM as an ARTBox admission
+limit, not a claim about Linux allocation-failure notification behavior.

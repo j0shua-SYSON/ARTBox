@@ -21,7 +21,7 @@ def main():
             return 77
         result.check_returncode()
         if json.loads(result.stdout) != dict(same_pid_rejected=True, shared_threaded_ping_pong=True,
-                                            native_aliases=True, cleanup=True, passed=True):
+                                            death_cases=3, native_aliases=True, cleanup=True, passed=True):
             raise RuntimeError('Guest Binder transaction acceptance was incomplete')
         if any(Path(root).iterdir()):
             raise RuntimeError('Binder transaction backing file remains named')

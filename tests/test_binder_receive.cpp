@@ -173,6 +173,88 @@ int main(int argc, char **argv) {
     CHECK(ioctl_device(&caller, waiting, ARTBOX_BINDER_WRITE_READ, c.path + 128) == 0);
     CHECK(transfer[4] == 8 && reply[1] == ARTBOX_BR_DEAD_REPLY && provider.live == 0);
     CHECK(close_device(&caller, waiting) == 0 && artbox_vm_reserved_bytes(vm) == page);
+    // Reference/death controls do not inspect shared payload bytes, so the
+    // injected provider can exercise them on Windows as well as native hosts.
+    auto send_words = [&](Context &owner, int descriptor, size_t length) {
+        std::memset(transfer, 0, 48); transfer[0] = length; transfer[2] = c.path + 256;
+        int64_t result = ioctl_device(&owner, descriptor, ARTBOX_BINDER_WRITE_READ, c.path + 128);
+        if (!result) CHECK(transfer[1] == length);
+        return result;
+    };
+    auto receive_words = [&](int descriptor) {
+        std::memset(transfer, 0, 48); transfer[3] = 128; transfer[5] = c.path + 512;
+        return ioctl_device(&caller, descriptor, ARTBOX_BINDER_WRITE_READ, c.path + 128);
+    };
+    const uint64_t cookie = UINT64_C(0x1234567887654321);
+    auto death_word = [&](int descriptor, uint32_t word, uint64_t value) {
+        command[0] = word; command[1] = 0;
+        const bool done = word == ARTBOX_BC_DEAD_BINDER_DONE;
+        std::memcpy(command + (done ? 1 : 2), &value, 8);
+        CHECK(send_words(caller, descriptor, done ? 12 : 16) == 0);
+    };
+    auto expect_cookie = [&](int descriptor, uint32_t word, uint64_t value) {
+        CHECK(receive_words(descriptor) == 0 && transfer[4] == 16);
+        uint64_t observed = 0; std::memcpy(&observed, reply + 2, 8);
+        CHECK(reply[0] == ARTBOX_BR_NOOP && reply[1] == word && observed == value);
+    };
+    for (unsigned mode = 0; mode < 4; ++mode) {
+        fd = open_device(&c); CHECK(fd >= 3);
+        CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_SET_CONTEXT_MGR, 0) == 0);
+        abandoned = map_device(&c, fd, page, 1, 2, 0); CHECK(abandoned > 0);
+        int observer = open_device(&caller); CHECK(observer >= 3);
+        command[0] = ARTBOX_BC_INCREFS; command[1] = 0;
+        CHECK(send_words(c, fd, 8) == -22 && transfer[1] == 0); // Owner cannot acquire itself.
+        command[0] = ARTBOX_BC_INCREFS; command[1] = 0;
+        command[2] = ARTBOX_BC_ACQUIRE; command[3] = 0;
+        command[4] = ARTBOX_BC_ENTER_LOOPER;
+        CHECK(send_words(caller, observer, 20) == 0);
+        if (mode != 3) {
+            death_word(observer, ARTBOX_BC_REQUEST_DEATH_NOTIFICATION, cookie);
+            death_word(observer, ARTBOX_BC_REQUEST_DEATH_NOTIFICATION, cookie + 1);
+            death_word(observer, ARTBOX_BC_CLEAR_DEATH_NOTIFICATION, cookie + 1);
+        }
+        CHECK(receive_words(observer) == -11);
+        if (mode == 0) {
+            death_word(observer, ARTBOX_BC_CLEAR_DEATH_NOTIFICATION, cookie);
+            // Clearing detaches immediately, permitting a new subscription
+            // while the old clear completion still occupies its own slot.
+            death_word(observer, ARTBOX_BC_REQUEST_DEATH_NOTIFICATION, cookie + 1);
+            expect_cookie(observer, ARTBOX_BR_CLEAR_DEATH_NOTIFICATION_DONE, cookie);
+            death_word(observer, ARTBOX_BC_CLEAR_DEATH_NOTIFICATION, cookie + 1);
+            expect_cookie(observer, ARTBOX_BR_CLEAR_DEATH_NOTIFICATION_DONE, cookie + 1);
+        } else if (mode == 2) {
+            command[0] = ARTBOX_BC_RELEASE; command[1] = 0;
+            command[2] = ARTBOX_BC_DECREFS; command[3] = 0;
+            CHECK(send_words(caller, observer, 16) == 0); // Last reference removes its subscription.
+        }
+        CHECK(close_device(&c, fd) == 0 && receive_words(observer) == -11);
+        CHECK(unmap_device(&c, static_cast<uint64_t>(abandoned), page) == 0);
+        if (mode == 1 || mode == 3) {
+            if (mode == 3) {
+                // Reusing an endpoint slot for a new manager must not retarget
+                // a retained reference to the old, now dead owner.
+                fd = open_device(&c); CHECK(fd >= 3);
+                CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_SET_CONTEXT_MGR, 0) == 0);
+                death_word(observer, ARTBOX_BC_REQUEST_DEATH_NOTIFICATION, cookie);
+            }
+            expect_cookie(observer, ARTBOX_BR_DEAD_BINDER, cookie);
+            death_word(observer, ARTBOX_BC_DEAD_BINDER_DONE, cookie + 1);
+            CHECK(receive_words(observer) == -11);
+            if (mode == 1) {
+                death_word(observer, ARTBOX_BC_CLEAR_DEATH_NOTIFICATION, cookie);
+                CHECK(receive_words(observer) == -11);
+                death_word(observer, ARTBOX_BC_DEAD_BINDER_DONE, cookie);
+            } else {
+                death_word(observer, ARTBOX_BC_DEAD_BINDER_DONE, cookie);
+                CHECK(receive_words(observer) == -11);
+                death_word(observer, ARTBOX_BC_CLEAR_DEATH_NOTIFICATION, cookie);
+                CHECK(close_device(&c, fd) == 0);
+            }
+            expect_cookie(observer, ARTBOX_BR_CLEAR_DEATH_NOTIFICATION_DONE, cookie);
+        }
+        CHECK(receive_words(observer) == -11);
+        CHECK(close_device(&caller, observer) == 0 && provider.live == 0);
+    }
     fd = open_device(&c); CHECK(fd >= 3);
     const unsigned creates = provider.creates;
     artbox_vm *foreign_vm = artbox_vm_create(&provider.memory, page, 1);

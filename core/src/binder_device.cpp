@@ -42,6 +42,18 @@ struct Work {
     uint64_t transaction;
     artbox_binder_transaction value;
 };
+struct Reference {
+    uint64_t endpoint, owner;
+    uint32_t handle, strong, weak;
+    size_t death; // One-based slot; clearing detaches it immediately.
+};
+enum DeathState { armed, death_queued, death_delivered, death_acknowledged, clear_queued };
+struct Death {
+    uint64_t endpoint, owner, cookie;
+    int32_t tid;
+    DeathState state;
+    bool clearing;
+};
 uint32_t read32(const unsigned char *p) {
     return uint32_t(p[0]) | (uint32_t(p[1]) << 8) | (uint32_t(p[2]) << 16) | (uint32_t(p[3]) << 24);
 }
@@ -57,6 +69,8 @@ void write32(unsigned char *p, uint32_t value) {
 int transfer_packet(artbox_binder_device *, Endpoint &, Thread &, uint64_t, uint32_t);
 int read_work(artbox_binder_device *, Endpoint &, Thread &, unsigned char *);
 int free_packet(artbox_binder_device *, Endpoint &, uint64_t);
+int reference_command(artbox_binder_device *, Endpoint &, uint64_t, uint32_t);
+int death_command(artbox_binder_device *, Endpoint &, Thread &, uint64_t, uint32_t);
 int command(artbox_binder_device *device, Endpoint &endpoint, Thread &thread,
     uint64_t address, size_t &consumed) {
     unsigned char bytes[76] = {};
@@ -80,6 +94,14 @@ int command(artbox_binder_device *device, Endpoint &endpoint, Thread &thread,
     case ARTBOX_BC_FREE_BUFFER:
         consumed = 12;
         return free_packet(device, endpoint, address);
+    case ARTBOX_BC_INCREFS: case ARTBOX_BC_ACQUIRE:
+    case ARTBOX_BC_RELEASE: case ARTBOX_BC_DECREFS:
+        consumed = 8;
+        return reference_command(device, endpoint, address, read32(bytes));
+    case ARTBOX_BC_REQUEST_DEATH_NOTIFICATION: case ARTBOX_BC_CLEAR_DEATH_NOTIFICATION:
+    case ARTBOX_BC_DEAD_BINDER_DONE:
+        consumed = read32(bytes) == ARTBOX_BC_DEAD_BINDER_DONE ? 12 : 16;
+        return death_command(device, endpoint, thread, address, read32(bytes));
     default:
         artbox_binder_frame frame;
         size_t cursor = 0;
@@ -126,6 +148,8 @@ struct artbox_binder_device {
     uint64_t next_transaction = 1;
     std::vector<Transaction> transactions;
     std::vector<Work> work;
+    std::vector<Reference> references;
+    std::vector<Death> deaths;
 };
 
 namespace {
@@ -140,6 +164,106 @@ Thread *thread_for(Endpoint *endpoint, int32_t tid) {
 Transaction *transaction_for(artbox_binder_device *device, uint64_t id) {
     for (auto &t : device->transactions) if (id && t.id == id) return &t;
     return nullptr;
+}
+Reference *reference_for(artbox_binder_device *device, uint64_t endpoint, uint32_t handle) {
+    for (auto &ref : device->references) if (ref.endpoint == endpoint && ref.handle == handle) return &ref;
+    return nullptr;
+}
+void drop_reference(artbox_binder_device *device, Reference &ref) {
+    if (ref.death) device->deaths[ref.death - 1] = {};
+    ref = {};
+}
+int reference_command(artbox_binder_device *device, Endpoint &endpoint,
+                      uint64_t address, uint32_t command_word) {
+    if (!device->receive_limit) return -95;
+    unsigned char bytes[8];
+    if (artbox_vm_read(endpoint.vm, address, bytes, sizeof(bytes))) return -14;
+    const uint32_t handle = read32(bytes + 4);
+    const bool increment = command_word == ARTBOX_BC_INCREFS || command_word == ARTBOX_BC_ACQUIRE;
+    const bool strong = command_word == ARTBOX_BC_ACQUIRE || command_word == ARTBOX_BC_RELEASE;
+    Reference *ref = reference_for(device, endpoint.token, handle);
+    if (increment && !handle && device->manager) {
+        if (device->manager == endpoint.token) return -22;
+        // A new manager would require allocating a different handle while the
+        // old zero reference survives. Object/handle allocation is not enabled.
+        if (ref && ref->owner != device->manager) return -95;
+        if (!ref) {
+            for (auto &slot : device->references) if (!slot.endpoint) { ref = &slot; break; }
+            if (!ref) return -12;
+            *ref = {endpoint.token, device->manager, 0, 0, 0, 0};
+        }
+    }
+    if (!ref) return 0; // Linux consumes unmatched reference operations.
+    uint32_t &count = strong ? ref->strong : ref->weak;
+    if (increment) {
+        if (count == UINT32_MAX) return -12;
+        ++count;
+    } else if (count) --count;
+    if (!ref->strong && !ref->weak) drop_reference(device, *ref);
+    return 0;
+}
+void queue_clear(Death &death, const Thread &thread) {
+    death.state = clear_queued;
+    death.tid = (thread.looper & (entered | registered)) ? thread.tid : 0;
+}
+int death_command(artbox_binder_device *device, Endpoint &endpoint, Thread &thread,
+                  uint64_t address, uint32_t command_word) {
+    if (!device->receive_limit) return -95;
+    unsigned char bytes[16];
+    const bool done = command_word == ARTBOX_BC_DEAD_BINDER_DONE;
+    if (artbox_vm_read(endpoint.vm, address, bytes, done ? 12 : 16)) return -14;
+    if (done) {
+        const uint64_t cookie = read64(bytes + 4);
+        for (auto &death : device->deaths) {
+            if (death.endpoint != endpoint.token || death.cookie != cookie || death.state != death_delivered) continue;
+            if (death.clearing) queue_clear(death, thread);
+            else death.state = death_acknowledged;
+            break;
+        }
+        return 0;
+    }
+    Reference *ref = reference_for(device, endpoint.token, read32(bytes + 4));
+    if (!ref) return 0;
+    const uint64_t cookie = read64(bytes + 8);
+    if (command_word == ARTBOX_BC_REQUEST_DEATH_NOTIFICATION) {
+        if (ref->death) return 0;
+        for (size_t i = 0; i < device->deaths.size(); ++i) {
+            Death &death = device->deaths[i];
+            if (death.endpoint) continue;
+            death = {endpoint.token, ref->owner, cookie, 0,
+                     endpoint_for(device, ref->owner) ? armed : death_queued, false};
+            ref->death = i + 1;
+            return 0;
+        }
+        return -12;
+    }
+    if (!ref->death) return 0;
+    Death &death = device->deaths[ref->death - 1];
+    if (death.cookie != cookie) return 0;
+    ref->death = 0;
+    death.clearing = true;
+    if (death.state == armed || death.state == death_acknowledged) queue_clear(death, thread);
+    return 0;
+}
+bool accepts_process_work(const Thread &thread) {
+    return (thread.looper & entered) && !(thread.looper & (invalid | exited)) &&
+           !thread.incoming && !thread.outgoing && !thread.dead_reply;
+}
+size_t death_for(artbox_binder_device *device, const Endpoint &endpoint, const Thread &thread) {
+    for (size_t i = 0; i < device->deaths.size(); ++i) {
+        const Death &death = device->deaths[i];
+        if (death.endpoint == endpoint.token &&
+            (death.state == death_queued || death.state == clear_queued) &&
+            (death.tid == thread.tid || (!death.tid && accepts_process_work(thread)))) return i;
+    }
+    return device->deaths.size();
+}
+void release_references(artbox_binder_device *device, uint64_t token) {
+    for (auto &ref : device->references) if (ref.endpoint == token) drop_reference(device, ref);
+    for (auto &death : device->deaths) {
+        if (death.endpoint == token) death = {};
+        else if (death.endpoint && death.owner == token && death.state == armed) death.state = death_queued;
+    }
 }
 void drop_work(artbox_binder_device *device, size_t index) {
     const Work &work = device->work[index];
@@ -253,8 +377,7 @@ int free_packet(artbox_binder_device *device, Endpoint &endpoint, uint64_t addre
     return artbox_binder_arena_release(endpoint.arena, read64(bytes + 4)) ? -95 : 0;
 }
 size_t work_for(artbox_binder_device *device, Endpoint &endpoint, Thread &thread) {
-    const bool process_work = (thread.looper & entered) && !(thread.looper & (invalid | exited)) &&
-                              !thread.incoming && !thread.outgoing && !thread.dead_reply;
+    const bool process_work = accepts_process_work(thread);
     for (size_t i = 0; i < device->work.size(); ++i) {
         const Work &work = device->work[i];
         if (work.endpoint == endpoint.token && (work.tid == thread.tid || (!work.tid && process_work))) return i;
@@ -271,16 +394,24 @@ int read_work(artbox_binder_device *device, Endpoint &endpoint, Thread &thread, 
     write32(bytes, ARTBOX_BR_NOOP);
     if (artbox_vm_write(endpoint.vm, address, bytes, 4)) return -14;
     size_t consumed = 4;
-    const bool pending = thread.error || thread.completions || work_for(device, endpoint, thread) != device->work.size();
+    const bool pending = thread.error || thread.completions || work_for(device, endpoint, thread) != device->work.size() ||
+                         death_for(device, endpoint, thread) != device->deaths.size();
     if (!pending) { write64(header + 32, 0); return endpoint.nonblocking ? -11 : -95; }
     while (size - consumed >= 4) {
         const size_t index = work_for(device, endpoint, thread);
+        const size_t death_index = death_for(device, endpoint, thread);
         const bool error = thread.error != 0, completion = !error && thread.completions;
-        if (!error && !completion && index == device->work.size()) break;
-        const size_t length = error || completion ? 4 : 68;
+        const bool notification = !error && !completion && index == device->work.size() && death_index != device->deaths.size();
+        if (!error && !completion && !notification && index == device->work.size()) break;
+        const size_t length = error || completion ? 4 : notification ? 12 : 68;
         if (length > size - consumed) break;
         if (error) write32(bytes, thread.error);
         else if (completion) write32(bytes, ARTBOX_BR_TRANSACTION_COMPLETE);
+        else if (notification) {
+            const Death &death = device->deaths[death_index];
+            write32(bytes, death.state == clear_queued ? ARTBOX_BR_CLEAR_DEATH_NOTIFICATION_DONE : ARTBOX_BR_DEAD_BINDER);
+            write64(bytes + 4, death.cookie);
+        }
         else {
             const Work &work = device->work[index];
             const auto &t = work.value;
@@ -297,6 +428,11 @@ int read_work(artbox_binder_device *device, Endpoint &endpoint, Thread &thread, 
         consumed += length;
         if (error) thread.error = 0;
         else if (completion) --thread.completions;
+        else if (notification) {
+            Death &death = device->deaths[death_index];
+            if (death.state == clear_queued) death = {};
+            else { death.state = death_delivered; break; } // One death return ends this read.
+        }
         else {
             const Work work = device->work[index];
             if (artbox_binder_arena_publish(endpoint.arena, work.value.data_buffer)) return -5;
@@ -318,6 +454,7 @@ int read_work(artbox_binder_device *device, Endpoint &endpoint, Thread &thread, 
 // watches publish passive state, avoiding a VM-to-device lock inversion.
 static int release_endpoint(artbox_binder_device *device, Endpoint &endpoint) {
     cancel_transactions(device, endpoint.token);
+    release_references(device, endpoint.token);
     if (endpoint.arena) {
         artbox_binder_arena_discard_all(endpoint.arena);
         (void)artbox_binder_arena_destroy(endpoint.arena);
@@ -353,6 +490,8 @@ extern "C" artbox_binder_device *artbox_binder_device_create(size_t endpoints, s
     device->thread_limit = threads;
     try {
         device->transactions.resize(packet_limit);
+        device->references.resize(packet_limit);
+        device->deaths.resize(packet_limit);
         device->work.reserve(packet_limit);
         device->endpoints.resize(endpoints);
         for (auto &endpoint : device->endpoints) endpoint.threads.reserve(threads);
@@ -505,6 +644,8 @@ extern "C" int64_t artbox_binder_device_ioctl(artbox_binder_device *device, uint
         return 0;
     case ARTBOX_BINDER_THREAD_EXIT:
         cancel_transactions(device, endpoint.token, tid);
+        for (auto &death : device->deaths)
+            if (death.endpoint == endpoint.token && death.tid == tid) death = {};
         endpoint.threads.erase(thread);
         return 0;
     case ARTBOX_BINDER_WRITE_READ:

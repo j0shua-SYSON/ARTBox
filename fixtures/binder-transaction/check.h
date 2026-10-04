@@ -37,6 +37,11 @@ int artbox_binder_transaction_check(void *context, const artbox_binder_transacti
     artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client);
 int artbox_binder_transaction_same_pid_check(void *context, const artbox_binder_transaction_ops *ops,
     artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client);
+/* Three manager-reference lifetimes: clear while live, clear before death
+ * acknowledgement, and subscribe after owner loss then acknowledge before clear.
+ * A real in-flight call observes BR_DEAD_REPLY when its manager closes. */
+int artbox_binder_death_check(void *context, const artbox_binder_transaction_ops *ops,
+    artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client);
 #ifdef __cplusplus
 }
 #endif

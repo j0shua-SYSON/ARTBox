@@ -17,15 +17,15 @@
 #include <pthread.h>
 #include <sys/wait.h>
 
-struct transaction_context { const char *path; int32_t server_pid, client_pid; };
+struct transaction_context { const char *path; int32_t server_pid, client_pid; int server_fd; };
 static int32_t transaction_pid(void *opaque, int32_t role) {
     struct transaction_context *context = opaque;
     return role == 1 ? context->server_pid : context->client_pid;
 }
 static int transaction_open(void *opaque, int32_t role) {
-    (void)role;
     struct transaction_context *context = opaque;
     int fd = open(context->path, O_RDWR | O_CLOEXEC | O_NONBLOCK);
+    if (role == 1 && fd >= 0) context->server_fd = fd;
     return fd < 0 ? -errno : fd;
 }
 
@@ -81,6 +81,9 @@ static int transaction_parallel(void *context, int (*left)(void *), void *left_a
     if (client < 0) return -errno;
     if (!client) {
         owner->client_pid = (int32_t)getpid();
+        // Binder receive VMAs are not inherited across fork. Drop the inherited
+        // descriptor too: the child must not keep its parent's owner alive.
+        if (close(owner->server_fd)) _exit(2);
         _exit(right(right_arg) ? 1 : 0);
     }
     owner->client_pid = (int32_t)client;
@@ -167,14 +170,17 @@ int main(int argc, char **argv) {
     const artbox_binder_mapping_ops memory = {(uint64_t)sysconf(_SC_PAGESIZE), map_file, protect_file, unmap_file, open_file};
     int mapping_cases = artbox_binder_mapping_check(argv[2], &ops, &memory);
     if (mapping_cases < 0) return 1;
-    struct transaction_context context = {argv[2], (int32_t)getpid(), (int32_t)getpid()};
+    struct transaction_context context = {argv[2], (int32_t)getpid(), (int32_t)getpid(), -1};
     const artbox_binder_transaction_ops transactions = {transaction_pid, (uint32_t)geteuid(),
         (size_t)sysconf(_SC_PAGESIZE), transaction_open, close_device, transaction_map, transaction_unmap,
         transaction_ioctl, transaction_read, pause_device, transaction_parallel};
     artbox_binder_transaction_scratch server = {0}, client = {0};
     if (artbox_binder_transaction_same_pid_check(&context, &transactions, &server, &client)) return 1;
     if (artbox_binder_transaction_check(&context, &transactions, &server, &client)) return 1;
+    int death_cases = artbox_binder_death_check(&context, &transactions, &server, &client);
+    if (death_cases != 3) return 1;
     printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"mapping_cases\":%d,"
-           "\"same_pid_rejected\":true,\"threaded_ping_pong\":true,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases);
+           "\"same_pid_rejected\":true,\"threaded_ping_pong\":true,\"death_cases\":%d,"
+           "\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases);
     return 0;
 }

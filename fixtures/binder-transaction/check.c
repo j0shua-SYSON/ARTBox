@@ -204,7 +204,168 @@ int artbox_binder_transaction_same_pid_check(void *context, const artbox_binder_
     int result = prepare(&a);
     if (!result) result = prepare(&b);
     if (!result) result = become_manager(&a);
+    if (!result) {
+        // Acquiring the owner endpoint's own manager node is an ioctl error,
+        // distinct from a same-PID transaction's BR_FAILED_REPLY response.
+        put32(server->write, ARTBOX_BC_ACQUIRE); put32(server->write + 4, 0);
+        memset(server->transfer, 0, sizeof(server->transfer));
+        server->transfer[0] = 8; server->transfer[2] = pointer(server->write);
+        if (call(&a, ARTBOX_BINDER_WRITE_READ, pointer(server->transfer)) != -22 || server->transfer[1]) result = -1;
+    }
     if (!result) result = expect_self_rejection(&b);
     result = cleanup(&b, result);
     return cleanup(&a, result);
+}
+
+static const uint64_t death_cookie = UINT64_C(0x1234567887654321);
+static uint64_t get64(const unsigned char *p) {
+    uint64_t value = 0;
+    for (unsigned i = 0; i < 8; ++i) value |= (uint64_t)p[i] << (i * 8);
+    return value;
+}
+static int death_command(struct endpoint *e, uint32_t command, uint64_t cookie) {
+    put32(e->scratch->write, command);
+    if (command == ARTBOX_BC_DEAD_BINDER_DONE) {
+        put64(e->scratch->write + 4, cookie);
+        return send(e, 12);
+    }
+    put32(e->scratch->write + 4, 0);
+    put64(e->scratch->write + 8, cookie);
+    return send(e, 16);
+}
+static int no_event(struct endpoint *e) {
+    size_t size = 0;
+    REQUIRE(receive(e, &size) == 0 && !size);
+    return 0;
+}
+static int cookie_event(struct endpoint *e, uint32_t expected) {
+    for (unsigned attempt = 0; attempt < 5000; ++attempt) {
+        size_t size = 0, cursor = 0;
+        unsigned events = 0;
+        REQUIRE(receive(e, &size) == 0);
+        while (cursor < size) {
+            artbox_binder_frame frame;
+            REQUIRE(artbox_binder_next(ARTBOX_BINDER_READ, e->scratch->read, size, &cursor, &frame) == ARTBOX_BINDER_OK);
+            if (frame.command == ARTBOX_BR_NOOP) continue;
+            REQUIRE(frame.command == expected && get64(frame.payload) == death_cookie && !events++);
+        }
+        if (events) return 0;
+        e->ops->pause(e->context);
+    }
+    REQUIRE(0 && "Missing Binder cookie event");
+}
+static int departing_server(void *opaque) {
+    struct endpoint *e = opaque;
+    put32(e->scratch->write, ARTBOX_BC_ENTER_LOOPER);
+    REQUIRE(send(e, 4) == 0);
+    for (unsigned attempt = 0; attempt < 5000; ++attempt) {
+        size_t size = 0, cursor = 0;
+        REQUIRE(receive(e, &size) == 0);
+        while (cursor < size) {
+            artbox_binder_frame frame;
+            REQUIRE(artbox_binder_next(ARTBOX_BINDER_READ, e->scratch->read, size, &cursor, &frame) == ARTBOX_BINDER_OK);
+            if (frame.command == ARTBOX_BR_TRANSACTION) {
+                artbox_binder_transaction t;
+                REQUIRE(artbox_binder_decode_transaction(&frame, &t) == ARTBOX_BINDER_OK);
+                REQUIRE(t.target == object_pointer && t.cookie == object_cookie && t.code == transaction_code);
+                REQUIRE(t.sender_pid == e->ops->pid(e->context, 2) && payload(e, &t, ping, sizeof(ping)) == 0);
+                free_buffer(e->scratch->write, t.data_buffer);
+                REQUIRE(send(e, 12) == 0);
+                // Abandon this actual synchronous call. The caller must observe
+                // both owner death and a dead reply; no test-only death hook.
+                return cleanup(e, 0);
+            }
+            REQUIRE(ref_command(e, &frame) == 0);
+        }
+        if (!size) e->ops->pause(e->context);
+    }
+    REQUIRE(0 && "Manager never received the pending death-test call");
+}
+struct death_client { struct endpoint endpoint; unsigned mode; };
+static int death_client_loop(struct death_client *client) {
+    struct endpoint *e = &client->endpoint;
+    memset(e->scratch->write, 0, 4);
+    REQUIRE(call(e, ARTBOX_BINDER_SET_MAX_THREADS, pointer(e->scratch->write)) == 0);
+    put32(e->scratch->write, ARTBOX_BC_ENTER_LOOPER);
+    REQUIRE(send(e, 4) == 0);
+    // An unowned handle and unmatched acknowledgement are consumed without
+    // creating a subscription. The live reference is acquired afterward.
+    REQUIRE(death_command(e, ARTBOX_BC_REQUEST_DEATH_NOTIFICATION, death_cookie + 1) == 0);
+    REQUIRE(death_command(e, ARTBOX_BC_DEAD_BINDER_DONE, death_cookie + 1) == 0);
+    REQUIRE(no_event(e) == 0);
+    put32(e->scratch->write, ARTBOX_BC_INCREFS); put32(e->scratch->write + 4, 0);
+    put32(e->scratch->write + 8, ARTBOX_BC_ACQUIRE); put32(e->scratch->write + 12, 0);
+    REQUIRE(send(e, 16) == 0);
+    if (client->mode != 2) {
+        REQUIRE(death_command(e, ARTBOX_BC_REQUEST_DEATH_NOTIFICATION, death_cookie) == 0);
+        REQUIRE(death_command(e, ARTBOX_BC_REQUEST_DEATH_NOTIFICATION, death_cookie + 1) == 0);
+        REQUIRE(death_command(e, ARTBOX_BC_CLEAR_DEATH_NOTIFICATION, death_cookie + 1) == 0);
+        REQUIRE(no_event(e) == 0);
+    }
+    if (!client->mode) {
+        REQUIRE(death_command(e, ARTBOX_BC_CLEAR_DEATH_NOTIFICATION, death_cookie) == 0);
+        REQUIRE(cookie_event(e, ARTBOX_BR_CLEAR_DEATH_NOTIFICATION_DONE) == 0 && no_event(e) == 0);
+    }
+    REQUIRE(send(e, transaction(e, ARTBOX_BC_TRANSACTION, transaction_code, ping, sizeof(ping))) == 0);
+    unsigned completed = 0, failed = 0, died = 0;
+    for (unsigned attempt = 0; attempt < 5000 && (!completed || !failed); ++attempt) {
+        size_t size = 0, cursor = 0;
+        REQUIRE(receive(e, &size) == 0);
+        while (cursor < size) {
+            artbox_binder_frame frame;
+            REQUIRE(artbox_binder_next(ARTBOX_BINDER_READ, e->scratch->read, size, &cursor, &frame) == ARTBOX_BINDER_OK);
+            if (frame.command == ARTBOX_BR_NOOP) continue;
+            if (frame.command == ARTBOX_BR_TRANSACTION_COMPLETE) REQUIRE(!completed++);
+            else if (frame.command == ARTBOX_BR_DEAD_REPLY) REQUIRE(!failed++);
+            else {
+                REQUIRE(client->mode == 1 && frame.command == ARTBOX_BR_DEAD_BINDER);
+                REQUIRE(get64(frame.payload) == death_cookie && !died++);
+            }
+        }
+        if (!size) e->ops->pause(e->context);
+    }
+    REQUIRE(completed == 1 && failed == 1);
+    if (client->mode == 2) REQUIRE(death_command(e, ARTBOX_BC_REQUEST_DEATH_NOTIFICATION, death_cookie) == 0);
+    if (client->mode) {
+        if (!died) REQUIRE(cookie_event(e, ARTBOX_BR_DEAD_BINDER) == 0);
+        REQUIRE(death_command(e, ARTBOX_BC_DEAD_BINDER_DONE, death_cookie + 1) == 0);
+        if (client->mode == 1) {
+            REQUIRE(death_command(e, ARTBOX_BC_CLEAR_DEATH_NOTIFICATION, death_cookie) == 0);
+            REQUIRE(no_event(e) == 0); // Clear completion waits for this death's ack.
+            REQUIRE(death_command(e, ARTBOX_BC_DEAD_BINDER_DONE, death_cookie) == 0);
+        } else {
+            REQUIRE(death_command(e, ARTBOX_BC_DEAD_BINDER_DONE, death_cookie) == 0 && no_event(e) == 0);
+            REQUIRE(death_command(e, ARTBOX_BC_CLEAR_DEATH_NOTIFICATION, death_cookie) == 0);
+        }
+        REQUIRE(cookie_event(e, ARTBOX_BR_CLEAR_DEATH_NOTIFICATION_DONE) == 0);
+    }
+    REQUIRE(death_command(e, ARTBOX_BC_DEAD_BINDER_DONE, death_cookie) == 0);
+    REQUIRE(death_command(e, ARTBOX_BC_CLEAR_DEATH_NOTIFICATION, death_cookie) == 0);
+    REQUIRE(no_event(e) == 0);
+    put32(e->scratch->write, ARTBOX_BC_RELEASE); put32(e->scratch->write + 4, 0);
+    put32(e->scratch->write + 8, ARTBOX_BC_DECREFS); put32(e->scratch->write + 12, 0);
+    REQUIRE(send(e, 16) == 0 && no_event(e) == 0);
+    put32(e->scratch->write, ARTBOX_BC_EXIT_LOOPER);
+    REQUIRE(send(e, 4) == 0);
+    return 0;
+}
+static int death_client_run(void *opaque) {
+    struct death_client *client = opaque;
+    int result = prepare(&client->endpoint);
+    if (!result) result = death_client_loop(client);
+    return cleanup(&client->endpoint, result);
+}
+int artbox_binder_death_check(void *context, const artbox_binder_transaction_ops *ops,
+    artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client) {
+    for (unsigned mode = 0; mode < 3; ++mode) {
+        struct endpoint a = {context, ops, server, -1, 1, 0, ops->page_size * 16};
+        struct death_client b = {{context, ops, client, -1, 2, 0, ops->page_size * 16}, mode};
+        int result = prepare(&a);
+        if (result || become_manager(&a)) return cleanup(&a, -1);
+        int results[2] = {-1, -1};
+        result = ops->parallel(context, departing_server, &a, death_client_run, &b, results);
+        if (results[0] || results[1]) result = -1;
+        if (cleanup(&a, result)) return -1;
+    }
+    return 3;
 }
