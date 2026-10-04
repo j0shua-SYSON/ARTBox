@@ -59,7 +59,8 @@ and instruction checks reject drift. Original and adapted assembly and objects
 are retained. This is a reproducible build input; linking, signing and full Apple
 runtime execution remain separate acceptance work.
 
-The native guest profile compiles 462 units and excludes the host-owned VM and
+The native guest profile compiles 463 units, including a separate original
+sigchain caller, and excludes the host-owned VM and
 native VM implementation, which must be shared with Bionic's syscall mapper.
 Use `python -B scripts/build_art_runtime.py --profile android --managed-window
 --native-guest --all --jobs 2`. All 462 units compile in macOS CI at `44008be`.
@@ -84,7 +85,7 @@ frameworks. The CI job preserves inputs, corresponding source, notices and
 signature/layout evidence. `--input-revision` supports locally fetched CI merge
 commits; input provenance and the current link producer are recorded separately.
 At `5b570af`, the [full guest CI job](https://github.com/j0shua-SYSON/ARTBox/actions/runs/36291318393/job/108542537809)
-links the 462 objects and verifies signed frameworks for Mac and iOS 15 with
+links the full guest object set and verifies signed frameworks for Mac and iOS 15 with
 empty entitlements. Its 21,482,824-byte ELF has SHA-256
 `0c2caa923c1bd0942b4eef9d4a14da8ed2031e160307b8b9d66351c760aba54f`.
 The wrapper contains 11,255,808 RX bytes and 278,528 RW bytes, identical to the

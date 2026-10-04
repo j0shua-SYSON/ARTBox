@@ -7,6 +7,9 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <ucontext.h>
+#if defined(__BIONIC__)
+#include <bionic/reserved_signals.h>
+#endif
 #if !defined(__aarch64__)
 #error This contract requires native ARM64
 #endif
@@ -22,6 +25,14 @@ uintptr_t stack_base;
 int* owner_errno;
 constexpr size_t stack_bytes=65536;
 constexpr uint64_t usr1=UINT64_C(1)<<9, usr2=UINT64_C(1)<<11, trap=UINT64_C(1)<<4;
+#if defined(__BIONIC__)
+// Pinned Bionic forces its POSIX-timer signal blocked through sigprocmask.
+// Assert that bit as well as the requested bits; do not mask it out of reads.
+constexpr uint64_t libc_required=UINT64_C(1)<<(BIONIC_SIGNAL_POSIX_TIMERS-1);
+#else
+constexpr uint64_t libc_required=0;
+#endif
+constexpr uint64_t baseline_bits=usr1|libc_required;
 
 void observe(bool passed) {
     if(!passed) { failed=1; failed_bits=failed_bits|(UINT32_C(1)<<checks); }
@@ -39,7 +50,7 @@ void handler_context(int signal,siginfo_t* info,void* raw) {
     std::memcpy(&saved,&context->uc_sigmask,8);
     char local;
     uintptr_t sp=reinterpret_cast<uintptr_t>(&local);
-    observe(signal==SIGTRAP && info->si_code==TRAP_BRKPT && saved==usr1);
+    observe(signal==SIGTRAP && info->si_code==TRAP_BRKPT && saved==baseline_bits);
     observe(sp>=stack_base && sp-stack_base<stack_bytes && &errno==owner_errno);
 }
 void resume(void* raw,uint64_t value) {
@@ -51,18 +62,18 @@ void resume(void* raw,uint64_t value) {
 bool special(int signal,siginfo_t* info,void* raw) {
     special_calls=special_calls+1;
     handler_context(signal,info,raw);
-    observe(current_mask()==usr2);
+    observe(current_mask()==(usr2|libc_required));
     sigset_t self;
     sigemptyset(&self); sigaddset(&self,SIGTRAP);
     // AOSP's scoped TLS bit lets the real wrapper block a claimed signal here.
-    observe(chain_mask(SIG_BLOCK,&self,nullptr)==0 && current_mask()==(usr2|trap));
+    observe(chain_mask(SIG_BLOCK,&self,nullptr)==0 && current_mask()==(usr2|trap|libc_required));
     if(phase==1) { resume(raw,0x51); return true; }
     return false;
 }
 void user(int signal,siginfo_t* info,void* raw) {
     user_calls=user_calls+1;
     handler_context(signal,info,raw);
-    observe(current_mask()==(usr1|usr2|trap));
+    observe(current_mask()==(baseline_bits|usr2|trap));
     resume(raw,0x52);
 }
 uint64_t breakpoint() {
@@ -112,20 +123,20 @@ int artbox_sigchain_check(uint64_t action_address,uint64_t mask_address,int drop
     struct sigaction forwarded{};
     observe(chain_action(SIGTRAP,nullptr,&forwarded)==0 && forwarded.sa_sigaction==user);
     // Outside a handler the real sigchain wrapper strips a claimed signal.
-    observe(chain_mask(SIG_BLOCK,&self,nullptr)==0 && current_mask()==usr1);
+    observe(chain_mask(SIG_BLOCK,&self,nullptr)==0 && current_mask()==baseline_bits);
     if(drop_special) art::RemoveSpecialSignalHandlerFn(SIGTRAP,special);
     phase=1;
     uint64_t first=breakpoint();
-    observe(first==0x51 && errno==EDOM && current_mask()==usr1);
+    observe(first==0x51 && errno==EDOM && current_mask()==baseline_bits);
     phase=2;
     uint64_t second=breakpoint();
-    observe(second==0x52 && errno==EDOM && current_mask()==usr1);
+    observe(second==0x52 && errno==EDOM && current_mask()==baseline_bits);
     // This also checks that the scoped handling TLS bit was cleared on return.
-    observe(chain_mask(SIG_BLOCK,&self,nullptr)==0 && current_mask()==usr1);
+    observe(chain_mask(SIG_BLOCK,&self,nullptr)==0 && current_mask()==baseline_bits);
     if(!drop_special) art::RemoveSpecialSignalHandlerFn(SIGTRAP,special);
     phase=3;
     uint64_t third=breakpoint();
-    observe(third==0x52 && errno==EDOM && current_mask()==usr1);
+    observe(third==0x52 && errno==EDOM && current_mask()==baseline_bits);
     observe(special_calls==2 && user_calls==2);
     // AOSP retains the claimed chain after removing the last special handler.
     // Restore its user disposition; process teardown owns the kernel action.

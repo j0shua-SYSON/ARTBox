@@ -2009,3 +2009,11 @@ chain after the last special handler is removed, so restore its user disposition
 and let process teardown own the kernel registration. This tests sigchain, not
 JavaVM startup, JNI_OnLoad or DEX execution. No code generation or new entitlement
 is involved.
+
+The two libc profiles have different reserved-signal policies. Pinned Bionic's
+`filter_reserved_signals` always blocks `BIONIC_SIGNAL_POSIX_TIMERS` (signal 32)
+in sigprocmask; glibc does not add that bit. The caller must assert the full mask
+including Bionic's required bit, using the pinned header's constant. Do not
+discard reserved bits from observations or change Bionic's behavior to fit a
+glibc expectation. Per-assertion failure bits and mask snapshots are read and
+formatted only after the handler returns.

@@ -141,6 +141,11 @@ stack, removes that handler and verifies ordinary user forwarding. It checks
 the scoped handling TLS bit through actual mask behavior. A removed-handler
 control must fail. Thirty portable tests pass; the NDK caller compiles and its
 instruction boundary is checked. Native sigchain validation is pending CI.
+The first signed run exposed a test expectation error: Bionic forces its reserved
+POSIX-timer bit into sigprocmask, unlike glibc. All eleven recorded masks and the
+assertion failure bitmap match that difference exactly at `87f866f`. The caller
+now checks the complete Bionic mask using its pinned timer-signal constant;
+the runtime and Bionic implementation are unchanged by this correction.
 Other fault signals and unblocked queued delivery remain incomplete.
 JavaVM/JNI/DEX execution on Apple is still required.
 

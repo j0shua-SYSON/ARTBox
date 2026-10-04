@@ -158,6 +158,10 @@ acceptance, fallback, removal, alternate-stack execution and scoped TLS mask
 behavior. Twenty-two assertions and a removed-handler control are required on
 both signed Mac and a same-source native Linux reference. Native execution of
 this extension is pending; it does not start a JavaVM.
+The reference compares each libc's actual policy: Bionic adds its reserved
+POSIX-timer signal to sigprocmask, so the Android caller checks that bit alongside
+the requested bits. The glibc caller expects no added bit. Masks are compared in
+full, including the saved ucontext and restored state.
 
 The pinned ART sources require a real boundary before JavaVM startup on Apple:
 
