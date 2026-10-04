@@ -2658,8 +2658,8 @@ and real servicemanager acceptance remain required to complete M4.
 
 ## 0100: Keep Binder references and death acknowledgments separate from owner lifetime
 
-Status: local reference/death controls pass. Three shared Linux lifetime cases
-are implemented and awaiting native comparison.
+Status: at 1f9f107, all three shared Linux/ARTBox lifetime cases pass. The
+downloaded artifact and 96 source hashes verify independently.
 
 Retain context-manager strong/weak references using immutable endpoint tokens.
 Closing and unmapping the owner releases its endpoint even while remote
@@ -2696,3 +2696,30 @@ real servicemanager remain required. Reacquiring a replaced manager while an
 old handle-zero reference survives is explicitly unsupported until general
 handle allocation exists. Pool exhaustion returns ENOMEM as an ARTBox admission
 limit, not a claim about Linux allocation-failure notification behavior.
+
+## 0101: Verify exported-object lifetime before admitting general Binder handles
+
+Status: original shared fixture compiles for NDK ARM64 and the portable host;
+native reference execution and production object translation are pending.
+
+A byte-only call to handle zero cannot register a service. The next reference
+exports two occurrences of the same strong Binder object to a manager endpoint.
+It checks that both become the same nonzero receiver handle, with no leaked
+owner pointer or cookie. The manager retains explicit strong/weak references,
+returns the handle in its reply, and frees the original receive buffer. The
+owner must receive its original pointer/cookie, including both offset-table
+entries and unchanged surrounding parcel bytes.
+
+The manager then calls the retained service handle and receives a real reply.
+It subscribes to that object's death and makes another call which the object
+owner abandons by closing its endpoint. Completion, dead reply, object death
+cookie and clear/acknowledgment flow must all arrive. The exporting owner must
+receive and acknowledge its INCREFS/ACQUIRE callbacks before departure. Native
+Linux uses separate process owners; the portable adapter will use trusted
+virtual owners on host threads, as in the existing fixture.
+
+Keep `object_driver_compared` false until the production driver executes this
+same flow. Existing ioctl, mapping, synchronous byte and manager-death comparisons
+remain required. This fixture is a prerequisite for actual AOSP servicemanager
+integration, not a substitute for it. Weak-object transfer, file descriptors,
+scatter/gather fixups, nested calls and oneway delivery need additional cases.

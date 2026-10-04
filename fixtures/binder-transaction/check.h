@@ -8,7 +8,8 @@ extern "C" {
 #endif
 typedef struct artbox_binder_transaction_scratch {
     uint64_t transfer[6];
-    unsigned char write[128], read[256], data[32];
+    unsigned char write[128], read[256], data[128];
+    unsigned char offsets[64];
 } artbox_binder_transaction_scratch;
 typedef struct artbox_binder_transaction_ops {
     int32_t (*pid)(void *context, int32_t role);
@@ -41,6 +42,11 @@ int artbox_binder_transaction_same_pid_check(void *context, const artbox_binder_
  * acknowledgement, and subscribe after owner loss then acknowledge before clear.
  * A real in-flight call observes BR_DEAD_REPLY when its manager closes. */
 int artbox_binder_death_check(void *context, const artbox_binder_transaction_ops *ops,
+    artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client);
+/* Export two occurrences of one strong object, retain/call its remote handle,
+ * restore pointer/cookie on return to the owner, then observe that object's
+ * death during an outstanding call. Requires actual receive-alias coherence. */
+int artbox_binder_object_check(void *context, const artbox_binder_transaction_ops *ops,
     artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client);
 #ifdef __cplusplus
 }

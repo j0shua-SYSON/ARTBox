@@ -387,8 +387,8 @@ Non-Binder unknown ioctls return ENOTTY and absent descriptors return EBADF.
 The initial synchronous handle-zero byte-parcel WRITE_READ path is implemented
 with nonblocking receives, completion messages and buffer release. Its required
 native-backed comparison passes at bf36338 with artifact/source verification.
-Manager strong/weak references and death/clear/ack commands pass local controls;
-the three-case shared native lifetime comparison is pending.
+Manager strong/weak references and death/clear/ack commands pass the three-case
+shared native lifetime comparison at 1f9f107; artifact/source provenance verifies.
 Object/FD transfer, nested/oneway calls, blocking empty reads and polling remain
 pending. See
 [the Binder contract](binder.md) for host resource limits and comparison scope.

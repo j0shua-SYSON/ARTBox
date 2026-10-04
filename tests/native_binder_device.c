@@ -179,8 +179,9 @@ int main(int argc, char **argv) {
     if (artbox_binder_transaction_check(&context, &transactions, &server, &client)) return 1;
     int death_cases = artbox_binder_death_check(&context, &transactions, &server, &client);
     if (death_cases != 3) return 1;
+    if (artbox_binder_object_check(&context, &transactions, &server, &client)) return 1;
     printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"mapping_cases\":%d,"
            "\"same_pid_rejected\":true,\"threaded_ping_pong\":true,\"death_cases\":%d,"
-           "\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases);
+           "\"object_handle_lifecycle\":true,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases);
     return 0;
 }

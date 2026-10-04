@@ -162,10 +162,16 @@ detaches a subscription immediately but waits for its delivered death to be
 acknowledged before returning clear completion. Local controls cover live
 cancellation, duplicate/wrong cookies, last-reference release, retained mappings
 and endpoint-slot reuse. Three shared native cases additionally abandon an
-actual synchronous call and require its dead reply. Their Linux comparison is
-pending. See ADR 0100 for resource limits and remaining general-handle work.
+actual synchronous call and require its dead reply. All three Linux/ARTBox cases
+pass at `1f9f107`; artifact provenance and 96 input hashes verify. See ADR 0100
+for resource limits and remaining general-handle work.
 Reference-object transfer, blocking reads, polling and actual AOSP
 servicemanager still need implementation and acceptance.
+
+The next shared fixture exports a repeated strong object, retains and calls its
+receiver handle after freeing the original parcel, verifies return-to-owner
+pointer/cookie restoration, and observes the exported owner's death. Native
+execution is pending, and `object_driver_compared` remains false. See ADR 0101.
 
 ## Evidence
 

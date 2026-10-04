@@ -54,8 +54,8 @@ M4: the [Binder wire boundary](binder.md) recognizes the Android 15 ARM64
 commands and validates transaction/object snapshots. Local checks pass 40 host
 contracts and 60 comparisons against actual NDK UAPI constants plus an
 independently produced byte fixture. A bounded receive-arena primitive also
-passes local ownership/exhaustion checks and 8,000 concurrent lifecycles;
-its transaction integration awaits paired execution. At `4012961`, all 18 host jobs and iOS
+passes local ownership/exhaustion checks and 8,000 concurrent lifecycles.
+Its synchronous transaction integration passes at bf36338. At `4012961`, all 18 host jobs and iOS
 CI pass, including actual native receive-alias coherence, protection-fault and
 close/unmap tests on Mac/Linux. At `c773122`, the real Linux Binder device passes
 the 30-case ioctl/lifetime reference; downloaded source hashes and run identity
@@ -81,8 +81,12 @@ synchronous handle-zero byte-parcel path passes the same Linux fixture; artifact
 provenance and all 96 source hashes verify. All 19 host jobs and the iOS build
 pass. The downloaded signed Mac runtime also verifies all managed/console
 controls and 96 source hashes.
-Manager strong/weak references and death/clear/acknowledgment delivery now pass
-local owner/error controls; their three-case paired Linux fixture is pending.
+At `1f9f107`, manager strong/weak references and death/clear/acknowledgment
+delivery pass all three shared Linux/ARTBox lifetime cases; the artifact digest,
+merge parent and 96 input hashes verify. An exported-object reference fixture
+now checks handle retention, return-to-owner translation, a callback transaction
+and object-owner death. Its native execution and production integration remain
+pending, with `object_driver_compared` explicitly false.
 Objects, oneway/nested calls and blocking reads remain unsupported.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects

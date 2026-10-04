@@ -184,7 +184,7 @@ def run_native(spec, installed, build):
         mapping_cases = len(re.findall(r'\bCHECK\(', (ROOT / 'fixtures/binder-mapping/check.c').read_text())) - 1
         if result != {'protocol': 8, 'cases': expected, 'file_cases': file_cases, 'mapping_cases': mapping_cases,
                       'same_pid_rejected': True, 'threaded_ping_pong': True, 'death_cases': 3,
-                      'fresh_binderfs_context': True, 'passed': True}:
+                      'object_handle_lifecycle': True, 'fresh_binderfs_context': True, 'passed': True}:
             raise RuntimeError('Native Binder reference did not execute every expected case')
         record = {**result, 'vermagic': version, 'module_license': license_name,
                   'runner_sha256': digest(executable)}
@@ -294,7 +294,8 @@ def main():
     installed = prepare(spec, Path(os.environ['ARTBOX_CACHE_DIR']))
     record = {'scope': pins['scope'], 'package': spec, 'prepared': True,
               'native_execution_verified': False, 'artbox_driver_compared': False,
-              'mapping_driver_compared': False, 'transaction_driver_compared': False, 'death_driver_compared': False}
+              'mapping_driver_compared': False, 'transaction_driver_compared': False, 'death_driver_compared': False,
+              'object_driver_compared': False}
     if args.run_native:
         record['native'] = run_native(spec, installed, Path(os.environ['ARTBOX_BUILD_DIR']) / 'm4/kernel-reference')
         record['native_execution_verified'] = True
@@ -326,6 +327,7 @@ def main():
                       'mapping_driver_compared': record['mapping_driver_compared'],
                       'transaction_driver_compared': record['transaction_driver_compared'],
                       'death_driver_compared': record['death_driver_compared'],
+                      'object_driver_compared': record['object_driver_compared'],
                       'native': record.get('native'), 'driver': record.get('driver')}, indent=2))
 
 
