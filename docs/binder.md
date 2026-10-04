@@ -65,6 +65,10 @@ semantic oracle or an iPhone execution claim.
 Every contract needs failure controls before being enabled. Kernel comparison
 needs an actual native Linux Binder device; its availability on CI has not been
 established. Missing access must not be reported as a passed kernel comparison.
+`scripts/probe_binder.py` records available devices/protocols, installed module
+paths and Binder kernel configuration without loading anything. Its default
+success means the inventory completed; `--require-device` fails unless an
+accessible protocol-8 device exists. It does not run lifecycle tests.
 Multi-process APKs, FD transfer, buffer-parent fixups, scheduling/priority
 inheritance and SELinux enforcement are outside this first boundary checkpoint.
 

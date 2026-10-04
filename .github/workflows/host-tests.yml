@@ -51,6 +51,8 @@ jobs:
           ${{ matrix.python }} -B scripts/build.py host
       - name: Check ART's native low-address heap requirement
         run: ${{ matrix.python }} -B scripts/test_low_address.py
+      - name: Record native Binder reference availability
+        run: ${{ matrix.python }} -B scripts/probe_binder.py
       - name: Preserve native Darwin signal-context diagnostics
         if: always() && matrix.os == 'macos-15'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -200,6 +202,7 @@ jobs:
           path: |
             artifacts/host-metrics.json
             artifacts/m4-binder-wire.json
+            artifacts/m4-binder-capabilities.json
             build/m4/binder-wire/
             build/host/test_binder_wire
             build/host/Release/test_binder_wire.exe
