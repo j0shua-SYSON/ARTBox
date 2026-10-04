@@ -394,11 +394,14 @@ three malformed-parcel rollback cases pass the shared comparison at 74a6c9c;
 artifact provenance and all 96 source hashes verify. One-way calls pass the shared
 native lifecycle comparison at f8b21fb, with source/artifact verification, plus
 local per-node ordering, buffer lifetime, copy-fault and teardown controls.
-Weak objects/FDs, nested synchronous calls,
-blocking empty reads and polling remain pending. See
+Weak objects/FDs, nested synchronous calls and readiness polling remain pending. See
 [the Binder contract](binder.md) for host resource limits and comparison scope.
 
-The native-only wait reference now separately tests interrupted empty reads,
-write-consumption preservation, read-buffer faults and O_NONBLOCK. Execution is
-pending and `wait_driver_compared` remains false; this adds no blocking-read or
-poll support to the syscall compatibility claim.
+At `ba2cb96`, the native wait reference passes four cases for interruption,
+write-consumption preservation, read-buffer faults and O_NONBLOCK, including the
+initial thread NOOP. The production path now waits with the mutex released and
+preserves an in-flight ioctl across descriptor close. Local injected-epoch tests
+verify EINTR and consumed writes; passive final unmap wakes death delivery.
+Signals and passive watches use 5 ms ordinary-context checks. The shared
+blocking ping/reply and paired wait comparison remain pending CI; this does not
+claim readiness polling or native signal delivery through signed Bionic.

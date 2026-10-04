@@ -2,6 +2,7 @@
 #ifndef ARTBOX_BINDER_DEVICE_H
 #define ARTBOX_BINDER_DEVICE_H
 #include "artbox/vm.h"
+#include "artbox/kernel.h"
 #include "artbox/binder_wire.h"
 #ifdef __cplusplus
 extern "C" {
@@ -50,9 +51,10 @@ int artbox_binder_device_destroy(artbox_binder_device *device);
  * The initial boundary has fixed endpoint credentials. */
 int artbox_binder_device_open(artbox_binder_device *device, artbox_vm *vm,
     int32_t pid, uint32_t uid, uint64_t *token);
+/* Direct close returns EBUSY while an ioctl is active. VFS descriptors retain
+ * their open description until the in-flight operation completes. */
 int artbox_binder_device_close(artbox_binder_device *device, uint64_t token);
-/* Trusted descriptor owner sets O_NONBLOCK before publishing the open.
- * Blocking empty reads remain unsupported until wakeup/signal integration. */
+/* Trusted descriptor owner sets O_NONBLOCK before publishing the open. */
 int artbox_binder_device_set_nonblocking(artbox_binder_device *device, uint64_t token, int enabled);
 /* Negative Linux errno. Guest copies go through VM, never raw dereferences.
  * VERSION, MAX_THREADS, CONTEXT_MGR[_EXT], THREAD_EXIT and WRITE_READ's
@@ -62,11 +64,21 @@ int artbox_binder_device_set_nonblocking(artbox_binder_device *device, uint64_t 
  * flow. Parsed malformed transactions queue BR_FAILED_REPLY and stop the write
  * batch after that transaction; invalid command/header copies still fail ioctl.
  * Unsupported operations return EOPNOTSUPP;
- * unknown words return EINVAL. Empty nonblocking reads return EAGAIN.
+ * unknown words return EINVAL. New threads have one initial NOOP return;
+ * subsequent empty nonblocking reads return EAGAIN. Blocking reads release the
+ * device mutex until work arrives. This TID-only entry has no signal owner.
  * Write batches above 64 KiB return E2BIG without consuming commands.
  * Lock order is device then VM; VM callbacks must not enter this device. */
 int64_t artbox_binder_device_ioctl(artbox_binder_device *device, uint64_t token,
     int32_t tid, uint32_t request, uint64_t argument);
+/* Same dispatch with a live guest signal owner for interruptible reads. The
+ * thread and its signal attachment must outlive the call. Delivered interrupt
+ * epochs produce EINTR without losing consumed writes. No callback enters this
+ * device from a signal handler; epoch and passive mapping checks poll at 5 ms. */
+int64_t artbox_binder_device_ioctl_interruptible(artbox_binder_device *device, uint64_t token,
+    artbox_kernel_thread *thread, uint32_t request, uint64_t argument);
+/* Ordinary-context observation; does not enter VM or guest signal state. */
+size_t artbox_binder_device_waiter_count(artbox_binder_device *device);
 #ifdef __cplusplus
 }
 #endif

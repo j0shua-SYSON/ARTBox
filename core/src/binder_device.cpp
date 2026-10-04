@@ -1,7 +1,10 @@
 // Original user-mode Binder endpoint boundary. SPDX-License-Identifier: MIT
 #include "artbox/binder_device.h"
 #include "artbox/binder_arena.h"
+#include "artbox/signals.h"
 #include <algorithm>
+#include <chrono>
+#include <condition_variable>
 #include <cstring>
 #include <exception>
 #include <mutex>
@@ -16,7 +19,7 @@ struct Thread {
     int32_t tid; unsigned looper;
     uint64_t incoming, outgoing;
     uint32_t error; unsigned completions;
-    bool dead_reply;
+    bool dead_reply, initial_return, active;
 };
 struct Endpoint {
     uint64_t token = 0;
@@ -30,6 +33,7 @@ struct Endpoint {
     artbox_binder_arena *arena = nullptr;
     int32_t pid = 0;
     uint32_t uid = 0, max_threads = 0;
+    size_t active_calls = 0;
     std::vector<Thread> threads;
 };
 struct Transaction {
@@ -82,6 +86,8 @@ void write32(unsigned char *p, uint32_t value) {
 }
 int transfer_packet(artbox_binder_device *, Endpoint &, Thread &, uint64_t, uint32_t);
 int read_work(artbox_binder_device *, Endpoint &, Thread &, unsigned char *);
+int read_wait(artbox_binder_device *, Endpoint &, int32_t, unsigned char *,
+    std::unique_lock<std::mutex> &, artbox_kernel_thread *, uint64_t);
 int free_packet(artbox_binder_device *, Endpoint &, uint64_t);
 int reference_command(artbox_binder_device *, Endpoint &, uint64_t, uint32_t);
 int death_command(artbox_binder_device *, Endpoint &, Thread &, uint64_t, uint32_t);
@@ -127,7 +133,8 @@ int command(artbox_binder_device *device, Endpoint &endpoint, Thread &thread,
             == ARTBOX_BINDER_OK ? -95 : -22;
     }
 }
-int write_read(artbox_binder_device *device, Endpoint &endpoint, Thread &thread, uint64_t argument) {
+int write_read(artbox_binder_device *device, Endpoint &endpoint, Thread &thread, uint64_t argument,
+    std::unique_lock<std::mutex> &guard, artbox_kernel_thread *owner, uint64_t epoch) {
     unsigned char bytes[48];
     if (artbox_vm_read(endpoint.vm, argument, bytes, sizeof(bytes))) return -14;
     const uint64_t size = read64(bytes), base = read64(bytes + 16);
@@ -145,7 +152,7 @@ int write_read(artbox_binder_device *device, Endpoint &endpoint, Thread &thread,
     }
     write64(bytes + 8, consumed);
     if (result) write64(bytes + 32, 0); // A failed write never attempts the read.
-    else if (read64(bytes + 24)) result = read_work(device, endpoint, thread, bytes);
+    else if (read64(bytes + 24)) result = read_wait(device, endpoint, thread.tid, bytes, guard, owner, epoch);
     // Copy-back failure takes precedence, even after a valid command prefix
     // changed thread state. Do not prevalidate the output and reorder effects.
     if (artbox_vm_write(endpoint.vm, argument, bytes, sizeof(bytes))) return -14;
@@ -155,6 +162,8 @@ int write_read(artbox_binder_device *device, Endpoint &endpoint, Thread &thread,
 
 struct artbox_binder_device {
     std::mutex lock;
+    std::condition_variable changed;
+    size_t waiters = 0;
     std::vector<Endpoint> endpoints;
     size_t thread_limit;
     uint64_t next_token = 1, manager = 0;
@@ -172,6 +181,12 @@ struct artbox_binder_device {
     std::vector<Node> nodes;
     std::vector<Claim> claims;
 };
+
+extern "C" size_t artbox_binder_device_waiter_count(artbox_binder_device *device) {
+    if (!device) return 0;
+    std::lock_guard<std::mutex> guard(device->lock);
+    return device->waiters;
+}
 
 namespace {
 Endpoint *endpoint_for(artbox_binder_device *device, uint64_t token) {
@@ -605,6 +620,11 @@ size_t work_for(artbox_binder_device *device, Endpoint &endpoint, Thread &thread
     }
     return device->work.size();
 }
+bool read_ready(artbox_binder_device *device, Endpoint &endpoint, Thread &thread) {
+    return thread.initial_return || thread.error || thread.completions ||
+        work_for(device, endpoint, thread) != device->work.size() ||
+        death_for(device, endpoint, thread) != device->deaths.size() || node_event_for(device, endpoint, thread);
+}
 int read_work(artbox_binder_device *device, Endpoint &endpoint, Thread &thread, unsigned char *header) {
     if (!device->receive_limit) return -95;
     const uint64_t size = read64(header + 24), address = read64(header + 40);
@@ -615,9 +635,7 @@ int read_work(artbox_binder_device *device, Endpoint &endpoint, Thread &thread, 
     write32(bytes, ARTBOX_BR_NOOP);
     if (artbox_vm_write(endpoint.vm, address, bytes, 4)) return -14;
     size_t consumed = 4;
-    const bool pending = thread.error || thread.completions || work_for(device, endpoint, thread) != device->work.size() ||
-                         death_for(device, endpoint, thread) != device->deaths.size() || node_event_for(device, endpoint, thread);
-    if (!pending) { write64(header + 32, 0); return endpoint.nonblocking ? -11 : -95; }
+    if (!read_ready(device, endpoint, thread)) { write64(header + 32, 0); return -11; }
     while (size - consumed >= 4) {
         const size_t index = work_for(device, endpoint, thread);
         const size_t death_index = death_for(device, endpoint, thread);
@@ -719,6 +737,39 @@ static int reap_closed(artbox_binder_device *device) {
     return result;
 }
 
+namespace {
+int read_wait(artbox_binder_device *device, Endpoint &endpoint, int32_t tid, unsigned char *header,
+    std::unique_lock<std::mutex> &guard, artbox_kernel_thread *owner, uint64_t epoch) {
+    Thread *thread = thread_for(&endpoint, tid);
+    if (!thread) return -9;
+    int result = read_work(device, endpoint, *thread, header);
+    if (result != -11 || endpoint.nonblocking) return result;
+    // Publish effects of the write half before sleeping for the read half.
+    device->changed.notify_all();
+    struct Waiter {
+        artbox_binder_device *device;
+        explicit Waiter(artbox_binder_device *d) : device(d) { ++device->waiters; }
+        ~Waiter() { --device->waiters; }
+    } waiter(device);
+    const bool interruptible = owner && artbox_signals_interrupt_number(owner);
+    try {
+        for (;;) {
+            if (interruptible && artbox_signals_interrupt_epoch(owner) != epoch) return -4;
+            // Erasing a different thread can shift this endpoint's vector.
+            // Never retain its elements across an unlocked wait.
+            thread = thread_for(&endpoint, tid);
+            if (!thread) return -9;
+            if (read_ready(device, endpoint, *thread)) return read_work(device, endpoint, *thread, header);
+            // Ordinary mutations notify immediately. Passive mapping teardown
+            // and signal-handler epochs require bounded ordinary-context
+            // polling; neither callback may enter this mutex or condition.
+            device->changed.wait_for(guard, std::chrono::milliseconds(5));
+            if ((result = reap_closed(device))) return result;
+        }
+    } catch (const std::exception &) { return -5; }
+}
+}
+
 extern "C" artbox_binder_device *artbox_binder_device_create(size_t endpoints, size_t threads) {
     if (!endpoints || endpoints > 1024 || !threads || threads > 1024) return nullptr;
     auto *device = new (std::nothrow) artbox_binder_device;
@@ -787,8 +838,10 @@ extern "C" int artbox_binder_device_close(artbox_binder_device *device, uint64_t
     std::lock_guard<std::mutex> guard(device->lock);
     for (auto &endpoint : device->endpoints) {
         if (endpoint.token != token || !endpoint.opened) continue;
+        if (endpoint.active_calls) return -16;
         endpoint.opened = false;
         endpoint.vm = nullptr;
+        device->changed.notify_all();
         return reap_closed(device);
     }
     return -9;
@@ -844,63 +897,91 @@ extern "C" int64_t artbox_binder_device_mmap(artbox_binder_device *device, uint6
     endpoint.receive_base = static_cast<uint64_t>(mapped); endpoint.receive_size = size;
     return mapped;
 }
-extern "C" int64_t artbox_binder_device_ioctl(artbox_binder_device *device, uint64_t token,
-    int32_t tid, uint32_t request, uint64_t argument) {
+static int64_t binder_ioctl(artbox_binder_device *device, uint64_t token,
+    int32_t tid, uint32_t request, uint64_t argument, artbox_kernel_thread *owner) {
     if (!device || tid <= 0) return -22;
     if (!token) return -9;
-    std::lock_guard<std::mutex> guard(device->lock);
+    const uint64_t epoch = owner ? artbox_signals_interrupt_epoch(owner) : 0;
+    std::unique_lock<std::mutex> guard(device->lock);
     int error = reap_closed(device);
     if (error) return error;
     auto found = std::find_if(device->endpoints.begin(), device->endpoints.end(),
         [token](const Endpoint &e) { return e.opened && e.token == token; });
     if (found == device->endpoints.end()) return -9;
     Endpoint &endpoint = *found;
+    if (owner && owner->vm != endpoint.vm) return -95;
     auto thread = std::find_if(endpoint.threads.begin(), endpoint.threads.end(),
         [tid](const Thread &t) { return t.tid == tid; });
     if (thread == endpoint.threads.end()) {
         if (endpoint.threads.size() == device->thread_limit) return -12;
-        endpoint.threads.push_back({tid, 0, 0, 0, 0, 0, false});
+        endpoint.threads.push_back({tid, 0, 0, 0, 0, 0, false, true, false});
         thread = endpoint.threads.end() - 1;
     }
+    if (thread->active) return -16; // A trusted guest TID cannot enter two ioctls concurrently.
+    thread->active = true;
+    ++endpoint.active_calls;
     unsigned char value[24] = {};
-    switch (request) {
-    case ARTBOX_BINDER_VERSION:
-        value[0] = ARTBOX_BINDER_PROTOCOL_VERSION;
-        return artbox_vm_write(endpoint.vm, argument, value, 4) ? -22 : 0;
-    case ARTBOX_BINDER_SET_MAX_THREADS:
-        if (artbox_vm_read(endpoint.vm, argument, value, 4)) return -22;
-        endpoint.max_threads = read32(value);
-        return 0;
-    case ARTBOX_BINDER_SET_CONTEXT_MGR_EXT:
-    case ARTBOX_BINDER_SET_CONTEXT_MGR:
-        if (request == ARTBOX_BINDER_SET_CONTEXT_MGR_EXT &&
-            artbox_vm_read(endpoint.vm, argument, value, sizeof(value))) return -22;
-        if (device->manager) return -16;
-        if (device->uid_set && device->manager_uid != endpoint.uid) return -1;
-        if (owned_node(device, token, read64(value + 8))) return -95;
-        {
-            Node *node = create_node(device, token, read64(value + 8), read64(value + 16), read32(value + 4), 0, true);
-            if (!node) return -12;
-            device->manager_node = node->id;
+    const auto invoke = [&]() -> int64_t {
+        switch (request) {
+        case ARTBOX_BINDER_VERSION:
+            value[0] = ARTBOX_BINDER_PROTOCOL_VERSION;
+            return artbox_vm_write(endpoint.vm, argument, value, 4) ? -22 : 0;
+        case ARTBOX_BINDER_SET_MAX_THREADS:
+            if (artbox_vm_read(endpoint.vm, argument, value, 4)) return -22;
+            endpoint.max_threads = read32(value);
+            return 0;
+        case ARTBOX_BINDER_SET_CONTEXT_MGR_EXT:
+        case ARTBOX_BINDER_SET_CONTEXT_MGR:
+            if (request == ARTBOX_BINDER_SET_CONTEXT_MGR_EXT &&
+                artbox_vm_read(endpoint.vm, argument, value, sizeof(value))) return -22;
+            if (device->manager) return -16;
+            if (device->uid_set && device->manager_uid != endpoint.uid) return -1;
+            if (owned_node(device, token, read64(value + 8))) return -95;
+            {
+                Node *node = create_node(device, token, read64(value + 8), read64(value + 16), read32(value + 4), 0, true);
+                if (!node) return -12;
+                device->manager_node = node->id;
+            }
+            device->manager = token; device->manager_uid = endpoint.uid; device->uid_set = true;
+            std::memcpy(device->manager_object, value, sizeof(value));
+            return 0;
+        case ARTBOX_BINDER_THREAD_EXIT:
+            cancel_transactions(device, endpoint.token, tid);
+            for (auto &node : device->nodes)
+                if (node.id && node.owner == endpoint.token && node.notification_tid == tid) node.notification_tid = 0;
+            for (auto &death : device->deaths)
+                if (death.endpoint == endpoint.token && death.tid == tid) death = {};
+            endpoint.threads.erase(thread);
+            return 0;
+        case ARTBOX_BINDER_WRITE_READ:
+            return write_read(device, endpoint, *thread, argument, guard, owner, epoch);
+        case ARTBOX_BINDER_GET_NODE_DEBUG_INFO: case ARTBOX_BINDER_GET_NODE_INFO_FOR_REF:
+        case ARTBOX_BINDER_FREEZE: case ARTBOX_BINDER_GET_FROZEN_INFO:
+        case ARTBOX_BINDER_ENABLE_ONEWAY_SPAM_DETECTION: case ARTBOX_BINDER_GET_EXTENDED_ERROR:
+            return -95;
+        default:
+            return -22;
         }
-        device->manager = token; device->manager_uid = endpoint.uid; device->uid_set = true;
-        std::memcpy(device->manager_object, value, sizeof(value));
-        return 0;
-    case ARTBOX_BINDER_THREAD_EXIT:
-        cancel_transactions(device, endpoint.token, tid);
-        for (auto &node : device->nodes)
-            if (node.id && node.owner == endpoint.token && node.notification_tid == tid) node.notification_tid = 0;
-        for (auto &death : device->deaths)
-            if (death.endpoint == endpoint.token && death.tid == tid) death = {};
-        endpoint.threads.erase(thread);
-        return 0;
-    case ARTBOX_BINDER_WRITE_READ:
-        return write_read(device, endpoint, *thread, argument);
-    case ARTBOX_BINDER_GET_NODE_DEBUG_INFO: case ARTBOX_BINDER_GET_NODE_INFO_FOR_REF:
-    case ARTBOX_BINDER_FREEZE: case ARTBOX_BINDER_GET_FROZEN_INFO:
-    case ARTBOX_BINDER_ENABLE_ONEWAY_SPAM_DETECTION: case ARTBOX_BINDER_GET_EXTENDED_ERROR:
-        return -95;
-    default:
-        return -22;
+    };
+    const int64_t result = invoke();
+    // Native Binder marks a newly allocated thread for an initial return, then
+    // clears it at every ioctl exit, including errors and non-read requests.
+    // THREAD_EXIT erased this element; the next call creates a new thread.
+    if (request != ARTBOX_BINDER_THREAD_EXIT) {
+        Thread *current = thread_for(&endpoint, tid);
+        if (current) { current->initial_return = false; current->active = false; }
     }
+    --endpoint.active_calls;
+    device->changed.notify_all();
+    return result;
+}
+
+extern "C" int64_t artbox_binder_device_ioctl(artbox_binder_device *device, uint64_t token,
+    int32_t tid, uint32_t request, uint64_t argument) {
+    return binder_ioctl(device, token, tid, request, argument, nullptr);
+}
+extern "C" int64_t artbox_binder_device_ioctl_interruptible(artbox_binder_device *device, uint64_t token,
+    artbox_kernel_thread *thread, uint32_t request, uint64_t argument) {
+    if (!thread) return -22;
+    return binder_ioctl(device, token, thread->tid, request, argument, thread);
 }

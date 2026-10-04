@@ -121,11 +121,19 @@ direct SVC instructions. The 176 external imports remain explicit.
 Linking, real servicemanager execution, runtime attachment and M4 acceptance
 remain required; producing archives does not satisfy those checks.
 
-The next native reference adds four wait cases: empty-read interruption,
-interruption after consuming ENTER_LOOPER, invalid output and nonblocking empty
-read. It observes the actual blocked ioctl before sending the test signal.
-ARM64 compilation passes; Linux execution is pending. `wait_driver_compared`
-remains false until ARTBox runs the same behavior with ownership and wakeup tests.
+At `ba2cb96`, all 20 host jobs and iOS pass. The four native wait cases verify
+empty-read interruption, interruption after consuming ENTER_LOOPER, invalid
+output and nonblocking empty read. The fixture verifies the initial thread NOOP,
+then observes the actual blocked ioctl before signaling. Its artifact and 97
+source hashes verify; `wait_driver_compared` is false at that checkpoint.
+
+Production blocking reads now release the device mutex, retain the open
+operation across descriptor close, and observe delivered-interrupt epochs.
+Local tests cover consumed writes, thread-vector changes, close/reuse and death
+notification after passive final unmap. All 40 Windows host contracts pass;
+three native-backing contracts remain unavailable there. The shared blocking
+ping/reply and Linux/ARTBox wait comparison await CI. Readiness polling, actual
+service execution and signed Binder attachment remain ahead.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

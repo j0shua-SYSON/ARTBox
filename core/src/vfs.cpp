@@ -219,7 +219,7 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
             binder = d->binder;
         }
         if (binder->vm != thread->vm) return -95; // Cross-address-space FDs are not supported.
-        return artbox_binder_device_ioctl(binder->device, binder->token, thread->tid,
+        return artbox_binder_device_ioctl_interruptible(binder->device, binder->token, thread,
             static_cast<uint32_t>(a1), a2);
     }
     if (number == 17) {

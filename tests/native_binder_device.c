@@ -19,14 +19,14 @@
 
 int artbox_native_binder_wait_check(const char *path);
 
-struct transaction_context { const char *path; int32_t server_pid, client_pid; int server_fd; };
+struct transaction_context { const char *path; int32_t server_pid, client_pid; int server_fd, nonblocking; };
 static int32_t transaction_pid(void *opaque, int32_t role) {
     struct transaction_context *context = opaque;
     return role == 1 ? context->server_pid : context->client_pid;
 }
 static int transaction_open(void *opaque, int32_t role) {
     struct transaction_context *context = opaque;
-    int fd = open(context->path, O_RDWR | O_CLOEXEC | O_NONBLOCK);
+    int fd = open(context->path, O_RDWR | O_CLOEXEC | (context->nonblocking ? O_NONBLOCK : 0));
     if (role == 1 && fd >= 0) context->server_fd = fd;
     return fd < 0 ? -errno : fd;
 }
@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
     const artbox_binder_mapping_ops memory = {(uint64_t)sysconf(_SC_PAGESIZE), map_file, protect_file, unmap_file, open_file};
     int mapping_cases = artbox_binder_mapping_check(argv[2], &ops, &memory);
     if (mapping_cases < 0) return 1;
-    struct transaction_context context = {argv[2], (int32_t)getpid(), (int32_t)getpid(), -1};
+    struct transaction_context context = {argv[2], (int32_t)getpid(), (int32_t)getpid(), -1, 1};
     const artbox_binder_transaction_ops transactions = {transaction_pid, (uint32_t)geteuid(),
         (size_t)sysconf(_SC_PAGESIZE), transaction_open, close_device, transaction_map, transaction_unmap,
         transaction_ioctl, transaction_read, pause_device, transaction_parallel};
@@ -185,9 +185,11 @@ int main(int argc, char **argv) {
     if (artbox_binder_oneway_check(&context, &transactions, &server, &client)) return 1;
     int wait_cases = artbox_native_binder_wait_check(argv[2]);
     if (wait_cases != 4) return 1;
+    context.nonblocking = 0;
+    if (artbox_binder_transaction_check(&context, &transactions, &server, &client)) return 1;
     printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"mapping_cases\":%d,"
            "\"same_pid_rejected\":true,\"threaded_ping_pong\":true,\"death_cases\":%d,"
-           "\"object_handle_lifecycle\":true,\"oneway_lifecycle\":true,\"wait_cases\":%d,"
+           "\"object_handle_lifecycle\":true,\"oneway_lifecycle\":true,\"wait_cases\":%d,\"blocking_threaded_ping_pong\":true,"
            "\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases, wait_cases);
     return 0;
 }

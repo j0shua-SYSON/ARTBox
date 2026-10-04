@@ -2873,3 +2873,33 @@ input/object/archive hashes, compiler flags, symbol inventory and corresponding
 source with notices. Mac CI must build the same 49 units; Windows can use verified
 CI-generated bindings without executing a foreign host compiler. This adds no
 executable-memory permission and makes no device or service-execution claim.
+
+## 0106: Wait outside Binder ownership locks and reuse delivered signal epochs
+
+Establish the empty-read contract on native Linux before enabling production
+blocking reads. A new kernel thread first returns NOOP because its initial
+return flag is set; every ioctl exit clears that flag. The next empty read can
+block. The reference verifies the actual ioctl before sending a non-restarting
+signal, and requires EINTR with consumed write commands preserved.
+
+Use one condition variable under the existing bounded device mutex. Publish
+write-side effects before releasing that mutex to wait, then reacquire thread
+state by TID: another thread's exit may move vector elements. VFS already pins
+the open description outside its descriptor lock. Retain that pin until the
+whole ioctl returns, including after descriptor close/reuse. Reject concurrent
+entry under one trusted virtual TID and direct close of an active endpoint.
+
+Reuse the delivered-interrupt epoch from the signal subsystem. Neither signal
+handlers nor passive VM watch teardown may enter Binder's mutex. A 5 ms timed
+wait checks those observations in ordinary context; transaction and other ioctl
+mutations notify immediately. This accepts periodic idle wakeups and scheduler
+latency until a tested notification bridge exists. It requires no code generation,
+private entitlement or guest signal trampoline beyond the existing signal path.
+
+Local controls cover initial returns, interruption with and without write-side
+progress, a shifting thread vector, descriptor reuse, and owner death caused by
+final unmap while a client waits. Native Linux uses a real signal; the portable
+control injects the delivered epoch, so it does not prove native-handler delivery
+through signed Bionic. Run the shared ping/reply fixture in blocking mode on both
+sides as a separate progress check. Readiness polling, epoll, threadpool growth
+and the real servicemanager loop remain required for M4.

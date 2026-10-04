@@ -1,9 +1,8 @@
 # Userspace Binder
 
 M4 is in progress. The current implementation validates the 64-bit Android
-Binder wire boundary and implements an endpoint/ioctl API. Its first synchronous
-byte-parcel delivery path awaits paired execution; servicemanager and M4
-acceptance remain incomplete. A configured VFS now
+Binder wire boundary and implements an endpoint/ioctl API. Synchronous parcels, strong objects, one-way ordering and death notifications
+pass paired Linux/ARTBox execution; servicemanager and M4 acceptance remain incomplete. A configured VFS now
 exposes `/dev/binder` for the tested ioctl subset and configured receive mappings.
 Polling remains pending. Recognizing other commands does not implement them.
 
@@ -72,7 +71,7 @@ open of `/dev/binder` acquires a new endpoint; close and table destruction relea
 it. The context must outlive the table and all calls. Ioctl pins the open
 description under the VFS mutex, releases that mutex, then calls the device.
 This preserves endpoint identity through descriptor reuse and avoids holding
-the entire table during future blocking Binder operations. Cross-VM descriptor
+the entire table during blocking Binder operations. Cross-VM descriptor
 use is explicitly unsupported in the initial single-process model.
 
 The same 32-case fixture also runs through actual virtual openat/ioctl/close.
@@ -152,9 +151,8 @@ completion messages and buffer frees through the receive arena. At `bf36338`,
 the required native-backed VFS test passes the same fixture on Linux and Mac;
 the Linux comparison artifact and all 96 source hashes independently verify.
 Error/owner controls pass locally, including delayed failure after a mapped
-manager's final unmap. Empty nonblocking reads return EAGAIN. Blocking empty
-reads, nonzero initial read-consumed, invalid buffer frees, nested synchronous
-calls and FD transfer remain unsupported. Strong-object and one-way support are
+manager's final unmap. Empty nonblocking reads return EAGAIN. Nonzero initial read-consumed, invalid buffer frees, nested synchronous
+calls and FD transfer remain unsupported. Blocking reads are described below. Strong-object and one-way support are
 described below. See ADR 0099 for the original synchronous byte boundary.
 
 Manager strong/weak references and death subscriptions now use bounded pools
@@ -209,6 +207,36 @@ syntax and an unresolved type. Artifacts retain original source, notices and
 provenance without the host binaries. This builds an input to servicemanager;
 it does not yet compile or run the service. See ADR 0104 and `THIRD_PARTY.md`.
 
+## Blocking reads
+
+An empty blocking WRITE_READ sleeps with the device mutex released. Write-side
+changes notify other readers before the caller waits, so combined write/read
+requests cannot strand their own transaction. Readers reacquire thread state by
+TID after each wait; another thread may exit and shift the endpoint's vector.
+Fresh threads return a leading NOOP once, matching the native initialization
+contract. Any completed ioctl clears that initial-return state.
+
+VFS pins the open description across the entire ioctl. Closing and reusing its
+descriptor does not destroy a blocked operation. Trusted direct callers cannot
+close an endpoint with active calls or concurrently reuse one virtual TID.
+The signal-aware entry observes the existing delivered-interrupt epoch and
+returns EINTR with write consumption preserved and read consumption zero.
+Signal handlers and VM callbacks never enter the Binder mutex or condition.
+
+Ordinary state changes notify the condition immediately. A 5 ms timed wait also
+observes delivered signal epochs and passive final-unmap watches. This costs
+periodic idle wakeups and may add scheduling latency; it is not a measured 5 ms
+response guarantee. Readiness polling, epoll integration and threadpool spawning
+remain separate work. This adds no executable memory or entitlement requirement.
+
+Local tests cover initial returns, interruption with/without ENTER_LOOPER,
+in-flight descriptor close/reuse, removal of another thread, and death delivery
+after passive final unmap without a subsequent device mutation. ARTBox's signal
+epoch is injected in ordinary test context; native handler delivery into this
+Binder path is not yet verified. Required CI also runs the shared ping/reply
+fixture with both blocking and nonblocking endpoints. Paired execution of these
+new production waits is pending.
+
 ## Evidence
 
 `tests/native_binder_wait.c` establishes the blocking-read contract before the
@@ -218,8 +246,9 @@ scoped SIGUSR1 handler without SA_RESTART. The two interruption cases require
 EINTR, preservation of consumed write commands, zero read consumption and the
 already-written leading NOOP. Separate invalid-buffer and O_NONBLOCK controls
 require EFAULT and EAGAIN. Worker observation and joins are bounded; a stuck
-worker fails the disposable reference process. Linux execution is pending for
-this addition, and `wait_driver_compared` stays false. Host `/proc` inspection is
+worker fails the disposable reference process. At `ba2cb96`, all four native
+cases pass and the artifact plus 97 source hashes verify. At that checkpoint,
+`wait_driver_compared` remains false. Host `/proc` inspection is
 test-only and does not become part of the portable Binder implementation.
 
 The first run at `c70452f` observed an immediate four-byte NOOP on a newly
@@ -227,7 +256,7 @@ allocated kernel Binder thread. Linux initializes `looper_need_return` for that
 thread and clears it when the ioctl returns. The fixture now requires that
 initial event explicitly, then observes and interrupts the following empty read.
 This avoids treating initialization as a blocking-read failure or overlooking
-the first-read behavior in the future production implementation.
+the first-read behavior in the production implementation.
 
 The portable test covers all command encodings, every truncated write frame,
 unaligned storage, wrong direction/type/size, preserved prefix progress,

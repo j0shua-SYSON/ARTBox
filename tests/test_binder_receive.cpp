@@ -3,8 +3,10 @@
 #include "artbox/native_files.h"
 #include "artbox/native_system.h"
 #include "artbox/native_vm.h"
+#include "artbox/signals.h"
 #include "../fixtures/binder-mapping/check.h"
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -96,6 +98,93 @@ static int protect_device(void *opaque, uint64_t address, uint64_t length, unsig
 static int unmap_device(void *opaque, uint64_t address, uint64_t length) {
     return artbox_vm_munmap(static_cast<Context *>(opaque)->thread.vm, address, length);
 }
+static void interrupt_notice(void *opaque) { static_cast<std::atomic<unsigned> *>(opaque)->fetch_add(1); }
+static void interrupted_reads(Context &c, artbox_binder_device *device) {
+    auto *signals = artbox_signals_create(c.thread.vm, c.thread.pid, 10000, 1);
+    CHECK(signals && artbox_signals_enable_interrupt(signals, 34, 4) == 0);
+    CHECK(artbox_signals_attach(signals, &c.thread) == 0);
+    std::atomic<unsigned> notices{0};
+    CHECK(artbox_signals_bind_interrupt(&c.thread, interrupt_notice, &notices) == 0);
+    for (unsigned enter = 0; enter < 2; ++enter) {
+        const int fd = open_flags(&c, 0x80002); CHECK(fd >= 3);
+        artbox_kernel_thread auxiliary{};
+        CHECK(artbox_kernel_thread_init(&auxiliary, c.thread.vm, &c.thread.system, c.thread.pid, c.thread.tid + 1) == 0);
+        CHECK(artbox_vfs_call(c.fs, &auxiliary, 29, fd, ARTBOX_BINDER_VERSION, c.path + 768, 0) == 0);
+        CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_VERSION, c.path + 768) == 0);
+        auto *header = reinterpret_cast<uint64_t *>(c.path + 128);
+        auto *command = reinterpret_cast<uint32_t *>(c.path + 256);
+        auto *read = reinterpret_cast<uint32_t *>(c.path + 512);
+        std::memset(header, 0, 48); *command = ARTBOX_BC_ENTER_LOOPER;
+        header[0] = enter ? 4 : 0; header[2] = c.path + 256;
+        header[3] = 128; header[5] = c.path + 512;
+        std::atomic<bool> done{false}; int64_t result = 99;
+        std::thread reader([&] { result = ioctl_device(&c, fd, ARTBOX_BINDER_WRITE_READ, c.path + 128); done = true; });
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+        while (!artbox_binder_device_waiter_count(device)) {
+            if (done) { reader.join(); CHECK(false && "Empty blocking read returned before interruption"); }
+            CHECK(std::chrono::steady_clock::now() < deadline); std::this_thread::yield();
+        }
+        CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_THREAD_EXIT, 0) == -16);
+        // Remove a lower-index thread while the reader has released the device
+        // mutex. Its waiter must reacquire by TID, not retain a vector element.
+        CHECK(artbox_vfs_call(c.fs, &auxiliary, 29, fd, ARTBOX_BINDER_THREAD_EXIT, 0, 0) == 0);
+        // Closing the descriptor cannot destroy the open description pinned by
+        // its ioctl. Other descriptor work proceeds while that reader waits.
+        CHECK(close_device(&c, fd) == 0 && artbox_binder_device_waiter_count(device) == 1);
+        int other = open_device(&c); CHECK(other >= 3 && close_device(&c, other) == 0);
+        CHECK(artbox_signals_call(&c.thread, 131, c.thread.pid, c.thread.tid, 34, 0) == 0);
+        uint64_t mask = 0;
+        // Simulated delivery in ordinary test context, as in the futex epoch
+        // test. This is not a claim about a native signal handler or aliasing.
+        CHECK(artbox_signals_take_interrupt(&c.thread, 0, &mask) == 34);
+        *reinterpret_cast<uint64_t *>(c.path + 1024) = mask;
+        CHECK(artbox_signals_call(&c.thread, 135, 2, c.path + 1024, 0, 8) == 0);
+        while (!done) { CHECK(std::chrono::steady_clock::now() < deadline); std::this_thread::yield(); }
+        reader.join();
+        CHECK(result == -4 && header[1] == header[0] && header[4] == 0 && read[0] == ARTBOX_BR_NOOP);
+        CHECK(artbox_binder_device_waiter_count(device) == 0);
+    }
+    CHECK(notices == 2);
+    CHECK(artbox_signals_bind_interrupt(&c.thread, nullptr, nullptr) == 0);
+    CHECK(artbox_signals_detach(&c.thread) == 0 && artbox_signals_destroy(signals) == 0);
+}
+static void mapped_owner_wakeup(Context &c, artbox_binder_device *device, size_t page) {
+    uint64_t owner = 0;
+    CHECK(artbox_binder_device_open(device, c.thread.vm, 200, 10000, &owner) == 0);
+    const int64_t mapping = artbox_binder_device_mmap(device, owner, 0, page, 1, 2, 0);
+    CHECK(mapping > 0);
+    CHECK(artbox_binder_device_ioctl(device, owner, 200, ARTBOX_BINDER_SET_CONTEXT_MGR, 0) == 0);
+    const int fd = open_flags(&c, 0x80002); CHECK(fd >= 3);
+    auto *header = reinterpret_cast<uint64_t *>(c.path + 128);
+    auto *commands = reinterpret_cast<uint32_t *>(c.path + 256);
+    auto *read = reinterpret_cast<uint32_t *>(c.path + 512);
+    const uint64_t cookie = UINT64_C(0xa17b000000000042);
+    commands[0] = ARTBOX_BC_ENTER_LOOPER;
+    commands[1] = ARTBOX_BC_ACQUIRE; commands[2] = 0;
+    commands[3] = ARTBOX_BC_REQUEST_DEATH_NOTIFICATION; commands[4] = 0;
+    std::memcpy(commands + 5, &cookie, 8);
+    std::memset(header, 0, 48); header[0] = 28; header[2] = c.path + 256;
+    CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_WRITE_READ, c.path + 128) == 0 && header[1] == 28);
+    std::memset(header, 0, 48); header[3] = 128; header[5] = c.path + 512;
+    std::atomic<bool> done{false}; int64_t result = 99;
+    std::thread reader([&] { result = ioctl_device(&c, fd, ARTBOX_BINDER_WRITE_READ, c.path + 128); done = true; });
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+    while (!artbox_binder_device_waiter_count(device)) {
+        if (done) { reader.join(); CHECK(false && "Read returned before mapped owner death"); }
+        CHECK(std::chrono::steady_clock::now() < deadline); std::this_thread::yield();
+    }
+    CHECK(artbox_binder_device_close(device, owner) == 0);
+    CHECK(!done && artbox_binder_device_waiter_count(device) == 1);
+    // No subsequent device mutation drives reaping. The waiting reader must
+    // observe final unmap through the passive watch, outside the VM callback.
+    CHECK(artbox_vm_munmap(c.thread.vm, static_cast<uint64_t>(mapping), page) == 0);
+    while (!done) { CHECK(std::chrono::steady_clock::now() < deadline); std::this_thread::yield(); }
+    reader.join();
+    uint64_t delivered_cookie = 0; std::memcpy(&delivered_cookie, read + 2, 8);
+    CHECK(result == 0 && header[4] == 16 && read[0] == ARTBOX_BR_NOOP);
+    CHECK(read[1] == ARTBOX_BR_DEAD_BINDER && delivered_cookie == cookie);
+    CHECK(close_device(&c, fd) == 0 && artbox_binder_device_waiter_count(device) == 0);
+}
 int main(int argc, char **argv) {
     CHECK(argc == 1 || argc == 2);
     Provider provider;
@@ -127,6 +216,29 @@ int main(int argc, char **argv) {
     CHECK(c.fs && artbox_kernel_thread_init(&c.thread, vm, &system, 100, 100) == 0);
     std::memcpy(reinterpret_cast<void *>(c.path), "/dev/binder", 12);
     CHECK(artbox_vfs_set_binder(c.fs, device, 10000) == 0);
+    // Linux marks a newly allocated Binder thread for an initial return. Even
+    // an empty nonblocking first read returns NOOP once; the next is EAGAIN.
+    {
+        int fresh = open_device(&c); CHECK(fresh >= 3);
+        auto *header = reinterpret_cast<uint64_t *>(c.path + 128);
+        auto *read = reinterpret_cast<uint32_t *>(c.path + 512);
+        std::memset(header, 0, 48); header[3] = 128; header[5] = c.path + 512;
+        CHECK(ioctl_device(&c, fresh, ARTBOX_BINDER_WRITE_READ, c.path + 128) == 0);
+        CHECK(header[4] == 4 && read[0] == ARTBOX_BR_NOOP);
+        header[4] = 0;
+        CHECK(ioctl_device(&c, fresh, ARTBOX_BINDER_WRITE_READ, c.path + 128) == -11);
+        CHECK(header[4] == 0);
+        CHECK(ioctl_device(&c, fresh, ARTBOX_BINDER_THREAD_EXIT, 0) == 0);
+        CHECK(ioctl_device(&c, fresh, ARTBOX_BINDER_WRITE_READ, c.path + 128) == 0 && header[4] == 4);
+        CHECK(ioctl_device(&c, fresh, ARTBOX_BINDER_THREAD_EXIT, 0) == 0);
+        CHECK(ioctl_device(&c, fresh, ARTBOX_BINDER_VERSION, c.path + 768) == 0);
+        header[4] = 0;
+        CHECK(ioctl_device(&c, fresh, ARTBOX_BINDER_WRITE_READ, c.path + 128) == -11);
+        CHECK(close_device(&c, fresh) == 0);
+    }
+    interrupted_reads(c, device);
+    mapped_owner_wakeup(c, device, page);
+    CHECK(provider.live == 0);
     const artbox_binder_device_ops ioctls = {open_device, close_device, ioctl_device, pause_device};
     const artbox_binder_mapping_ops memory = {page, map_device, protect_device, unmap_device, open_flags};
     CHECK(artbox_binder_mapping_check(&c, &ioctls, &memory) == 35);
@@ -435,6 +547,6 @@ int main(int argc, char **argv) {
     CHECK(artbox_vm_destroy(vm) == 0);
     CHECK(artbox_binder_device_destroy(device) == 0 && provider.live == 0);
     if (provider.native) CHECK(artbox_native_files_close(provider.native) == 0);
-    std::printf("{\"shared_mapping_cases\":35,\"native_alias_verified\":%s,\"ownership_controls\":true,\"passed\":true}\n",
+    std::printf("{\"shared_mapping_cases\":35,\"native_alias_verified\":%s,\"ownership_controls\":true,\"wait_contract_cases\":4,\"interrupt_epoch_injected\":true,\"passive_unmap_wakeup\":true,\"passed\":true}\n",
         argc == 2 ? "true" : "false");
 }

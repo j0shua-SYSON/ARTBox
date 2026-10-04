@@ -22,7 +22,8 @@ def main():
             return 77
         result.check_returncode()
         if json.loads(result.stdout) != dict(shared_mapping_cases=35, native_alias_verified=True,
-                                            ownership_controls=True, passed=True):
+                                            ownership_controls=True, wait_contract_cases=4, interrupt_epoch_injected=True,
+                                            passive_unmap_wakeup=True, passed=True):
             raise RuntimeError('Native receive ownership or alias coherence was not verified')
         if any(Path(root).iterdir()):
             raise RuntimeError('Receive backing was not unlinked before publication')
