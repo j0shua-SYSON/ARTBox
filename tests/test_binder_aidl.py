@@ -68,9 +68,10 @@ class AidlInputs(unittest.TestCase):
         names = ['src/android/os/' + n + '.cpp' for n in interfaces + parcelables]
         names += ['include/android/os/' + n + '.h' for n in interfaces + parcelables]
         names += ['include/android/os/' + p + n[1:] + '.h' for n in interfaces for p in ('Bn', 'Bp')]
+        names += ['include/android/os/' + p + n + '.h' for n in parcelables for p in ('Bn', 'Bp')]
         for name in names:
             p = self.root / name; p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(b'generated')
-        self.assertEqual(len(generated_files(self.root)), 16)
+        self.assertEqual(len(generated_files(self.root)), 20)
         extra = self.root / 'host-compiler'; extra.write_bytes(b'not an output')
         with self.assertRaises(RuntimeError): generated_files(self.root)
         extra.unlink()

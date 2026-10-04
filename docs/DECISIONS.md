@@ -2821,7 +2821,7 @@ dependency notices. Native profiles cover macOS arm64/x86_64 and Linux x86_64;
 other hosts can prepare these inputs as data without executing a foreign binary.
 No installer, translated CPU execution or tool binary inside the app is required.
 
-Run generation twice in different output directories and require the same 16
+Run generation twice in different output directories and require the same 20
 nonempty output files and hashes. Reject a syntax error and an unresolved type
 with compiler diagnostics. Generated artifacts include original AIDL and notices,
 the tool's build manifest and license records, and independent provenance for
@@ -2829,3 +2829,10 @@ both inputs and outputs. Compiler/library binaries stay in the configured cache.
 Hash/cache/path controls run on every CI host; the compiler itself must execute
 on Mac and Linux. Generation is a dependency check, not Binder transport or
 servicemanager runtime acceptance.
+
+The first native attempt rejected mixed absolute import roots and relative input
+filenames; run from the source root with `-I .`. Once generation succeeded, the
+exact-output check exposed four additional Bn/Bp compatibility headers emitted
+for the two parcelables. The compiler's pinned GenerateCpp implementation emits
+all three header kinds for every definition. Include those headers in the exact
+20-file inventory rather than permitting arbitrary extra output.

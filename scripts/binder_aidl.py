@@ -103,9 +103,13 @@ def generated_files(root):
     expected = {'src/android/os/' + n + '.cpp' for n in INTERFACES + PARCELABLES}
     expected |= {'include/android/os/' + n + '.h' for n in INTERFACES + PARCELABLES}
     expected |= {'include/android/os/' + p + n[1:] + '.h' for n in INTERFACES for p in ('Bn', 'Bp')}
+    # This compiler also emits compatibility Bn/Bp headers for parcelables.
+    expected |= {'include/android/os/' + p + n + '.h' for n in PARCELABLES for p in ('Bn', 'Bp')}
     found = {p.relative_to(root).as_posix(): p for p in root.rglob('*') if p.is_file() or p.is_symlink()}
     if set(found) != expected or any(p.is_symlink() or not p.stat().st_size for p in found.values()):
-        raise RuntimeError('Generated Binder file set is incomplete or contains unexpected files')
+        raise RuntimeError('Generated Binder file set differs: missing=' + repr(sorted(expected - set(found))) +
+                           ', unexpected=' + repr(sorted(set(found) - expected)) +
+                           ', invalid=' + repr(sorted(n for n,p in found.items() if p.is_symlink() or not p.stat().st_size)))
     return {name: digest(path.read_bytes()) for name, path in sorted(found.items())}
 
 

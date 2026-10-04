@@ -204,7 +204,7 @@ An existing generated tree must match the newly verified output before reuse.
 Other hosts can run, for example,
 `python -B scripts/binder_aidl.py --prepare-only --profile darwin-arm64` to verify
 all inputs without execution. Preparation is not a compiler test. Native CI must
-generate 16 C++/header files twice with identical hashes and reject malformed
+generate 20 C++/header files twice with identical hashes and reject malformed
 syntax and an unresolved type. Artifacts retain original source, notices and
 provenance without the host binaries. This builds an input to servicemanager;
 it does not yet compile or run the service. See ADR 0104 and `THIRD_PARTY.md`.
