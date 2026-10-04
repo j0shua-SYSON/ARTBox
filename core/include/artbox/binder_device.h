@@ -10,7 +10,8 @@ typedef struct artbox_binder_device artbox_binder_device;
 /* One private Binder context. Limits are host admission bounds, independent of
  * BINDER_SET_MAX_THREADS. Both limits are in [1, 1024]; all metadata is reserved
  * up front. Receive mappings require explicit backing configuration.
- * No transaction delivery or notification yet. */
+ * The first delivery subset is synchronous handle-zero byte parcels, one call
+ * per thread. Object transfer, oneway/nesting and death notifications are pending. */
 artbox_binder_device *artbox_binder_device_create(size_t endpoints, size_t threads_per_endpoint);
 /* Private, non-executable receive backing. create returns fresh zero-filled
  * storage of exactly length bytes, already unlinked from any guest namespace.
@@ -46,10 +47,15 @@ int artbox_binder_device_destroy(artbox_binder_device *device);
 int artbox_binder_device_open(artbox_binder_device *device, artbox_vm *vm,
     int32_t pid, uint32_t uid, uint64_t *token);
 int artbox_binder_device_close(artbox_binder_device *device, uint64_t token);
+/* Trusted descriptor owner sets O_NONBLOCK before publishing the open.
+ * Blocking empty reads remain unsupported until wakeup/signal integration. */
+int artbox_binder_device_set_nonblocking(artbox_binder_device *device, uint64_t token, int enabled);
 /* Negative Linux errno. Guest copies go through VM, never raw dereferences.
  * VERSION, MAX_THREADS, CONTEXT_MGR[_EXT], THREAD_EXIT and WRITE_READ's
- * ENTER/REGISTER/EXIT_LOOPER commands are implemented. Reads/transactions and
- * recognized other commands return EOPNOTSUPP; unknown words return EINVAL.
+ * ENTER/REGISTER/EXIT_LOOPER commands are implemented. Configured receive
+ * contexts additionally carry BC_TRANSACTION/BC_REPLY/BC_FREE_BUFFER for the
+ * documented byte-parcel subset. Unsupported operations return EOPNOTSUPP;
+ * unknown words return EINVAL. Empty nonblocking reads return EAGAIN.
  * Write batches above 64 KiB return E2BIG without consuming commands.
  * Lock order is device then VM; VM callbacks must not enter this device. */
 int64_t artbox_binder_device_ioctl(artbox_binder_device *device, uint64_t token,

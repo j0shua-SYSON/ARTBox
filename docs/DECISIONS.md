@@ -2598,8 +2598,8 @@ must compare the same fixture before mapping compatibility is reported.
 
 ## 0098: Preserve virtual process identity for context-manager transactions
 
-Status: the first native ping fixture fails at 517e126. Its corrected positive
-path and explicit same-PID rejection control await native execution.
+Status: the first native ping fixture fails at 517e126. At 200b910 its corrected
+positive path and same-PID rejection control pass; 95 input hashes verify.
 
 Two independent Binder opens do not make handle-zero self-calls legal. Linux
 compares the sender's PID with the context manager's owner and returns
@@ -2621,3 +2621,37 @@ driver's identity rule within a single host process. It does not implement
 guest fork, process isolation or general multi-process applications. The same
 fixture checks sender identity, reply bytes and completion/free command flow;
 reference-object transfer and death notifications remain subsequent contracts.
+
+## 0099: Start transaction delivery with bounded synchronous byte parcels
+
+Status: native reference passes at 200b910. The production path compiles and
+portable owner/error controls pass; paired payload execution is pending.
+
+Connect the existing receive arena to BC_TRANSACTION, BC_REPLY and
+BC_FREE_BUFFER. Copy source bytes through the VM into a bounded snapshot, then
+into the receiver's independent writable alias. BR_TRANSACTION/BR_REPLY expose
+only that receiver's guest address and immutable published buffer. Deliver to
+a registered looper or the precise requesting TID. Preserve virtual sender
+credentials and the context manager's pointer/cookie. Match the native PID
+rejection rule before allocating transaction storage.
+
+Reserve 1,024 active-call slots and 1,024 pending-packet slots per context.
+Per-thread completion counters and error slots require no allocation during
+peer teardown. Each receive arena permits at most 1,024 live buffers. Temporary
+payload snapshots are bounded by the configured receive size. This first path
+serializes under the context mutex; it is not a throughput result. No packet
+storage is executable and no additional platform entitlement is introduced.
+
+Mapped descriptor close retains the endpoint until final unmap. Final owner
+loss cancels its calls, reports dead replies to live callers, removes pending
+packets and clears abandoned buffer extents before releasing the driver view.
+A queued-call close/unmap control runs with injected backing on every host;
+this is a local teardown invariant, not yet a paired Linux race comparison.
+
+O_NONBLOCK is carried from the VFS into the endpoint; empty reads return EAGAIN.
+Blocking empty reads, nonzero initial read-consumed values, invalid buffer frees,
+oneway/nested calls, objects/FDs and handles other than zero remain unsupported.
+There is one outstanding synchronous call per thread in this first subset.
+Those limits keep incomplete work explicit while the shared ping/reply test
+establishes actual byte delivery. Reference translation, death notifications
+and real servicemanager acceptance remain required to complete M4.

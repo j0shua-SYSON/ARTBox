@@ -384,5 +384,9 @@ The signed ART startup has not attached this context yet.
 Ioctl pins its open description before releasing the VFS lock. Unknown Binder
 ioctl words return EINVAL; recognized unimplemented work returns EOPNOTSUPP.
 Non-Binder unknown ioctls return ENOTTY and absent descriptors return EBADF.
-Binder polling and actual transactions remain pending. See
+The initial synchronous handle-zero byte-parcel WRITE_READ path is implemented
+with nonblocking receives, completion messages and buffer release. Its required
+native-backed comparison is pending; the native reference passes at 200b910.
+Object/FD transfer, nested/oneway calls, blocking empty reads and polling remain
+pending. See
 [the Binder contract](binder.md) for host resource limits and comparison scope.

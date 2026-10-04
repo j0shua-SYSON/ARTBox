@@ -133,6 +133,47 @@ int main(int argc, char **argv) {
 
     int fd = open_device(&c); CHECK(fd >= 3); // Also reaps the fixture's final closed mapping.
     CHECK(provider.live == 0);
+    // The native reference rejects handle-zero self-calls even across opens.
+    // This control does not require alias coherence and runs on every host.
+    CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_SET_CONTEXT_MGR, 0) == 0);
+    int same_pid = open_device(&c); CHECK(same_pid >= 3);
+    auto *transfer = reinterpret_cast<uint64_t *>(c.path + 128);
+    auto *command = reinterpret_cast<uint32_t *>(c.path + 256);
+    auto *reply = reinterpret_cast<uint32_t *>(c.path + 512);
+    std::memset(transfer, 0, 48); std::memset(command, 0, 68);
+    command[0] = ARTBOX_BC_TRANSACTION;
+    transfer[0] = 68; transfer[2] = c.path + 256;
+    CHECK(ioctl_device(&c, same_pid, ARTBOX_BINDER_WRITE_READ, c.path + 128) == 0 && transfer[1] == 68);
+    std::memset(transfer, 0, 48); transfer[3] = 128; transfer[5] = c.path + 512;
+    CHECK(ioctl_device(&c, same_pid, ARTBOX_BINDER_WRITE_READ, c.path + 128) == 0);
+    CHECK(transfer[4] == 8 && reply[0] == ARTBOX_BR_NOOP && reply[1] == ARTBOX_BR_FAILED_REPLY);
+    transfer[4] = 0;
+    CHECK(ioctl_device(&c, same_pid, ARTBOX_BINDER_WRITE_READ, c.path + 128) == -11 && transfer[4] == 0);
+    transfer[5] = 1;
+    CHECK(ioctl_device(&c, same_pid, ARTBOX_BINDER_WRITE_READ, c.path + 128) == -14);
+    CHECK(close_device(&c, same_pid) == 0 && close_device(&c, fd) == 0);
+    fd = open_device(&c); CHECK(fd >= 3);
+    // A queued synchronous caller must survive descriptor close while the
+    // manager mapping remains, then receive failure after final owner loss.
+    CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_SET_CONTEXT_MGR, 0) == 0);
+    int64_t abandoned = map_device(&c, fd, page, 1, 2, 0); CHECK(abandoned > 0);
+    Context caller = c; caller.thread.pid = 101; caller.thread.tid = 101;
+    int waiting = open_device(&caller); CHECK(waiting >= 3);
+    std::memset(transfer, 0, 48); std::memset(command, 0, 68);
+    command[0] = ARTBOX_BC_TRANSACTION;
+    transfer[0] = 68; transfer[2] = c.path + 256;
+    CHECK(ioctl_device(&caller, waiting, ARTBOX_BINDER_WRITE_READ, c.path + 128) == 0);
+    std::memset(transfer, 0, 48); transfer[3] = 128; transfer[5] = c.path + 512;
+    CHECK(ioctl_device(&caller, waiting, ARTBOX_BINDER_WRITE_READ, c.path + 128) == 0);
+    CHECK(transfer[4] == 8 && reply[1] == ARTBOX_BR_TRANSACTION_COMPLETE);
+    CHECK(close_device(&c, fd) == 0);
+    transfer[4] = 0;
+    CHECK(ioctl_device(&caller, waiting, ARTBOX_BINDER_WRITE_READ, c.path + 128) == -11);
+    CHECK(unmap_device(&c, static_cast<uint64_t>(abandoned), page) == 0);
+    CHECK(ioctl_device(&caller, waiting, ARTBOX_BINDER_WRITE_READ, c.path + 128) == 0);
+    CHECK(transfer[4] == 8 && reply[1] == ARTBOX_BR_DEAD_REPLY && provider.live == 0);
+    CHECK(close_device(&caller, waiting) == 0 && artbox_vm_reserved_bytes(vm) == page);
+    fd = open_device(&c); CHECK(fd >= 3);
     const unsigned creates = provider.creates;
     artbox_vm *foreign_vm = artbox_vm_create(&provider.memory, page, 1);
     CHECK(foreign_vm);

@@ -298,6 +298,8 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
                 d.binder = std::make_shared<BinderOpen>(fs->binder, thread->vm);
                 if ((error = artbox_binder_device_open(fs->binder, thread->vm, thread->pid,
                         fs->binder_uid, &d.binder->token))) return error;
+                if ((error = artbox_binder_device_set_nonblocking(fs->binder, d.binder->token,
+                        !!(flags & 0x800)))) return error;
             }
             if (!kind) {
                 Walk walk(fs, p.directory);

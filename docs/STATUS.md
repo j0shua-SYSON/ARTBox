@@ -55,7 +55,7 @@ commands and validates transaction/object snapshots. Local checks pass 40 host
 contracts and 60 comparisons against actual NDK UAPI constants plus an
 independently produced byte fixture. A bounded receive-arena primitive also
 passes local ownership/exhaustion checks and 8,000 concurrent lifecycles;
-its driver integration is not connected. At `4012961`, all 18 host jobs and iOS
+its transaction integration awaits paired execution. At `4012961`, all 18 host jobs and iOS
 CI pass, including actual native receive-alias coherence, protection-fault and
 close/unmap tests on Mac/Linux. At `c773122`, the real Linux Binder device passes
 the 30-case ioctl/lifetime reference; downloaded source hashes and run identity
@@ -74,9 +74,12 @@ At `db73182`, Linux and ARTBox pass the same 35 mapping cases, including native
 alias coherence, with artifact provenance and 93 input hashes verified. Delivery, polling,
 references, death notifications and real servicemanager are next; M4 is not complete.
 
-A shared original threaded transaction fixture now builds for ARM64 Android
-and the portable host compiler. Native execution is pending; it does not yet
-establish ARTBox transaction delivery.
+At `200b910`, the shared threaded transaction fixture passes against real Linux,
+including same-PID context-manager rejection and a separate-process positive
+client. Its artifact and 95 source hashes verify. The production synchronous
+handle-zero byte-parcel path is now implemented; local owner/error controls pass,
+but paired payload execution is pending. Objects, oneway/nested calls, blocking
+reads and death notifications remain unsupported.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

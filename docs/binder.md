@@ -1,8 +1,9 @@
 # Userspace Binder
 
 M4 is in progress. The current implementation validates the 64-bit Android
-Binder wire boundary and implements an initial endpoint/ioctl API. It does not
-deliver transactions, run servicemanager or complete M4. A configured VFS now
+Binder wire boundary and implements an endpoint/ioctl API. Its first synchronous
+byte-parcel delivery path awaits paired execution; servicemanager and M4
+acceptance remain incomplete. A configured VFS now
 exposes `/dev/binder` for the tested ioctl subset and configured receive mappings.
 Polling remains pending. Recognizing other commands does not implement them.
 
@@ -44,8 +45,7 @@ commands are enabled. Every copy uses the guest VM. A failed write preserves
 completed prefix consumption and zeroes read consumption; header copy-back
 failure takes precedence. Full ioctl/command words are matched. Thread-exit
 reclaims the calling TID, which a later ioctl recreates. Unknown words fail with
-EINVAL; recognized work not implemented yet, including receive operations and
-transactions, fails with EOPNOTSUPP.
+EINVAL; recognized work outside the implemented subset fails with EOPNOTSUPP.
 
 Host limits reserve metadata for at most 1,024 endpoints and 1,024 threads per
 endpoint. These are explicit admission bounds, independent of MAX_THREADS's
@@ -147,8 +147,14 @@ handle-zero calls from the manager's own PID, even with independent opens.
 The revised fixture retains that rejection control and opens the positive
 client in a separate native Linux process. ARTBox's adapter uses trusted virtual
 PIDs across host threads; no runtime fork is introduced. See ADR 0098.
-`transaction_driver_compared` remains false: the production driver
-still rejects transactions and receives with EOPNOTSUPP. Reference-object
+At `200b910`, both native controls pass and 95 source hashes verify.
+The production driver now queues synchronous handle-zero byte parcels, replies,
+completion messages and buffer frees through the receive arena. Its new required
+native-backed VFS test runs the same fixture; comparison remains pending.
+Error/owner controls pass locally, including delayed failure after a mapped
+manager's final unmap. Empty nonblocking reads return EAGAIN. Blocking empty
+reads, nonzero initial read-consumed, invalid buffer frees, nested/oneway calls
+and object/FD transfer remain unsupported. See ADR 0099. Reference-object
 transfer, death notifications, blocking reads and polling need their own checks.
 
 ## Evidence
