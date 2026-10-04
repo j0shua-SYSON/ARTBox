@@ -2930,3 +2930,32 @@ real servicemanager execution. Those need separate lifetime/wakeup contracts.
 The snapshot uses existing reserved, non-executable state. It adds no code
 conversion, generated code, platform-specific call or entitlement. Its bounded
 scans remain a performance cost to measure once the service loop runs.
+
+## 0108: Keep native wake hints behind a small platform interface
+
+Provide one owned wait/wake object per active event-loop waiter. A hint can be
+posted before waiting and may coalesce with other hints; it is not a queue of
+guest events or a replacement for the portable readiness predicate. The caller
+must register before its final readiness check, then recheck after every wake.
+One waiter per object prevents one thread from draining another's notification.
+Concurrent signalers are supported; close requires all callers to have stopped.
+
+Use Darwin's public `kqueue` user event with `EV_CLEAR` and `NOTE_TRIGGER`, a
+nonblocking Linux `eventfd` with `poll`, and a Windows auto-reset event. Native
+descriptors stay private. The implementation uses the ordinary OS SDK APIs;
+no implementation from those projects is copied. See Apple's
+[public event definitions](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/sys/event.h)
+and the Linux [eventfd contract](https://man7.org/linux/man-pages/man2/eventfd.2.html).
+The shared core sees only create/signal/wait/close and negative Linux errors.
+Do not swallow EINTR or retry a possibly completed close. No handler or passive
+VM callback may invoke this interface; their existing ordinary-context epoch
+checks remain necessary until separately tested notification paths exist.
+
+Tests first reject an unimplemented provider, then exercise wake-before-wait,
+coalescing, independent objects, 256 cross-thread handshakes, 16,000 concurrent
+signals, timeout and repeated destruction/recreation. Mac/Linux additionally
+interrupt the actual native wait with a non-restarting thread-directed signal.
+The test runs in required host CI and the backend builds for iOS 15 from day one.
+No JIT, executable mapping or entitlement is involved. Each active waiter costs
+one native wait object and bounded host memory; event-loop resource limits and
+guest epoll semantics remain separate work.

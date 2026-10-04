@@ -412,6 +412,10 @@ Device/VFS snapshot helpers now share ioctl thread admission, pin the descriptor
 and observe process work without changing looper state. At `fb72b68`, the
 expanded 31-case contract and IPC lifecycle through readiness pass native
 comparison, with independently verified artifact and source provenance. No guest
-poll/epoll syscall or persistent wait registration is enabled yet. The new native
-epoll reference tests persistent registration, thread teardown/re-poll and
-blocked death wakeup; execution is pending.
+poll/epoll syscall or persistent wait registration is enabled yet. At `8c67a93`,
+the native epoll reference verifies persistent registration, thread teardown/
+re-poll and blocked death wakeup. At `0cb0def`, it also verifies interest retention
+through a mapped receive area after close, descriptor-number reuse and final
+unmap removal. Both downloaded kernel artifacts and their source hashes verify.
+The native wake provider is a private host interface for the forthcoming guest
+event loop; its Linux eventfd is not a guest eventfd syscall implementation.

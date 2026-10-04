@@ -154,13 +154,24 @@ and 175 notice hashes with empty entitlements.
 At `8c67a93`, persistent native epoll interests pass the same 31 readiness cases,
 thread teardown and MOD, ADD/DEL controls, last-close removal and actual
 blocked-wait death notification. Artifact provenance and 100 input hashes verify.
-All 20 host jobs and iOS pass; the downloaded signed runtime and Binder archives
-verify independently. `epoll_driver_compared` remains false.
+All 20 host jobs and iOS pass; the downloaded signed runtime, Binder archives
+and integrated IPA verify independently. The IPA has 16 iOS 15 images, 15
+ELF/layout pairs, five resources and 175 notices with empty entitlements.
+`epoll_driver_compared` remains false.
 
-The next native control checks interest retention through a Binder receive
-mapping after descriptor close, including descriptor-number reuse and partial
-and final unmap. ARM64 compilation passes; execution is pending. Production
-epoll, actual service execution and signed Binder attachment remain ahead.
+At `0cb0def`, the native control verifies that a Binder receive mapping retains
+the original epoll interest after descriptor close. Reusing that descriptor
+number creates a distinct interest; partial unmap retains the original, and
+final unmap removes it. The downloaded kernel artifact and 100 input hashes
+verify. Full regression for that checkpoint remains in progress.
+
+A private native wake provider now uses Darwin kqueue, Linux eventfd and Windows
+events. Its contract passes locally: 256 cross-thread handshakes, 16,000 concurrent
+signals, retained/coalesced wakeups, object isolation and timeouts. All 41 Windows
+host contracts pass; three native-backing cases remain skipped there. Android
+ARM64 compilation passes; Mac/Linux execution and native interruption checks
+are pending CI. The provider does not yet enable guest epoll, real servicemanager
+execution or signed Binder attachment.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

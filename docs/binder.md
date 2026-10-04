@@ -334,9 +334,11 @@ semantic oracle or an iPhone execution claim.
 1. Persistent polling/epoll registrations and wakeups. The native reference
    passes 31 readiness cases, ADD/DEL/MOD, thread-exit and blocked death wakeup
    at `8c67a93`; production readiness snapshots already pass comparison.
-   A new native control tests mapped-file interest retention across close,
-   descriptor reuse, partial unmap and final unmap before selecting an ownership
-   model. This control never reads unpopulated Binder receive pages.
+   At `0cb0def`, the mapped-file control also passes: the mapping retains its
+   original interest across close and descriptor reuse until final unmap.
+   Partial unmap keeps it alive. This control never reads unpopulated Binder
+   receive pages. A private native wait/wake provider now exists, but is not
+   attached to guest epoll or Binder notifications yet.
 2. Threadpool behavior and additional protocol requests actually needed by
    servicemanager, including node client-count observations.
 3. Complete the remaining dependencies and link the pinned real AOSP
