@@ -76,7 +76,8 @@ int main(int argc, char **argv) {
     CHECK(artbox_binder_transaction_check(&context, &ops, server, client) == 0);
     CHECK(artbox_binder_death_check(&context, &ops, server, client) == 3);
     CHECK(artbox_binder_object_check(&context, &ops, server, client) == 0);
+    CHECK(artbox_binder_oneway_check(&context, &ops, server, client) == 0);
     CHECK(artbox_vfs_destroy(context.fs) == 0 && artbox_binder_device_destroy(device) == 0);
     CHECK(artbox_vm_destroy(vm) == 0 && artbox_native_files_close(native) == 0);
-    std::puts("{\"same_pid_rejected\":true,\"shared_threaded_ping_pong\":true,\"death_cases\":3,\"object_handle_lifecycle\":true,\"native_aliases\":true,\"cleanup\":true,\"passed\":true}");
+    std::puts("{\"same_pid_rejected\":true,\"shared_threaded_ping_pong\":true,\"death_cases\":3,\"object_handle_lifecycle\":true,\"oneway_lifecycle\":true,\"native_aliases\":true,\"cleanup\":true,\"passed\":true}");
 }

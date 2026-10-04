@@ -48,6 +48,11 @@ int artbox_binder_death_check(void *context, const artbox_binder_transaction_ops
  * death during an outstanding call. Requires actual receive-alias coherence. */
 int artbox_binder_object_check(void *context, const artbox_binder_transaction_ops *ops,
     artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client);
+/* One-way callbacks issued inside a synchronous handler: ordered per node until
+ * FREE_BUFFER, independent across nodes, with no synchronous stack entry.
+ * Queued delivery must survive sender teardown. */
+int artbox_binder_oneway_check(void *context, const artbox_binder_transaction_ops *ops,
+    artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client);
 #ifdef __cplusplus
 }
 #endif

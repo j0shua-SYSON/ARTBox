@@ -41,6 +41,7 @@ struct Work {
     int32_t tid;
     uint32_t command;
     uint64_t transaction;
+    uint64_t async_node;
     artbox_binder_transaction value;
 };
 struct Reference {
@@ -53,6 +54,7 @@ struct Node {
     uint32_t flags;
     int32_t notification_tid;
     bool manager, dead, has_strong, has_weak, pending_strong, pending_weak;
+    uint64_t async_buffer;
 };
 struct Claim {
     uint64_t endpoint, buffer, node;
@@ -201,7 +203,7 @@ Node *create_node(artbox_binder_device *device, uint64_t owner, uint64_t pointer
     if (!device->next_node) return nullptr;
     for (auto &node : device->nodes) if (!node.id) {
         node = {device->next_node++, owner, pointer, cookie, flags, tid,
-                manager, false, manager, manager, false, false};
+                manager, false, manager, manager, false, false, 0};
         return &node;
     }
     return nullptr;
@@ -501,17 +503,18 @@ int transfer_packet(artbox_binder_device *device, Endpoint &source, Thread &thre
     artbox_binder_frame frame{command_word, bytes + 4, 64};
     artbox_binder_transaction input;
     if (artbox_binder_decode_transaction(&frame, &input) != ARTBOX_BINDER_OK) return -22;
-    // Synchronous bytes and strong flat objects. Other object kinds, oneway,
-    // nested calls and additional transaction flags need their own contracts.
-    if (input.flags & ~UINT32_C(0x10)) return -95;
-    if (thread.error || thread.completions == packet_limit || device->work.size() == packet_limit) return -12;
+    // TF_ONE_WAY and TF_ACCEPT_FDS. FD objects themselves remain unsupported.
+    // Replies never create asynchronous node work; other flags need contracts.
     const bool reply = command_word == ARTBOX_BC_REPLY;
+    const bool oneway = !reply && (input.flags & 1);
+    if (input.flags & ~(reply ? UINT32_C(0x10) : UINT32_C(0x11))) return -95;
+    if (thread.error || thread.completions == packet_limit || device->work.size() == packet_limit) return -12;
     Endpoint *target = nullptr;
     Thread *caller = nullptr;
     Transaction *transaction = nullptr;
     Node *target_node = nullptr;
     if (!reply) {
-        if (thread.incoming || thread.outgoing) return -95;
+        if (!oneway && (thread.incoming || thread.outgoing)) return -95;
         const uint32_t handle = static_cast<uint32_t>(input.target);
         if (!handle) target_node = node_for(device, device->manager_node);
         else {
@@ -524,9 +527,11 @@ int transfer_packet(artbox_binder_device *device, Endpoint &source, Thread &thre
         if (target->token == source.token || (!handle && target->pid == source.pid)) {
             thread.error = ARTBOX_BR_FAILED_REPLY; return 0;
         }
-        if (!device->next_transaction) return -12;
-        for (auto &t : device->transactions) if (!t.id) { transaction = &t; break; }
-        if (!transaction) return -12;
+        if (!oneway) {
+            if (!device->next_transaction) return -12;
+            for (auto &t : device->transactions) if (!t.id) { transaction = &t; break; }
+            if (!transaction) return -12;
+        }
     } else {
         if (thread.dead_reply) { thread.dead_reply = false; thread.error = ARTBOX_BR_DEAD_REPLY; return 0; }
         transaction = transaction_for(device, thread.incoming);
@@ -548,12 +553,15 @@ int transfer_packet(artbox_binder_device *device, Endpoint &source, Thread &thre
     work.value = input;
     work.value.target = reply ? 0 : target_node->pointer;
     work.value.cookie = reply ? 0 : target_node->cookie;
-    work.value.sender_pid = reply ? 0 : source.pid;
+    work.value.sender_pid = reply || oneway ? 0 : source.pid;
     work.value.sender_euid = source.uid;
     work.value.data_buffer = buffer.address;
     work.value.offsets_buffer = buffer.offsets_address;
     if (reply) {
         thread.incoming = 0; caller->outgoing = 0; transaction->id = 0;
+    } else if (oneway) {
+        work.async_node = target_node->id;
+        if (!target_node->async_buffer) target_node->async_buffer = buffer.address;
     } else {
         *transaction = {device->next_transaction++, source.token, target->token, thread.tid, 0};
         thread.outgoing = transaction->id;
@@ -571,6 +579,17 @@ int free_packet(artbox_binder_device *device, Endpoint &endpoint, uint64_t addre
     // Invalid/interior/duplicate frees are not part of this initial contract.
     const uint64_t buffer = read64(bytes + 4);
     if (artbox_binder_arena_release(endpoint.arena, buffer)) return -95;
+    for (auto &node : device->nodes) {
+        if (node.owner != endpoint.token || node.async_buffer != buffer) continue;
+        node.async_buffer = 0;
+        // The first undispatched call for this node becomes process work.
+        // Sender/thread teardown cannot cancel an accepted one-way parcel.
+        for (const auto &work : device->work) if (work.async_node == node.id) {
+            node.async_buffer = work.value.data_buffer;
+            break;
+        }
+        break;
+    }
     release_claims(device, endpoint.token, buffer);
     return 0;
 }
@@ -578,6 +597,10 @@ size_t work_for(artbox_binder_device *device, Endpoint &endpoint, Thread &thread
     const bool process_work = accepts_process_work(thread);
     for (size_t i = 0; i < device->work.size(); ++i) {
         const Work &work = device->work[i];
+        if (work.async_node) {
+            const Node *node = node_for(device, work.async_node);
+            if (!node || node->async_buffer != work.value.data_buffer) continue;
+        }
         if (work.endpoint == endpoint.token && (work.tid == thread.tid || (!work.tid && process_work))) return i;
     }
     return device->work.size();

@@ -334,6 +334,44 @@ int main(int argc, char **argv) {
     CHECK(close_device(&c, fd) == 0 && unmap_device(&c, static_cast<uint64_t>(object_mapping), page) == 0);
     CHECK(close_device(&caller, exporter) == 0 && unmap_device(&caller, static_cast<uint64_t>(exporter_mapping), page) == 0);
     int reaper = open_device(&c); CHECK(reaper >= 3 && close_device(&c, reaper) == 0 && provider.live == 0);
+    // Oneway queue ownership outlives its sender; only releasing the delivered
+    // buffer admits the next call to that node. A failed read must not advance it.
+    // No payload coherence is assumed for this injected-provider control.
+    for (unsigned teardown = 0; teardown < 2; ++teardown) {
+        fd = open_device(&c); CHECK(fd >= 3);
+        CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_SET_CONTEXT_MGR, 0) == 0);
+        int64_t async_mapping = map_device(&c, fd, page, 1, 2, 0); CHECK(async_mapping > 0);
+        command[0] = ARTBOX_BC_ENTER_LOOPER; CHECK(send_words(c, fd, 4) == 0);
+        int sender = open_device(&caller); CHECK(sender >= 3);
+        for (unsigned sequence = 0; sequence < 2; ++sequence) {
+            std::memset(command, 0, 68); command[0] = ARTBOX_BC_TRANSACTION;
+            command[5] = 50 + sequence; command[6] = 1;
+            CHECK(send_words(caller, sender, 68) == 0);
+        }
+        CHECK(receive_words(sender) == 0 && transfer[4] == 12);
+        CHECK(reply[1] == ARTBOX_BR_TRANSACTION_COMPLETE && reply[2] == ARTBOX_BR_TRANSACTION_COMPLETE);
+        if (!teardown) {
+            CHECK(close_device(&caller, sender) == 0);
+            std::memset(transfer, 0, 48); transfer[3] = 256; transfer[5] = 1;
+            CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_WRITE_READ, c.path + 128) == -14);
+            for (unsigned sequence = 0; sequence < 2; ++sequence) {
+                std::memset(transfer, 0, 48); transfer[3] = 256; transfer[5] = c.path + 512;
+                CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_WRITE_READ, c.path + 128) == 0 && transfer[4] == 72);
+                CHECK(reply[1] == ARTBOX_BR_TRANSACTION && reply[6] == 50 + sequence && reply[7] == 1 && !reply[8]);
+                uint64_t held; std::memcpy(&held, reply + 14, 8);
+                transfer[4] = 0;
+                CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_WRITE_READ, c.path + 128) == -11);
+                command[0] = ARTBOX_BC_FREE_BUFFER; std::memcpy(command + 1, &held, 8);
+                CHECK(send_words(c, fd, 12) == 0);
+            }
+        }
+        CHECK(close_device(&c, fd) == 0 && unmap_device(&c, static_cast<uint64_t>(async_mapping), page) == 0);
+        if (teardown) {
+            CHECK(receive_words(sender) == -11); // Oneway owner loss sends no synchronous dead reply.
+            CHECK(close_device(&caller, sender) == 0);
+        }
+        reaper = open_device(&c); CHECK(reaper >= 3 && close_device(&c, reaper) == 0 && provider.live == 0);
+    }
     fd = open_device(&c); CHECK(fd >= 3);
     const unsigned creates = provider.creates;
     artbox_vm *foreign_vm = artbox_vm_create(&provider.memory, page, 1);

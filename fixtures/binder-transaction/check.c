@@ -580,3 +580,178 @@ int artbox_binder_object_check(void *context, const artbox_binder_transaction_op
     if (results[0] || results[1]) result = -1;
     return cleanup(&a, result);
 }
+
+enum { oneway_code = transaction_code + 16 };
+static int send_oneway(struct endpoint *e, uint32_t handle, unsigned sequence) {
+    const unsigned char value = (unsigned char)(sequence + 7);
+    size_t size = transaction(e, ARTBOX_BC_TRANSACTION, oneway_code + sequence, &value, 1);
+    put32(e->scratch->write + 4, handle); put32(e->scratch->write + 24, 1);
+    return send(e, size);
+}
+static int oneway_manager_loop(struct endpoint *e) {
+    REQUIRE(configure_looper(e) == 0);
+    unsigned registered = 0, barrier = 0, completed = 0;
+    for (unsigned attempt = 0; attempt < 5000 && (!barrier || completed != 6); ++attempt) {
+        size_t size = 0, cursor = 0;
+        REQUIRE(receive(e, &size) == 0);
+        while (cursor < size) {
+            artbox_binder_frame frame;
+            REQUIRE(artbox_binder_next(ARTBOX_BINDER_READ, e->scratch->read, size, &cursor, &frame) == ARTBOX_BINDER_OK);
+            if (frame.command == ARTBOX_BR_TRANSACTION_COMPLETE) { REQUIRE(++completed <= 6); continue; }
+            if (frame.command != ARTBOX_BR_TRANSACTION) { REQUIRE(ref_command(e, &frame) == 0); continue; }
+            artbox_binder_transaction t;
+            REQUIRE(artbox_binder_decode_transaction(&frame, &t) == ARTBOX_BINDER_OK);
+            REQUIRE(t.target == object_pointer && t.cookie == object_cookie && !t.flags);
+            REQUIRE(t.sender_pid == e->ops->pid(e->context, 2) && t.sender_euid == e->ops->uid);
+            if (t.code == register_code) {
+                unsigned char data[64], offsets[16];
+                uint32_t handles[2];
+                REQUIRE(!registered++ && t.data_size == 64 && t.offsets_size == 16);
+                REQUIRE(mapped_range(e, t.data_buffer, 64) && mapped_range(e, t.offsets_buffer, 16));
+                REQUIRE(e->ops->read(e->context, t.data_buffer, data, 64) == 0);
+                REQUIRE(e->ops->read(e->context, t.offsets_buffer, offsets, 16) == 0);
+                REQUIRE(get64(offsets) == 8 && get64(offsets + 8) == 32);
+                for (unsigned i = 0; i < 2; ++i) {
+                    unsigned char *object = data + 8 + i * 24;
+                    REQUIRE(get32(object) == ARTBOX_BINDER_TYPE_HANDLE && get32(object + 4) == 0x100);
+                    REQUIRE(get64(object + 8) > 0 && get64(object + 8) <= UINT32_MAX && !get64(object + 16));
+                    handles[i] = get32(object + 8);
+                    put32(e->scratch->write, ARTBOX_BC_INCREFS); put32(e->scratch->write + 4, handles[i]);
+                    put32(e->scratch->write + 8, ARTBOX_BC_ACQUIRE); put32(e->scratch->write + 12, handles[i]);
+                    REQUIRE(send(e, 16) == 0);
+                }
+                REQUIRE(handles[0] != handles[1]);
+                // Send from inside this synchronous handler. B must bypass A's
+                // held buffer, and all four calls complete without a reply.
+                REQUIRE(send_oneway(e, handles[0], 0) == 0);
+                REQUIRE(send_oneway(e, handles[0], 1) == 0);
+                REQUIRE(send_oneway(e, handles[1], 3) == 0);
+                REQUIRE(send_oneway(e, handles[0], 2) == 0);
+            } else {
+                REQUIRE(t.code == depart_code && registered == 1 && !barrier++);
+                REQUIRE(payload(e, &t, ping, sizeof(ping)) == 0);
+            }
+            size_t bytes = transaction(e, ARTBOX_BC_REPLY, 0, pong, sizeof(pong));
+            free_buffer(e->scratch->write + bytes, t.data_buffer);
+            REQUIRE(send(e, bytes + 12) == 0);
+        }
+        if (!size) e->ops->pause(e->context);
+    }
+    REQUIRE(registered == 1 && barrier == 1 && completed == 6);
+    return 0;
+}
+static int oneway_manager_run(void *opaque) {
+    struct endpoint *e = opaque;
+    return cleanup(e, oneway_manager_loop(e));
+}
+static int oneway_owner_loop(struct endpoint *e) {
+    REQUIRE(configure_looper(e) == 0);
+    put32(e->scratch->write, ARTBOX_BC_INCREFS); put32(e->scratch->write + 4, 0);
+    put32(e->scratch->write + 8, ARTBOX_BC_ACQUIRE); put32(e->scratch->write + 12, 0);
+    REQUIRE(send(e, 16) == 0);
+    REQUIRE(death_command(e, ARTBOX_BC_REQUEST_DEATH_NOTIFICATION, death_cookie) == 0);
+    size_t bytes = object_packet(e, ARTBOX_BC_TRANSACTION, ARTBOX_BINDER_TYPE_BINDER, 0);
+    // Export two distinct nodes, so serialization cannot be endpoint-wide.
+    put64(e->scratch->data + 40, service_pointer + 8);
+    put64(e->scratch->data + 48, service_cookie + 8);
+    REQUIRE(send(e, bytes) == 0);
+    unsigned stage = 0, seen = 0, replies = 0, completed = 0, died = 0;
+    unsigned acquired[2] = {0, 0}, increfs[2] = {0, 0};
+    uint64_t buffers[4] = {0, 0, 0, 0};
+    for (unsigned attempt = 0; attempt < 5000 && stage != 4; ++attempt) {
+        size_t size = 0, cursor = 0;
+        REQUIRE(receive(e, &size) == 0);
+        while (cursor < size) {
+            artbox_binder_frame frame;
+            REQUIRE(artbox_binder_next(ARTBOX_BINDER_READ, e->scratch->read, size, &cursor, &frame) == ARTBOX_BINDER_OK);
+            if (frame.command == ARTBOX_BR_REPLY) {
+                artbox_binder_transaction t;
+                REQUIRE(++replies <= 2 && artbox_binder_decode_transaction(&frame, &t) == ARTBOX_BINDER_OK);
+                REQUIRE(payload(e, &t, pong, sizeof(pong)) == 0);
+                free_buffer(e->scratch->write, t.data_buffer);
+                REQUIRE(send(e, 12) == 0);
+            } else if (frame.command == ARTBOX_BR_TRANSACTION) {
+                artbox_binder_transaction t;
+                REQUIRE(artbox_binder_decode_transaction(&frame, &t) == ARTBOX_BINDER_OK);
+                REQUIRE(t.code >= oneway_code && t.code < oneway_code + 4);
+                unsigned sequence = t.code - oneway_code;
+                const unsigned char value = (unsigned char)(sequence + 7);
+                REQUIRE(!(seen & (1u << sequence)) && t.flags == 1 && !t.sender_pid && t.sender_euid == e->ops->uid);
+                REQUIRE(t.target == (uint64_t)service_pointer + (sequence == 3 ? 8u : 0u));
+                REQUIRE(t.cookie == (uint64_t)service_cookie + (sequence == 3 ? 8u : 0u));
+                REQUIRE(payload(e, &t, &value, 1) == 0);
+                REQUIRE(sequence != 1 || stage == 1);
+                REQUIRE(sequence != 2 || stage == 3);
+                seen |= 1u << sequence; buffers[sequence] = t.data_buffer;
+            } else if (frame.command == ARTBOX_BR_TRANSACTION_COMPLETE) REQUIRE(++completed <= 2);
+            else if (frame.command == ARTBOX_BR_DEAD_BINDER) {
+                REQUIRE(stage == 2 && !died++ && get64(frame.payload) == death_cookie);
+            } else if (frame.command == ARTBOX_BR_INCREFS || frame.command == ARTBOX_BR_ACQUIRE) {
+                uint64_t node = get64(frame.payload);
+                REQUIRE(node == service_pointer || node == service_pointer + 8);
+                unsigned index = node == service_pointer ? 0 : 1;
+                REQUIRE(get64(frame.payload + 8) == (uint64_t)service_cookie + index * 8);
+                if (frame.command == ARTBOX_BR_INCREFS) REQUIRE(!increfs[index]++);
+                else REQUIRE(!acquired[index]++);
+                REQUIRE(ref_command(e, &frame) == 0);
+            } else REQUIRE(ref_command(e, &frame) == 0);
+        }
+        if (stage == 0 && seen == 9 && replies == 1 && completed == 1) {
+            REQUIRE(increfs[0] == 1 && increfs[1] == 1 && acquired[0] == 1 && acquired[1] == 1);
+            REQUIRE(no_event(e) == 0); // A1/A2 queued; A0 still held.
+            free_buffer(e->scratch->write, buffers[3]);
+            free_buffer(e->scratch->write + 12, buffers[0]);
+            REQUIRE(send(e, 24) == 0);
+            stage = 1;
+        } else if (stage == 1 && seen == 11) {
+            REQUIRE(no_event(e) == 0); // A2 remains blocked by A1's buffer.
+            // A one-way receive adds no synchronous stack frame.
+            REQUIRE(send_to_handle(e, 0, depart_code) == 0);
+            stage = 2;
+        } else if (stage == 2 && replies == 2 && completed == 2 && died == 1) {
+            free_buffer(e->scratch->write, buffers[1]);
+            REQUIRE(send(e, 12) == 0);
+            stage = 3; // A2 must still arrive after its sender is gone.
+        } else if (stage == 3 && seen == 15) {
+            free_buffer(e->scratch->write, buffers[2]);
+            REQUIRE(send(e, 12) == 0);
+            stage = 4;
+        }
+        if (!size) e->ops->pause(e->context);
+    }
+    REQUIRE(stage == 4 && replies == 2 && completed == 2 && died == 1);
+    REQUIRE(death_command(e, ARTBOX_BC_CLEAR_DEATH_NOTIFICATION, death_cookie) == 0);
+    REQUIRE(death_command(e, ARTBOX_BC_DEAD_BINDER_DONE, death_cookie) == 0);
+    for (unsigned attempt = 0; attempt < 5000; ++attempt) {
+        size_t size = 0, cursor = 0;
+        unsigned cleared = 0;
+        REQUIRE(receive(e, &size) == 0);
+        while (cursor < size) {
+            artbox_binder_frame frame;
+            REQUIRE(artbox_binder_next(ARTBOX_BINDER_READ, e->scratch->read, size, &cursor, &frame) == ARTBOX_BINDER_OK);
+            if (frame.command == ARTBOX_BR_CLEAR_DEATH_NOTIFICATION_DONE) {
+                REQUIRE(!cleared++ && get64(frame.payload) == death_cookie);
+            } else REQUIRE(ref_command(e, &frame) == 0);
+        }
+        if (cleared) return 0;
+        e->ops->pause(e->context);
+    }
+    REQUIRE(0 && "Missing one-way fixture death-clear acknowledgement");
+}
+static int oneway_owner_run(void *opaque) {
+    struct endpoint *e = opaque;
+    int result = prepare(e);
+    if (!result) result = oneway_owner_loop(e);
+    return cleanup(e, result);
+}
+int artbox_binder_oneway_check(void *context, const artbox_binder_transaction_ops *ops,
+    artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client) {
+    struct endpoint a = {context, ops, server, -1, 1, 0, ops->page_size * 16};
+    struct endpoint b = {context, ops, client, -1, 2, 0, ops->page_size * 16};
+    int result = prepare(&a);
+    if (result || become_manager(&a)) return cleanup(&a, -1);
+    int results[2] = {-1, -1};
+    result = ops->parallel(context, oneway_manager_run, &a, oneway_owner_run, &b, results);
+    if (results[0] || results[1]) result = -1;
+    return cleanup(&a, result);
+}

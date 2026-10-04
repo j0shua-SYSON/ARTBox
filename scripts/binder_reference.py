@@ -184,7 +184,8 @@ def run_native(spec, installed, build):
         mapping_cases = len(re.findall(r'\bCHECK\(', (ROOT / 'fixtures/binder-mapping/check.c').read_text())) - 1
         if result != {'protocol': 8, 'cases': expected, 'file_cases': file_cases, 'mapping_cases': mapping_cases,
                       'same_pid_rejected': True, 'threaded_ping_pong': True, 'death_cases': 3,
-                      'object_handle_lifecycle': True, 'fresh_binderfs_context': True, 'passed': True}:
+                      'object_handle_lifecycle': True, 'oneway_lifecycle': True,
+                      'fresh_binderfs_context': True, 'passed': True}:
             raise RuntimeError('Native Binder reference did not execute every expected case')
         record = {**result, 'vermagic': version, 'module_license': license_name,
                   'runner_sha256': digest(executable)}
@@ -264,13 +265,14 @@ def compare_driver(build, reference):
     if transaction_result != dict(same_pid_rejected=reference['same_pid_rejected'],
                                  shared_threaded_ping_pong=reference['threaded_ping_pong'],
                                  death_cases=reference['death_cases'], object_handle_lifecycle=reference['object_handle_lifecycle'],
+                                 oneway_lifecycle=reference['oneway_lifecycle'],
                                  native_aliases=True, cleanup=True, passed=True):
         raise RuntimeError('Binder transaction driver did not pass the shared native fixture')
     return {**result, 'runner_sha256': digest(runner),
             'vfs': vfs_result, 'vfs_runner_sha256': digest(vfs_runner),
             'receive': receive_result, 'receive_runner_sha256': digest(receive_runner),
             'transactions': transaction_result, 'transaction_runner_sha256': digest(transaction_runner),
-            'scope': 'Same ioctl, descriptor, mapping, synchronous parcels, strong-object handles and owner-death fixtures; no polling comparison'}
+            'scope': 'Same ioctl, descriptor, mapping, synchronous parcels, strong-object handles, one-way and owner-death fixtures; no polling comparison'}
 
 
 def main():
@@ -296,7 +298,7 @@ def main():
     record = {'scope': pins['scope'], 'package': spec, 'prepared': True,
               'native_execution_verified': False, 'artbox_driver_compared': False,
               'mapping_driver_compared': False, 'transaction_driver_compared': False, 'death_driver_compared': False,
-              'object_driver_compared': False}
+              'object_driver_compared': False, 'oneway_driver_compared': False}
     if args.run_native:
         record['native'] = run_native(spec, installed, Path(os.environ['ARTBOX_BUILD_DIR']) / 'm4/kernel-reference')
         record['native_execution_verified'] = True
@@ -307,6 +309,7 @@ def main():
             record['transaction_driver_compared'] = True
             record['death_driver_compared'] = True
             record['object_driver_compared'] = True
+            record['oneway_driver_compared'] = True
     record['project_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     sources = [
         ROOT / 'fixtures/binder-device/check.c', ROOT / 'fixtures/binder-device/check.h',
@@ -330,6 +333,7 @@ def main():
                       'transaction_driver_compared': record['transaction_driver_compared'],
                       'death_driver_compared': record['death_driver_compared'],
                       'object_driver_compared': record['object_driver_compared'],
+                      'oneway_driver_compared': record['oneway_driver_compared'],
                       'native': record.get('native'), 'driver': record.get('driver')}, indent=2))
 
 

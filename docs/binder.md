@@ -153,8 +153,9 @@ the required native-backed VFS test passes the same fixture on Linux and Mac;
 the Linux comparison artifact and all 96 source hashes independently verify.
 Error/owner controls pass locally, including delayed failure after a mapped
 manager's final unmap. Empty nonblocking reads return EAGAIN. Blocking empty
-reads, nonzero initial read-consumed, invalid buffer frees, nested/oneway calls
-and object/FD transfer remain unsupported. See ADR 0099.
+reads, nonzero initial read-consumed, invalid buffer frees, nested synchronous
+calls and FD transfer remain unsupported. Strong-object and one-way support are
+described below. See ADR 0099 for the original synchronous byte boundary.
 
 Manager strong/weak references and death subscriptions now use bounded pools
 independent of endpoint lifetime. Opaque cookies survive owner loss; clearing
@@ -175,9 +176,20 @@ on native Linux at `1423d52`, where `object_driver_compared` remains false.
 Production translation now uses bounded node/handle tables and buffer-held
 references. Local controls verify driver-alias bytes, callback acknowledgments,
 free-triggered release and partial-failure rollback. The shared native-backed
-driver test adds the complete lifecycle and three malformed-parcel cases; its
-comparison is pending. Weak objects, FDs and scatter/gather remain unsupported.
+driver test adds the complete lifecycle and three malformed-parcel cases. At
+`74a6c9c`, both Linux and ARTBox pass, with artifact provenance and 96 source hashes
+independently verified. Weak objects, FDs and scatter/gather remain unsupported.
 See ADRs 0101 and 0102 for exact scope and resource bounds.
+
+One-way calls now use per-node queues. A delivered buffer retains the node's
+active slot until FREE_BUFFER, allowing other nodes on that endpoint to proceed.
+The sender gets completion without a reply, and sender teardown preserves accepted
+receiver work. Local queue/fault/teardown controls pass. The new shared fixture
+checks four callbacks across two nodes, sends from a synchronous handler, issues
+a synchronous call while holding a one-way buffer, and requires final delivery
+after sender death. Paired execution is pending. Linux asynchronous byte quotas,
+spam detection and transaction replacement remain unsupported; explicit ARTBox
+admission bounds apply. See ADR 0103.
 
 ## Evidence
 

@@ -2726,8 +2726,8 @@ scatter/gather fixups, nested calls and oneway delivery need additional cases.
 
 ## 0102: Tie translated Binder references to receive-buffer lifetime
 
-Status: portable ownership and rollback controls pass. The shared object flow
-and three additional malformed-parcel cases await paired execution.
+Status: at 74a6c9c, Linux and ARTBox pass the shared object flow and all three
+malformed-parcel cases. Artifact provenance and 96 input hashes verify.
 
 Assign each exported node a monotonic context-local identity, its owning endpoint,
 and its opaque guest pointer/cookie. Each receiving endpoint gets its own handle
@@ -2765,3 +2765,37 @@ header/command copy errors retain ioctl EFAULT. The shared negative cases use a
 conflicting second cookie, truncated second object and unowned second handle,
 then run the valid lifecycle to expose leaked state. Admission limits remain
 explicit ARTBox errors; weak objects, FDs and scatter/gather are still unsupported.
+
+## 0103: Serialize one-way Binder delivery by node and receive-buffer lifetime
+
+Status: local queue/teardown controls pass; the shared native comparison is pending.
+
+AOSP servicemanager sends one-way callbacks while processing synchronous calls.
+Permit TF_ONE_WAY without occupying or changing the sender's synchronous call
+state. Accepted one-way work belongs to the receiving node; closing its sender
+must not retract queued callbacks. Return a transaction completion to the sender,
+preserve its UID, and report sender PID zero, matching the kernel's lack of a
+retained synchronous caller for this operation.
+
+Each node records one active receive-buffer address. Subsequent calls to that
+node stay queued until BC_FREE_BUFFER releases the active buffer. A different
+node on the same endpoint remains eligible. Dispatch alone does not advance the
+queue, and a failed guest copy does not publish or consume a packet. Receiver
+teardown discards accepted callbacks without inventing synchronous dead replies.
+The existing bounded work pool and buffer-held node references carry ownership;
+no executable memory or new platform API is required.
+
+The original shared fixture exports two different callback objects, sends four
+one-way calls from inside a synchronous registration handler, and checks per-node
+ordering plus independent-node delivery. It holds buffers across empty reads,
+makes a synchronous call while handling a one-way callback, then waits for actual
+sender death before releasing the buffer that admits the final queued callback.
+Local injected controls additionally cover copy faults, sender close before any
+delivery, receiver teardown, and arena cleanup. These controls do not claim native
+alias coherence; the shared fixture must execute with real backing on Mac/Linux.
+
+Linux's asynchronous half-arena quota and spam detection are not implemented;
+ARTBox's documented byte/metadata admission bounds apply. TF_UPDATE_TXN, frozen
+processes, threadpool wakeups, blocking/poll integration, FD transfer and nested
+synchronous calls still need separate contracts. This is a prerequisite for real
+servicemanager, not its acceptance test.

@@ -13,7 +13,9 @@ typedef struct artbox_binder_device artbox_binder_device;
  * Synchronous byte parcels and strong flat objects support one call per thread.
  * Nodes, references and death subscriptions have separate pools of 1,024;
  * 4,096 buffer-held references and 64 objects per parcel are admission bounds.
- * Weak objects, FD transfer and oneway/nesting remain pending. */
+ * One-way calls have per-node ordering until receive-buffer release and do not
+ * add synchronous stack entries. Weak objects, FD transfer and nesting remain
+ * pending. */
 artbox_binder_device *artbox_binder_device_create(size_t endpoints, size_t threads_per_endpoint);
 /* Private, non-executable receive backing. create returns fresh zero-filled
  * storage of exactly length bytes, already unlinked from any guest namespace.

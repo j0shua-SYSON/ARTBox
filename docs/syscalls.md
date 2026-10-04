@@ -389,8 +389,10 @@ with nonblocking receives, completion messages and buffer release. Its required
 native-backed comparison passes at bf36338 with artifact/source verification.
 Manager strong/weak references and death/clear/ack commands pass the three-case
 shared native lifetime comparison at 1f9f107; artifact/source provenance verifies.
-Strong-object transfer, retained nonzero handles and node reference callbacks
-now pass local ownership controls; paired object/rollback execution is pending.
-Weak objects/FDs, nested/oneway calls, blocking empty reads and polling remain
-pending. See
+Strong-object transfer, retained nonzero handles, node reference callbacks and
+three malformed-parcel rollback cases pass the shared comparison at 74a6c9c;
+artifact provenance and all 96 source hashes verify. One-way calls now pass local
+per-node ordering, buffer lifetime, copy-fault and teardown controls; their shared
+native lifecycle comparison is pending. Weak objects/FDs, nested synchronous calls,
+blocking empty reads and polling remain pending. See
 [the Binder contract](binder.md) for host resource limits and comparison scope.
