@@ -2164,8 +2164,9 @@ the overall result stays failed until the entire acceptance passes.
 
 ## 0087: Deliver Bionic's queued interruption through a public pthread signal
 
-Status: portable tests and NDK compilation pass; native Linux and signed Apple
-execution are required next. JavaVM/DEX acceptance remains incomplete.
+Status: verified at `06fa115` in both signed Bionic modes, the native Linux
+reference and the comparison using the identical NDK queue object. JavaVM/DEX
+acceptance still fails later in startup; the other 16 host jobs pass.
 
 At `fc2f939`, the signed JavaVM worker reports a requested 4 MiB stack, 4,214,000
 usable-attribute bytes and a 16 KiB guard. ART advances into native class-library
@@ -2220,3 +2221,33 @@ one queued send must fail the expected observation. The Linux oracle reuses the
 identical raw-ABI NDK object and compiles the handler from the same source, since
 the libc sigaction declarations differ. None of these tests substitutes for the
 required full JavaVM, hello DEX and shutdown acceptance.
+
+## 0088: Report the existing virtual cwd through the Linux getcwd ABI
+
+Status: the new 22-case regression fails before implementation and passes
+locally afterward; NDK compilation passes. Signed Apple and Linux execution
+are required next.
+
+At `06fa115`, ART passes signal-34 registration and advances through native
+initialization. The last recorded unsupported call is getcwd (17), followed by
+the 60-second acceptance timeout. The pinned libcore System.c calls getcwd in
+System_specialProperties and passes its result directly to strncat. A null
+result is a concrete missing prerequisite; the log does not establish the full
+subsequent failure path. Do not work around it by changing class initialization.
+
+The VFS already resolves relative names from its virtual `/` and has no chdir
+support. Implement getcwd there, returning that path and its terminating NUL.
+Keep the host backing directory private. Match the unsigned-long size argument,
+ERANGE-before-copy ordering, actual-byte copy length and return count described
+by [Linux v6.12 d_path.c](https://raw.githubusercontent.com/torvalds/linux/v6.12/fs/d_path.c).
+Invalid or unwritable output returns EFAULT; output contents after a failed
+copy are unspecified. Mutable cwd and directory rename/deletion need future
+contracts. This call copies two bytes, adds no allocation and needs no code
+generation or host filesystem query.
+
+The original shared fixture covers zero/short capacity, invalid pointers,
+unaligned output, canaries, full-width sizes, protected pages and a boundary
+whose declared capacity exceeds its mapping. Run its identical NDK object
+through both signed Bionic profiles and both Bionic syscall-entry profiles on
+native Linux, with the Linux test child at `/`. Preserve M2's 328-case score
+and require the complete JavaVM/DEX acceptance after this fix.

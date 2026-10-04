@@ -2,9 +2,9 @@
 
 Portable queues implement guest thread-directed blocked standard signals and
 synchronous waits. Signed Apple synchronous-fault delivery, action masks and
-alternate stacks are verified in the checkpoints below. The new signal-34
-interruption path passes portable tests and NDK compilation; native Linux and
-signed Apple validation remain pending. General asynchronous/default delivery
+alternate stacks are verified in the checkpoints below. The signal-34
+interruption path passes both signed Bionic modes and native Linux at `06fa115`,
+with independently verified sources, objects and frameworks. General asynchronous/default delivery
 and other realtime queues remain unsupported.
 
 The interruption owner preserves each accepted same-process tgkill in a bounded
@@ -17,10 +17,15 @@ signal waits observe a delivery epoch through ordinary-context polling every
 5 ms; the handler never notifies a condition variable. This adds timed wakeups
 and bounded polling delay. See ADR 0087 for ownership and unsupported behavior.
 
-The new tests add 26 raw queue cases, a 4,096-send concurrent count test, quota,
-teardown and interrupted-wait checks. Native Linux and signed Bionic must also
-pass queued callback mask/TLS/errno/stack checks, pthread futex interruption and
-a dropped-send negative control. M2's fixed denominator remains unchanged.
+The tests pass 26 raw queue cases, a 4,096-send concurrent count test, quota,
+teardown and interrupted-wait checks. Native Linux and signed Bionic also pass
+queued callback mask/TLS/errno/stack checks, pthread futex interruption and
+a dropped-send negative control. Both Bionic allocator modes retain 328/328.
+The complete diagnostic startup/client phase takes 26.057 ms normally and
+37.718 ms with forced allocator sampling in these single Mac runs; that scope
+includes unrelated fixtures and is not an isolated interruption benchmark.
+Peak RSS is 7,602,176 / 7,159,808 bytes. JavaVM startup subsequently reaches
+unsupported getcwd and times out; no Apple managed execution is established.
 
 The following paragraphs record the earlier standard-queue implementation and
 the subsequent independently verified synchronous-delivery checkpoints.

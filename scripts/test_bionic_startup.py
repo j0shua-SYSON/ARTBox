@@ -97,6 +97,7 @@ def main():
     vm_object, timeout_object = build / "vm-check.o", build / "timeout-check.o"
     proc_object = build / "proc-check.o"
     unlink_object = build / "unlink-check.o"
+    cwd_object = build / "cwd-check.o"
     signal_object = build / "signal-wait.o"
     handler_object = build / "signal-handler.o"
     stack_object,stack_handler_object = build / "signal-stack.o",build / "signal-stack-handler.o"
@@ -111,6 +112,7 @@ def main():
         raise RuntimeError("Vfork caller differs from the verified production-object oracle")
     for source_name, target in (("fixtures/bionic-vm/check.c", vm_object), ("fixtures/bionic-startup/timeouts.c", timeout_object),
                                 ("fixtures/bionic-files/proc.c", proc_object), ("fixtures/bionic-files/unlink.c", unlink_object),
+                                ("fixtures/bionic-files/cwd.c", cwd_object),
                                 ("fixtures/kernel-signals/wait.c", signal_object),
                                 ("fixtures/kernel-signals/handler.c", handler_object),
                                 ("fixtures/kernel-signals/stack.c", stack_object),
@@ -186,7 +188,7 @@ def main():
             version_client_object, tls_access, tls_abi, vm_object, timeout_object, proc_object, art_libc_object, comparison,
             vfork_object, vfork_native_object,
             libcore_common, libcore_accounts, unlink_object, signal_object, handler_object, stack_object, stack_handler_object, mask_handler_object, fault_object,
-            realtime_object, interrupt_object,
+            realtime_object, interrupt_object, cwd_object,
             "--no-as-needed", libc, versions, tls_library, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator through a manifest load group; not full M2",
               "project_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
@@ -234,6 +236,8 @@ def main():
                               "object_sha256": digest(mask_handler_object)},
               "signal_fault": {"fault_cases": 5, "source_sha256": digest(ROOT / "fixtures/kernel-signals/faults.c"),
                                "object_sha256": digest(fault_object)},
+              "cwd": {"cases": 22, "source_sha256": digest(ROOT / "fixtures/bionic-files/cwd.c"),
+                      "object_sha256": digest(cwd_object)},
               "signal_interrupt": {"realtime_cases": 26, "handler_groups": 4, "workers": 1,
                   "queue_source_sha256": digest(ROOT / "fixtures/kernel-signals/realtime.c"),
                   "handler_source_sha256": digest(ROOT / "fixtures/kernel-signals/interrupt.c"),
@@ -296,6 +300,8 @@ def main():
                 raise RuntimeError("Native class-library libc frontend client did not complete")
             if result[key]['unlink_cases'] != 29:
                 raise RuntimeError('Unlink and descriptor lifetime client did not complete')
+            if result[key]['cwd_cases'] != 22:
+                raise RuntimeError('Virtual current directory client did not complete')
             if result[key]['signal_wait_cases'] != 33:
                 raise RuntimeError('Blocked signal wait client did not complete')
             if (result[key]['signal_realtime_cases'] != 26 or result[key]['signal_interrupt_cases'] != 4 or

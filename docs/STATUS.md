@@ -64,13 +64,20 @@ NativeThread, leaving a Java IOException; the required JavaVM/DEX test remains
 failed. Its host workflow passes 16/17 jobs and the iOS build passes. No managed
 execution on Apple has been verified.
 
-The next implementation adds a bounded realtime interruption count, a public
-pthread signal transport and EINTR for translated futex/signal waits. All 33
-local portable CTests pass, including 26 queue cases, 4,096 concurrent deliveries,
-capacity/lifetime checks and interrupted waits. Both new Android callers compile
-with NDK warnings treated as errors. Native Linux and signed Apple execution,
-including a dropped-send negative control, remain pending. See ADR 0087 and the
-[signal contract](m3-signals.md) for the 5 ms wait-polling cost and scoped limits.
+At `06fa115`, the bounded realtime interruption count, public pthread transport
+and EINTR for translated waits pass both signed Bionic modes and native Linux,
+including the identical NDK queue object and dropped-send negative control.
+Independent checks verify sources, objects, eight signed framework layouts
+and the integrated M1/M2 IPA. All 33 local portable CTests and 15 Python suites
+pass. See ADR 0087 and the [signal contract](m3-signals.md) for the 5 ms
+wait-polling cost and scoped limits. Sixteen host jobs and the iOS build pass;
+the required Apple JavaVM test advances but times out after unsupported getcwd.
+
+The next implementation reports the existing virtual `/` cwd through syscall
+17. Its 22-case fixture reproduces the missing call before implementation;
+all 33 CTests pass afterward, and NDK compilation passes. Native comparisons
+and the next full JavaVM attempt remain pending. See ADR 0088. Current ART
+execution on Apple and ART inclusion in the iOS app remain unverified.
 
 At `1647514`, the dependency selection adds 57 unchanged Bionic units and AOSP-generated
 Android account IDs. New callers cover numeric address resolution, bounded

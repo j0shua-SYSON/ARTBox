@@ -23,6 +23,7 @@ static int caller_errno;
 extern "C" int64_t artbox_files_check(uint64_t);
 extern "C" int64_t artbox_file_mapping_check(uint64_t);
 extern "C" int64_t artbox_files_unlink_check(uint64_t);
+extern "C" int64_t artbox_files_cwd_check(uint64_t);
 extern "C" int *artbox_file_errno(void) { return &caller_errno; }
 extern "C" int64_t artbox_file_syscall(uint64_t n, uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f) {
     int64_t result = n == 222 ? artbox_vfs_mmap(caller_fs, caller_thread->vm, a, b, c, d, static_cast<int64_t>(e), f) :
@@ -119,6 +120,9 @@ static void contract(const artbox_file_ops &files) {
     int64_t unlink_cases = artbox_files_unlink_check(memory.page_size);
     std::printf("Unlink syscall caller: %lld\n", static_cast<long long>(unlink_cases));
     CHECK(unlink_cases == 29);
+    int64_t cwd_cases=artbox_files_cwd_check(memory.page_size);
+    std::printf("Getcwd syscall caller: %lld\n",static_cast<long long>(cwd_cases));
+    CHECK(cwd_cases==22);
     auto call = [&](uint64_t n, uint64_t a = 0, uint64_t b = 0, uint64_t c = 0, uint64_t d = 0) {
         return artbox_vfs_call(fs, &thread, n, a, b, c, d);
     };

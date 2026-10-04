@@ -223,6 +223,7 @@ jobs:
             build/m2/bionic-startup/file-check.o
             build/m2/bionic-startup/mapping-check.o
             build/m2/bionic-startup/unlink-check.o
+            build/m2/bionic-startup/cwd-check.o
             build/m2/bionic-startup/signal-wait.o
             build/m2/bionic-startup/signal-handler.o
             build/m2/bionic-startup/signal-stack.o

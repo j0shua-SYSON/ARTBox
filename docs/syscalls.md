@@ -199,9 +199,9 @@ change M2's fixed denominator.
 
 | ARM64 call | Implemented subset | Deliberate limits |
 | --- | --- | --- |
-| tgkill 131 | Guest PID/TID lookup, zero-signal probe, queued blocked standard signals and active synchronous waiters; optional bounded realtime interruption count | No cross-process, general unblocked/default or SIGKILL/SIGSTOP delivery. The configured signal-34 transport awaits native validation; other realtime signals return ENOTSUP. |
+| tgkill 131 | Guest PID/TID lookup, zero-signal probe, queued blocked standard signals and active synchronous waiters; bounded signal-34 interruption count verified on signed Mac/Linux at 06fa115 | No cross-process, general unblocked/default or SIGKILL/SIGSTOP delivery. Other realtime signals return ENOTSUP. |
 | rt_sigprocmask 135 | Shared queue mask, clone inheritance, unmaskable-signal filtering and mutation before old-mask copyout | Host masks are unchanged. Unblocking a pending signal returns ENOTSUP without mutation. |
-| rt_sigtimedwait 137 | Standard coalescing, lowest-number selection, SI_TKILL encoding, zero/finite/infinite waits, consume before copyout; configured realtime count and delivered-epoch EINTR | New interruption behavior is locally tested, native validation pending. One configured realtime number; 5 ms ordinary-context polling for delivered interruptions. |
+| rt_sigtimedwait 137 | Standard coalescing, lowest-number selection, SI_TKILL encoding, zero/finite/infinite waits, consume before copyout; configured realtime count and delivered-epoch EINTR | One configured realtime number; 5 ms ordinary-context polling for delivered interruptions. The queue is native-verified; sigtimedwait EINTR has an injected portable test. |
 
 The 33-case shared caller and portable blocked-worker/lifetime tests pass
 locally. Signed Bionic and the identical NDK object on native Linux are CI gates.
@@ -286,6 +286,18 @@ unmeasured syndromes remain unsupported. Register/mask return checks and the
 existing guest stack constraints still apply. The five-case Android/Linux
 caller and dropped-edit/address controls are required in CI; local portable
 classification and metadata concurrency tests pass.
+
+### Current directory (local contract passed; native validation pending)
+
+| ARM64 call | Implemented subset | Deliberate limits |
+| --- | --- | --- |
+| getcwd 17 | Existing virtual `/` cwd, NUL-inclusive return length, full-width capacity, ERANGE before copy, EFAULT on inaccessible output | Cwd is fixed; chdir/fchdir and deleted/renamed cwd semantics remain unsupported. Never returns the host backing path. |
+
+The 22-case shared caller fails against the missing implementation and passes
+locally after the fix. It checks canaries, unaligned storage, capacity and page
+boundaries. Both signed Bionic modes and both Bionic Linux syscall-entry profiles
+must run the same NDK object; the reference child changes to `/` after its file
+mutations finish. M2's existing denominator remains 328.
 
 ### File-backed data mapping extension (native CI green at b1a94c5)
 

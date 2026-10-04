@@ -179,6 +179,15 @@ static int64_t transfer(void *context, void *buffer, size_t length) {
 extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread, uint64_t number,
                                    uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3) {
     if (!fs || !thread || !thread->vm || !thread->system.random) return -22;
+    if (number == 17) {
+        // Relative path lookup already uses the virtual root as cwd. Never
+        // expose the host directory backing that root. Size is unsigned long;
+        // Linux checks capacity before copying only the actual pathname bytes.
+        if (a1 < 2) return -34;
+        const char cwd[2] = {'/', '\0'};
+        int error = artbox_vm_write(thread->vm, a0, cwd, sizeof(cwd));
+        return error ? error : 2;
+    }
     if (number != 35 && number != 48 && number != 56 && number != 57 && number != 62 && number != 63 && number != 64 && number != 79 && number != 80)
         return -38;
     try {
