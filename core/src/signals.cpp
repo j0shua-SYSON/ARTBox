@@ -22,6 +22,8 @@ struct artbox_signals {
     void *validation_context=nullptr;
     uint64_t supported_flags=0;
     size_t stack_minimum=0,stack_capacity=0;
+    unsigned interrupt_number=0;
+    uint32_t interrupt_capacity=0;
 };
 struct StackRecord { artbox_signal_stack value; StackRecord *next; };
 struct artbox_signal_thread {
@@ -35,8 +37,20 @@ struct artbox_signal_thread {
     std::atomic<const StackRecord*> stack{&disabled};
     StackRecord *stack_records=nullptr;
     size_t stack_records_used=0;
+    artbox_signal_interrupt_notify notify=nullptr;
+    void *notify_context=nullptr;
+    std::atomic<uint64_t> interrupt_epoch{0};
 };
 static const uint64_t unmaskable = UINT64_C(0x40100);
+// Standard pending bits occupy the low word; the high word counts tgkill for
+// the configured realtime interruption. Keep count and mask in the same CAS.
+static const uint64_t interrupt_unit=UINT64_C(1)<<32;
+static uint64_t interrupt_bit(const artbox_signals *owner) {
+    return owner->interrupt_number ? UINT64_C(1)<<(owner->interrupt_number-1) : 0;
+}
+static uint64_t pending_set(const artbox_signal_thread *thread, const SignalBits &state) {
+    return (state.pending&UINT32_MAX) | ((state.pending>>32) ? interrupt_bit(thread->owner) : 0);
+}
 static uint64_t get64(const unsigned char *bytes) {
     uint64_t value=0;
     for (unsigned i=0;i<8;++i) value|=static_cast<uint64_t>(bytes[i])<<(8*i);
@@ -74,8 +88,52 @@ extern "C" int artbox_signals_mask_snapshot(const artbox_kernel_thread *kernel,u
     return 0;
 }
 extern "C" int artbox_signals_handler_mask_support(void) { return SignalState::handler_safe()?1:0; }
+extern "C" int artbox_signals_enable_interrupt(artbox_signals *signals,unsigned number,uint32_t capacity) {
+    if(!signals || number<32 || number>64 || !capacity || capacity>65536) return -22;
+    std::lock_guard<std::mutex> guard(signals->lock);
+    if(signals->interrupt_number || !signals->threads.empty()) return -16;
+    signals->interrupt_number=number; signals->interrupt_capacity=capacity;
+    return 0;
+}
+extern "C" unsigned artbox_signals_interrupt_number(const artbox_kernel_thread *kernel) {
+    return kernel && kernel->signal_state ? kernel->signal_state->owner->interrupt_number : 0;
+}
+extern "C" int artbox_signals_bind_interrupt(artbox_kernel_thread *kernel,
+    artbox_signal_interrupt_notify notify,void *context) {
+    if(!kernel || !kernel->signal_state) return -22;
+    auto *thread=kernel->signal_state;
+    std::lock_guard<std::mutex> guard(thread->owner->lock);
+    if(!thread->owner->interrupt_number) return -95;
+    if(notify && thread->notify) return -16;
+    thread->notify_context=context; thread->notify=notify;
+    const auto state=thread->state.load();
+    if(notify && (state.pending>>32) && !(state.mask&interrupt_bit(thread->owner))) notify(context);
+    return 0;
+}
+extern "C" int artbox_signals_take_interrupt(artbox_kernel_thread *kernel,uint64_t action_mask,uint64_t *previous) {
+    if(!kernel || !kernel->signal_state || !previous) return -22;
+    auto *thread=kernel->signal_state;
+    const uint64_t bit=interrupt_bit(thread->owner);
+    if(!bit || !thread->notify) return -95;
+    auto old=thread->state.load();
+    for(;;) {
+        if(!(old.pending>>32) || (old.mask&bit)) return 0;
+        auto updated=old;
+        updated.pending-=interrupt_unit;
+        updated.mask|=(action_mask|bit)&~unmaskable;
+        if(thread->state.compare_exchange(old,updated)) break;
+    }
+    thread->interrupt_epoch.fetch_add(1,std::memory_order_release);
+    *previous=old.mask;
+    return static_cast<int>(thread->owner->interrupt_number);
+}
+extern "C" uint64_t artbox_signals_interrupt_epoch(const artbox_kernel_thread *kernel) {
+    return kernel && kernel->signal_state ?
+        kernel->signal_state->interrupt_epoch.load(std::memory_order_acquire) : 0;
+}
 static int change_mask(artbox_signal_thread *thread,uint32_t how,const uint64_t *input,uint64_t *previous) {
     auto old=thread->state.load();
+    bool notify=false;
     if(input) {
         const uint64_t requested=*input&~unmaskable;
         for(;;) {
@@ -86,11 +144,14 @@ static int change_mask(artbox_signal_thread *thread,uint32_t how,const uint64_t 
                 case 2: updated.mask=requested; break;
                 default: return -22;
             }
-            if(updated.pending&~updated.mask) return -95;
+            const uint64_t exposed=pending_set(thread,updated)&~updated.mask;
+            if(exposed && (!thread->notify || (exposed&~interrupt_bit(thread->owner)))) return -95;
+            notify=exposed!=0;
             if(thread->state.compare_exchange(old,updated)) break;
         }
     }
     if(previous) *previous=old.mask;
+    if(notify) thread->notify(thread->notify_context);
     return 0;
 }
 extern "C" int artbox_signals_mask_update(artbox_kernel_thread *kernel,uint32_t how,
@@ -156,7 +217,8 @@ static int attach(artbox_signals *signals,artbox_kernel_thread *kernel,uint64_t 
     if (signals->threads.size()==signals->capacity) return -11;
     auto *thread=new(std::nothrow) artbox_signal_thread;
     if (!thread) return -12;
-    if (!thread->state.snapshot_lock_free() || !thread->stack.is_lock_free()) { delete thread; return -95; }
+    if (!thread->state.snapshot_lock_free() || !thread->stack.is_lock_free() ||
+        !thread->interrupt_epoch.is_lock_free()) { delete thread; return -95; }
     thread->owner=signals; thread->kernel=kernel; thread->state.initialize(mask&~unmaskable);
     signals->threads.push_back(thread); // Capacity was reserved before publication.
     kernel->blocked_signals=thread->state.mask();
@@ -180,7 +242,7 @@ extern "C" int artbox_signals_detach(artbox_kernel_thread *kernel) {
     auto *thread=kernel->signal_state;
     auto *signals=thread->owner;
     std::lock_guard<std::mutex> guard(signals->lock);
-    if (thread->waiting) return -16;
+    if (thread->waiting || thread->notify) return -16;
     signals->threads.erase(std::find(signals->threads.begin(),signals->threads.end(),thread));
     kernel->blocked_signals=thread->state.mask();
     kernel->signal_state=nullptr;
@@ -275,20 +337,27 @@ static int64_t send(artbox_signal_thread *sender,uint64_t process,uint64_t tid,u
     if (!target) return -3;
     if (signal<0 || signal>64) return -22;
     if (!signal) return 0;
-    if (signal>=32 || signal==9 || signal==19) return -95;
+    const bool interruption=signal==static_cast<int>(owner->interrupt_number);
+    if ((signal>=32 && !interruption) || signal==9 || signal==19) return -95;
     uint64_t bit=UINT64_C(1)<<(signal-1);
     auto old=target->state.load();
     for(;;) {
-        if(!((old.mask|target->wait_mask)&bit)) return -95;
-        auto updated=old; updated.pending|=bit; // Standard signals coalesce.
+        if(!((old.mask|target->wait_mask)&bit) && !(interruption && target->notify)) return -95;
+        if(interruption && (old.pending>>32)>=owner->interrupt_capacity) return -11;
+        auto updated=old;
+        if(interruption) updated.pending+=interrupt_unit;
+        else updated.pending|=bit; // Standard signals coalesce.
         if(target->state.compare_exchange(old,updated)) break;
     }
     target->changed.notify_one();
+    if(interruption && !(old.mask&bit) && !(target->wait_mask&bit) && target->notify)
+        target->notify(target->notify_context);
     return 0;
 }
 static int64_t wait(artbox_signal_thread *thread,uint64_t set,uint64_t info,uint64_t timeout,uint64_t size) {
     if (size!=8) return -22;
     auto *owner=thread->owner;
+    const uint64_t epoch=thread->interrupt_epoch.load(std::memory_order_acquire);
     unsigned char bytes[16];
     int error=artbox_vm_read(owner->vm,set,bytes,8);
     if (error) return error;
@@ -303,29 +372,35 @@ static int64_t wait(artbox_signal_thread *thread,uint64_t set,uint64_t info,uint
     }
     std::unique_lock<std::mutex> guard(owner->lock);
     if (thread->waiting) return -16; // API requires a single owner for each guest thread.
-    if (!(thread->state.load().pending&selected) && (!timeout || seconds || nanoseconds)) {
+    if (!(pending_set(thread,thread->state.load())&selected) && (!timeout || seconds || nanoseconds)) {
         thread->waiting=true; thread->wait_mask=selected; ++owner->waiters;
-        auto available=[&] { return (thread->state.load().pending&selected)!=0; };
-        if (!timeout) thread->changed.wait(guard,available);
+        auto available=[&] { return (pending_set(thread,thread->state.load())&selected)!=0 ||
+            thread->interrupt_epoch.load(std::memory_order_acquire)!=epoch; };
+        if (!timeout && !thread->notify) thread->changed.wait(guard,available);
         else {
             using Clock=std::chrono::steady_clock;
             auto now=Clock::now(),deadline=Clock::time_point::max();
             auto remaining=deadline-now;
-            if (seconds<std::chrono::duration_cast<std::chrono::seconds>(remaining).count()) {
+            if (timeout && seconds<std::chrono::duration_cast<std::chrono::seconds>(remaining).count()) {
                 deadline=now+std::chrono::seconds(seconds)+std::chrono::nanoseconds(nanoseconds);
             }
-            thread->changed.wait_until(guard,deadline,available);
+            while(!available() && Clock::now()<deadline) {
+                auto next=thread->notify ? std::min(deadline,Clock::now()+std::chrono::milliseconds(5)) : deadline;
+                thread->changed.wait_until(guard,next,available);
+            }
         }
         --owner->waiters; thread->waiting=false; thread->wait_mask=0;
     }
     auto old=thread->state.load();
     unsigned signal;
     for(;;) {
-        uint64_t pending=old.pending&selected;
-        if(!pending) return -11;
+        uint64_t pending=pending_set(thread,old)&selected;
+        if(!pending) return thread->interrupt_epoch.load(std::memory_order_acquire)!=epoch ? -4 : -11;
         signal=1;
         while(!(pending&1)) { pending>>=1; ++signal; }
-        auto updated=old; updated.pending&=~(UINT64_C(1)<<(signal-1));
+        auto updated=old;
+        if(signal==owner->interrupt_number) updated.pending-=interrupt_unit;
+        else updated.pending&=~(UINT64_C(1)<<(signal-1));
         if(thread->state.compare_exchange(old,updated)) break;
     }
     int32_t pid=owner->pid;

@@ -2134,7 +2134,8 @@ signed artifact verification before M3 can be completed.
 
 ## 0086: Own the JavaVM lifecycle on an explicit Bionic pthread
 
-Status: worker entry and stack checks implemented; signed execution pending.
+Status: signed worker entry and stack checks pass at `fc2f939`; JavaVM startup
+then fails Linux signal 34 registration in native class-library initialization.
 
 The first actual Apple invocation at `7d93946` enters ART initialization and
 fails in `Thread::GetThreadStack`: Bionic's primordial-thread attributes need
@@ -2160,3 +2161,62 @@ generation. It does not resolve ART's other signal, syscall or shutdown needs.
 Keep the hello, GC, exception, attachment, policy, destruction and negative
 lookup checks mandatory. Failure artifacts record the phases actually reached;
 the overall result stays failed until the entire acceptance passes.
+
+## 0087: Deliver Bionic's queued interruption through a public pthread signal
+
+Status: portable tests and NDK compilation pass; native Linux and signed Apple
+execution are required next. JavaVM/DEX acceptance remains incomplete.
+
+At `fc2f939`, the signed JavaVM worker reports a requested 4 MiB stack, 4,214,000
+usable-attribute bytes and a 16 KiB guard. ART advances into native class-library
+initialization. Unchanged AOSP AsynchronousCloseMonitor and NativeThread install
+a one-argument, non-restarting handler for Linux signal 34. Rejected registration
+makes NativeThread throw IOException and ART abort. Deferring that registration
+would only postpone a real I/O interruption requirement; implement delivery.
+
+Configure one realtime thread-interruption number before attaching threads.
+For the supported single-process tgkill API, all pending records have the same
+SI_TKILL, PID and UID, so a bounded count retains every accepted send. Pack it
+beside the standard pending bits in the existing atomic mask/pending state.
+Mask changes and consumption then share one CAS: a signal racing with unmask
+cannot disappear. Capacity exhaustion returns EAGAIN; other realtime signals,
+process-directed queues and arbitrary siginfo need separate implementations.
+The behavior reference is [Linux v6.12 signal.c](https://raw.githubusercontent.com/torvalds/linux/v6.12/kernel/signal.c);
+no kernel code is incorporated.
+
+Use public pthread_kill with Darwin SIGUSR1 as a coalescing wake for that count.
+The owner reserves SIGUSR1 during guest execution, installs SA_SIGINFO|SA_ONSTACK
+without SA_RESTART and binds each native pthread before exposing it to guest
+execution. The registry lock protects send-versus-unbind lifetime. Teardown
+blocks and unbinds the transport, drains a pending wake and restores the prior
+host mask and alternate stack before releasing storage. Error paths retain
+live storage if restoration fails. Notification must remain signal-safe; see
+the [POSIX function list](https://man7.org/linux/man-pages/man7/signal-safety.7.html).
+
+The native callback may interrupt guest instructions or ordinary host syscall
+code on an attached stack. Invoke the signed one-argument Android handler below
+that interrupted SP while preserving Darwin's red zone; keep host registers
+unchanged. The existing separate TLS/syscall scope supports only its tested
+signal-safe endpoints. Apply the action/self mask, consume one pending count,
+record the delivery epoch and restore the original mask after callback return.
+Drain at most 64 callbacks per native entry, scheduling another wake for any
+unblocked remainder. Synchronous fault handlers block the transport while their
+scope is active. Async SA_SIGINFO, SA_RESTART, SIG_IGN, nonlocal exits and nested
+fault handling remain unsupported; default delivery is fatal in this owner.
+
+Host condition variables cannot be notified safely from a signal callback.
+The ordinary futex and sigtimedwait paths compare the delivery epoch at intervals
+of at most 5 ms and return EINTR for this non-restarting handler. This explicitly
+adds up to 200 timed wakeups per second per waiting guest thread and up to one
+poll interval of interruption latency, plus scheduling delays. It requires no
+generated code, private APIs or executable writable memory. Direct host I/O can
+use the native non-restarting signal; each additional syscall needs its own test.
+
+Keep the original 328-case M2 score unchanged. Add 26 raw queue cases, quota and
+lifetime tests, 4,096 concurrent accepted deliveries and interrupted-wait tests.
+Native Linux and signed Bionic additionally require queued handler delivery,
+mask/TLS/errno/stack observations and a real pthread futex interruption. Dropping
+one queued send must fail the expected observation. The Linux oracle reuses the
+identical raw-ABI NDK object and compiles the handler from the same source, since
+the libc sigaction declarations differ. None of these tests substitutes for the
+required full JavaVM, hello DEX and shutdown acceptance.

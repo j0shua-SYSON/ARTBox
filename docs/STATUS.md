@@ -58,6 +58,20 @@ provider is not implemented; portable VFS tests use an injected provider there.
 
 ## In progress: M3 ART bring-up
 
+The signed JavaVM worker at `fc2f939` passes stack discovery and reaches native
+class-library initialization. Linux signal 34 registration then fails in
+NativeThread, leaving a Java IOException; the required JavaVM/DEX test remains
+failed. Its host workflow passes 16/17 jobs and the iOS build passes. No managed
+execution on Apple has been verified.
+
+The next implementation adds a bounded realtime interruption count, a public
+pthread signal transport and EINTR for translated futex/signal waits. All 33
+local portable CTests pass, including 26 queue cases, 4,096 concurrent deliveries,
+capacity/lifetime checks and interrupted waits. Both new Android callers compile
+with NDK warnings treated as errors. Native Linux and signed Apple execution,
+including a dropped-send negative control, remain pending. See ADR 0087 and the
+[signal contract](m3-signals.md) for the 5 ms wait-polling cost and scoped limits.
+
 At `1647514`, the dependency selection adds 57 unchanged Bionic units and AOSP-generated
 Android account IDs. New callers cover numeric address resolution, bounded
 strings and Android account storage; they fail to link against the previous

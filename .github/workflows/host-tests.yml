@@ -229,6 +229,8 @@ jobs:
             build/m2/bionic-startup/signal-stack-handler.o
             build/m2/bionic-startup/signal-mask-handler.o
             build/m2/bionic-startup/signal-fault.o
+            build/m2/bionic-startup/signal-realtime.o
+            build/m2/bionic-startup/signal-interrupt.o
             build/m2/bionic-startup/libartbox_versions.so
             build/m2/bionic-startup/version-client.o
             build/m2/bionic-startup/libartbox_tls.so
@@ -507,6 +509,8 @@ jobs:
         run: python3 -B scripts/test_signal_mask.py
       - name: Establish synchronous memory and instruction fault delivery
         run: python3 -B scripts/test_signal_fault.py
+      - name: Establish realtime queueing and interrupted waits
+        run: python3 -B scripts/test_signal_interrupt.py
       - name: Execute pinned AOSP sigchain registration and handler forwarding
         env:
           GH_TOKEN: ${{ github.token }}
@@ -528,6 +532,7 @@ jobs:
             build/m3/signal-stack-reference/
             build/m3/signal-mask-reference/
             build/m3/signal-fault-reference/
+            build/m3/signal-interrupt-reference/
             build/m3/art-sigchain-reference/
             build/host/signal-context/
             build/host/test_signal_context_linux
@@ -592,6 +597,8 @@ jobs:
         run: python3 -B scripts/test_signal_mask.py --evidence-root build/oracle
       - name: Compare signed Bionic fault delivery with native Linux
         run: python3 -B scripts/test_signal_fault.py --evidence-root build/oracle
+      - name: Compare the signed interruption caller with native Linux
+        run: python3 -B scripts/test_signal_interrupt.py --evidence-root build/oracle
       - name: Compare ART libc dependency calls with native Linux
         run: python3 -B scripts/test_art_bionic.py --evidence-root build/oracle
       - name: Compare numeric resolver and bounded string calls with native Linux
@@ -631,6 +638,7 @@ jobs:
             build/m3/signal-stack-oracle/
             build/m3/signal-mask-oracle/
             build/m3/signal-fault-oracle/
+            build/m3/signal-interrupt-oracle/
             artifacts/m2-futex-linux.json
             artifacts/m2-files-linux.json
             artifacts/m2-versioned-linux.json

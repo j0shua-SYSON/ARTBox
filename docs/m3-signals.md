@@ -1,9 +1,29 @@
 # M3 signal boundary
 
-Portable queues now implement guest thread-directed blocked standard signals
-and synchronous waits. They do not install host handlers or change host masks.
-Unblocked/default delivery and realtime queues remain unsupported; signal
-registration and alternate-stack calls still return ENOSYS.
+Portable queues implement guest thread-directed blocked standard signals and
+synchronous waits. Signed Apple synchronous-fault delivery, action masks and
+alternate stacks are verified in the checkpoints below. The new signal-34
+interruption path passes portable tests and NDK compilation; native Linux and
+signed Apple validation remain pending. General asynchronous/default delivery
+and other realtime queues remain unsupported.
+
+The interruption owner preserves each accepted same-process tgkill in a bounded
+count and uses public Darwin pthread_kill(SIGUSR1) to wake the target. It calls a
+signed one-argument handler with its action/self mask and guest TLS, preserves
+the interrupted host context and drains the count. The host transport is blocked
+during synchronous fault handlers and unbound/drained before thread teardown.
+Only flags-zero handlers are supported on this new path. Translated futex and
+signal waits observe a delivery epoch through ordinary-context polling every
+5 ms; the handler never notifies a condition variable. This adds timed wakeups
+and bounded polling delay. See ADR 0087 for ownership and unsupported behavior.
+
+The new tests add 26 raw queue cases, a 4,096-send concurrent count test, quota,
+teardown and interrupted-wait checks. Native Linux and signed Bionic must also
+pass queued callback mask/TLS/errno/stack checks, pthread futex interruption and
+a dropped-send negative control. M2's fixed denominator remains unchanged.
+
+The following paragraphs record the earlier standard-queue implementation and
+the subsequent independently verified synchronous-delivery checkpoints.
 
 `tgkill` (131) resolves a guest PID/TID, supports the zero-signal existence probe,
 and queues standard signals that the target blocks or is currently waiting for.

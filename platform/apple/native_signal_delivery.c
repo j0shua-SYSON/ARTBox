@@ -10,12 +10,48 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <pthread.h>
+#include <unistd.h>
 
 typedef struct host_stack {
     void *mapping;
     size_t mapping_size;
     stack_t active,previous;
+    pthread_t native_thread;
+    int interruption,interrupt_mask_saved,previous_interrupt_blocked;
 } host_stack;
+static void interrupt_notify(void *raw) {
+    host_stack *state=raw;
+    const int error=pthread_kill(state->native_thread,SIGUSR1);
+    // An exiting target may have consumed its last callback before teardown.
+    // Other failures contradict the owner's fixed-signal/live-thread contract.
+    if(error && error!=ESRCH) _exit(125);
+}
+static int unbind_interrupt(artbox_native_signal_thread *thread,host_stack *state) {
+    if(!state->interruption) return 0;
+    sigset_t set,pending;
+    if(sigemptyset(&set) || sigaddset(&set,SIGUSR1) || pthread_sigmask(SIG_BLOCK,&set,NULL)) return -5;
+    int error=artbox_signals_bind_interrupt(thread->kernel,NULL,NULL);
+    if(error) return error;
+    // Senders hold the signal registry lock until notification is issued. After
+    // unbinding no new transport wake can target this thread. Drain a coalesced
+    // wake before restoring the prior host disposition/mask and freeing storage.
+    if(sigpending(&pending)) return -5;
+    if(sigismember(&pending,SIGUSR1)==1) {
+        int number=0;
+        if(sigwait(&set,&number) || number!=SIGUSR1) return -5;
+    }
+    state->interruption=0;
+    return 0;
+}
+static int restore_interrupt_mask(host_stack *state) {
+    if(!state->interrupt_mask_saved) return 0;
+    sigset_t set;
+    if(sigemptyset(&set) || sigaddset(&set,SIGUSR1) ||
+       pthread_sigmask(state->previous_interrupt_blocked ? SIG_BLOCK : SIG_UNBLOCK,&set,NULL)) return -5;
+    state->interrupt_mask_saved=0;
+    return 0;
+}
 static int stack_error(void) { return errno==ENOMEM?-12:errno==EPERM?-1:errno==EINVAL?-22:-5; }
 static int restore_host_stack(const host_stack *state) {
     stack_t previous=state->previous;
@@ -27,6 +63,7 @@ static int restore_host_stack(const host_stack *state) {
 }
 int artbox_native_signal_thread_attach(artbox_native_signal_thread *thread) {
     if(!thread || !thread->kernel || !thread->guest_tls || thread->platform_state) return -22;
+    if(thread->interrupt_signal && thread->interrupt_signal!=artbox_signals_interrupt_number(thread->kernel)) return -22;
     if(!artbox_signals_handler_mask_support() || !artbox_vm_fault_snapshot_support()) return -95;
     if(artbox_native_signal_thread_context()) return -17;
     size_t page=artbox_vm_page_size(thread->kernel->vm);
@@ -53,15 +90,38 @@ int artbox_native_signal_thread_attach(artbox_native_signal_thread *thread) {
         if(restore_host_stack(state)) return -5; // Keep live storage if restoration fails.
         thread->platform_state=NULL;
         munmap(state->mapping,state->mapping_size); free(state);
+        return error;
+    }
+    if(thread->interrupt_signal) {
+        sigset_t set,previous;
+        if(sigemptyset(&set) || sigaddset(&set,SIGUSR1) || pthread_sigmask(SIG_BLOCK,&set,&previous)) {
+            error=-5; goto detach;
+        }
+        state->previous_interrupt_blocked=sigismember(&previous,SIGUSR1)==1;
+        state->interrupt_mask_saved=1;
+        state->native_thread=pthread_self();
+        error=artbox_signals_bind_interrupt(thread->kernel,interrupt_notify,state);
+        if(error) goto detach;
+        state->interruption=1;
+        if(pthread_sigmask(SIG_UNBLOCK,&set,NULL)) { error=-5; goto detach; }
     }
     return error;
+detach:;
+    // Retain live storage only if cleanup itself fails; the caller must then
+    // keep the descriptor alive and retry detach before releasing it.
+    int cleanup=artbox_native_signal_thread_detach(thread);
+    return cleanup ? cleanup : error;
 }
 int artbox_native_signal_thread_detach(artbox_native_signal_thread *thread) {
     if(!thread || artbox_native_signal_thread_context()!=thread || !thread->platform_state) return -22;
     if(artbox_native_signal_current()) return -16;
     host_stack *state=thread->platform_state;
+    int error=unbind_interrupt(thread,state);
+    if(error) return error;
+    error=restore_interrupt_mask(state);
+    if(error) return error;
     if(restore_host_stack(state)) return stack_error();
-    int error=artbox_native_signal_detach();
+    error=artbox_native_signal_detach();
     if(error) {
         if(sigaltstack(&state->active,NULL)) return -5;
         return error;
@@ -89,6 +149,15 @@ int artbox_native_signal_validate_fault(void *context,unsigned number,const artb
     if(!action->handler) return 0;
     if(action->handler==1 || !(action->flags&4)) return -95;
     return executable(thread,action->handler) ? 0 : -22;
+}
+int artbox_native_signal_validate_action(void *context,unsigned number,const artbox_signal_action *action) {
+    const artbox_native_signal_thread *thread=context;
+    if(!thread || !action) return -22;
+    if(thread->interrupt_signal && number==thread->interrupt_signal) {
+        if(action->flags || action->restorer || action->handler==1) return -95;
+        return !action->handler || executable(thread,action->handler) ? 0 : -22;
+    }
+    return artbox_native_signal_validate_fault(context,number,action);
 }
 typedef struct delivery_scope {
     const artbox_native_signal_thread *thread;
@@ -242,6 +311,53 @@ int artbox_native_signal_deliver_fault(artbox_native_signal_thread *thread,int h
     const void *host_info,void *host_context) {
     int saved=errno;
     int result=deliver(thread,host_number,host_info,host_context);
+    errno=saved;
+    return result;
+}
+static int deliver_interrupt(artbox_native_signal_thread *thread,void *host_context) {
+    if(!thread || !thread->kernel || !thread->actions || !thread->platform_state ||
+       !thread->interrupt_signal || !thread->guest_tls || artbox_native_signal_current()) return -22;
+    host_stack *host=thread->platform_state;
+    unsigned char marker;
+    if(!within((uintptr_t)host->active.ss_sp,host->active.ss_size,(uintptr_t)&marker,1)) return -22;
+    artbox_arm64_signal_state interrupted;
+    int error=artbox_native_signal_capture(host_context,&interrupted);
+    if(error) return error;
+    artbox_signal_stack alternate;
+    error=artbox_signals_stack_snapshot(thread->kernel,interrupted.sp,&alternate);
+    if(error) return error;
+    const delivery_scope active={thread,alternate};
+    if(!guest_stack(&active,interrupted.sp,0)) return -22;
+    const uint64_t base=alternate.flags==1 ? alternate.address : thread->stack_address;
+    const uint64_t top=interrupted.sp&~UINT64_C(15);
+    if(top<base || top-base<128+2048) return -12;
+    const artbox_native_signal_scope scope={{signal_call,(void *)&active},thread->guest_tls};
+    for(unsigned i=0;i<64;++i) {
+        artbox_signal_action action;
+        error=artbox_signal_actions_snapshot(thread->actions,thread->interrupt_signal,&action);
+        if(error) return error;
+        uint64_t original;
+        int number=artbox_signals_take_interrupt(thread->kernel,action.mask,&original);
+        if(number<=0) return number;
+        error=artbox_native_signal_validate_action(thread,(unsigned)number,&action);
+        if(error || !action.handler) return error ? error : -95;
+        const artbox_native_signal_scope *previous,*replaced;
+        error=artbox_native_signal_scope_swap(&scope,&previous);
+        if(error) return error;
+        // Keep Darwin's red zone intact, including when it interrupted host I/O.
+        // The callback receives no guest ucontext and cannot edit host registers.
+        artbox_call_on_stack((void *)(uintptr_t)action.handler,(unsigned)number,0,0,top-128);
+        error=artbox_native_signal_scope_swap(previous,&replaced);
+        if(error || replaced!=&scope) return error ? error : -22;
+        error=artbox_signals_mask_update(thread->kernel,2,&original,NULL);
+        if(error) return error;
+    }
+    // Restoring an unblocked pending mask schedules another native wake.
+    return 0;
+}
+int artbox_native_signal_deliver_interrupt(artbox_native_signal_thread *thread,void *host_context) {
+    int saved=errno;
+    int result=deliver_interrupt(thread,host_context);
     errno=saved;
     return result;
 }

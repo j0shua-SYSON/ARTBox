@@ -1,5 +1,6 @@
 // Original user-mode wait queue, MIT. Linux behavior is checked by paired tests.
 #include "artbox/futex.h"
+#include "artbox/signals.h"
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
@@ -84,10 +85,13 @@ static int timeout_value(artbox_futex *f, uint64_t pointer, bool relative, artbo
     }
     return 0;
 }
-extern "C" int64_t artbox_futex_call(artbox_futex *f, uint64_t address, uint64_t operation,
-                                     uint64_t value, uint64_t timeout, uint64_t address2, uint64_t bitset) {
+static int64_t call(artbox_futex *f, artbox_kernel_thread *thread, uint64_t address, uint64_t operation,
+                    uint64_t value, uint64_t timeout, uint64_t address2, uint64_t bitset) {
     (void)address2;
     if (!f) return -22;
+    if(thread && thread->vm!=f->vm) return -22;
+    const bool interruptible=artbox_signals_interrupt_number(thread)!=0;
+    const uint64_t epoch=artbox_signals_interrupt_epoch(thread);
     uint32_t op = static_cast<uint32_t>(operation), command = op & ~UINT32_C(384);
     bool private_key = (op & 128) != 0, realtime = (op & 256) != 0;
     bool waiting = command == 0 || command == 9;
@@ -121,7 +125,12 @@ extern "C" int64_t artbox_futex_call(artbox_futex *f, uint64_t address, uint64_t
         int result = 0;
         try {
             while (!waiter.woken) {
-                if (!timeout) { waiter.changed.wait(guard); continue; }
+                if(interruptible && artbox_signals_interrupt_epoch(thread)!=epoch) { result=-4; break; }
+                if (!timeout) {
+                    if(interruptible) waiter.changed.wait_for(guard,std::chrono::milliseconds(5));
+                    else waiter.changed.wait(guard);
+                    continue;
+                }
                 artbox_timespec now;
                 if ((result = clock_value(f, realtime ? 0 : 1, &now))) break;
                 if (now.seconds > deadline.seconds ||
@@ -130,13 +139,23 @@ extern "C" int64_t artbox_futex_call(artbox_futex *f, uint64_t address, uint64_t
                 int64_t ns = seconds > 1 ? 100000000 : seconds * INT64_C(1000000000) + deadline.nanoseconds - now.nanoseconds;
                 // Recheck the actual guest clock, including realtime changes.
                 // No assumption about std::chrono::steady_clock's epoch is used.
-                waiter.changed.wait_for(guard, std::chrono::nanoseconds(std::min(ns, INT64_C(100000000))));
+                waiter.changed.wait_for(guard, std::chrono::nanoseconds(std::min(ns,
+                    interruptible ? INT64_C(5000000) : INT64_C(100000000))));
             }
         } catch (const std::exception&) { result = -5; }
         auto position = std::find(f->active.begin(), f->active.end(), &waiter);
         f->active.erase(position);
         return result;
     } catch (const std::exception&) { return -12; }
+}
+extern "C" int64_t artbox_futex_call(artbox_futex *f,uint64_t address,uint64_t operation,
+    uint64_t value,uint64_t timeout,uint64_t address2,uint64_t bitset) {
+    return call(f,nullptr,address,operation,value,timeout,address2,bitset);
+}
+extern "C" int64_t artbox_futex_call_interruptible(artbox_futex *f,artbox_kernel_thread *thread,
+    uint64_t address,uint64_t operation,uint64_t value,uint64_t timeout,uint64_t address2,uint64_t bitset) {
+    if(!thread) return -22;
+    return call(f,thread,address,operation,value,timeout,address2,bitset);
 }
 extern "C" int artbox_futex_clear_tid(artbox_futex *f, uint64_t address) {
     if (!f) return -22;

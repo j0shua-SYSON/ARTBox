@@ -67,6 +67,8 @@ static int32_t signal_stack_cases,signal_stack_handler_cases,signal_stack_mutati
 static uint64_t signal_stack_threads;
 static int32_t signal_mask_cases,signal_mask_mutation;
 static int32_t signal_fault_cases,signal_fault_edit_mutation,signal_fault_address_mutation;
+static int32_t signal_realtime_cases,signal_interrupt_cases,signal_interrupt_mutation;
+static uint64_t signal_interrupt_threads;
 static uint64_t signal_mask_threads;
 static uint64_t file_ns;
 static artbox_futex *futex;
@@ -120,7 +122,8 @@ static char *fault_hex(char *out,uint64_t value) {
 }
 static void deliver_fault(int number,siginfo_t *info,void *context) {
     artbox_native_signal_thread *thread=artbox_native_signal_thread_context();
-    int error=artbox_native_signal_deliver_fault(thread,number,info,context);
+    int error=number==SIGUSR1 ? artbox_native_signal_deliver_interrupt(thread,context) :
+        artbox_native_signal_deliver_fault(thread,number,info,context);
     if(error) {
         // The owner is terminating. Format fixed-size diagnostics without stdio,
         // allocation, TLS lookup or entering any guest/VM service.
@@ -270,7 +273,7 @@ static int64_t dispatch(void *context, uint64_t n, uint64_t a0, uint64_t a1, uin
     if (n == 93 && exit_boundary) finish_thread(0, 0, a0 ? -5 : 0);
     int64_t value = n == 222 ? artbox_vfs_mmap(filesystem, vm, a0, a1, a2, a3, (int64_t)a4, a5) :
         artbox_kernel_call(context, n, a0, a1, a2, a3, a4, a5);
-    if (n == 98) value = artbox_futex_call(futex, a0, a1, a2, a3, a4, a5);
+    if (n == 98) value = artbox_futex_call_interruptible(futex, context, a0, a1, a2, a3, a4, a5);
     if (value == -38) value = artbox_vfs_call(filesystem, context, n, a0, a1, a2, a3);
     if (n == 66 && a0 == 2 && a2 <= 16) {
         // Observe Bionic's fatal diagnostics without pretending writev is
@@ -563,6 +566,18 @@ static void *run(void *context) {
     }
     if(artbox_threads_drain(threads,5000) || (signal_mask_threads=artbox_threads_reaped(threads)-signal_stack_threads)!=2)
         fail("handler-mask worker cleanup");
+    signal_realtime_cases=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_realtime_check"),
+        artbox_vm_page_size(vm),10000,10000,10000,0,0,0);
+    signal_interrupt_cases=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_interrupt_check"),0,0,0,0,0,0,0);
+    signal_interrupt_mutation=(int32_t)artbox_call7(entry(&images[1],"artbox_signal_interrupt_check"),1,0,0,0,0,0,0);
+    if(signal_realtime_cases!=26 || signal_interrupt_cases!=4 || signal_interrupt_mutation!=-1008) {
+        fprintf(stderr,"signal interruption caller: queue=%d handler=%d mutation=%d\n",signal_realtime_cases,
+            signal_interrupt_cases,signal_interrupt_mutation);
+        fail("signed Android realtime interruption");
+    }
+    if(artbox_threads_drain(threads,5000) ||
+        (signal_interrupt_threads=artbox_threads_reaped(threads)-signal_stack_threads-signal_mask_threads)!=1)
+        fail("interruption worker cleanup");
     int64_t scratch = artbox_vm_mmap(vm, 0, artbox_vm_page_size(vm), 3, 0x22, -1, 0);
     if (scratch < 0) fail("futex fixture storage");
     futex_cases = (int64_t)artbox_call7(entry(&images[1], "artbox_futex_check"), (uint64_t)scratch, 0, 0, 0, 0, 0, 0);
@@ -595,7 +610,7 @@ static void *run(void *context) {
     thread_guarded_samples = artbox_call7(entry(&images[1], "artbox_pthread_guarded_samples"), 0, 0, 0, 0, 0, 0, 0);
     tls_queries = artbox_call7(entry(&images[1], "artbox_pthread_tls_queries"), 0, 0, 0, 0, 0, 0, 0);
     if (tls_queries != 14) fail("existing static TLS queries");
-    reaped = artbox_threads_reaped(threads)-signal_stack_threads-signal_mask_threads;
+    reaped = artbox_threads_reaped(threads)-signal_stack_threads-signal_mask_threads-signal_interrupt_threads;
     if (reaped != 6) fail("child thread count");
     gwp_enabled = artbox_call7(entry(&images[0], "artbox_bootstrap_gwp_enabled"), 0, 0, 0, 0, 0, 0, 0);
     guarded_samples = artbox_call7(entry(&images[0], "artbox_bootstrap_guarded_samples"), 0, 0, 0, 0, 0, 0, 0);
@@ -645,7 +660,9 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     }
     signal_template.code=signal_code; signal_template.code_count=image_count;
     signal_template.data=signal_data; signal_template.data_count=image_count;
-    if(artbox_signals_enable_actions(process_signals,4096,artbox_native_signal_validate_fault,&signal_template,UINT64_C(0x18000004)) ||
+    signal_template.interrupt_signal=34;
+    if(artbox_signals_enable_interrupt(process_signals,34,256) ||
+        artbox_signals_enable_actions(process_signals,4096,artbox_native_signal_validate_action,&signal_template,UINT64_C(0x18000004)) ||
         artbox_signals_enable_stacks(process_signals,ARTBOX_SIGNAL_STACK_MINIMUM,4096) ||
         artbox_signals_attach(process_signals,&thread)) fail("signal action owner");
     signal_template.actions=artbox_signals_action_table(process_signals);
@@ -680,12 +697,15 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     int64_t stack = artbox_vm_mmap(vm, 0, stack_size + 2 * page, 0, 0x22, -1, 0);
     if (stack < 0 || artbox_vm_mprotect(vm, (uint64_t)stack + page, stack_size, 3)) fail("guest stack");
     signal_template.stack_address=(uint64_t)stack+page; signal_template.stack_size=stack_size;
-    const int host_faults[]={SIGTRAP,SIGSEGV,SIGBUS,SIGILL};
-    struct sigaction trap={0},saved_faults[4];
+    const int host_faults[]={SIGTRAP,SIGSEGV,SIGBUS,SIGILL,SIGUSR1};
+    struct sigaction trap={0},saved_faults[5];
     trap.sa_sigaction=deliver_fault; trap.sa_flags=SA_SIGINFO|SA_RESTART|SA_ONSTACK;
     if(sigemptyset(&trap.sa_mask)) fail("host fault mask");
-    for(unsigned i=0;i<4;++i)
+    if(sigaddset(&trap.sa_mask,SIGUSR1)) fail("host interruption mask");
+    for(unsigned i=0;i<5;++i) {
+        if(i==4) trap.sa_flags=SA_SIGINFO|SA_ONSTACK;
         if(sigaction(host_faults[i],&trap,&saved_faults[i])) fail("host fault disposition");
+    }
     pthread_attr_t attr;
     pthread_t worker;
     if (pthread_attr_init(&attr) || pthread_attr_setstack(&attr, (void *)(uintptr_t)((uint64_t)stack + page), stack_size) ||
@@ -698,7 +718,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) || usage.ru_maxrss <= 0) fail("native resident-memory measurement");
     if (artbox_threads_destroy(threads)) fail("thread manager cleanup");
-    for(unsigned i=0;i<4;++i)
+    for(unsigned i=0;i<5;++i)
         if(sigaction(host_faults[i],&saved_faults[i],NULL)) fail("restore host fault disposition");
     if (artbox_signals_thread_count(process_signals) != 1 || artbox_signals_waiter_count(process_signals) ||
         artbox_signals_detach(&thread) || artbox_signals_destroy(process_signals)) fail("signal process cleanup");
@@ -753,10 +773,12 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
            ",\"vm_cases\":%" PRId64 ",\"timeout_cases\":%" PRId64 ",\"proc_cases\":%" PRId64 ",\"art_libc_cases\":%" PRId64 ",\"vfork_cases\":%" PRId64 ",\"libcore_frontend_cases\":%" PRId64 ",\"unlink_cases\":%" PRId64 ",\"signal_wait_cases\":%" PRId64 ",\"signal_handler_cases\":%d,\"signal_handler_mutation\":%d,"
            "\"signal_stack_cases\":%d,\"signal_stack_handler_cases\":%d,\"signal_stack_mutation\":%d,\"signal_stack_threads\":%" PRIu64 ","
            "\"signal_mask_cases\":%d,\"signal_mask_mutation\":%d,\"signal_mask_threads\":%" PRIu64 ","
+           "\"signal_realtime_cases\":%d,\"signal_interrupt_cases\":%d,\"signal_interrupt_mutation\":%d,\"signal_interrupt_threads\":%" PRIu64 ","
            "\"signal_fault_cases\":%d,\"signal_fault_edit_mutation\":%d,\"signal_fault_address_mutation\":%d,\"unsupported_syscalls\":{",
            constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases, unlink_cases, signal_wait_cases,signal_handler_cases,signal_handler_mutation,
            signal_stack_cases,signal_stack_handler_cases,signal_stack_mutation,signal_stack_threads,
            signal_mask_cases,signal_mask_mutation,signal_mask_threads,
+           signal_realtime_cases,signal_interrupt_cases,signal_interrupt_mutation,signal_interrupt_threads,
            signal_fault_cases,signal_fault_edit_mutation,signal_fault_address_mutation);
     if (length < 0 || (size_t)length >= sizeof(report)) fail("result formatting");
     size_t used_bytes = (size_t)length;

@@ -16,6 +16,7 @@ typedef struct artbox_native_signal_thread {
     uint64_t stack_address,stack_size;
     void **guest_tls;
     void *platform_state;
+    unsigned interrupt_signal;
 } artbox_native_signal_thread;
 enum { ARTBOX_SIGNAL_STACK_MINIMUM = 8192 };
 /* Ordinary-context lifetime, around all guest execution on this thread. Own a
@@ -29,6 +30,15 @@ int artbox_native_signal_thread_detach(artbox_native_signal_thread *thread);
  * installs a process-wide host handler.
  * Unsupported dispositions/flags must be rejected by the registration owner. */
 int artbox_native_signal_validate_fault(void *context,unsigned number,const artbox_signal_action *action);
+/* Also permit a one-argument, non-restarting handler for interrupt_signal.
+ * Its process owner installs SIGUSR1 with SA_SIGINFO|SA_ONSTACK, no SA_RESTART.
+ * SIGUSR1 is exclusively owned by this transport during guest execution. */
+int artbox_native_signal_validate_action(void *context,unsigned number,const artbox_signal_action *action);
+/* Public pthread notification can interrupt either signed guest code or a host
+ * syscall on its registered stack. Invoke the one-argument signed callback,
+ * preserve the host context, and drain the portable realtime count. No Linux
+ * ucontext editing, SA_SIGINFO/SA_RESTART or nonlocal exits on this path. */
+int artbox_native_signal_deliver_interrupt(artbox_native_signal_thread *thread,void *host_context);
 /* Called from a host SA_SIGINFO|SA_ONSTACK fault callback on an attached thread. The
  * owner keeps registered guest stacks mapped and writable throughout delivery.
  * Captures Darwin

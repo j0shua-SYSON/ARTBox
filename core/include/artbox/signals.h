@@ -8,9 +8,10 @@ extern "C" {
 
 typedef struct artbox_signals artbox_signals;
 /* One guest process. No host handlers or host signal masks are changed.
- * Currently implements thread-directed, blocked standard signals and waits.
- * Unblocked/default delivery and realtime queues return ENOTSUP. This is a
- * normal thread-context interface; it is not safe inside a host signal handler. */
+ * Implements blocked standard signals, waits and an optional bounded realtime
+ * interruption queue with a platform delivery owner. Other unblocked/default
+ * delivery returns ENOTSUP. Except for explicitly identified snapshot/mask/take
+ * operations, this interface requires ordinary thread context. */
 artbox_signals *artbox_signals_create(artbox_vm *vm, int32_t pid, uint32_t uid, size_t capacity);
 /* Enable registration only when a delivery owner exists. Configure once before
  * attaching threads. The normal-context validator checks supported dispositions,
@@ -59,6 +60,31 @@ int artbox_signals_detach(artbox_kernel_thread *thread);
 int artbox_signals_destroy(artbox_signals *signals);
 size_t artbox_signals_thread_count(artbox_signals *signals);
 size_t artbox_signals_waiter_count(artbox_signals *signals);
+/* Configure one realtime thread-interruption signal (32..64) before attachment.
+ * tgkill records from this single guest process all carry the same SI_TKILL,
+ * pid and uid; a bounded count preserves every accepted send without allocation.
+ * Other realtime signals and user-supplied siginfo remain unsupported. */
+int artbox_signals_enable_interrupt(artbox_signals *signals, unsigned number, uint32_t capacity);
+unsigned artbox_signals_interrupt_number(const artbox_kernel_thread *thread);
+/* Bind on the owning thread before guest execution. Unbind after blocking and
+ * quiescing the native transport, before detach. The callback is nonblocking,
+ * signal-safe and keeps its target alive; it may run under the process mutex or
+ * from a handler's mask restoration. It must not re-enter normal-context APIs.
+ * Null removes a binding. Unblocked delivery is rejected without a binding. */
+typedef void (*artbox_signal_interrupt_notify)(void *);
+int artbox_signals_bind_interrupt(artbox_kernel_thread *thread,
+    artbox_signal_interrupt_notify notify, void *context);
+/* Single owning consumer: atomically take one unblocked interruption and add
+ * its self/action mask. Return its signal number, zero if unavailable, or errno.
+ * The owner restores previous_mask after invoking the handler. Signal-safe only
+ * where artbox_signals_handler_mask_support() is true; no VM access or allocation.
+ * Other hosts may exercise the same operations in ordinary thread context. */
+int artbox_signals_take_interrupt(artbox_kernel_thread *thread, uint64_t action_mask,
+    uint64_t *previous_mask);
+/* Advances when the owning delivery thread takes an interruption. Interruptible
+ * host waits compare this epoch without calling a mutex or condition variable
+ * from the native signal handler. */
+uint64_t artbox_signals_interrupt_epoch(const artbox_kernel_thread *thread);
 int64_t artbox_signals_call(artbox_kernel_thread *thread, uint64_t number,
     uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3);
 

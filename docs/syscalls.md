@@ -199,9 +199,9 @@ change M2's fixed denominator.
 
 | ARM64 call | Implemented subset | Deliberate limits |
 | --- | --- | --- |
-| tgkill 131 | Guest PID/TID lookup, zero-signal probe, queued blocked standard signals and active synchronous waiters | No cross-process, unblocked/default, SIGKILL/SIGSTOP or realtime delivery; unsupported delivery returns ENOTSUP. |
+| tgkill 131 | Guest PID/TID lookup, zero-signal probe, queued blocked standard signals and active synchronous waiters; optional bounded realtime interruption count | No cross-process, general unblocked/default or SIGKILL/SIGSTOP delivery. The configured signal-34 transport awaits native validation; other realtime signals return ENOTSUP. |
 | rt_sigprocmask 135 | Shared queue mask, clone inheritance, unmaskable-signal filtering and mutation before old-mask copyout | Host masks are unchanged. Unblocking a pending signal returns ENOTSUP without mutation. |
-| rt_sigtimedwait 137 | Standard-signal coalescing, lowest-number selection, Linux SI_TKILL encoding, zero/finite/infinite waits, consume before siginfo copyout | No host-handler interruption/EINTR or realtime queue semantics. |
+| rt_sigtimedwait 137 | Standard coalescing, lowest-number selection, SI_TKILL encoding, zero/finite/infinite waits, consume before copyout; configured realtime count and delivered-epoch EINTR | New interruption behavior is locally tested, native validation pending. One configured realtime number; 5 ms ordinary-context polling for delivered interruptions. |
 
 The 33-case shared caller and portable blocked-worker/lifetime tests pass
 locally. Signed Bionic and the identical NDK object on native Linux are CI gates.

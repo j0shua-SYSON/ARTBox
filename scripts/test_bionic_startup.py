@@ -102,6 +102,7 @@ def main():
     stack_object,stack_handler_object = build / "signal-stack.o",build / "signal-stack-handler.o"
     mask_handler_object = build / "signal-mask-handler.o"
     fault_object = build / "signal-fault.o"
+    realtime_object, interrupt_object = build / "signal-realtime.o", build / "signal-interrupt.o"
     art_libc_object = build / "art-libc-check.o"
     vfork_native_object = build / "vfork-rejection.o"
     libcore_common, libcore_accounts = build / "libcore-common.o", build / "libcore-accounts.o"
@@ -116,10 +117,12 @@ def main():
                                 ("fixtures/kernel-signals/handler_stack.c", stack_handler_object),
                                 ("fixtures/kernel-signals/handler_mask.c", mask_handler_object),
                                 ("fixtures/kernel-signals/faults.c", fault_object),
+                                ("fixtures/kernel-signals/realtime.c", realtime_object),
+                                ("fixtures/kernel-signals/interrupt.c", interrupt_object),
                                 ("fixtures/bionic-vfork/native.c", vfork_native_object),
                                 ("fixtures/bionic-libcore/common.c", libcore_common), ("fixtures/bionic-libcore/accounts.c", libcore_accounts)):
         command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
-                "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
+                "-mbranch-protection=none", "-mno-outline-atomics", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
                 "-c", ROOT / source_name, "-o", target)
     for source_name, target in (("versions.c", version_object), ("version_client.c", version_client_object)):
         command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
@@ -183,6 +186,7 @@ def main():
             version_client_object, tls_access, tls_abi, vm_object, timeout_object, proc_object, art_libc_object, comparison,
             vfork_object, vfork_native_object,
             libcore_common, libcore_accounts, unlink_object, signal_object, handler_object, stack_object, stack_handler_object, mask_handler_object, fault_object,
+            realtime_object, interrupt_object,
             "--no-as-needed", libc, versions, tls_library, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator through a manifest load group; not full M2",
               "project_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
@@ -229,7 +233,11 @@ def main():
                               "source_sha256": digest(ROOT / "fixtures/kernel-signals/handler_mask.c"),
                               "object_sha256": digest(mask_handler_object)},
               "signal_fault": {"fault_cases": 5, "source_sha256": digest(ROOT / "fixtures/kernel-signals/faults.c"),
-                               "object_sha256": digest(fault_object)}}
+                               "object_sha256": digest(fault_object)},
+              "signal_interrupt": {"realtime_cases": 26, "handler_groups": 4, "workers": 1,
+                  "queue_source_sha256": digest(ROOT / "fixtures/kernel-signals/realtime.c"),
+                  "handler_source_sha256": digest(ROOT / "fixtures/kernel-signals/interrupt.c"),
+                  "queue_object_sha256": digest(realtime_object), "handler_object_sha256": digest(interrupt_object)}}
     notices = {name.upper() + "-NOTICE.txt": (inputs / (name.upper() + "-NOTICE.txt"), data["sha256"])
                for name, data in report["component_notices"].items()}
     notices["LIBCUTILS-NOTICE.txt"] = (inputs / "LIBCUTILS-NOTICE.txt", report["dependencies"]["libcutils-headers"]["notice_sha256"])
@@ -290,6 +298,9 @@ def main():
                 raise RuntimeError('Unlink and descriptor lifetime client did not complete')
             if result[key]['signal_wait_cases'] != 33:
                 raise RuntimeError('Blocked signal wait client did not complete')
+            if (result[key]['signal_realtime_cases'] != 26 or result[key]['signal_interrupt_cases'] != 4 or
+                    result[key]['signal_interrupt_mutation'] != -1008 or result[key]['signal_interrupt_threads'] != 1):
+                raise RuntimeError('Queued asynchronous interruption or its dropped-send control failed')
             if result[key]['signal_handler_cases'] != 16 or result[key]['signal_handler_mutation'] != -1000:
                 raise RuntimeError('Signed Android handler or its dropped-register control failed')
             if (result[key]['signal_fault_cases'] != 5 or result[key]['signal_fault_edit_mutation'] != -1006 or
