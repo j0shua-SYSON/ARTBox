@@ -151,11 +151,16 @@ jobs and iOS pass; the signed Mac runtime and integrated IPA independently verif
 managed/console controls, 16 iOS 15 images, 15 ELF/layout pairs, five resources
 and 175 notice hashes with empty entitlements.
 
-The next native reference exercises persistent epoll interests, thread teardown
-and MOD, ADD/DEL controls, last-close removal and actual blocked-wait death
-notification. ARM64 compilation passes; execution is pending and
-`epoll_driver_compared` remains false. Production epoll, actual service execution
-and signed Binder attachment remain ahead.
+At `8c67a93`, persistent native epoll interests pass the same 31 readiness cases,
+thread teardown and MOD, ADD/DEL controls, last-close removal and actual
+blocked-wait death notification. Artifact provenance and 100 input hashes verify.
+All 20 host jobs and iOS pass; the downloaded signed runtime and Binder archives
+verify independently. `epoll_driver_compared` remains false.
+
+The next native control checks interest retention through a Binder receive
+mapping after descriptor close, including descriptor-number reuse and partial
+and final unmap. ARM64 compilation passes; execution is pending. Production
+epoll, actual service execution and signed Binder attachment remain ahead.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

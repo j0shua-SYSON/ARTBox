@@ -331,8 +331,12 @@ semantic oracle or an iPhone execution claim.
 
 ## Next contracts
 
-1. Readiness snapshots, persistent polling/epoll registrations and wakeups, with
-   native thread-exit and descriptor-lifetime controls.
+1. Persistent polling/epoll registrations and wakeups. The native reference
+   passes 31 readiness cases, ADD/DEL/MOD, thread-exit and blocked death wakeup
+   at `8c67a93`; production readiness snapshots already pass comparison.
+   A new native control tests mapped-file interest retention across close,
+   descriptor reuse, partial unmap and final unmap before selecting an ownership
+   model. This control never reads unpopulated Binder receive pages.
 2. Threadpool behavior and additional protocol requests actually needed by
    servicemanager, including node client-count observations.
 3. Complete the remaining dependencies and link the pinned real AOSP

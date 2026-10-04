@@ -190,6 +190,7 @@ def run_native(spec, installed, build):
                       'blocking_threaded_ping_pong': True,
                       'poll_cases': 31, 'readiness_lifecycle': True, 'epoll_snapshot_cases': 31,
                       'epoll_registration_controls': True, 'epoll_death_wakeup': True,
+                      'epoll_mapped_target_lifetime': True,
                       'fresh_binderfs_context': True, 'passed': True}:
             raise RuntimeError('Native Binder reference did not execute every expected case')
         record = {**result, 'vermagic': version, 'module_license': license_name,

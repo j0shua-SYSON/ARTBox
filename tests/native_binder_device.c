@@ -214,7 +214,7 @@ int main(int argc, char **argv) {
            "\"same_pid_rejected\":true,\"threaded_ping_pong\":true,\"death_cases\":%d,"
            "\"object_handle_lifecycle\":true,\"oneway_lifecycle\":true,\"wait_cases\":%d,\"blocking_threaded_ping_pong\":true,"
            "\"poll_cases\":%d,\"readiness_lifecycle\":true,\"epoll_snapshot_cases\":%d,"
-           "\"epoll_registration_controls\":true,\"epoll_death_wakeup\":true,"
+           "\"epoll_registration_controls\":true,\"epoll_death_wakeup\":true,\"epoll_mapped_target_lifetime\":true,"
            "\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases, wait_cases, poll_cases, epoll_cases);
     return 0;
 }

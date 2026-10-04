@@ -4,14 +4,21 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <stddef.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/epoll.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <sys/syscall.h>
 #include <time.h>
 #include <unistd.h>
+
+#if defined(__aarch64__)
+_Static_assert(sizeof(struct epoll_event) == 16, "ARM64 epoll event size");
+_Static_assert(offsetof(struct epoll_event, data) == 8, "ARM64 epoll data offset");
+#endif
 
 struct interest { int fd, epoll; };
 struct context { const char *path; struct interest interests[4]; };
@@ -85,6 +92,73 @@ static int registration_controls(struct context *c) {
     if (epoll_wait(slot->epoll, &event, 1, 0) != 1 || event.events != EPOLLIN ||
         event.data.u64 != UINT64_C(0xfeedface12345678)) result = -1;
     if (epoll_close(c, fd)) result = -1;
+    return result;
+}
+
+static int mapped_target_lifetime(struct context *c) {
+    const long page = sysconf(_SC_PAGESIZE);
+    if (page <= 0) return -1;
+    int fd = epoll_open(c);
+    if (fd < 0) return -1;
+    struct interest *slot = interest_for(c, fd);
+    const int ep = slot->epoll;
+    const uint64_t original_cookie = event_cookie(fd), replacement_cookie = original_cookie ^ UINT64_C(0xffffffff);
+    void *mapping = mmap(NULL, (size_t)page * 2, PROT_READ, MAP_PRIVATE, fd, 0);
+    if (mapping == MAP_FAILED) { epoll_close(c, fd); return -1; }
+    int result = -1, replacement = -1, stage = 0;
+    size_t remaining = (size_t)page * 2;
+    unsigned char *base = mapping;
+    struct epoll_event events[2];
+    if (epoll_wait(ep, events, 2, 0) != 1 || events[0].events != EPOLLIN ||
+        events[0].data.u64 != original_cookie) goto cleanup;
+    stage = 1;
+    if (close(fd)) goto cleanup;
+    slot->fd = -1;
+    /* mmap retains the original open description. Reusing its descriptor
+     * number must not replace that description's still-live epoll interest. */
+    for (unsigned i = 0; i < 2; ++i) {
+        if (epoll_wait(ep, events, 2, 0) != 1 || events[0].events != EPOLLIN ||
+            events[0].data.u64 != original_cookie) goto cleanup;
+    }
+    stage = 2;
+    replacement = open(c->path, O_RDWR | O_CLOEXEC | O_NONBLOCK);
+    if (replacement != fd) goto cleanup;
+    struct epoll_event added = {.events = EPOLLIN, .data.u64 = replacement_cookie};
+    if (epoll_ctl(ep, EPOLL_CTL_MOD, replacement, &added) != -1 || errno != ENOENT ||
+        epoll_ctl(ep, EPOLL_CTL_ADD, replacement, &added)) goto cleanup;
+    for (unsigned i = 0; i < 2; ++i) {
+        if (epoll_wait(ep, events, 2, 0) != 2 || events[0].events != EPOLLIN || events[1].events != EPOLLIN ||
+            !((events[0].data.u64 == original_cookie && events[1].data.u64 == replacement_cookie) ||
+              (events[1].data.u64 == original_cookie && events[0].data.u64 == replacement_cookie))) goto cleanup;
+    }
+    stage = 3;
+    if (epoll_ctl(ep, EPOLL_CTL_DEL, replacement, NULL) || close(replacement)) goto cleanup;
+    replacement = -1;
+    if (epoll_wait(ep, events, 2, 0) != 1 || events[0].events != EPOLLIN ||
+        events[0].data.u64 != original_cookie) goto cleanup;
+    stage = 4;
+    /* A partial unmap keeps the file reference too. Never touch unpopulated
+     * Binder receive pages: they have no transaction backing to read yet. */
+    if (munmap(base, (size_t)page)) goto cleanup;
+    base += page; remaining -= (size_t)page;
+    if (epoll_wait(ep, events, 2, 0) != 1 || events[0].events != EPOLLIN ||
+        events[0].data.u64 != original_cookie) goto cleanup;
+    stage = 5;
+    if (munmap(base, remaining)) goto cleanup;
+    remaining = 0;
+    for (unsigned attempt = 0; attempt < 2000; ++attempt) {
+        int count = epoll_wait(ep, events, 2, 0);
+        if (!count) { result = 0; break; }
+        if (count != 1 || events[0].data.u64 != original_cookie) break;
+        pause_wait(NULL);
+    }
+cleanup:
+    if (result) fprintf(stderr, "Binder epoll mapped lifetime failed at stage %d\n", stage);
+    if (replacement >= 0 && close(replacement)) result = -1;
+    if (remaining && munmap(base, remaining)) result = -1;
+    if (slot->fd >= 0 && close(slot->fd)) result = -1;
+    if (close(ep)) result = -1;
+    slot->fd = slot->epoll = -1;
     return result;
 }
 
@@ -183,7 +257,8 @@ int artbox_native_binder_epoll_check(const char *path) {
     const artbox_binder_device_ops ops = {epoll_open, epoll_close, binder_ioctl, pause_wait};
     artbox_binder_poll_scratch scratch;
     int cases = artbox_binder_poll_check(&context, &ops, epoll_snapshot, &scratch);
-    if (cases != 31 || registration_controls(&context) || death_wakeup(&context)) return -1;
+    if (cases != 31 || registration_controls(&context) || mapped_target_lifetime(&context) ||
+        death_wakeup(&context)) return -1;
     for (unsigned i = 0; i < 4; ++i) if (context.interests[i].fd != -1 || context.interests[i].epoll != -1) return -1;
     return cases;
 }
