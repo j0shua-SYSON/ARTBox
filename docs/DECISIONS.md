@@ -2401,3 +2401,32 @@ The portable allocator neither creates these mappings nor registers them with
 the guest VM. Mapping references must outlive descriptor close until the guest
 unmaps; transaction cancellation and arena teardown need tests at integration.
 These are ordinary non-executable data mappings and need no new entitlement.
+
+## 0093: Use the CI runner's real Binder module as the Linux reference
+
+Status: official package/module/notice verified; original ioctl fixture and
+required native reference job prepared. Native execution remains pending CI.
+
+The Ubuntu runner's `6.17.0-1022-azure` configuration enables Binder, but neither
+a device nor installed module exists. Booting another kernel is unnecessary.
+Its existing package index identifies the exact Ubuntu modules-extra package.
+Pin that version and all required hashes, download it into the configured cache,
+and extract only the unmodified module and GPL-2.0 copyright. No package manager
+installation or kernel source import is needed. The module stays outside all
+Apple builds and uploaded artifacts; original userspace test code remains MIT.
+
+An explicit native-reference command requires the matching host release and
+architecture, checks module vermagic/license, then uses the runner's existing
+sudo/module tools. Refuse to replace an already-loaded module. Mount a private
+binderfs in an empty owned build directory, create one fresh device and run the
+ioctl fixture there. Unmount before unloading, and retain cleanup failures as
+test failures. Windows/macOS preparation never loads anything. A changed runner
+kernel requires a reviewed new package pin, not disabled checks or an assumed
+success. This reference uses a native Linux host; ARTBox still has no guest kernel.
+
+Keep reference execution and ARTBox comparison as separate evidence fields.
+The first shared fixture defines ioctl copy/error ordering, prefix consumption,
+thread exit and context-manager lifetime before driver implementation. Linux's
+deferred close cleanup is polled with a bounded deadline; an instantaneous-close
+assumption would encode the wrong contract. Subsequent transactions, references
+and death notifications need additional paired cases.

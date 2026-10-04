@@ -55,7 +55,11 @@ commands and validates transaction/object snapshots. Local checks pass 36 host
 contracts and 60 comparisons against actual NDK UAPI constants plus an
 independently produced byte fixture. A bounded receive-arena primitive also
 passes local ownership/exhaustion checks and 8,000 concurrent lifecycles;
-its native mapping/provider is not connected. Driver delivery, polling, references,
+its driver integration is not connected. At `4012961`, all 18 host jobs and iOS
+CI pass, including actual native receive-alias coherence, protection-fault and
+close/unmap tests on Mac/Linux. A pinned native Linux Binder module/reference
+fixture is prepared for ioctl semantics; executing it remains pending.
+Driver delivery, polling, references,
 death notifications and real servicemanager are next; M4 is not complete.
 
 M3 main artifacts were downloaded and verified independently: 16 signed iOS 15

@@ -105,6 +105,27 @@ runner's existing package index without updating, downloading or installing.
 Multi-process APKs, FD transfer, buffer-parent fixups, scheduling/priority
 inheritance and SELinux enforcement are outside this first boundary checkpoint.
 
+## Native kernel reference under development
+
+The Ubuntu runner uses `6.17.0-1022-azure` with Binder configured as a module,
+but the module package is absent. The matching official package and its single
+Binder module were downloaded and hash-verified; six malformed-package/cache
+controls pass locally. `scripts/binder_reference.py` prepares those pinned
+bytes on any host. The explicit `--run-native` mode requires the matching
+Linux kernel, existing compiler/module tools and passwordless sudo. A required
+Linux CI job loads the unmodified module, mounts a private binderfs below the
+build directory and creates one fresh context for an original ioctl fixture.
+It then unmounts and unloads the module, retaining logs and byte provenance.
+No package installation, kernel boot or CPU emulation is involved.
+
+The fixture tests version/canaries, invalid pointers and ioctl words, thread
+limit inputs, empty write/read, a valid command prefix followed by an invalid
+command, resumed consumption, thread exit/recreation, legacy/extended context
+manager registration, duplicate ownership and delayed close/re-registration.
+Its callbacks can later drive ARTBox's implementation with the same assertions.
+Native execution is pending CI at this checkpoint; preparing a module is not
+execution, and even a passed Linux reference is not an ARTBox comparison.
+
 ## References and source scope
 
 `binder-references` in `third_party/sources.json` pins 15 exact reference files

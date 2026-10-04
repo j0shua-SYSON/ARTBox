@@ -1,0 +1,25 @@
+{
+  "scope": "Native Linux CI reference only; no guest kernel, module installation or Apple redistribution",
+  "packages": [
+    {
+      "kernel": "6.17.0-1022-azure",
+      "architecture": "x86_64",
+      "package": "linux-modules-extra-6.17.0-1022-azure",
+      "version": "6.17.0-1022.22",
+      "url": "https://archive.ubuntu.com/ubuntu/pool/main/l/linux-azure-6.17/linux-modules-extra-6.17.0-1022-azure_6.17.0-1022.22_amd64.deb",
+      "bytes": 51005632,
+      "sha256": "11efc255305b0895dbc28e3dcda633d414b86a285529c337062a2a34c45a1599",
+      "module": {
+        "path": "lib/modules/6.17.0-1022-azure/kernel/drivers/android/binder_linux.ko.zst",
+        "bytes": 89845,
+        "sha256": "d4e7dc44ac8210f54366839484c71f17ddb705815ee9530e74da860c3502ba81"
+      },
+      "notice": {
+        "path": "usr/share/doc/linux-modules-extra-6.17.0-1022-azure/copyright",
+        "bytes": 1292,
+        "sha256": "4ab34baa23c94237ffef144c80348b982d2d8e814c46b3a6a3538a706ef26114"
+      },
+      "license": "GPL-2.0"
+    }
+  ]
+}

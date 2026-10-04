@@ -19,6 +19,18 @@ header for a compile-time comparison and data fixture; its existing bundled
 license terms continue to apply. No additional runtime library is imported.
 See [the Binder contract](docs/binder.md).
 
+The native Linux reference fixture additionally uses Ubuntu's unmodified
+`linux-modules-extra-6.17.0-1022-azure`, version `6.17.0-1022.22`, matching CI's
+running kernel. `third_party/binder/kernel-reference.json` records the official
+package URL, package/module/copyright sizes and SHA-256 hashes. Its reviewed
+copyright declares GPL-2.0. The script extracts only the Binder module and
+notice into its configured cache, verifies module vermagic/license, and uses
+the existing host kernel in a private binderfs mount. Nothing is installed;
+no kernel is booted. The module/package are not uploaded as project artifacts,
+linked into ARTBox, copied into an Apple bundle or relicensed. ARTBox's original
+MIT ioctl fixture runs as an independent userspace program. Kernel reference
+coverage is reported separately from comparisons with the ARTBox driver.
+
 ## M3 ART math dependency
 
 The [math subset](docs/m3-math.md) selects 28 unchanged source units from

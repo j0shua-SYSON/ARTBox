@@ -10,6 +10,32 @@ concurrency:
   group: host-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  binder-kernel-reference:
+    name: Binder device reference (native Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Record the actual native kernel and package candidates
+        run: python3 -B scripts/probe_binder.py
+      - name: Test real Binder ioctls in a private native binderfs context
+        run: python3 -B scripts/binder_reference.py --run-native
+      - name: Preserve reference evidence without distributing kernel modules
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: binder-kernel-reference
+          path: |
+            artifacts/m4-binder-capabilities.json
+            artifacts/m4-binder-kernel-reference.json
+            build/m4/kernel-reference/reference.log
+          if-no-files-found: warn
+          retention-days: 7
   host:
     name: host (${{ matrix.os }})
     strategy:
@@ -34,6 +60,7 @@ jobs:
         run: |
           ${{ matrix.python }} -B tests/test_environment.py
           ${{ matrix.python }} -B tests/test_sources.py
+          ${{ matrix.python }} -B tests/test_binder_reference.py
           ${{ matrix.python }} -B tests/test_classlib_build.py
           ${{ matrix.python }} -B tests/test_jdk.py
           ${{ matrix.python }} -B tests/test_bionic_adapt.py
