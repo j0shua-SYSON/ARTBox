@@ -51,9 +51,11 @@ Unsupported operations retain explicit errors. See the individual contracts.
 ## Current work
 
 M4: the [Binder wire boundary](binder.md) recognizes the Android 15 ARM64
-commands and validates transaction/object snapshots. Local checks pass 35 host
+commands and validates transaction/object snapshots. Local checks pass 36 host
 contracts and 60 comparisons against actual NDK UAPI constants plus an
-independently produced byte fixture. Driver delivery, polling, references,
+independently produced byte fixture. A bounded receive-arena primitive also
+passes local ownership/exhaustion checks and 8,000 concurrent lifecycles;
+its native mapping/provider is not connected. Driver delivery, polling, references,
 death notifications and real servicemanager are next; M4 is not complete.
 
 M3 main artifacts were downloaded and verified independently: 16 signed iOS 15

@@ -2371,3 +2371,33 @@ those costs after a real ping/pong path exists. No dynamic executable memory,
 JIT, entitlement or guest kernel is needed. The Apple signed-library packaging
 and source-level syscall boundary from M3 remain the execution model. See the
 [Binder contract](binder.md) for completed checks and outstanding behavior.
+
+## 0092: Make receive-buffer ownership explicit before exposing Binder mmap
+
+Status: portable arena and concurrent lifecycle tests pass locally; native
+mapping, driver delivery and Linux comparison remain pending.
+
+Give the driver a bounded metadata vector and caller-owned receive storage.
+Allocation produces a reserved buffer; only this state permits driver writes
+or cancellation. Publication ends mutation and permits guest release. Exact
+allocation starts identify buffers. This is an internal API: its EPERM/EINVAL
+results are not automatically the result of BC_FREE_BUFFER, which needs its
+own Linux command-consumption contract. Driver serialization must cover copying
+the return command and publishing its buffer before a guest release can run.
+
+Round data/extra-buffer storage to eight bytes, require eight-byte offset table
+entries and reserve at least eight bytes for empty transactions. Zero reused
+extents including padding and honor clear-on-free. Admission fails atomically
+on overflow, fragmented capacity or exhausted metadata. A sorted bounded vector
+makes best-fit gap selection and release linear in the configured buffer limit;
+there is no per-transaction allocation. Initial zeroing adds a write across the
+padded extent. Measure against real IPC later rather than treating allocator
+stress as a Binder benchmark.
+
+Keep native memory ownership separate: the future Apple/Linux provider must
+expose read-only guest bytes and a writable driver alias to the same backing
+storage. Toggling a live guest view writable during a copy would create a race.
+The portable allocator neither creates these mappings nor registers them with
+the guest VM. Mapping references must outlive descriptor close until the guest
+unmaps; transaction cancellation and arena teardown need tests at integration.
+These are ordinary non-executable data mappings and need no new entitlement.

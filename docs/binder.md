@@ -28,6 +28,27 @@ packed structs or the host's ioctl definitions. In particular,
 `binder_handle_cookie` is 12 bytes on Android ARM64; Darwin ioctl numbers and
 a compiler's ordinary struct padding cannot define this boundary.
 
+## Receive-buffer ownership primitive
+
+The bounded portable arena reserves metadata once, admits aligned receive
+buffers, accepts driver writes while reserved, and makes them immutable to its
+API when published. A delivered buffer can be released; a reserved buffer can
+be cancelled. Exact allocation starts and ownership states are required. It
+zeros new/reused extents including padding and supports clearing on release.
+Empty transactions consume eight bytes so concurrent buffers have distinct
+addresses. Exhausting bytes, contiguous space or metadata returns an explicit
+error without altering the output. Best-fit admission scans the bounded buffer
+list; it does not allocate memory per transaction.
+
+Tests cover ownership transitions, interior/duplicate release, overflow,
+zero-length transactions, extent boundaries, fragmentation, recycling,
+byte/metadata exhaustion and 8,000 lifecycles across eight concurrent workers.
+This is an internal storage primitive, not a Binder ioctl implementation or
+Linux quota comparison. The caller must provide valid writable storage and its
+guest alias. A native read-only guest mapping, VM registration, async quotas and
+driver-close lifetime are not integrated yet. The synthetic-address host test
+does not establish native alias permissions.
+
 ## Evidence
 
 The portable test covers all command encodings, every truncated write frame,

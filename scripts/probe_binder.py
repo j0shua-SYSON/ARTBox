@@ -52,7 +52,9 @@ def probe():
     module_root = Path('/lib/modules') / platform.release()
     try:
         if module_root.is_dir():
-            record['modules'] = sorted(str(p) for p in module_root.rglob('binder_linux.ko*') if p.is_file())
+            # Newer kernels split binder_linux into binder, binder_alloc and
+            # binderfs. Record both layouts, including compressed modules.
+            record['modules'] = sorted(str(p) for p in module_root.rglob('binder*.ko*') if p.is_file())
     except OSError as error:
         record['errors'].append(str(error))
     config_paths = [Path('/proc/config.gz'), Path('/boot') / ('config-' + platform.release())]
