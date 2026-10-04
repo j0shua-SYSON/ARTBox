@@ -376,9 +376,9 @@ The signed ART startup has not attached this context yet.
 | ARM64 call | Implemented Binder subset | Evidence / limits |
 | --- | --- | --- |
 | openat 56, close 57 | Independent endpoint per open, owned close, `/dev` relative lookup, descriptor reuse | Shared 32-case ioctl fixture through VFS; local failed-open and table-cleanup controls |
-| ioctl 29 | VERSION, MAX_THREADS, CONTEXT_MGR/EXT, THREAD_EXIT, WRITE_READ looper commands | Linux and direct endpoint share 32 passing cases at 517ad1c; paired VFS run pending |
+| ioctl 29 | VERSION, MAX_THREADS, CONTEXT_MGR/EXT, THREAD_EXIT, WRITE_READ looper commands | Linux/direct endpoint pass 32 cases at 517ad1c; VFS passes the same cases at ba255d2 |
 | fstat 80, newfstatat 79 | Virtual character-device metadata | Host device identities are not exposed |
-| read 63, write 64, lseek 62 | Unsupported Binder transfers and non-seekability, with descriptor access checks | Separate 22-case native file comparison pending; no parcel transfer through read/write |
+| read 63, write 64, lseek 62 | Unsupported Binder transfers and non-seekability, with descriptor access checks | Separate 22-case Linux/VFS comparison passes at ba255d2; no parcel transfer through read/write |
 
 Ioctl pins its open description before releasing the VFS lock. Unknown Binder
 ioctl words return EINVAL; recognized unimplemented work returns EOPNOTSUPP.

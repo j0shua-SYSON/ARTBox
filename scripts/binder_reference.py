@@ -170,6 +170,7 @@ def run_native(spec, installed, build):
         invoke(commands['cc'], '-std=c11', '-D_DEFAULT_SOURCE', '-O2', '-Wall', '-Wextra', '-Werror',
                '-I', ROOT / 'core/include', ROOT / 'fixtures/binder-device/check.c',
                ROOT / 'fixtures/binder-file/check.c',
+               ROOT / 'fixtures/binder-mapping/check.c',
                ROOT / 'tests/native_binder_device.c', '-o', executable)
         invoke(commands['sudo'], '-n', commands['insmod'], module, 'devices=')
         loaded = True
@@ -179,7 +180,9 @@ def run_native(spec, installed, build):
         result = json.loads(output)
         expected = len(re.findall(r'\bCHECK\(', (ROOT / 'fixtures/binder-device/check.c').read_text())) - 1
         file_cases = len(re.findall(r'\bCHECK\(', (ROOT / 'fixtures/binder-file/check.c').read_text())) - 1
-        if result != {'protocol': 8, 'cases': expected, 'file_cases': file_cases, 'fresh_binderfs_context': True, 'passed': True}:
+        mapping_cases = len(re.findall(r'\bCHECK\(', (ROOT / 'fixtures/binder-mapping/check.c').read_text())) - 1
+        if result != {'protocol': 8, 'cases': expected, 'file_cases': file_cases, 'mapping_cases': mapping_cases,
+                      'fresh_binderfs_context': True, 'passed': True}:
             raise RuntimeError('Native Binder reference did not execute every expected case')
         record = {**result, 'vermagic': version, 'module_license': license_name,
                   'runner_sha256': digest(executable)}
@@ -262,7 +265,8 @@ def main():
         raise RuntimeError('No reviewed module pin for this kernel; inspect the capability inventory and add its exact package')
     installed = prepare(spec, Path(os.environ['ARTBOX_CACHE_DIR']))
     record = {'scope': pins['scope'], 'package': spec, 'prepared': True,
-              'native_execution_verified': False, 'artbox_driver_compared': False}
+              'native_execution_verified': False, 'artbox_driver_compared': False,
+              'mapping_driver_compared': False}
     if args.run_native:
         record['native'] = run_native(spec, installed, Path(os.environ['ARTBOX_BUILD_DIR']) / 'm4/kernel-reference')
         record['native_execution_verified'] = True
@@ -273,6 +277,7 @@ def main():
     sources = [
         ROOT / 'fixtures/binder-device/check.c', ROOT / 'fixtures/binder-device/check.h',
         ROOT / 'fixtures/binder-file/check.c', ROOT / 'fixtures/binder-file/check.h',
+        ROOT / 'fixtures/binder-mapping/check.c', ROOT / 'fixtures/binder-mapping/check.h',
         ROOT / 'tests/native_binder_device.c', ROOT / 'core/include/artbox/binder_wire.h',
         ROOT / 'third_party/binder/kernel-reference.json', Path(__file__).resolve()]
     if args.compare_driver:
@@ -284,6 +289,7 @@ def main():
         json.dumps(record, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({'prepared': True, 'kernel': kernel, 'native_execution_verified': record['native_execution_verified'],
                       'artbox_driver_compared': record['artbox_driver_compared'],
+                      'mapping_driver_compared': False,
                       'native': record.get('native'), 'driver': record.get('driver')}, indent=2))
 
 

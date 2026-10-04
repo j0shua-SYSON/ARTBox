@@ -1,6 +1,7 @@
 /* Real Linux Binder reference, private binderfs device. SPDX-License-Identifier: MIT */
 #include "../fixtures/binder-device/check.h"
 #include "../fixtures/binder-file/check.h"
+#include "../fixtures/binder-mapping/check.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/android/binderfs.h>
@@ -9,6 +10,7 @@
 #include <sys/ioctl.h>
 #include <sys/syscall.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -62,6 +64,19 @@ static int type_file(void *context, int fd) {
     struct stat value;
     return fstat(fd, &value) ? -errno : (int)(value.st_mode & S_IFMT);
 }
+static int64_t map_file(void *context, int fd, uint64_t size, unsigned prot, unsigned flags, uint64_t offset) {
+    (void)context;
+    void *address = mmap(NULL, (size_t)size, (int)prot, (int)flags, fd, (off_t)offset);
+    return address == MAP_FAILED ? -errno : (int64_t)(uintptr_t)address;
+}
+static int protect_file(void *context, uint64_t address, uint64_t size, unsigned prot) {
+    (void)context;
+    return mprotect((void *)(uintptr_t)address, (size_t)size, (int)prot) ? -errno : 0;
+}
+static int unmap_file(void *context, uint64_t address, uint64_t size) {
+    (void)context;
+    return munmap((void *)(uintptr_t)address, (size_t)size) ? -errno : 0;
+}
 int main(int argc, char **argv) {
     if (argc == 2 && !strcmp(argv[1], "--probe-module-unload")) {
         /* No force flag. The pinned Binder module has no cleanup_module hook;
@@ -86,6 +101,9 @@ int main(int argc, char **argv) {
     const artbox_binder_file_ops files = {open_file, close_device, read_file, write_file, seek_file, type_file};
     int file_cases = artbox_binder_file_check(argv[2], &files, &scratch);
     if (file_cases < 0) return 1;
-    printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases);
+    const artbox_binder_mapping_ops memory = {(uint64_t)sysconf(_SC_PAGESIZE), map_file, protect_file, unmap_file};
+    int mapping_cases = artbox_binder_mapping_check(argv[2], &ops, &memory);
+    if (mapping_cases < 0) return 1;
+    printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"mapping_cases\":%d,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases);
     return 0;
 }

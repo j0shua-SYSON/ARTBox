@@ -63,7 +63,9 @@ verify. At `517ad1c`, Linux and the portable endpoint API pass the same 32-case
 fixture; 87 input hashes and artifact provenance verify. A configured VFS now
 routes `/dev/binder` open/ioctl/close to that API and passes the same local fixture,
 a 22-case file contract, cleanup controls and 4,000 concurrent descriptor lifecycles.
-The new paired VFS/file comparison is pending CI. Receive mappings, delivery, polling, references,
+At `ba255d2`, Linux and VFS pass the same 32 ioctl/22 file cases, with 90 input
+hashes verified. A 28-case native mapping/lifetime fixture is prepared next;
+mapping comparison remains explicitly false. Receive mappings, delivery, polling, references,
 death notifications and real servicemanager are next; M4 is not complete.
 
 M3 main artifacts were downloaded and verified independently: 16 signed iOS 15

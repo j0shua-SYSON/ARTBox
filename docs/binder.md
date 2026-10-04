@@ -77,8 +77,9 @@ use is explicitly unsupported in the initial single-process model.
 The same 32-case fixture also runs through actual virtual openat/ioctl/close.
 A separate 22-case descriptor fixture checks character-device type, unsupported
 read/write including zero length, non-seekability, access-mode errors, closed
-descriptors and directory/exclusive opens. Its real Linux comparison is pending
-CI. Portable controls cover relative lookup through `/dev`, failed-open cleanup,
+descriptors and directory/exclusive opens. At `ba255d2`, both VFS and real Linux
+pass all 32 ioctl and 22 file checks; the artifact, PR parent and 90 source
+hashes verify. Portable controls cover relative lookup through `/dev`, failed-open cleanup,
 table teardown, descriptor/command argument widths and 4,000 concurrent opens.
 Virtual device/inode numbers are ARTBox identities, not copied host metadata.
 The signed ART startup does not attach this context yet; guest-native Binder
@@ -186,8 +187,16 @@ hashes and PR merge-parent identities verify. Native
 execution and ARTBox comparison remain separate: `--compare-driver` requires
 native execution, builds the portable endpoint test and compares its shared
 fixture result only after the reference succeeds. Record both executable
-hashes and all core/platform input hashes. The new VFS/file comparison is
-pending CI; it adds a third executable hash and retains separate case counts.
+hashes and all core/platform input hashes. The VFS/file comparison passes at
+`ba255d2`, adds a third executable hash and retains separate case counts.
+
+The next original mapping fixture defines 28 native checks for rejected write
+permissions, zero/unaligned inputs, private/shared mappings, write-protection
+ceilings, partial unmap, repeated mapping and context-manager ownership across
+descriptor close/final unmap. It never reads unused receive pages: Linux has
+not populated those pages with transaction data. Native results are pending;
+`mapping_driver_compared` remains false until the production mapping boundary
+runs the same fixture. The existing alias test is not that implementation.
 
 The first live attempt at `d67b7f8` confirmed two contract corrections before
 any ARTBox ioctl implementation: BINDER_VERSION's invalid output pointer returns

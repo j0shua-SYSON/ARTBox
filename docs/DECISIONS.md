@@ -2490,8 +2490,8 @@ for throughput; measure and revise them when transaction delivery exists.
 
 ## 0095: Pin Binder open descriptions outside the VFS dispatch lock
 
-Status: VFS ioctl/descriptor fixtures and local lifecycle tests pass; native
-file comparison and full regressions are pending CI.
+Status: VFS and real Linux pass the same 32 ioctl/22 descriptor cases at ba255d2;
+local lifecycle tests pass. Full regressions are still running at this checkpoint.
 
 Attach the private Binder context explicitly to a VFS before guest execution.
 Keep it borrowed: its owner must retain it until the table and all callers are
