@@ -41,6 +41,7 @@ typedef struct module {
 enum { IMAGE_CAPACITY = 15 };
 static module images[IMAGE_CAPACITY];
 static unsigned image_count;
+static const artbox_host *guest_console;
 typedef struct native_input {
     const char *const *frameworks;
     const char *const *elfs;
@@ -293,7 +294,11 @@ static int64_t dispatch(void *context, uint64_t n, uint64_t a0, uint64_t a1, uin
         char buffer[1024];
         if (a2 > sizeof(buffer)) value = -22;
         else if (artbox_vm_read(vm, a1, buffer, (size_t)a2)) value = -14;
-        else value = fwrite(buffer, 1, (size_t)a2, stderr) == (size_t)a2 ? (int64_t)a2 : -5;
+        else {
+            value = fwrite(buffer, 1, (size_t)a2, stderr) == (size_t)a2 ? (int64_t)a2 : -5;
+            if(value >= 0 && a0 == 1 && guest_console)
+                guest_console->log(guest_console->context,buffer,(size_t)a2);
+        }
     }
     if (value == -38 && n < 512) ++unsupported[n];
     if (++calls <= 128 || value < 0) fprintf(stderr, "syscall %" PRIu64 "(%" PRIx64 ",%" PRIx64 ",%" PRIx64 ",%" PRIx64 ") = %" PRId64 "\n", n,a0,a1,a2,a3,value);
@@ -630,13 +635,16 @@ static void *run(void *context) {
     current_kernel = NULL;
     return NULL;
 }
-static int run_native(const native_input *input, const artbox_host *host, unsigned art_mode) {
+static int run_native(const native_input *input, const artbox_host *host, unsigned art_mode,
+                      const artbox_host *console) {
     static atomic_flag used = ATOMIC_FLAG_INIT;
     if (!input || !input->root || !host || !host->log || input->sampled > 1) return -22;
+    if(console && !console->log) return -22;
     if (art_mode > 4 || input->count != (art_mode >= 3 ? 15u : art_mode == 2 ? 10u : 4u)) return -22;
     for (unsigned i = 0; i < input->count; ++i)
         if (!input->frameworks[i] || !input->elfs[i]) return -22;
     if (atomic_flag_test_and_set(&used)) return -114;
+    guest_console = console;
     art_bootstrap = art_mode;
     image_count = input->count;
     force_sampling = input->sampled;
@@ -801,30 +809,35 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     memcpy(report + used_bytes, "}}", 3); used_bytes += 2;
     host->log(host->context, report, used_bytes);
     for (unsigned i = 0; i < image_count; ++i) { dlclose(images[i].handle); free(images[i].original); }
+    guest_console = NULL;
     return 0;
 }
 int artbox_run_native_bionic(const artbox_bionic_input *input, const artbox_host *host) {
     if (!input) return -22;
     const native_input shared = {input->frameworks, input->elfs, input->root, input->sampled, 4};
-    return run_native(&shared, host, 0);
+    return run_native(&shared, host, 0, NULL);
 }
 int artbox_run_native_art_bootstrap(const artbox_art_input *input, const artbox_host *host) {
     if (!input) return -22;
     const native_input shared = {input->frameworks, input->elfs, input->root, 0, 4};
-    return run_native(&shared, host, 1);
+    return run_native(&shared, host, 1, NULL);
 }
 int artbox_run_native_icu(const artbox_icu_input *input, const artbox_host *host) {
     if (!input) return -22;
     const native_input shared = {input->frameworks, input->elfs, input->root, 0, 10};
-    return run_native(&shared, host, 2);
+    return run_native(&shared, host, 2, NULL);
 }
 int artbox_run_native_libcore(const artbox_libcore_input *input, const artbox_host *host) {
     if (!input) return -22;
     const native_input shared = {input->frameworks, input->elfs, input->root, 0, 15};
-    return run_native(&shared, host, 3);
+    return run_native(&shared, host, 3, NULL);
 }
 int artbox_run_native_art_runtime(const artbox_libcore_input *input, const artbox_host *host) {
+    return artbox_run_native_art_runtime_logged(input, host, NULL);
+}
+int artbox_run_native_art_runtime_logged(const artbox_libcore_input *input,
+    const artbox_host *host, const artbox_host *console) {
     if (!input) return -22;
     const native_input shared = {input->frameworks, input->elfs, input->root, 0, 15};
-    return run_native(&shared, host, 4);
+    return run_native(&shared, host, 4, console);
 }

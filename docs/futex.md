@@ -70,9 +70,10 @@ native Linux syscall profiles, without changing the original 19-case baseline
 or M2's 328-case score. Portable tests additionally move actual blocked waiters,
 select them by bitset at the destination, retain a timeout, interrupt a moved
 waiter and exercise 128 insertion/requeue/wake races. Linux builds repeat the
-queue tests against the actual kernel. All 34 local CTests pass; native CI for
-this extension is pending. ART's unchanged condition-variable implementation
-provides a further integration test during required JavaVM startup.
+queue tests against the actual kernel. At `68400fe`, all 34 local CTests and 36
+native Linux ARM64 contracts pass. Both signed Bionic modes and both Linux
+profiles pass all 18 wire cases with matching source/object hashes. ART's
+unchanged condition variable also passes full signed Mac JavaVM/DEX acceptance.
 
 Shared requeue, CMP_REQUEUE, PI, robust owner death, wake-op and general restart
 semantics remain unsupported; they are not silently treated as successful.

@@ -162,6 +162,7 @@ def main():
             stderr = process.stderr.decode('utf-8', errors='replace')
             for message in ('ARTBox: signed ART started; switch interpreter, no JIT, no profiling cache',
                             'hello from ARTBox ART', 'ARTBox: signed ART method returned the expected string',
+                            'ARTBox console: hello and lifecycle observed',
                             'ARTBox: signed ART lifecycle checks passed'):
                 if message not in stderr.splitlines(): raise RuntimeError('Missing signed ART observation: ' + message)
             def observation(prefix):
@@ -186,7 +187,19 @@ def main():
                         ('startup_ns', 'managed_bytes', 'process_peak_rss_bytes', 'threads_reaped'))):
                 raise RuntimeError('Signed ART managed, thread or memory contract failed')
             result.update(runtime_started=True, dex_executed=True, managed_checks=managed,
-                          thread_state_checks=threads, vm_worker=worker, lifecycle_verified=True)
+                          thread_state_checks=threads, vm_worker=worker, lifecycle_verified=True,
+                          console_verified=True)
+            process_label = 'missing-console'
+            dropped = subprocess.run(command, capture_output=True, timeout=60,
+                                     env={**os.environ, 'ARTBOX_TEST_DROP_CONSOLE': '1'})
+            (output / 'missing-console.stdout').write_bytes(dropped.stdout)
+            (output / 'missing-console.stderr').write_bytes(dropped.stderr)
+            dropped_native = json.loads(dropped.stdout)
+            if (dropped.returncode != 3 or not dropped_native['runtime_started'] or
+                    not dropped_native['dex_executed'] or not dropped_native['cleanup'] or
+                    b'ARTBox console: missing guest output\n' not in dropped.stderr):
+                raise RuntimeError('Missing guest console output was not detected after successful execution')
+            result.update(console_drop_exit=dropped.returncode, console_drop_detected=True)
             # A second process must reach the real VM and fail its missing-class lookup.
             hello.unlink()
             process_label = 'missing-hello'
@@ -213,7 +226,7 @@ def main():
         if runtime:
             progress = runtime_progress(error.stderr or b'')
             if process_label == 'native': result.update(progress)
-            else: result['missing_hello_progress'] = progress
+            else: result[process_label.replace('-', '_') + '_progress'] = progress
         sys.stderr.buffer.write((error.stderr or b'')[-32768:])
         sys.stderr.buffer.flush()
         result['timeout'] = True

@@ -36,6 +36,11 @@ int artbox_run_native_libcore(const artbox_libcore_input *input, const artbox_ho
  * data/runtime-checks.dex and the same ICU data as the native libcore runner.
  * One-shot diagnostic; only a zero result establishes execution success. */
 int artbox_run_native_art_runtime(const artbox_libcore_input *input, const artbox_host *host);
+/* Same lifecycle with an optional guest-stdout sink, separate from the final
+ * result. The sink receives bounded byte chunks on ordinary guest worker
+ * threads and must be thread-safe. Its storage must live until return. */
+int artbox_run_native_art_runtime_logged(const artbox_libcore_input *input,
+    const artbox_host *host, const artbox_host *console);
 #ifdef __cplusplus
 }
 #endif

@@ -299,7 +299,7 @@ boundaries. Both signed Bionic modes and both Bionic Linux syscall-entry profile
 pass the same NDK object at `a9e91b6`; the reference child changes to `/` after
 its file mutations finish. M2's existing denominator remains 328.
 
-### Private futex requeue (local contract passed; native validation pending)
+### Private futex requeue (native comparisons passed at 68400fe)
 
 | ARM64 call | Implemented subset | Deliberate limits |
 | --- | --- | --- |
@@ -309,7 +309,9 @@ Counts use signed 32-bit semantics. Private keys are validated in source then
 destination order without reading their words. An 18-case identical NDK caller
 is required in both signed Bionic modes and Linux syscall profiles; additional
 portable/Linux tests move real waiters and race requeue with registration/wake.
-All 34 local CTests pass. See [the full futex contract](futex.md) and ADR 0089.
+All 34 local CTests, the actual Linux queue comparisons, both signed Bionic modes
+and both Linux syscall profiles pass at `68400fe`. The full signed Mac JavaVM
+also passes startup and shutdown. See [the full futex contract](futex.md) and ADR 0089.
 
 ### File-backed data mapping extension (native CI green at b1a94c5)
 

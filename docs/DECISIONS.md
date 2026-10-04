@@ -2098,8 +2098,9 @@ the reference nor the new bridge establishes JavaVM/JNI/DEX startup on Apple.
 
 ## 0085: Enter the real JavaVM through a signed Android JNI caller
 
-Status: required acceptance reaches JNI_CreateJavaVM at `7d93946`, then fails
-initial-thread stack discovery. Apple JavaVM/DEX acceptance remains pending.
+Status: full signed Mac JavaVM/hello/GC/exception/attachment/shutdown acceptance
+passes at `68400fe`, including the missing-hello control. Earlier stack, signal,
+cwd and requeue failures are addressed by ADRs 0086-0089. iOS embedding is next.
 
 The signed dependency group already runs ART, ICU and libcore constructors and
 native checks. Add a separate runtime entry using that same group and the
@@ -2254,9 +2255,9 @@ and require the complete JavaVM/DEX acceptance after this fix.
 
 ## 0089: Requeue private futex waiters for ART condition variables
 
-Status: the raw caller regression fails before implementation and passes
-afterward. All 34 local CTests pass; native Linux, signed Bionic and complete
-Apple JavaVM execution are required next.
+Status: verified at `68400fe`: 18 cases in both signed Bionic modes and both
+native Linux syscall profiles, real waiter movement against the Linux kernel,
+and full signed Mac JavaVM/DEX lifecycle pass. All 17 host jobs and iOS CI pass.
 
 At `a9e91b6`, the signed ART worker reaches Signal Catcher creation, then exits
 with ENOSYS from syscall 98, operation 131. Pinned AOSP ConditionVariable::
@@ -2288,3 +2289,41 @@ registration/requeue/wake races. Linux builds repeat these against the kernel.
 The interruption test delivers signal 34 after moving the waiter and requires
 EINTR. Required full JavaVM, hello DEX and shutdown acceptance stays enabled;
 these narrower tests do not complete M3.
+
+## 0090: Embed the verified ART group and expose actual guest stdout
+
+Status: device staging and console wiring implemented; new signed console
+acceptance and integrated ART IPA validation are pending.
+
+The complete signed ARM64 Mac runtime passes at `68400fe`. Package that same
+15-library ELF group, boot DEX, hello/managed DEX and ICU data in the iOS app.
+Keep a separate build from the M1/M2 diagnostics because the current native
+runner owns one process-wide lifetime. Do not imply reusable VM creation or
+general APK launching. Continue using the project's independent console shell;
+launcher UI remains deferred.
+
+A cross-platform Python staging step requires exact producer revisions, full
+managed acceptance and the missing-class control. Validate both Apple framework
+layouts against the original ELF, the executed Mac hashes, empty entitlements,
+notices and runtime data before copying. Recheck the embedded bytes after Xcode
+builds the app. A required CI job follows signed acceptance and both Linux ART
+references, signs an ordinary arm64 iOS 15 transport IPA and preserves provenance.
+No writable executable mapping, runtime compiler or new entitlement is added.
+
+Give the shared native entry an optional stdout callback separate from its JSON
+result. Ordinary guest writes already copy at most 1,024 validated bytes; mirror
+successful stdout writes to this callback. Signal scopes use their existing
+separate dispatcher. The sink is immutable during execution, accepts chunks on
+guest workers and remains alive through join and shutdown. The native acceptance
+collector requires the actual hello and lifecycle text from that path. UIKit
+copies the chunks and dispatches display updates to its main queue.
+A separate process drops every console chunk and must fail the console check
+after successful managed execution and cleanup, proving that VM success alone
+cannot satisfy the log requirement.
+
+Stage immutable resources in the bundle and copy data into an owned per-run app
+container root. Signed native code stays in frameworks. The extra disk copies
+and imageless interpreter startup are explicit initial costs; no iPhone memory
+or startup measurement is inferred from Mac tests. Physical checks remain waived
+and unperformed. General AOT/OAT packaging, repeated runs and process isolation
+need separate contracts.

@@ -9,10 +9,16 @@
 #if ARTBOX_M2
 #include "artbox/native_bionic.h"
 #endif
+#if ARTBOX_M3
+#include "artbox/native_art.h"
+#endif
 
 @interface ConsoleViewController ()
 @property(nonatomic, strong) UITextView *console;
 - (void)appendMessage:(NSString *)message;
+#if ARTBOX_M3
+- (void)logRuntimeError:(NSString *)message detail:(NSError *)error;
+#endif
 @end
 
 static void app_log(void *context, const char *message, size_t length) {
@@ -66,7 +72,7 @@ static void app_log(void *context, const char *message, size_t length) {
     if (artbox_start(&host) != ARTBOX_OK) {
         [self appendMessage:@"ARTBox startup failed"];
     }
-#if ARTBOX_M1 || ARTBOX_M2
+#if ARTBOX_M1 || ARTBOX_M2 || ARTBOX_M3
     dispatch_queue_t runtimeQueue = dispatch_queue_create("org.artbox.acceptance", DISPATCH_QUEUE_SERIAL);
 #endif
 #if ARTBOX_M1
@@ -126,7 +132,66 @@ static void app_log(void *context, const char *message, size_t length) {
         if (result == 0) [manager removeItemAtURL:root error:NULL];
     });
 #endif
+#if ARTBOX_M3
+    dispatch_async(runtimeQueue, ^{
+        const artbox_host guestHost = {app_log, (__bridge void *)self};
+        NSFileManager *manager = NSFileManager.defaultManager;
+        NSError *error = nil;
+        NSURL *resources = [NSBundle.mainBundle.resourceURL URLByAppendingPathComponent:@"ARTBoxM3" isDirectory:YES];
+        NSData *data = [NSData dataWithContentsOfURL:[resources URLByAppendingPathComponent:@"manifest.json"]
+                                            options:0 error:&error];
+        id manifest = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:&error] : nil;
+        NSArray<NSDictionary *> *images = [manifest isKindOfClass:NSDictionary.class] ? manifest[@"images"] : nil;
+        if (![images isKindOfClass:NSArray.class] || images.count != 15) {
+            [self logRuntimeError:@"ART resources are incomplete" detail:error];
+            return;
+        }
+        NSURL *support = [manager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask
+                                appropriateForURL:nil create:YES error:&error];
+        NSURL *root = [support URLByAppendingPathComponent:[@"ARTBoxM3-" stringByAppendingString:NSUUID.UUID.UUIDString]
+                                              isDirectory:YES];
+        if (!root || ![manager copyItemAtURL:[resources URLByAppendingPathComponent:@"root" isDirectory:YES]
+                                      toURL:root error:&error]) {
+            [self logRuntimeError:@"ART storage setup failed" detail:error];
+            return;
+        }
+        for (NSString *directory in @[@"system/art", @"system/tzdata", @"system_ext", @"data/scratch"]) {
+            if (![manager createDirectoryAtURL:[root URLByAppendingPathComponent:directory]
+                   withIntermediateDirectories:YES attributes:nil error:&error]) {
+                [self logRuntimeError:@"ART directory setup failed" detail:error];
+                [manager removeItemAtURL:root error:NULL];
+                return;
+            }
+        }
+        artbox_libcore_input input = {{0}, {0}, root.fileSystemRepresentation};
+        NSMutableArray<NSString *> *libraries = [NSMutableArray array], *elfs = [NSMutableArray array];
+        for (unsigned i = 0; i < 15; ++i) {
+            NSString *name = images[i][@"framework"];
+            NSString *library = [[NSBundle.mainBundle.privateFrameworksPath stringByAppendingPathComponent:
+                [name stringByAppendingString:@".framework"]] stringByAppendingPathComponent:name];
+            NSString *elf = [[[resources URLByAppendingPathComponent:@"ELF"]
+                              URLByAppendingPathComponent:images[i][@"elf"]] path];
+            [libraries addObject:library]; [elfs addObject:elf];
+            input.frameworks[i] = libraries[i].fileSystemRepresentation;
+            input.elfs[i] = elfs[i].fileSystemRepresentation;
+        }
+        const char *starting = "ART: starting the interpreter";
+        app_log((__bridge void *)self, starting, strlen(starting));
+        int result = artbox_run_native_art_runtime_logged(&input, &guestHost, &guestHost);
+        NSString *message = result == 0 ? @"ART: DEX and lifecycle checks passed" :
+                            [NSString stringWithFormat:@"ART: failed (%d)", result];
+        app_log((__bridge void *)self, message.UTF8String, [message lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
+        if (result == 0) [manager removeItemAtURL:root error:NULL];
+    });
+#endif
 }
+
+#if ARTBOX_M3
+- (void)logRuntimeError:(NSString *)message detail:(NSError *)error {
+    NSString *text = error ? [NSString stringWithFormat:@"%@: %@", message, error.localizedDescription] : message;
+    app_log((__bridge void *)self, text.UTF8String, [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
+}
+#endif
 
 - (void)appendMessage:(NSString *)message {
     self.console.text = [self.console.text stringByAppendingFormat:@"%@\n", message];
