@@ -373,3 +373,11 @@ IPA staging. Both Linux and signed Android fixture builds include the output
 adapter and preserve its source hashes. This changes diagnostic framing, not
 ART's interpreter policy or the required managed/console outcomes. New full
 CI and signed IPA verification remain required before reporting recovery.
+
+At `5e821ca`, all 19 host jobs and the iOS build pass. Independent runtime
+artifact verification checks 96 corresponding-source hashes, managed outcomes,
+console delivery/drop controls and the missing-class process's exact lines.
+
+The integrated IPA also verifies independently: 16 arm64 iOS 15 images,
+15 ELF/layout pairs, five resources, 175 notice hashes and empty entitlements.
+This establishes artifact recovery, without claiming physical iPhone execution.
