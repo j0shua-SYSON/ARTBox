@@ -2836,3 +2836,9 @@ exact-output check exposed four additional Bn/Bp compatibility headers emitted
 for the two parcelables. The compiler's pinned GenerateCpp implementation emits
 all three header kinds for every definition. Include those headers in the exact
 20-file inventory rather than permitting arbitrary extra output.
+
+The next check showed that generated comments include the compiler's full
+command line, including absolute temporary paths. Use its upstream
+`--omit_invocation` option and retain the relevant options in provenance instead.
+This keeps the output portable and permits strict byte-for-byte comparison
+without rewriting generated source or filtering differences after generation.

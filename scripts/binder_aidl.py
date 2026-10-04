@@ -20,6 +20,7 @@ from sources import obtain
 
 INTERFACES = ('IServiceManager', 'IServiceCallback', 'IClientCallback')
 PARCELABLES = ('ConnectionInfo', 'ServiceDebugInfo')
+COMPILER_OPTIONS = ('--lang=cpp', '--structured', '--min_sdk_version=29', '--omit_invocation')
 
 
 def digest(data):
@@ -116,7 +117,7 @@ def generated_files(root):
 def compile_aidl(executable, source, destination, inputs, log):
     destination.mkdir(parents=True)
     (destination / 'src').mkdir(); (destination / 'include').mkdir()
-    args = [str(executable), '--lang=cpp', '--structured', '--min_sdk_version=29',
+    args = [str(executable), *COMPILER_OPTIONS,
             '--out=' + str(destination / 'src'), '--header_out=' + str(destination / 'include'),
             '-I', '.', *inputs]
     result = subprocess.run(args, cwd=source, capture_output=True, timeout=60)
@@ -185,6 +186,7 @@ def main():
     project_paths = ('scripts/binder_aidl.py', 'scripts/sources.py', 'scripts/environment.py',
                      'third_party/binder/aidl-tools.json', 'third_party/sources.json', 'tests/test_binder_aidl.py')
     record = dict(profile=profile, compiler_source_commit=spec['compiler_source_commit'],
+        compiler_options=list(COMPILER_OPTIONS),
         compiler_sha256=digest(executable.read_bytes()), tool_commit=spec['commit'],
         project_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         project_files={name:digest((ROOT / name).read_bytes()) for name in project_paths},
