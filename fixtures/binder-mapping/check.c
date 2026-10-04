@@ -52,5 +52,15 @@ int artbox_binder_mapping_check(void *context, const artbox_binder_device_ops *d
     CHECK(device->close(context, c) == 0);
     CHECK(memory->protect(context, (uint64_t)first, page, 0) == 0);
     CHECK(memory->unmap(context, (uint64_t)first, page) == 0);
+    int readonly = memory->open(context, 0);
+    CHECK(readonly >= 0);
+    first = memory->map(context, readonly, page, 1, 1, 0);
+    CHECK(first > 0);
+    CHECK(device->close(context, readonly) == 0);
+    CHECK(memory->unmap(context, (uint64_t)first, page) == 0);
+    int writeonly = memory->open(context, 1);
+    CHECK(writeonly >= 0);
+    CHECK(memory->map(context, writeonly, page, 1, 2, 0) == -13);
+    CHECK(device->close(context, writeonly) == 0);
     return cases;
 }

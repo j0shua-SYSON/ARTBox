@@ -81,9 +81,16 @@ extern "C" int64_t artbox_vfs_mmap(artbox_vfs *fs, artbox_vm *vm, uint64_t addre
     if (!fs || !vm) return -22;
     if (flags & 0x20) return artbox_vm_mmap(vm, address, length, prot, flags, fd, offset);
     if (prot & 4) return -1;
-    std::lock_guard<std::mutex> guard(fs->lock);
+    std::unique_lock<std::mutex> guard(fs->lock);
     descriptor *d = get(fs, static_cast<int32_t>(fd));
     if (!d) return -9;
+    if (d->kind == 9) {
+        if ((d->flags & 3) == 1) return -13; // mmap requires a readable descriptor.
+        auto binder = d->binder;
+        guard.unlock();
+        if (binder->vm != vm) return -95;
+        return artbox_binder_device_mmap(binder->device, binder->token, address, length, prot, flags, offset);
+    }
     if (d->kind != 5 || d->directory) return -19;
     unsigned access = d->flags & 3;
     if (access == 1) return -13; // Every file mapping requires readable backing.

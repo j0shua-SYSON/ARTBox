@@ -218,7 +218,8 @@ def compare_driver(build, reference):
     with log.open('w', encoding='utf-8') as output:
         for command in (
             [cmake, '-S', str(ROOT), '-B', str(build), '-DCMAKE_BUILD_TYPE=Release'],
-            [cmake, '--build', str(build), '--target', 'test_binder_device', 'test_binder_vfs', '--parallel', '2'],
+            [cmake, '--build', str(build), '--target', 'test_binder_device', 'test_binder_vfs',
+             'test_binder_receive', '--parallel', '2'],
         ):
             output.write(' '.join(command) + '\n'); output.flush()
             subprocess.run(command, stdout=output, stderr=subprocess.STDOUT, check=True, timeout=180)
@@ -230,6 +231,13 @@ def compare_driver(build, reference):
         vfs_run = subprocess.run([str(vfs_runner)], capture_output=True, text=True, timeout=30)
         output.write(vfs_run.stdout + vfs_run.stderr)
         vfs_run.check_returncode()
+        receive_runner = build / 'test_binder_receive'
+        with tempfile.TemporaryDirectory(prefix='receive-', dir=build) as root:
+            receive_run = subprocess.run([str(receive_runner), root], capture_output=True, text=True, timeout=30)
+            output.write(receive_run.stdout + receive_run.stderr)
+            receive_run.check_returncode()
+            if any(Path(root).iterdir()):
+                raise RuntimeError('Binder receive backing escaped its anonymous lifetime')
     result = json.loads(run.stdout)
     expected = {'protocol': reference['protocol'], 'shared_cases': reference['cases'],
                 'vm_and_admission_controls': True, 'concurrent_lifecycles': 4000, 'passed': True}
@@ -239,9 +247,14 @@ def compare_driver(build, reference):
     if vfs_result != {'shared_ioctl_cases': reference['cases'], 'shared_file_cases': reference['file_cases'],
                       'concurrent_lifecycles': 4000, 'passed': True}:
         raise RuntimeError('Binder VFS did not pass the exact native ioctl and descriptor fixtures')
+    receive_result = json.loads(receive_run.stdout)
+    if receive_result != dict(shared_mapping_cases=reference['mapping_cases'], native_alias_verified=True,
+                              ownership_controls=True, passed=True):
+        raise RuntimeError('Binder receive mapping did not pass the exact native lifetime fixture')
     return {**result, 'runner_sha256': digest(runner),
             'vfs': vfs_result, 'vfs_runner_sha256': digest(vfs_runner),
-            'scope': 'Same ioctl/endpoint and descriptor fixtures; no mapping, transaction, polling or death comparison'}
+            'receive': receive_result, 'receive_runner_sha256': digest(receive_runner),
+            'scope': 'Same ioctl, descriptor and mapping lifetime fixtures; no transaction, polling or death comparison'}
 
 
 def main():
@@ -273,6 +286,7 @@ def main():
         if args.compare_driver:
             record['driver'] = compare_driver(Path(os.environ['ARTBOX_BUILD_DIR']) / 'm4/kernel-reference/core', record['native'])
             record['artbox_driver_compared'] = True
+            record['mapping_driver_compared'] = True
     record['project_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     sources = [
         ROOT / 'fixtures/binder-device/check.c', ROOT / 'fixtures/binder-device/check.h',
@@ -281,7 +295,8 @@ def main():
         ROOT / 'tests/native_binder_device.c', ROOT / 'core/include/artbox/binder_wire.h',
         ROOT / 'third_party/binder/kernel-reference.json', Path(__file__).resolve()]
     if args.compare_driver:
-        sources += [ROOT / 'CMakeLists.txt', ROOT / 'tests/test_binder_device.cpp', ROOT / 'tests/test_binder_vfs.cpp']
+        sources += [ROOT / 'CMakeLists.txt', ROOT / 'tests/test_binder_device.cpp', ROOT / 'tests/test_binder_vfs.cpp',
+                    ROOT / 'tests/test_binder_receive.cpp']
         sources += [p for folder in ('core', 'platform') for p in (ROOT / folder).rglob('*')
                     if p.is_file() and p.suffix in ('.c', '.cpp', '.h', '.S')]
     record['project_files'] = {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p) for p in sorted(set(sources))}
@@ -289,7 +304,7 @@ def main():
         json.dumps(record, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({'prepared': True, 'kernel': kernel, 'native_execution_verified': record['native_execution_verified'],
                       'artbox_driver_compared': record['artbox_driver_compared'],
-                      'mapping_driver_compared': False,
+                      'mapping_driver_compared': record['mapping_driver_compared'],
                       'native': record.get('native'), 'driver': record.get('driver')}, indent=2))
 
 

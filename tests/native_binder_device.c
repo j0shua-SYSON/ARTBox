@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
     const artbox_binder_file_ops files = {open_file, close_device, read_file, write_file, seek_file, type_file};
     int file_cases = artbox_binder_file_check(argv[2], &files, &scratch);
     if (file_cases < 0) return 1;
-    const artbox_binder_mapping_ops memory = {(uint64_t)sysconf(_SC_PAGESIZE), map_file, protect_file, unmap_file};
+    const artbox_binder_mapping_ops memory = {(uint64_t)sysconf(_SC_PAGESIZE), map_file, protect_file, unmap_file, open_file};
     int mapping_cases = artbox_binder_mapping_check(argv[2], &ops, &memory);
     if (mapping_cases < 0) return 1;
     printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"mapping_cases\":%d,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases);

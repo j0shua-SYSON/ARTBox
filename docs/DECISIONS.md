@@ -2555,3 +2555,43 @@ reject incoming allocations after loss of INTACT and preserve mapped-once
 state after unmap. Descriptor-close flush/wakeup needs its own contract before
 blocking Binder reads are enabled. Each watch adds bounded host metadata and
 atomic state changes; it adds no executable memory or platform entitlement.
+
+## 0097: Own Binder receive views independently of guest descriptors
+
+Status: portable lifetime controls pass; native provider and paired Linux
+mapping comparison are awaiting CI.
+
+Configure a private backing factory before opening a Binder context. Each
+successful receive mmap acquires two shared views of fresh, unlinked storage:
+a writable view in a driver-owned VM and a read-only view in the guest VM.
+Even guest MAP_PRIVATE uses shared receive bytes, as Binder requires. The
+guest's write ceiling persists through mprotect. The factory uses the supplied
+private root, descriptor-relative exclusive creation, unlink and ftruncate;
+there is no global temporary path or executable mapping.
+
+FD close invalidates the endpoint's call token but retains mapping resources
+and context-manager ownership while the passive watch is LIVE. Subsequent
+device operations reap closed endpoints after final unmap or replacement.
+No VM release callback enters Binder. The closed endpoint drops its borrowed
+guest VM pointer immediately, so VM destruction can precede deferred reaping.
+An open that has mapped once cannot map again after unmap. VFS mmap holds an
+open-description reference and releases its table lock before entering Binder,
+allowing descriptor close during an in-flight map.
+
+The backing limit is explicit per endpoint, up to 4 MiB; requests beyond it
+fail ENOMEM rather than silently extending host storage. Both aliases reserve
+virtual space, while resident pages depend on use. Unused bytes are zero-backed,
+unlike Linux Binder's demand-populated pages that fault on invalid reads. This
+is a documented initial difference, not a passing comparison of those faults.
+Fixed receive maps and nonzero offsets remain unsupported. Transaction delivery
+must still reject new allocations after loss of INTACT, impose async quotas,
+and arrange close wakeups before enabling blocking reads.
+
+The existing 28-case native mapping fixture now also drives guest VFS mmap,
+expanded to 35 cases with read-only and write-only descriptor checks.
+Additional controls cover allocation/alias-map failure cleanup, cross-VM use,
+anonymous replacement, VM-before-device teardown and concurrent close/map.
+The native provider test additionally checks driver-to-guest byte coherence
+and absence of retained directory entries. Windows runs injected ownership
+controls; Mac/Linux must run native backing and the real Linux reference job
+must compare the same fixture before mapping compatibility is reported.

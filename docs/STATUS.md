@@ -51,7 +51,7 @@ Unsupported operations retain explicit errors. See the individual contracts.
 ## Current work
 
 M4: the [Binder wire boundary](binder.md) recognizes the Android 15 ARM64
-commands and validates transaction/object snapshots. Local checks pass 39 host
+commands and validates transaction/object snapshots. Local checks pass 40 host
 contracts and 60 comparisons against actual NDK UAPI constants plus an
 independently produced byte fixture. A bounded receive-arena primitive also
 passes local ownership/exhaustion checks and 8,000 concurrent lifecycles;
@@ -67,13 +67,19 @@ At `ba255d2`, Linux and VFS pass the same 32 ioctl/22 file cases, with 90 input
 hashes verified. At `4d3a124`, the native mapping/lifetime fixture passes 28
 cases, with 92 input hashes verified; mapping comparison remains explicitly
 false. Passive VM lifetime watches now pass local ownership/failure checks and
-128 concurrent teardown cycles. Receive integration, delivery, polling, references,
-death notifications and real servicemanager are next; M4 is not complete.
+128 concurrent teardown cycles. The receive path now retains independent native
+aliases and mapped endpoint ownership through descriptor close. Its 35-case shared
+fixture and allocation, replacement and concurrent-close controls pass locally;
+the paired Linux/native-provider comparison is pending. Delivery, polling,
+references, death notifications and real servicemanager are next; M4 is not complete.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write
-acceptance records fix the framing locally without weakening the exact-line
-checks. Full CI and integrated IPA verification remain pending for that fix.
+acceptance records fix the framing without weakening the exact-line checks.
+At `5e821ca`, all 19 host jobs and the iOS build pass; the downloaded runtime
+verifies 96 source hashes and all managed, console and missing-class controls.
+The integrated IPA independently verifies 16 iOS 15 images, 15 ELF/layout pairs,
+five runtime resources and 175 notice hashes, with empty entitlements.
 
 M3 main artifacts were downloaded and verified independently: 16 signed iOS 15
 images, 15 ELF/layout pairs, five runtime resources and 175 notice hashes.

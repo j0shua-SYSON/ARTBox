@@ -11,6 +11,7 @@ typedef struct artbox_binder_mapping_ops {
                    unsigned flags, uint64_t offset);
     int (*protect)(void *context, uint64_t address, uint64_t length, unsigned protection);
     int (*unmap)(void *context, uint64_t address, uint64_t length);
+    int (*open)(void *context, uint32_t flags);
 } artbox_binder_mapping_ops;
 /* Linux protection/sharing bits; no executable mappings. Never read unused
  * receive bytes: Linux has not populated those pages with transaction data.

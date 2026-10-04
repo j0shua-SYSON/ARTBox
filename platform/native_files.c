@@ -7,6 +7,9 @@ artbox_file_ops artbox_native_files_ops(artbox_native_files *files) {
     (void)files; artbox_file_ops ops = {0}; return ops;
 }
 int artbox_native_files_close(artbox_native_files *files) { (void)files; return -95; }
+int artbox_native_files_temporary(void *files, size_t length, void **file) {
+    (void)files; (void)length; (void)file; return -95;
+}
 #else
 #include <errno.h>
 #include <fcntl.h>
@@ -15,6 +18,8 @@ int artbox_native_files_close(artbox_native_files *files) { (void)files; return 
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <stdatomic.h>
+#include <stdio.h>
 struct artbox_native_files { int root; };
 typedef struct file_handle { int fd; } file_handle;
 static int error(void) {
@@ -60,6 +65,30 @@ static int close_file(void *handle) {
     file_handle *file = handle;
     int result = close(file->fd) ? error() : 0;
     free(file); return result; // Never retry close and accidentally close a reused FD.
+}
+int artbox_native_files_temporary(void *context, size_t length, void **out) {
+    if (!context || !out || !length || length > INT64_MAX) return -22;
+    static _Atomic unsigned long sequence = 0;
+    artbox_native_files *files = context;
+    file_handle *file = malloc(sizeof(*file));
+    if (!file) return -12;
+    for (unsigned attempt = 0; attempt < 64; ++attempt) {
+        char name[96];
+        unsigned long serial = atomic_fetch_add_explicit(&sequence, 1, memory_order_relaxed);
+        int count = snprintf(name, sizeof(name), "artbox-backing-%ld-%lu", (long)getpid(), serial);
+        if (count < 0 || (size_t)count >= sizeof(name)) { free(file); return -5; }
+        file->fd = openat(files->root, name, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW, 0600);
+        if (file->fd < 0) {
+            if (errno == EEXIST) continue;
+            int result = error(); free(file); return result;
+        }
+        if (unlinkat(files->root, name, 0) || ftruncate(file->fd, (off_t)length)) {
+            int result = error(); (void)close_file(file); return result;
+        }
+        *out = file;
+        return 0;
+    }
+    free(file); return -17;
 }
 static int64_t read_file(void *handle, void *buffer, size_t size) {
     ssize_t result = read(((file_handle *)handle)->fd, buffer, size);

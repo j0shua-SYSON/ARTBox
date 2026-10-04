@@ -86,7 +86,7 @@ int main() {
     CHECK(ioctl_device(&foreign, fd, ARTBOX_BINDER_VERSION, address) == -95);
     CHECK(artbox_vm_destroy(other_vm) == 0);
     CHECK(artbox_vfs_call(c.fs, &c.thread, 80, static_cast<uint64_t>(fd), 1, 0, 0) == -14);
-    CHECK(artbox_vfs_mmap(c.fs, vm, 0, memory.page_size, 1, 2, fd, 0) == -19); // Not enabled yet.
+    CHECK(artbox_vfs_mmap(c.fs, vm, 0, memory.page_size, 1, 2, fd, 0) == -95); // No receive provider configured.
     CHECK(close_file(&c, fd) == 0);
 
     // Directory-relative discovery and independent same-PID opens.

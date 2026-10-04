@@ -3,8 +3,8 @@
 M4 is in progress. The current implementation validates the 64-bit Android
 Binder wire boundary and implements an initial endpoint/ioctl API. It does not
 deliver transactions, run servicemanager or complete M4. A configured VFS now
-exposes `/dev/binder` for the tested ioctl subset; mapping and polling remain
-pending. Recognizing other commands does not implement those operations.
+exposes `/dev/binder` for the tested ioctl subset and configured receive mappings.
+Polling remains pending. Recognizing other commands does not implement them.
 
 ## Boundary implemented
 
@@ -34,9 +34,10 @@ a compiler's ordinary struct padding cannot define this boundary.
 `binder_device` owns a private context and independent state per open, including
 for opens from the same virtual PID. Monotonic tokens never reuse a closed
 endpoint's identity. A fixed virtual UID owns the context-manager registration;
-the UID restriction survives its owner's close. Context-manager removal is
-immediate in this synchronous boundary; callers must still tolerate Linux's
-deferred release. No host credentials or descriptors are exposed.
+the UID restriction survives its owner's close. An unmapped manager is removed
+on close; a mapped one remains until the final original page disappears and a
+device operation reaps it. Callers must tolerate deferred release. No host
+credentials or descriptors are exposed.
 
 VERSION, MAX_THREADS, CONTEXT_MGR/EXT, THREAD_EXIT and WRITE_READ's three looper
 commands are enabled. Every copy uses the guest VM. A failed write preserves
@@ -102,8 +103,8 @@ zero-length transactions, extent boundaries, fragmentation, recycling,
 byte/metadata exhaustion and 8,000 lifecycles across eight concurrent workers.
 This is an internal storage primitive, not a Binder ioctl implementation or
 Linux quota comparison. The caller must provide valid writable storage and its
-guest alias. A native read-only guest mapping, VM registration, async quotas and
-driver-close lifetime are not integrated yet. The synthetic-address host test
+guest alias. The arena is not yet connected to transaction delivery or async
+quotas. The synthetic-address host test
 does not establish native alias permissions.
 
 `test_binder_mapping` exercises the existing native file/VM providers with two
@@ -121,8 +122,19 @@ unmap or anonymous replacement; LIVE clears after the last original file page
 is gone, even if anonymous reservation pages remain. Watches retain no file or
 VM and are readable after VM teardown. They avoid callbacks into Binder under
 the VM lock; their snapshots do not pin memory. Local tests include poisoned
-replacement and 128 concurrent observation/teardown cycles. Production Binder
-mapping integration is still pending; see ADR 0096.
+replacement and 128 concurrent observation/teardown cycles; see ADR 0096.
+
+The endpoint/VFS receive path now owns separate writable driver and read-only
+guest aliases through a configured private backing factory. Closing a descriptor
+retains context-manager ownership until the last original file page disappears;
+later calls reap it without VM-to-device callbacks. The same open cannot remap
+after unmap. Portable checks pass the shared 35-case mapping fixture, failure
+cleanup, replacement, cross-VM rejection and close during an in-flight mmap.
+Native alias coherence and paired Linux mapping comparison await CI. Unused
+bytes are zero-backed rather than Linux's faulting demand-populated pages;
+fixed mappings, nonzero offsets and transactions remain unsupported. The fixture
+adds seven access-mode checks to the already verified 28-case Linux baseline;
+their native comparison is pending. See ADR 0097.
 
 ## Evidence
 
