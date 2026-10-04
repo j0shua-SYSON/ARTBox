@@ -47,6 +47,10 @@ static int poll_device(void *context, int fd, unsigned events) {
     int result = poll(&descriptor, 1, 0);
     return result < 0 ? -errno : descriptor.revents;
 }
+static int transaction_events(void *context, int fd, int32_t tid) {
+    (void)tid; // Native poll observes its calling pthread.
+    return poll_device(context, fd, 5);
+}
 static int64_t call_device(void *context, int fd, uint32_t request, uint64_t argument) {
     (void)context;
     int result = ioctl(fd, (unsigned long)request, (unsigned long)argument);
@@ -181,9 +185,9 @@ int main(int argc, char **argv) {
     int mapping_cases = artbox_binder_mapping_check(argv[2], &ops, &memory);
     if (mapping_cases < 0) return 1;
     struct transaction_context context = {argv[2], (int32_t)getpid(), (int32_t)getpid(), -1, 1};
-    const artbox_binder_transaction_ops transactions = {transaction_pid, (uint32_t)geteuid(),
+    artbox_binder_transaction_ops transactions = {transaction_pid, (uint32_t)geteuid(),
         (size_t)sysconf(_SC_PAGESIZE), transaction_open, close_device, transaction_map, transaction_unmap,
-        transaction_ioctl, transaction_read, pause_device, transaction_parallel};
+        transaction_ioctl, transaction_read, pause_device, transaction_parallel, NULL};
     artbox_binder_transaction_scratch server = {0}, client = {0};
     if (artbox_binder_transaction_same_pid_check(&context, &transactions, &server, &client)) return 1;
     if (artbox_binder_transaction_check(&context, &transactions, &server, &client)) return 1;
@@ -195,12 +199,17 @@ int main(int argc, char **argv) {
     if (wait_cases != 4) return 1;
     context.nonblocking = 0;
     if (artbox_binder_transaction_check(&context, &transactions, &server, &client)) return 1;
+    context.nonblocking = 1; transactions.events = transaction_events;
+    if (artbox_binder_transaction_check(&context, &transactions, &server, &client)) return 1;
+    if (artbox_binder_death_check(&context, &transactions, &server, &client) != 3) return 1;
+    if (artbox_binder_object_check(&context, &transactions, &server, &client)) return 1;
+    if (artbox_binder_oneway_check(&context, &transactions, &server, &client)) return 1;
     artbox_binder_poll_scratch poll_scratch;
     int poll_cases = artbox_binder_poll_check(argv[2], &ops, poll_device, &poll_scratch);
     if (poll_cases < 0) return 1;
     printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"mapping_cases\":%d,"
            "\"same_pid_rejected\":true,\"threaded_ping_pong\":true,\"death_cases\":%d,"
            "\"object_handle_lifecycle\":true,\"oneway_lifecycle\":true,\"wait_cases\":%d,\"blocking_threaded_ping_pong\":true,"
-           "\"poll_cases\":%d,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases, wait_cases, poll_cases);
+           "\"poll_cases\":%d,\"readiness_lifecycle\":true,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases, wait_cases, poll_cases);
     return 0;
 }

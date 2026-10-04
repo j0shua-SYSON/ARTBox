@@ -76,6 +76,19 @@ static descriptor *get(artbox_vfs *fs, int32_t fd) {
     descriptor *d = &fs->descriptors[static_cast<size_t>(fd - 3)];
     return d->kind ? d : nullptr;
 }
+extern "C" int artbox_vfs_events(artbox_vfs *fs, artbox_kernel_thread *thread, int fd) {
+    if (!fs || !thread || !thread->vm) return -22;
+    std::shared_ptr<BinderOpen> binder;
+    {
+        std::lock_guard<std::mutex> guard(fs->lock);
+        descriptor *d = get(fs, fd);
+        if (!d) return -9;
+        if (!d->binder) return -95;
+        binder = d->binder;
+    }
+    if (binder->vm != thread->vm) return -95;
+    return artbox_binder_device_events(binder->device, binder->token, thread->tid);
+}
 extern "C" int64_t artbox_vfs_mmap(artbox_vfs *fs, artbox_vm *vm, uint64_t address,
     uint64_t length, uint64_t prot, uint64_t flags, int64_t fd, uint64_t offset) {
     if (!fs || !vm) return -22;
@@ -209,7 +222,7 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
     if (!fs || !thread || !thread->vm || !thread->system.random) return -22;
     if (number == 29) {
         // Pin the open description, then release the table lock before driver
-        // dispatch. A future blocking read must not serialize all descriptors.
+        // dispatch. A blocking read must not serialize all descriptors.
         std::shared_ptr<BinderOpen> binder;
         {
             std::lock_guard<std::mutex> guard(fs->lock);

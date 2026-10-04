@@ -33,6 +33,11 @@ static int send(struct endpoint *e, size_t size) {
     return 0;
 }
 static int receive(struct endpoint *e, size_t *size) {
+    if (e->ops->events) {
+        int ready = e->ops->events(e->context, e->fd, e->tid);
+        REQUIRE(ready == 0 || ready == 1);
+        if (!ready) { *size = 0; return 0; }
+    }
     uint64_t *t = e->scratch->transfer;
     memset(t, 0, 6 * sizeof(*t));
     t[3] = sizeof(e->scratch->read); t[5] = pointer(e->scratch->read);

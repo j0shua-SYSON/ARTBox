@@ -5,7 +5,8 @@ Binder wire boundary and implements an endpoint/ioctl API. Synchronous parcels,
 strong objects, one-way ordering and death notifications pass paired Linux/ARTBox
 execution; servicemanager and M4 acceptance remain incomplete. A configured VFS
 exposes `/dev/binder` for the tested ioctl subset and configured receive mappings.
-Polling remains pending. Recognizing other commands does not implement them.
+Readiness snapshots are implemented; persistent poll/epoll registration remains
+pending. Recognizing other commands does not implement them.
 
 ## Boundary implemented
 
@@ -238,15 +239,34 @@ and all four wait cases pass Linux/ARTBox comparison. The downloaded artifact,
 merge-parent identity and 97 project input hashes verify; injected signal epochs
 remain explicitly distinguished from native handler execution.
 
-## Readiness reference
+## Readiness snapshots
 
-The next shared fixture records input readiness without consuming it. It checks
-initial thread returns, repeated polling, absence of writable readiness, clearing
-on successful and failed ioctls, thread recreation, and a queued failed reply
-remaining readable until consumed. The native runner uses zero-timeout `poll`;
-ARM64 compilation passes, and native execution is pending. `poll_driver_compared`
-remains false. Persistent epoll registration, blocking waits, cross-thread wakeups
-and the service event loop need additional contracts before implementation.
+The device snapshot and VFS helper report Linux input readiness without consuming
+work or clearing the thread's initial return. VFS pins the open description,
+releases its table mutex, then observes the device. Device snapshots share thread
+admission with ioctl; a full thread pool reports POLLERR without evicting another
+TID. Missing descriptors, foreign VMs and unsupported descriptor types retain
+explicit errors. No guest poll/epoll syscall is enabled by these helpers.
+
+The native 19-case reference passes at `0f1ae04`, with artifact provenance and
+99 source hashes independently verified. It checks initial thread returns,
+repeated polling, absence of writable readiness, clearing on successful and
+failed ioctls, thread recreation, and queued failed replies remaining readable
+until consumed.
+
+The expanded 31-case shared fixture additionally checks process-level death
+readiness before ENTER_LOOPER, repeated observation, and later consumption by
+an entered looper. The snapshot's process-work eligibility is separate from the
+current read-routing contract; polling itself never changes looper registration.
+Local checks cover admission, active-TID rejection, descriptor closure/reuse and
+foreign VM rejection. Native comparison of the expanded contract is pending.
+
+The existing ping/reply, three death cases, strong-object lifecycle and ordered
+one-way fixtures also rerun through readiness checks on both sides. Their original
+mode still directly exercises empty nonblocking reads. Persistent epoll
+registration, blocking poll waits, cross-thread wakeups and the service event
+loop need additional contracts. This uses existing non-executable metadata and
+requires no new platform API or entitlement. See ADR 0107.
 
 ## Evidence
 

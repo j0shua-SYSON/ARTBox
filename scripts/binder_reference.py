@@ -187,7 +187,7 @@ def run_native(spec, installed, build):
                       'same_pid_rejected': True, 'threaded_ping_pong': True, 'death_cases': 3,
                       'object_handle_lifecycle': True, 'oneway_lifecycle': True, 'wait_cases': 4,
                       'blocking_threaded_ping_pong': True,
-                      'poll_cases': 19,
+                      'poll_cases': 31, 'readiness_lifecycle': True,
                       'fresh_binderfs_context': True, 'passed': True}:
             raise RuntimeError('Native Binder reference did not execute every expected case')
         record = {**result, 'vermagic': version, 'module_license': license_name,
@@ -261,7 +261,7 @@ def compare_driver(build, reference):
                       'concurrent_lifecycles': 4000, 'passed': True}:
         raise RuntimeError('Binder VFS did not pass the exact native ioctl and descriptor fixtures')
     receive_result = json.loads(receive_run.stdout)
-    if receive_result != dict(shared_mapping_cases=reference['mapping_cases'], native_alias_verified=True,
+    if receive_result != dict(shared_mapping_cases=reference['mapping_cases'], shared_poll_cases=reference['poll_cases'], native_alias_verified=True,
                               ownership_controls=True, wait_contract_cases=reference['wait_cases'],
                               interrupt_epoch_injected=True, passive_unmap_wakeup=True, passed=True):
         raise RuntimeError('Binder receive mapping did not pass the exact native lifetime fixture')
@@ -271,13 +271,14 @@ def compare_driver(build, reference):
                                  death_cases=reference['death_cases'], object_handle_lifecycle=reference['object_handle_lifecycle'],
                                  oneway_lifecycle=reference['oneway_lifecycle'],
                                  blocking_threaded_ping_pong=reference['blocking_threaded_ping_pong'],
+                                 readiness_lifecycle=reference['readiness_lifecycle'],
                                  native_aliases=True, cleanup=True, passed=True):
         raise RuntimeError('Binder transaction driver did not pass the shared native fixture')
     return {**result, 'runner_sha256': digest(runner),
             'vfs': vfs_result, 'vfs_runner_sha256': digest(vfs_runner),
             'receive': receive_result, 'receive_runner_sha256': digest(receive_runner),
             'transactions': transaction_result, 'transaction_runner_sha256': digest(transaction_runner),
-            'scope': 'Paired ioctl, descriptor, mapping, synchronous parcels, strong-object, one-way, death and wait contracts; injected ARTBox signal epoch; no readiness polling comparison'}
+            'scope': 'Paired ioctl, descriptor, mapping, synchronous parcels, strong-object, one-way, death and wait contracts; injected ARTBox signal epoch and readiness snapshots; no persistent poll/epoll wait registration'}
 
 
 def main():
@@ -317,6 +318,7 @@ def main():
             record['object_driver_compared'] = True
             record['oneway_driver_compared'] = True
             record['wait_driver_compared'] = True
+            record['poll_driver_compared'] = True
     record['project_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     sources = [
         ROOT / 'fixtures/binder-device/check.c', ROOT / 'fixtures/binder-device/check.h',

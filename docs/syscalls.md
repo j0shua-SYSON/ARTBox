@@ -406,7 +406,10 @@ Signals and passive watches use 5 ms ordinary-context checks. At `e53e803`, shar
 pass with independently verified provenance and input hashes. This does not
 claim readiness polling or native signal delivery through signed Bionic.
 
-The native readiness reference adds 19 assertions for poll snapshots without
-consumption, initial-return lifecycle, event filtering and queued error delivery.
-Execution is pending and `poll_driver_compared` is false; no guest poll/epoll
-syscall is enabled by adding this reference.
+At `0f1ae04`, the native readiness reference passes 19 assertions for snapshots
+without consumption, initial-return lifecycle, event filtering and queued errors.
+Device/VFS snapshot helpers now share ioctl thread admission, pin the descriptor
+and observe process work without changing looper state. The expanded 31-case
+contract passes locally; its native comparison and the IPC fixtures running
+through readiness checks await CI. No guest poll/epoll syscall or persistent
+wait registration is enabled yet.

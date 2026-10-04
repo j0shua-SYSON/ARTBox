@@ -29,6 +29,10 @@ typedef struct artbox_binder_transaction_ops {
      * opens inside its callback. No callback may outlive this function. */
     int (*parallel)(void *context, int (*left)(void *), void *left_arg,
         int (*right)(void *), void *right_arg, int results[2]);
+    /* Optional readiness mode: return Linux poll bits without consuming work.
+     * A non-ready snapshot skips that iteration; the original mode still
+     * exercises nonblocking empty reads directly. */
+    int (*events)(void *context, int fd, int32_t tid);
 } artbox_binder_transaction_ops;
 /* Scratch ranges belong to the calling VM/native process. Each endpoint owns
  * its own scratch, mapping and TID. Uses nonblocking endpoints and bounded waits.

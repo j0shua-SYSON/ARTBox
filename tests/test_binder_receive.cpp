@@ -5,6 +5,7 @@
 #include "artbox/native_vm.h"
 #include "artbox/signals.h"
 #include "../fixtures/binder-mapping/check.h"
+#include "../fixtures/binder-poll/check.h"
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -88,6 +89,11 @@ static int64_t ioctl_device(void *opaque, int fd, uint32_t request, uint64_t arg
     return artbox_vfs_call(c->fs, &c->thread, 29, static_cast<uint64_t>(fd), request, argument, 0);
 }
 static void pause_device(void *) { std::this_thread::yield(); }
+static int poll_device(void *opaque, int fd, unsigned events) {
+    auto *c = static_cast<Context *>(opaque);
+    const int result = artbox_vfs_events(c->fs, &c->thread, fd);
+    return result < 0 ? result : result & static_cast<int>(events | 0x38);
+}
 static int64_t map_device(void *opaque, int fd, uint64_t length, unsigned prot, unsigned flags, uint64_t offset) {
     auto *c = static_cast<Context *>(opaque);
     return artbox_vfs_mmap(c->fs, c->thread.vm, 0, length, prot, flags, fd, offset);
@@ -125,6 +131,7 @@ static void interrupted_reads(Context &c, artbox_binder_device *device) {
             CHECK(std::chrono::steady_clock::now() < deadline); std::this_thread::yield();
         }
         CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_THREAD_EXIT, 0) == -16);
+        CHECK(artbox_vfs_events(c.fs, &c.thread, fd) == -16);
         // Remove a lower-index thread while the reader has released the device
         // mutex. Its waiter must reacquire by TID, not retain a vector element.
         CHECK(artbox_vfs_call(c.fs, &auxiliary, 29, fd, ARTBOX_BINDER_THREAD_EXIT, 0, 0) == 0);
@@ -216,6 +223,37 @@ int main(int argc, char **argv) {
     CHECK(c.fs && artbox_kernel_thread_init(&c.thread, vm, &system, 100, 100) == 0);
     std::memcpy(reinterpret_cast<void *>(c.path), "/dev/binder", 12);
     CHECK(artbox_vfs_set_binder(c.fs, device, 10000) == 0);
+    const artbox_binder_device_ops ioctls = {open_device, close_device, ioctl_device, pause_device};
+    auto *poll_scratch = reinterpret_cast<artbox_binder_poll_scratch *>(c.path + 128);
+    CHECK(artbox_binder_poll_check(&c, &ioctls, poll_device, poll_scratch) == 31);
+    // Readiness admits threads into the same bounded pool as ioctl. Exhaustion
+    // reports POLLERR without discarding another thread or its initial return.
+    {
+        uint64_t token = 0;
+        CHECK(artbox_binder_device_events(nullptr, 0, 100) == -22);
+        CHECK(artbox_binder_device_events(device, 0, 100) == -9);
+        CHECK(artbox_binder_device_open(device, vm, 100, 10000, &token) == 0);
+        CHECK(artbox_binder_device_events(device, token, 0) == -22);
+        for (int tid = 1; tid <= 4; ++tid) CHECK(artbox_binder_device_events(device, token, tid) == 1);
+        CHECK(artbox_binder_device_events(device, token, 5) == 8);
+        CHECK(artbox_binder_device_ioctl(device, token, 5, ARTBOX_BINDER_VERSION, c.path + 768) == -12);
+        CHECK(artbox_binder_device_ioctl(device, token, 1, ARTBOX_BINDER_VERSION, c.path + 768) == 0);
+        CHECK(artbox_binder_device_events(device, token, 1) == 0);
+        CHECK(artbox_binder_device_events(device, token, 2) == 1);
+        CHECK(artbox_binder_device_ioctl(device, token, 2, ARTBOX_BINDER_THREAD_EXIT, 0) == 0);
+        CHECK(artbox_binder_device_events(device, token, 5) == 1);
+        CHECK(artbox_binder_device_close(device, token) == 0);
+        CHECK(artbox_binder_device_events(device, token, 1) == -9);
+        CHECK(artbox_vfs_events(nullptr, &c.thread, 3) == -22);
+        CHECK(artbox_vfs_events(c.fs, nullptr, 3) == -22);
+        CHECK(artbox_vfs_events(c.fs, &c.thread, -1) == -9);
+        std::memcpy(reinterpret_cast<void *>(c.path + 1024), "/dev/null", 10);
+        const int nonbinder = static_cast<int>(artbox_vfs_call(c.fs, &c.thread, 56,
+            UINT32_C(0xffffff9c), c.path + 1024, 0, 0));
+        CHECK(nonbinder >= 3 && artbox_vfs_events(c.fs, &c.thread, nonbinder) == -95);
+        CHECK(close_device(&c, nonbinder) == 0);
+        CHECK(artbox_vfs_events(c.fs, &c.thread, nonbinder) == -9);
+    }
     // Linux marks a newly allocated Binder thread for an initial return. Even
     // an empty nonblocking first read returns NOOP once; the next is EAGAIN.
     {
@@ -239,7 +277,6 @@ int main(int argc, char **argv) {
     interrupted_reads(c, device);
     mapped_owner_wakeup(c, device, page);
     CHECK(provider.live == 0);
-    const artbox_binder_device_ops ioctls = {open_device, close_device, ioctl_device, pause_device};
     const artbox_binder_mapping_ops memory = {page, map_device, protect_device, unmap_device, open_flags};
     CHECK(artbox_binder_mapping_check(&c, &ioctls, &memory) == 35);
 
@@ -488,6 +525,8 @@ int main(int argc, char **argv) {
     const unsigned creates = provider.creates;
     artbox_vm *foreign_vm = artbox_vm_create(&provider.memory, page, 1);
     CHECK(foreign_vm);
+    auto foreign_thread = c.thread; foreign_thread.vm = foreign_vm;
+    CHECK(artbox_vfs_events(c.fs, &foreign_thread, fd) == -95);
     CHECK(artbox_vfs_mmap(c.fs, foreign_vm, 0, page, 1, 2, fd, 0) == -95);
     CHECK(artbox_vm_destroy(foreign_vm) == 0);
     CHECK(map_device(&c, fd, page, 4, 2, 0) == -1);
@@ -547,6 +586,6 @@ int main(int argc, char **argv) {
     CHECK(artbox_vm_destroy(vm) == 0);
     CHECK(artbox_binder_device_destroy(device) == 0 && provider.live == 0);
     if (provider.native) CHECK(artbox_native_files_close(provider.native) == 0);
-    std::printf("{\"shared_mapping_cases\":35,\"native_alias_verified\":%s,\"ownership_controls\":true,\"wait_contract_cases\":4,\"interrupt_epoch_injected\":true,\"passive_unmap_wakeup\":true,\"passed\":true}\n",
+    std::printf("{\"shared_mapping_cases\":35,\"shared_poll_cases\":31,\"native_alias_verified\":%s,\"ownership_controls\":true,\"wait_contract_cases\":4,\"interrupt_epoch_injected\":true,\"passive_unmap_wakeup\":true,\"passed\":true}\n",
         argc == 2 ? "true" : "false");
 }

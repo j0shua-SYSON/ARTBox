@@ -21,7 +21,7 @@ def main():
         if result.returncode == 77 and 'Native receive provider unavailable' in result.stdout and os.name == 'nt':
             return 77
         result.check_returncode()
-        if json.loads(result.stdout) != dict(shared_mapping_cases=35, native_alias_verified=True,
+        if json.loads(result.stdout) != dict(shared_mapping_cases=35, shared_poll_cases=31, native_alias_verified=True,
                                             ownership_controls=True, wait_contract_cases=4, interrupt_epoch_injected=True,
                                             passive_unmap_wakeup=True, passed=True):
             raise RuntimeError('Native receive ownership or alias coherence was not verified')

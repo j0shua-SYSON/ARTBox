@@ -2903,3 +2903,30 @@ control injects the delivered epoch, so it does not prove native-handler deliver
 through signed Bionic. Run the shared ping/reply fixture in blocking mode on both
 sides as a separate progress check. Readiness polling, epoll, threadpool growth
 and the real servicemanager loop remain required for M4.
+
+## 0107: Separate non-consuming Binder readiness from wait registration
+
+Use the native poll contract to introduce a readiness snapshot at the device and
+VFS boundaries before adding persistent epoll state. Poll may allocate a Binder
+thread, but repeated observation must preserve its initial-return flag and queued
+work. Reuse ioctl's bounded admission rather than creating a separate polling
+thread table. Report POLLERR when that admission is exhausted.
+
+VFS retains the open description while releasing its descriptor mutex before
+the device call. Reject stale descriptors, foreign VMs and unsupported types
+explicitly. The snapshot does not hold a subscription, access guest buffers,
+consume transactions or change entered-looper state. Process-level readiness
+can be visible before ENTER_LOOPER; retain separate predicates for readiness
+and the current entered-looper read-routing contract.
+
+Test the shared initial-return/error lifecycle against Linux, then expand it to
+death readiness before registration and later consumption. Rerun the existing
+IPC lifecycle fixtures through readiness checks without removing their original
+nonblocking-read mode. Host admission and owner controls complement the native
+comparison. This establishes the observation operation required by an event loop;
+it does not claim a guest poll/epoll syscall, persistent wait registration or
+real servicemanager execution. Those need separate lifetime/wakeup contracts.
+
+The snapshot uses existing reserved, non-executable state. It adds no code
+conversion, generated code, platform-specific call or entitlement. Its bounded
+scans remain a performance cost to measure once the service loop runs.

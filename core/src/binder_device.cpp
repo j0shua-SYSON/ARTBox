@@ -197,6 +197,12 @@ Thread *thread_for(Endpoint *endpoint, int32_t tid) {
     if (endpoint) for (auto &thread : endpoint->threads) if (thread.tid == tid) return &thread;
     return nullptr;
 }
+Thread *admit_thread(artbox_binder_device *device, Endpoint &endpoint, int32_t tid) {
+    if (Thread *thread = thread_for(&endpoint, tid)) return thread;
+    if (endpoint.threads.size() == device->thread_limit) return nullptr;
+    endpoint.threads.push_back({tid, 0, 0, 0, 0, 0, false, true, false});
+    return &endpoint.threads.back();
+}
 Transaction *transaction_for(artbox_binder_device *device, uint64_t id) {
     for (auto &t : device->transactions) if (id && t.id == id) return &t;
     return nullptr;
@@ -349,9 +355,11 @@ int death_command(artbox_binder_device *device, Endpoint &endpoint, Thread &thre
     if (death.state == armed || death.state == death_acknowledged) queue_clear(death, thread);
     return 0;
 }
-bool accepts_process_work(const Thread &thread) {
-    return (thread.looper & entered) && !(thread.looper & (invalid | exited)) &&
-           !thread.incoming && !thread.outgoing && !thread.dead_reply;
+bool accepts_process_work(const Thread &thread, bool polling = false) {
+    // Read routing retains its entered-looper contract. A readiness snapshot
+    // may observe process work before ENTER_LOOPER, without changing that state.
+    return !thread.incoming && !thread.outgoing && !thread.dead_reply &&
+           (polling || ((thread.looper & entered) && !(thread.looper & (invalid | exited))));
 }
 uint32_t node_command(artbox_binder_device *device, const Node &node) {
     bool strong, weak;
@@ -362,20 +370,20 @@ uint32_t node_command(artbox_binder_device *device, const Node &node) {
     if (!weak && node.has_weak) return ARTBOX_BR_DECREFS;
     return 0;
 }
-Node *node_event_for(artbox_binder_device *device, const Endpoint &endpoint, const Thread &thread) {
+Node *node_event_for(artbox_binder_device *device, const Endpoint &endpoint, const Thread &thread, bool polling = false) {
     for (auto &node : device->nodes) {
         if (node.id && node.owner == endpoint.token && !node.dead && !node.manager &&
-            (node.notification_tid == thread.tid || (!node.notification_tid && accepts_process_work(thread))) &&
+            (node.notification_tid == thread.tid || (!node.notification_tid && accepts_process_work(thread, polling))) &&
             node_command(device, node)) return &node;
     }
     return nullptr;
 }
-size_t death_for(artbox_binder_device *device, const Endpoint &endpoint, const Thread &thread) {
+size_t death_for(artbox_binder_device *device, const Endpoint &endpoint, const Thread &thread, bool polling = false) {
     for (size_t i = 0; i < device->deaths.size(); ++i) {
         const Death &death = device->deaths[i];
         if (death.endpoint == endpoint.token &&
             (death.state == death_queued || death.state == clear_queued) &&
-            (death.tid == thread.tid || (!death.tid && accepts_process_work(thread)))) return i;
+            (death.tid == thread.tid || (!death.tid && accepts_process_work(thread, polling)))) return i;
     }
     return device->deaths.size();
 }
@@ -608,8 +616,8 @@ int free_packet(artbox_binder_device *device, Endpoint &endpoint, uint64_t addre
     release_claims(device, endpoint.token, buffer);
     return 0;
 }
-size_t work_for(artbox_binder_device *device, Endpoint &endpoint, Thread &thread) {
-    const bool process_work = accepts_process_work(thread);
+size_t work_for(artbox_binder_device *device, Endpoint &endpoint, Thread &thread, bool polling = false) {
+    const bool process_work = accepts_process_work(thread, polling);
     for (size_t i = 0; i < device->work.size(); ++i) {
         const Work &work = device->work[i];
         if (work.async_node) {
@@ -620,10 +628,11 @@ size_t work_for(artbox_binder_device *device, Endpoint &endpoint, Thread &thread
     }
     return device->work.size();
 }
-bool read_ready(artbox_binder_device *device, Endpoint &endpoint, Thread &thread) {
+bool read_ready(artbox_binder_device *device, Endpoint &endpoint, Thread &thread, bool polling = false) {
     return thread.initial_return || thread.error || thread.completions ||
-        work_for(device, endpoint, thread) != device->work.size() ||
-        death_for(device, endpoint, thread) != device->deaths.size() || node_event_for(device, endpoint, thread);
+        work_for(device, endpoint, thread, polling) != device->work.size() ||
+        death_for(device, endpoint, thread, polling) != device->deaths.size() ||
+        node_event_for(device, endpoint, thread, polling);
 }
 int read_work(artbox_binder_device *device, Endpoint &endpoint, Thread &thread, unsigned char *header) {
     if (!device->receive_limit) return -95;
@@ -897,6 +906,19 @@ extern "C" int64_t artbox_binder_device_mmap(artbox_binder_device *device, uint6
     endpoint.receive_base = static_cast<uint64_t>(mapped); endpoint.receive_size = size;
     return mapped;
 }
+extern "C" int artbox_binder_device_events(artbox_binder_device *device, uint64_t token, int32_t tid) {
+    if (!device || tid <= 0) return -22;
+    std::lock_guard<std::mutex> guard(device->lock);
+    int error = reap_closed(device);
+    if (error) return error;
+    Endpoint *endpoint = endpoint_for(device, token);
+    if (!endpoint || !endpoint->opened) return -9;
+    if (!device->receive_limit) return -95;
+    Thread *thread = admit_thread(device, *endpoint, tid);
+    if (!thread) return 8; // POLLERR, matching Binder's failed thread admission.
+    if (thread->active) return -16; // Trusted TIDs cannot run concurrently.
+    return read_ready(device, *endpoint, *thread, true) ? 1 : 0; // POLLIN only.
+}
 static int64_t binder_ioctl(artbox_binder_device *device, uint64_t token,
     int32_t tid, uint32_t request, uint64_t argument, artbox_kernel_thread *owner) {
     if (!device || tid <= 0) return -22;
@@ -910,13 +932,8 @@ static int64_t binder_ioctl(artbox_binder_device *device, uint64_t token,
     if (found == device->endpoints.end()) return -9;
     Endpoint &endpoint = *found;
     if (owner && owner->vm != endpoint.vm) return -95;
-    auto thread = std::find_if(endpoint.threads.begin(), endpoint.threads.end(),
-        [tid](const Thread &t) { return t.tid == tid; });
-    if (thread == endpoint.threads.end()) {
-        if (endpoint.threads.size() == device->thread_limit) return -12;
-        endpoint.threads.push_back({tid, 0, 0, 0, 0, 0, false, true, false});
-        thread = endpoint.threads.end() - 1;
-    }
+    Thread *thread = admit_thread(device, endpoint, tid);
+    if (!thread) return -12;
     if (thread->active) return -16; // A trusted guest TID cannot enter two ioctls concurrently.
     thread->active = true;
     ++endpoint.active_calls;
@@ -951,7 +968,7 @@ static int64_t binder_ioctl(artbox_binder_device *device, uint64_t token,
                 if (node.id && node.owner == endpoint.token && node.notification_tid == tid) node.notification_tid = 0;
             for (auto &death : device->deaths)
                 if (death.endpoint == endpoint.token && death.tid == tid) death = {};
-            endpoint.threads.erase(thread);
+            endpoint.threads.erase(endpoint.threads.begin() + (thread - endpoint.threads.data()));
             return 0;
         case ARTBOX_BINDER_WRITE_READ:
             return write_read(device, endpoint, *thread, argument, guard, owner, epoch);

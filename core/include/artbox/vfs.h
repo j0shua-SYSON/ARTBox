@@ -42,8 +42,14 @@ artbox_vfs *artbox_vfs_create(const artbox_file_ops *files, size_t descriptor_li
  * independent state with this fixed virtual UID and the caller's PID/VM.
  * The table owns endpoint close; guest descriptors are never device tokens.
  * Receive mmap requires a private backing provider configured on the device.
- * Polling and transaction delivery remain pending. */
+ * Readiness snapshots and the documented transaction subset are supported;
+ * persistent poll/epoll registration remains pending. */
 int artbox_vfs_set_binder(artbox_vfs *fs, artbox_binder_device *device, uint32_t uid);
+/* Pin the open description and observe Linux readiness bits without consuming
+ * work. Initially supports configured Binder descriptors only; other types
+ * return EOPNOTSUPP, missing descriptors EBADF and foreign VMs EOPNOTSUPP.
+ * This helper does not enable a guest poll/epoll syscall or register a waiter. */
+int artbox_vfs_events(artbox_vfs *fs, artbox_kernel_thread *thread, int fd);
 /* Set the initial argv snapshot once, before guest execution. Bytes include
  * their final NUL and are copied (maximum 64 KiB); no host proc data is read. */
 int artbox_vfs_set_commandline(artbox_vfs *fs, const void *bytes, size_t length);

@@ -46,6 +46,38 @@ int artbox_binder_poll_check(void *context, const artbox_binder_device_ops *ops,
     CHECK(scratch->transfer[4] == 8 && scratch->read[0] == ARTBOX_BR_NOOP &&
           scratch->read[1] == ARTBOX_BR_FAILED_REPLY);
     CHECK(snapshot(context, fd, 5) == 0);
+    int observer = ops->open(context); CHECK(observer >= 0 && observer != fd);
+    CHECK(ops->ioctl(context, observer, ARTBOX_BINDER_VERSION, PTR(&scratch->version)) == 0);
+    const uint64_t cookie = UINT64_C(0xa17b0123456789ab);
+    memset(scratch->command, 0, sizeof(scratch->command));
+    scratch->command[0] = ARTBOX_BC_ACQUIRE;
+    scratch->command[2] = ARTBOX_BC_REQUEST_DEATH_NOTIFICATION;
+    memcpy(scratch->command + 4, &cookie, 8);
+    memset(scratch->transfer, 0, sizeof(scratch->transfer));
+    scratch->transfer[0] = 24; scratch->transfer[2] = PTR(scratch->command);
+    CHECK(ops->ioctl(context, observer, ARTBOX_BINDER_WRITE_READ, PTR(scratch->transfer)) == 0);
+    CHECK(scratch->transfer[1] == 24);
+    CHECK(snapshot(context, observer, 5) == 0);
     CHECK(ops->close(context, fd) == 0);
+    /* Process readiness does not require ENTER_LOOPER. Poll must neither eat
+     * the death notification nor silently register a read looper for it. */
+    int ready = 0;
+    for (unsigned attempt = 0; attempt < 2000 && !ready; ++attempt) {
+        ready = snapshot(context, observer, 5);
+        if (!ready) ops->pause(context);
+    }
+    CHECK(ready == 1);
+    CHECK(snapshot(context, observer, 5) == 1);
+    scratch->command[0] = ARTBOX_BC_ENTER_LOOPER;
+    scratch->transfer[0] = 4; scratch->transfer[1] = 0;
+    CHECK(ops->ioctl(context, observer, ARTBOX_BINDER_WRITE_READ, PTR(scratch->transfer)) == 0);
+    memset(scratch->transfer, 0, sizeof(scratch->transfer));
+    scratch->transfer[3] = sizeof(scratch->read); scratch->transfer[5] = PTR(scratch->read);
+    CHECK(ops->ioctl(context, observer, ARTBOX_BINDER_WRITE_READ, PTR(scratch->transfer)) == 0);
+    uint64_t delivered = 0; memcpy(&delivered, scratch->read + 2, 8);
+    CHECK(scratch->transfer[4] == 16 && scratch->read[0] == ARTBOX_BR_NOOP &&
+          scratch->read[1] == ARTBOX_BR_DEAD_BINDER && delivered == cookie);
+    CHECK(snapshot(context, observer, 5) == 0);
+    CHECK(ops->close(context, observer) == 0);
     return cases;
 }

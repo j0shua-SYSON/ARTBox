@@ -79,6 +79,12 @@ int64_t artbox_binder_device_ioctl_interruptible(artbox_binder_device *device, u
     artbox_kernel_thread *thread, uint32_t request, uint64_t argument);
 /* Ordinary-context observation; does not enter VM or guest signal state. */
 size_t artbox_binder_device_waiter_count(artbox_binder_device *device);
+/* Non-consuming Linux poll readiness bits, or negative Linux errno for invalid
+ * trusted arguments. May admit a new TID without clearing its initial return.
+ * Thread admission exhaustion reports POLLERR. Requires configured receive
+ * backing. Process readiness does not imply or require ENTER_LOOPER. No wait
+ * registration is created; no work, buffer or initial return is consumed. */
+int artbox_binder_device_events(artbox_binder_device *device, uint64_t token, int32_t tid);
 #ifdef __cplusplus
 }
 #endif
