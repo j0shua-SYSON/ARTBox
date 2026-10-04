@@ -19,8 +19,8 @@ int artbox_binder_device_check(void *context, const artbox_binder_device_ops *op
     b = ops->open(context); CHECK(b >= 0 && b != a);
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_VERSION, PTR(&version[1])) == 0);
     CHECK(version[1] == 8 && version[0] == 0xfeedface && version[2] == 0xc001cafe);
-    /* BINDER_VERSION historically reports EINVAL for a failed put_user,
-     * unlike the EFAULT from the copy-based requests below. */
+    /* VERSION, MAX_THREADS and CONTEXT_MGR_EXT report EINVAL for a failed
+     * user copy; WRITE_READ reports EFAULT. Preserve each request's contract. */
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_VERSION, 1) == -22);
     CHECK(ops->ioctl(context, a, UINT32_C(0xffffffff), 1) == -22);
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_MAX_THREADS, PTR(&threads)) == 0);
@@ -28,7 +28,7 @@ int artbox_binder_device_check(void *context, const artbox_binder_device_ops *op
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_MAX_THREADS, PTR(&threads)) == 0);
     threads = UINT32_MAX;
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_MAX_THREADS, PTR(&threads)) == 0);
-    CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_MAX_THREADS, 1) == -14);
+    CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_MAX_THREADS, 1) == -22);
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_WRITE_READ, PTR(write_read)) == 0);
     CHECK(write_read[1] == 0 && write_read[4] == 0);
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_WRITE_READ, 1) == -14);
@@ -43,11 +43,11 @@ int artbox_binder_device_check(void *context, const artbox_binder_device_ops *op
     version[1] = 0;
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_VERSION, PTR(&version[1])) == 0 && version[1] == 8);
     /* The legacy form ignores its nominal argument; EXT copies the object. */
-    CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_CONTEXT_MGR_EXT, 1) == -14);
+    CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_CONTEXT_MGR_EXT, 1) == -22);
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_CONTEXT_MGR, 0) == 0);
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_CONTEXT_MGR, 1) == -16);
     CHECK(ops->ioctl(context, b, ARTBOX_BINDER_SET_CONTEXT_MGR, 0) == -16);
-    CHECK(ops->ioctl(context, b, ARTBOX_BINDER_SET_CONTEXT_MGR_EXT, 1) == -14);
+    CHECK(ops->ioctl(context, b, ARTBOX_BINDER_SET_CONTEXT_MGR_EXT, 1) == -22);
     CHECK(ops->ioctl(context, b, ARTBOX_BINDER_SET_CONTEXT_MGR_EXT, PTR(manager)) == -16);
     CHECK(ops->close(context, a) == 0);
     /* Linux releases a closed Binder endpoint asynchronously. The same opener

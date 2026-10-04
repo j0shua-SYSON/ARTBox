@@ -109,8 +109,8 @@ inheritance and SELinux enforcement are outside this first boundary checkpoint.
 
 The Ubuntu runner uses `6.17.0-1022-azure` with Binder configured as a module,
 but the module package is absent. The matching official package and its single
-Binder module were downloaded and hash-verified; six malformed-package/cache
-controls pass locally. `scripts/binder_reference.py` prepares those pinned
+Binder module were downloaded and hash-verified; seven package/cache and
+explicit disposable-host controls pass locally. `scripts/binder_reference.py` prepares those pinned
 bytes on any host. The explicit `--run-native --disposable-host` mode requires
 the matching Linux kernel, existing compiler/module tools and passwordless sudo. A required
 Linux CI job loads the unmodified module, mounts a private binderfs below the
@@ -134,6 +134,13 @@ EINVAL rather than EFAULT, and the module cannot be unloaded. Its decoded ELF
 has `init_module` and no `cleanup_module` symbol. Private mount cleanup remains
 required; a positive reference count is a failure, and force unloading is never
 used. Native execution is restricted to explicitly disposable test hosts.
+
+The `aa82e23` attempt also observed EINVAL for an invalid MAX_THREADS input.
+Reviewing every fixture ioctl's copy path confirms that CONTEXT_MGR_EXT uses
+EINVAL too, including before the already-owned context check. WRITE_READ's
+invalid argument uses EFAULT. These expectations are request-specific. That
+attempt successfully unmounted the private context and verified normal unload
+returns EBUSY with zero remaining module references.
 
 ## References and source scope
 

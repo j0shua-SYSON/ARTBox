@@ -2433,8 +2433,9 @@ and death notifications need additional paired cases.
 
 The `d67b7f8` native attempt reaches the real ioctl fixture and shows that
 BINDER_VERSION returns EINVAL for an invalid output address. The corresponding
-Linux put_user error path deliberately selects EINVAL; other copy-based Binder
-requests use EFAULT. Correct the shared test before implementing the driver.
+Linux put_user error path deliberately selects EINVAL. MAX_THREADS and
+CONTEXT_MGR_EXT also select EINVAL on copy failure; WRITE_READ selects EFAULT.
+Correct the shared test before implementing the driver.
 The earlier license check was also corrected from `GPL` to the module's exact
 `GPL v2` declaration, verified in downloaded modinfo output.
 
