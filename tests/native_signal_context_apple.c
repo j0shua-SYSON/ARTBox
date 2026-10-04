@@ -15,7 +15,7 @@
 #error Native Apple arm64 is required
 #endif
 static volatile sig_atomic_t observation,drop_register_edit;
-typedef struct test_thread { void **tls; } test_thread;
+typedef struct test_thread { void **tls; artbox_vm *vm; uint64_t address; } test_thread;
 typedef struct fault_result { uint64_t original_x18,resumed_x18,value,vector; } fault_result;
 typedef struct ordinary_context { artbox_vm *vm; uint64_t address; volatile sig_atomic_t calls; } ordinary_context;
 #define CHECK(x) do { if(!(x)) { fprintf(stderr,"Darwin context line %d: %s\n",__LINE__,#x); return 1; } } while(0)
@@ -40,7 +40,7 @@ static int64_t signal_dispatch(void *context,uint64_t n,uint64_t a,uint64_t b,ui
 static void *binding_worker(void *unused) {
     (void)unused;
     void *tls[1]={0};
-    test_thread thread={tls};
+    test_thread thread={tls,NULL,0};
     const artbox_native_signal_scope scope={{signal_dispatch,&thread},tls},*previous,*removed;
     if(artbox_native_signal_current() || artbox_native_signal_thread_context() || artbox_bionic_get_tls() ||
        artbox_native_signal_attach(&thread) || artbox_native_signal_scope_swap(&scope,&previous) || previous ||
@@ -64,6 +64,9 @@ static void handler(int number,siginfo_t *info,void *raw) {
     OBSERVE(artbox_signal_context_encode(frame,sizeof(frame),&before,&meta)==0);
     test_thread *thread=artbox_native_signal_thread_context();
     OBSERVE(thread!=NULL);
+    artbox_vm_fault_info memory;
+    OBSERVE(artbox_vm_fault_snapshot(thread->vm,thread->address,&memory)==0 &&
+        memory.mapped==1 && memory.protection==3 && !memory.file_backed);
     const artbox_native_signal_scope scope={{signal_dispatch,thread},thread->tls};
     const artbox_native_signal_scope *previous,*removed;
     OBSERVE(artbox_native_signal_scope_swap(&scope,&previous)==0 && previous==NULL);
@@ -114,7 +117,7 @@ int main(int argc,char **argv) {
     CHECK(artbox_native_signal_apply(&synthetic,&state)==-22 && !memcmp(&machine,&saved_machine,sizeof(machine)));
     void *normal_tls[1]={0},*guest_tls[1]={0},*nested_tls[1]={0};
     void **previous_tls=artbox_native_tls_swap(normal_tls);
-    test_thread thread={guest_tls};
+    test_thread thread={guest_tls,NULL,0};
     CHECK(artbox_native_signal_current()==NULL && artbox_native_signal_thread_context()==NULL);
     CHECK(artbox_native_signal_attach(&thread)==0 && artbox_native_signal_attach(&thread)==-17);
     const artbox_native_signal_scope outer={{signal_dispatch,&thread},guest_tls},inner={{signal_dispatch,&thread},nested_tls};
@@ -132,6 +135,7 @@ int main(int argc,char **argv) {
     CHECK(vm!=NULL);
     int64_t address=artbox_vm_mmap(vm,0,memory.page_size,3,0x22,-1,0);
     CHECK(address>0);
+    thread.vm=vm; thread.address=(uint64_t)address;
     ordinary_context normal={vm,(uint64_t)address,0};
     const artbox_syscall_binding binding={ordinary_dispatch,&normal};
     const artbox_syscall_binding *old_binding=artbox_native_syscall_swap(&binding);
@@ -153,6 +157,6 @@ int main(int argc,char **argv) {
     if(result.value!=0x5a || result.vector!=UINT64_C(0x2222222222222222)) {
         fputs("handler register edits were not resumed\n",stderr); return 1;
     }
-    puts("{\"frame_bytes\":4560,\"native_resume\":true,\"general_register_edit\":true,\"vector_edit\":true,\"x18_preserved\":true,\"signal_binding\":true,\"mapper_lock_held\":true}");
+    puts("{\"frame_bytes\":4560,\"native_resume\":true,\"general_register_edit\":true,\"vector_edit\":true,\"x18_preserved\":true,\"signal_binding\":true,\"mapper_lock_held\":true,\"vm_fault_snapshot\":true}");
     return 0;
 }

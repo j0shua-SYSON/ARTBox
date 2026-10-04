@@ -109,6 +109,19 @@ int64_t artbox_vm_transfer(artbox_vm *space, uint64_t address, size_t length, un
 /* Returns nonzero when the whole range permits required access, zero otherwise.
  * A snapshot of metadata, not a pin against another thread changing a map. */
 int artbox_vm_access(artbox_vm *space, uint64_t address, uint64_t length, unsigned required);
+typedef struct artbox_vm_fault_info {
+    unsigned mapped, protection, file_backed;
+} artbox_vm_fault_info;
+/* Signal-context metadata query; does not access the guest address, allocate,
+ * take a mutex, or wait for a writer. Reads are available only with always
+ * lock-free native atomics. A concurrent metadata/native-mapping mutation
+ * returns EAGAIN, even on an unrelated range; a poisoned VM returns EIO.
+ * Unmapped addresses (including retained window holes) produce mapped=0.
+ * Output is unchanged on error. This is not a pin for later memory access.
+ * The owner must stop all readers before destroying the VM. This query may
+ * run inside a VM I/O callback; other VM reentry remains forbidden. */
+int artbox_vm_fault_snapshot_support(void);
+int artbox_vm_fault_snapshot(artbox_vm *space, uint64_t address, artbox_vm_fault_info *out);
 uint64_t artbox_vm_reserved_bytes(artbox_vm *space);
 size_t artbox_vm_page_size(const artbox_vm *space);
 #ifdef __cplusplus

@@ -1,10 +1,12 @@
 #include "artbox/vm.h"
 #include <algorithm>
+#include <atomic>
 #include <exception>
 #include <cstring>
 #include <mutex>
 #include <memory>
 #include <new>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -45,6 +47,7 @@ struct artbox_vm {
     size_t region_limit = 0;
     bool poisoned = false;
     std::mutex lock;
+    std::atomic<unsigned> fault_readers{0}, fault_mutating{0};
     std::vector<Region> regions;
 
     size_t rounded(uint64_t length) const {
@@ -90,6 +93,58 @@ struct artbox_vm {
     }
 };
 
+namespace {
+// Writers already serialize through the ordinary VM mutex. Announce mutation
+// before waiting for existing readers. A handler that interrupts this thread
+// returns EAGAIN immediately; it never waits for its interrupted writer.
+struct FaultMutationGuard {
+    artbox_vm *space;
+    std::lock_guard<std::mutex> lock;
+    explicit FaultMutationGuard(artbox_vm *owner) : space(owner), lock(owner->lock) {
+        if(ATOMIC_INT_LOCK_FREE==2) {
+            space->fault_mutating.store(1);
+            while(space->fault_readers.load()) std::this_thread::yield();
+        }
+    }
+    ~FaultMutationGuard() { if(ATOMIC_INT_LOCK_FREE==2) space->fault_mutating.store(0); }
+};
+struct FaultReadGuard {
+    artbox_vm *space;
+    bool acquired=false;
+    explicit FaultReadGuard(artbox_vm *owner) : space(owner) {
+        if(space->fault_mutating.load()) return;
+        space->fault_readers.fetch_add(1);
+        // The writer can have announced itself after the first check. The
+        // sequentially consistent gate/counter handshake excludes that race.
+        if(space->fault_mutating.load()) space->fault_readers.fetch_sub(1);
+        else acquired=true;
+    }
+    ~FaultReadGuard() { if(acquired) space->fault_readers.fetch_sub(1); }
+};
+}
+
+int artbox_vm_fault_snapshot_support(void) { return ATOMIC_INT_LOCK_FREE==2; }
+int artbox_vm_fault_snapshot(artbox_vm *space,uint64_t address,artbox_vm_fault_info *out) {
+    if(!space || !out) return -22;
+    if(ATOMIC_INT_LOCK_FREE!=2) return -95;
+    FaultReadGuard guard(space);
+    if(!guard.acquired) return -11;
+    if(space->poisoned) return -5;
+    artbox_vm_fault_info result{};
+    const Region *region=space->containing(address,1);
+    if(region) {
+        const size_t page=static_cast<size_t>(address-region->base)/space->ops.page_size;
+        const unsigned flags=region->pages[page];
+        if(flags&mapped) {
+            result.mapped=1;
+            result.protection=flags&3;
+            result.file_backed=!!(flags&file_page);
+        }
+    }
+    *out=result;
+    return 0;
+}
+
 artbox_vm *artbox_vm_create(const artbox_vm_ops *ops, uint64_t limit, size_t region_limit) {
     if (!ops || !ops->reserve || !ops->protect || !ops->reset || !ops->release || !region_limit ||
         ops->page_size < 4096 || ops->page_size > 65536 || (ops->page_size & (ops->page_size - 1)) ||
@@ -120,7 +175,7 @@ int artbox_vm_reserve_window(artbox_vm *space, uint64_t length,
     if (!space || !window || length > UINT64_C(0x100000000) ||
         length % space->ops.page_size || !guard_bytes || guard_bytes % space->ops.page_size ||
         guard_bytes >= length) return -22;
-    std::lock_guard<std::mutex> guard(space->lock);
+    FaultMutationGuard guard(space);
     if (space->poisoned) return -5;
     if (space->regions.size() == space->region_limit || length > space->limit - space->reserved) return -12;
     Region region;
@@ -242,7 +297,7 @@ static int64_t mmap_locked(artbox_vm *space, Region *window, uint64_t address,
 int64_t artbox_vm_mmap(artbox_vm *space, uint64_t address, uint64_t length, uint64_t prot,
     uint64_t flags, int64_t fd, uint64_t offset) {
     if (!space) return -22;
-    std::lock_guard<std::mutex> guard(space->lock);
+    FaultMutationGuard guard(space);
     Region *window = space->window.base ? space->managed_window(space->window.base) : nullptr;
     return mmap_locked(space, window, address, length, prot, flags, fd, offset);
 }
@@ -250,7 +305,7 @@ int64_t artbox_vm_mmap(artbox_vm *space, uint64_t address, uint64_t length, uint
 int64_t artbox_vm_mmap_window(artbox_vm *space, uint64_t window_base,
     uint64_t address, uint64_t length, uint64_t prot, uint64_t flags, int64_t fd, uint64_t offset) {
     if (!space) return -22;
-    std::lock_guard<std::mutex> guard(space->lock);
+    FaultMutationGuard guard(space);
     if (space->poisoned) return -5;
     Region *window = space->managed_window(window_base);
     if (!window) return -95;
@@ -262,7 +317,7 @@ int64_t artbox_vm_map_file(artbox_vm *space, uint64_t address, uint64_t length,
     const artbox_vm_file_ops *ops, unsigned maximum) {
     if (!space || !file || !ops || !ops->acquire || !ops->release || !ops->map || !ops->sync ||
         (maximum != 1 && maximum != 3)) return -22;
-    std::lock_guard<std::mutex> guard(space->lock);
+    FaultMutationGuard guard(space);
     if (space->poisoned) return -5;
     if (space->window.base) return -95;
     size_t size = space->rounded(length);
@@ -311,7 +366,7 @@ int64_t artbox_vm_map_file(artbox_vm *space, uint64_t address, uint64_t length,
 
 int artbox_vm_mprotect(artbox_vm *space, uint64_t address, uint64_t length, uint64_t prot) {
     if (!space) return -22;
-    std::lock_guard<std::mutex> guard(space->lock);
+    FaultMutationGuard guard(space);
     if (space->poisoned) return -5;
     int permissions = protection(prot);
     if (permissions < 0) return permissions;
@@ -336,7 +391,7 @@ int artbox_vm_mprotect(artbox_vm *space, uint64_t address, uint64_t length, uint
 
 int artbox_vm_munmap(artbox_vm *space, uint64_t address, uint64_t length) {
     if (!space) return -22;
-    std::lock_guard<std::mutex> guard(space->lock);
+    FaultMutationGuard guard(space);
     if (space->poisoned) return -5;
     size_t size = space->rounded(length);
     if (!size || !space->range(address, size)) return -22;
@@ -371,7 +426,7 @@ int artbox_vm_munmap(artbox_vm *space, uint64_t address, uint64_t length) {
 
 int artbox_vm_madvise(artbox_vm *space, uint64_t address, uint64_t length, int advice) {
     if (!space) return -22;
-    std::lock_guard<std::mutex> guard(space->lock);
+    FaultMutationGuard guard(space);
     if (space->poisoned) return -5;
     if (advice != 0 && advice != 1 && advice != 4) return -95;
     size_t size = space->rounded(length);
@@ -435,7 +490,7 @@ int artbox_vm_msync(artbox_vm *space, uint64_t address, uint64_t length, uint64_
 
 int artbox_vm_register_data(artbox_vm *space, void *address, size_t length, unsigned prot) {
     if (!space || !address) return -22;
-    std::lock_guard<std::mutex> guard(space->lock);
+    FaultMutationGuard guard(space);
     if (space->poisoned) return -5;
     if (space->window.base) return -95;
     int permissions = protection(prot);
@@ -464,7 +519,7 @@ int artbox_vm_access(artbox_vm *space, uint64_t address, uint64_t length, unsign
 
 int artbox_vm_register_readonly(artbox_vm *space, const void *address, size_t length) {
     if (!space || !address || !length || length > UINTPTR_MAX - reinterpret_cast<uintptr_t>(address)) return -22;
-    std::lock_guard<std::mutex> guard(space->lock);
+    FaultMutationGuard guard(space);
     if (space->poisoned) return -5;
     if (space->window.base) return -95;
     uintptr_t base = reinterpret_cast<uintptr_t>(address);

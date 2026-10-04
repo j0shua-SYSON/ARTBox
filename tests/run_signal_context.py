@@ -42,7 +42,7 @@ for mode in ('native', 'dropped-edit'):
         expected = {'frame_bytes': 4560, 'native_resume': True,
                     'general_register_edit': True, 'vector_edit': True, 'x18_preserved': True}
         if sys.platform == 'darwin':
-            expected.update(signal_binding=True, mapper_lock_held=True)
+            expected.update(signal_binding=True, mapper_lock_held=True, vm_fault_snapshot=True)
         assert json.loads(result.stdout) == expected
     else:
         assert result.returncode == 1 and not result.stdout, record['runs'][mode]
