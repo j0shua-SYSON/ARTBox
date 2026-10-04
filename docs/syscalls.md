@@ -397,3 +397,8 @@ local per-node ordering, buffer lifetime, copy-fault and teardown controls.
 Weak objects/FDs, nested synchronous calls,
 blocking empty reads and polling remain pending. See
 [the Binder contract](binder.md) for host resource limits and comparison scope.
+
+The native-only wait reference now separately tests interrupted empty reads,
+write-consumption preservation, read-buffer faults and O_NONBLOCK. Execution is
+pending and `wait_driver_compared` remains false; this adds no blocking-read or
+poll support to the syscall compatibility claim.

@@ -17,6 +17,8 @@
 #include <pthread.h>
 #include <sys/wait.h>
 
+int artbox_native_binder_wait_check(const char *path);
+
 struct transaction_context { const char *path; int32_t server_pid, client_pid; int server_fd; };
 static int32_t transaction_pid(void *opaque, int32_t role) {
     struct transaction_context *context = opaque;
@@ -181,8 +183,11 @@ int main(int argc, char **argv) {
     if (death_cases != 3) return 1;
     if (artbox_binder_object_check(&context, &transactions, &server, &client)) return 1;
     if (artbox_binder_oneway_check(&context, &transactions, &server, &client)) return 1;
+    int wait_cases = artbox_native_binder_wait_check(argv[2]);
+    if (wait_cases != 4) return 1;
     printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"mapping_cases\":%d,"
            "\"same_pid_rejected\":true,\"threaded_ping_pong\":true,\"death_cases\":%d,"
-           "\"object_handle_lifecycle\":true,\"oneway_lifecycle\":true,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases);
+           "\"object_handle_lifecycle\":true,\"oneway_lifecycle\":true,\"wait_cases\":%d,"
+           "\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases, wait_cases);
     return 0;
 }

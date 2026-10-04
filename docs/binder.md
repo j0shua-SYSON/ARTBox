@@ -211,6 +211,17 @@ it does not yet compile or run the service. See ADR 0104 and `THIRD_PARTY.md`.
 
 ## Evidence
 
+`tests/native_binder_wait.c` establishes the blocking-read contract before the
+production wait implementation. The native worker is observed in its exact
+Binder ioctl through `/proc/self/task/<tid>/syscall`, then interrupted by a
+scoped SIGUSR1 handler without SA_RESTART. The two interruption cases require
+EINTR, preservation of consumed write commands, zero read consumption and the
+already-written leading NOOP. Separate invalid-buffer and O_NONBLOCK controls
+require EFAULT and EAGAIN. Worker observation and joins are bounded; a stuck
+worker fails the disposable reference process. Linux execution is pending for
+this addition, and `wait_driver_compared` stays false. Host `/proc` inspection is
+test-only and does not become part of the portable Binder implementation.
+
 The portable test covers all command encodings, every truncated write frame,
 unaligned storage, wrong direction/type/size, preserved prefix progress,
 full-width transaction values, packed death cookies, object boundary cuts,

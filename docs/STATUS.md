@@ -113,9 +113,19 @@ independently verify at that head.
 The [native Binder build](binder-build.md) now compiles the real Android kernel-IPC
 libbinder profile and its libutils support into ARM64 archives, consuming those
 verified generated bindings. The build records unresolved imports and retains
-exact corresponding source and notices. Its new required CI job is pending.
+exact corresponding source and notices. At `9c4e6be`, all 20 host jobs and iOS
+pass. The downloaded build independently verifies 49 objects, both archives,
+331 upstream files, 14 project inputs and all 20 generated files. Compilation
+takes 17.8 seconds on the Mac runner; disassembly confirms no x18/w18 use or
+direct SVC instructions. The 176 external imports remain explicit.
 Linking, real servicemanager execution, runtime attachment and M4 acceptance
 remain required; producing archives does not satisfy those checks.
+
+The next native reference adds four wait cases: empty-read interruption,
+interruption after consuming ENTER_LOOPER, invalid output and nonblocking empty
+read. It observes the actual blocked ioctl before sending the test signal.
+ARM64 compilation passes; Linux execution is pending. `wait_driver_compared`
+remains false until ARTBox runs the same behavior with ownership and wakeup tests.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write
