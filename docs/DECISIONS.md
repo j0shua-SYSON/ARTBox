@@ -2452,8 +2452,8 @@ not be used for this native mode.
 
 ## 0094: Bound Binder endpoints before connecting VFS and delivery
 
-Status: original endpoint API passes the shared 32-case fixture and local VM,
-resource and concurrency controls. Paired Linux and Apple CI are pending.
+Status: Linux and the original endpoint API pass the shared 32-case fixture at
+517ad1c; local VM, resource and concurrency controls also pass. Broader CI is pending.
 
 Use one private context object with independent per-open endpoints. Identify
 endpoints with monotonically increasing tokens; reusing a metadata slot must
@@ -2487,3 +2487,32 @@ two executable hashes and source provenance. Additional UID/resource/VM and
 No syscall forwarding, runtime code generation, entitlement or CPU emulation
 is involved. Context serialization and linear scans trade initial simplicity
 for throughput; measure and revise them when transaction delivery exists.
+
+## 0095: Pin Binder open descriptions outside the VFS dispatch lock
+
+Status: VFS ioctl/descriptor fixtures and local lifecycle tests pass; native
+file comparison and full regressions are pending CI.
+
+Attach the private Binder context explicitly to a VFS before guest execution.
+Keep it borrowed: its owner must retain it until the table and all callers are
+gone. Each Binder open gets a shared open-description owner with a unique
+endpoint token and originating VM. The owner closes that endpoint exactly once.
+Allocate the description before opening the endpoint, then publish the guest FD
+only on success. Failed opens must release all intermediate ownership.
+
+For ioctl, copy the description reference while holding the descriptor mutex,
+then unlock before entering Binder. An in-flight call therefore retains its
+original endpoint even when its numeric FD closes and is reused. Holding the
+table mutex during future blocking Binder reads would prevent other threads
+from opening/closing or dispatching replies. Keep the established ordering
+VFS then device then VM when nested; Binder must never call back into VFS while
+holding its state mutex. Transaction FD transfer will need its own handoff plan.
+
+Expose character-device metadata with virtual identities. Binder read/write
+are unsupported methods, not the null/zero-device transfer paths; lseek is
+non-seekable. Verify those distinctions using an original shared 22-case native
+file fixture, separate from the 32 ioctl/endpoint cases. The native adapter
+translates ARM64 O_DIRECTORY to the host's named constant rather than assuming
+x86 and ARM flag layouts match. Cross-VM descriptor use, mmap/poll and attachment
+to signed ART startup remain explicitly pending. Shared description allocation
+costs one host allocation per open; no executable memory or entitlement is added.

@@ -2,9 +2,9 @@
 
 M4 is in progress. The current implementation validates the 64-bit Android
 Binder wire boundary and implements an initial endpoint/ioctl API. It does not
-expose `/dev/binder`, deliver transactions,
-run servicemanager or complete M4. Recognized commands are not advertised as
-implemented driver operations.
+deliver transactions, run servicemanager or complete M4. A configured VFS now
+exposes `/dev/binder` for the tested ioctl subset; mapping and polling remain
+pending. Recognizing other commands does not implement those operations.
 
 ## Boundary implemented
 
@@ -57,10 +57,32 @@ exists. See ADR 0094 for ownership and integration requirements.
 The same original fixture can run in real Linux userspace or in VM-owned
 storage through ARTBox. The native 30-case baseline passed at `c773122`; the
 current 32-case fixture additionally covers registration without a spawn
-request. Local driver checks also cover UID persistence, stale tokens,
+request. At `517ad1c`, both the real Linux kernel and ARTBox pass all 32 cases;
+the downloaded artifact, PR merge parent and 87 project input hashes verify.
+Local driver checks also cover UID persistence, stale tokens,
 read-only/partial/wrapped guest buffers, exhaustion, unsupported operations,
 and 4,000 endpoint lifecycles across eight threads. Those extra controls are
-ARTBox invariants, not additional Linux comparisons. Paired CI is pending.
+ARTBox invariants, not additional Linux comparisons.
+
+## Guest descriptor integration
+
+`artbox_vfs_set_binder` attaches a borrowed context before guest execution. Each
+open of `/dev/binder` acquires a new endpoint; close and table destruction release
+it. The context must outlive the table and all calls. Ioctl pins the open
+description under the VFS mutex, releases that mutex, then calls the device.
+This preserves endpoint identity through descriptor reuse and avoids holding
+the entire table during future blocking Binder operations. Cross-VM descriptor
+use is explicitly unsupported in the initial single-process model.
+
+The same 32-case fixture also runs through actual virtual openat/ioctl/close.
+A separate 22-case descriptor fixture checks character-device type, unsupported
+read/write including zero length, non-seekability, access-mode errors, closed
+descriptors and directory/exclusive opens. Its real Linux comparison is pending
+CI. Portable controls cover relative lookup through `/dev`, failed-open cleanup,
+table teardown, descriptor/command argument widths and 4,000 concurrent opens.
+Virtual device/inode numbers are ARTBox identities, not copied host metadata.
+The signed ART startup does not attach this context yet; guest-native Binder
+acceptance will follow receive mapping and transaction support.
 
 ## Receive-buffer ownership primitive
 
@@ -117,8 +139,8 @@ semantic oracle or an iPhone execution claim.
 
 ## Next contracts
 
-1. Connect the endpoint API to VFS open/ioctl/close and bounded read-only receive
-   mappings, preserving mappings after descriptor close until unmap.
+1. Add bounded read-only receive mappings to the VFS boundary, preserving
+   mappings after descriptor close until unmap.
 2. Synchronous transactions/replies across threads, thread-affine reply stacks,
    copied payloads, explicit buffer release and resource exhaustion.
 3. Node/handle translation, reference acknowledgements, ordered one-way queues,
@@ -158,12 +180,14 @@ The fixture tests version/canaries, invalid pointers and ioctl words, thread
 limit inputs, empty write/read, a valid command prefix followed by an invalid
 command, resumed consumption, thread exit/recreation, legacy/extended context
 manager registration, duplicate ownership and delayed close/re-registration.
-At `c773122`, the native 30-case fixture passed. The downloaded artifact's
-digest, six project source hashes and PR merge-parent identity verify. Native
+At `c773122`, the native 30-case fixture passed. At `517ad1c`, the expanded
+32-case fixture passes both Linux and ARTBox. Artifact digests, project source
+hashes and PR merge-parent identities verify. Native
 execution and ARTBox comparison remain separate: `--compare-driver` requires
 native execution, builds the portable endpoint test and compares its shared
 fixture result only after the reference succeeds. Record both executable
-hashes and all core/platform input hashes. The new paired run is pending CI.
+hashes and all core/platform input hashes. The new VFS/file comparison is
+pending CI; it adds a third executable hash and retains separate case counts.
 
 The first live attempt at `d67b7f8` confirmed two contract corrections before
 any ARTBox ioctl implementation: BINDER_VERSION's invalid output pointer returns

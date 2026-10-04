@@ -31,11 +31,18 @@ typedef struct artbox_file_ops {
     int (*unlink)(void *context, void *directory, const char *name, int trailing);
 } artbox_file_ops;
 typedef struct artbox_vfs artbox_vfs;
+typedef struct artbox_binder_device artbox_binder_device;
 /* The root/provider outlives this table. A NULL provider gives only virtual
  * devices. One table is shared by the guest process. Cwd is fixed at '/';
  * getcwd reports that virtual path and never the provider's host pathname.
  * chdir/fchdir are not implemented. */
 artbox_vfs *artbox_vfs_create(const artbox_file_ops *files, size_t descriptor_limit);
+/* Attach one private Binder context before guest execution. The device must
+ * outlive this table and all in-flight calls. Each /dev/binder open acquires
+ * independent state with this fixed virtual UID and the caller's PID/VM.
+ * The table owns endpoint close; guest descriptors are never device tokens.
+ * Only the tested ioctl boundary is exposed; Binder mmap/poll are pending. */
+int artbox_vfs_set_binder(artbox_vfs *fs, artbox_binder_device *device, uint32_t uid);
 /* Set the initial argv snapshot once, before guest execution. Bytes include
  * their final NUL and are copied (maximum 64 KiB); no host proc data is read. */
 int artbox_vfs_set_commandline(artbox_vfs *fs, const void *bytes, size_t length);

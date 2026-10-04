@@ -1,24 +1,36 @@
 // Original rooted guest descriptor table, MIT.
 #include "artbox/vfs.h"
+#include "artbox/binder_device.h"
 #include <cstring>
 #include <exception>
 #include <mutex>
+#include <memory>
 #include <new>
 #include <string>
 #include <utility>
 #include <vector>
+struct BinderOpen {
+    artbox_binder_device *device;
+    artbox_vm *vm;
+    uint64_t token = 0;
+    BinderOpen(artbox_binder_device *d, artbox_vm *v) : device(d), vm(v) {}
+    ~BinderOpen() { if (token) (void)artbox_binder_device_close(device, token); }
+};
 struct descriptor {
     unsigned kind = 0, flags = 0;
     bool directory = false;
     void *handle = nullptr;
     std::string path;
     uint64_t position = 0;
+    std::shared_ptr<BinderOpen> binder;
 };
 struct artbox_vfs {
     std::mutex lock;
     artbox_file_ops files{};
     std::vector<descriptor> descriptors;
     std::vector<unsigned char> commandline;
+    artbox_binder_device *binder = nullptr;
+    uint32_t binder_uid = 0;
 };
 extern "C" artbox_vfs *artbox_vfs_create(const artbox_file_ops *files, size_t limit) {
     if (!limit || limit > 4096 || (files && (!files->open || !files->close || !files->read || !files->write ||
@@ -29,6 +41,13 @@ extern "C" artbox_vfs *artbox_vfs_create(const artbox_file_ops *files, size_t li
     try { fs->descriptors.resize(limit); }
     catch (const std::exception&) { delete fs; return nullptr; }
     return fs;
+}
+extern "C" int artbox_vfs_set_binder(artbox_vfs *fs, artbox_binder_device *device, uint32_t uid) {
+    if (!fs || !device) return -22;
+    std::lock_guard<std::mutex> guard(fs->lock);
+    if (fs->binder) return -114;
+    fs->binder = device; fs->binder_uid = uid;
+    return 0;
 }
 extern "C" int artbox_vfs_set_commandline(artbox_vfs *fs, const void *bytes, size_t length) {
     if (!fs || !bytes || !length) return -22;
@@ -114,7 +133,8 @@ static int path(artbox_vfs *fs, artbox_vm *vm, uint64_t address, int32_t dirfd, 
 }
 static unsigned device(const std::string &name) {
     return name == "dev/null" ? 1u : name == "dev/zero" ? 2u : name == "dev/urandom" ? 3u : name == "dev" ? 4u :
-           name == "proc/self/cmdline" ? 6u : name == "proc" ? 7u : name == "proc/self" ? 8u : 0u;
+           name == "proc/self/cmdline" ? 6u : name == "proc" ? 7u : name == "proc/self" ? 8u :
+           name == "dev/binder" ? 9u : 0u;
 }
 static bool virtual_directory(unsigned kind) { return kind == 4 || kind == 7 || kind == 8; }
 static bool below(const std::string &name, const char *prefix) {
@@ -163,6 +183,7 @@ static int stat_bytes(artbox_vm *vm, uint64_t address, const artbox_file_info &f
 static artbox_file_info device_info(unsigned kind) {
     artbox_file_info f{};
     f.device = 1; f.inode = kind; f.links = 1; f.block_size = 4096;
+    if (kind == 9) { f.mode = 0020666; f.rdevice = 0x10000; return f; }
     if (kind >= 6) { f.uid = f.gid = 10000; f.block_size = 1024; }
     if (virtual_directory(kind)) { f.mode = 0040555; return f; }
     if (kind == 6) { f.mode = 0100444; return f; } // Linux proc inode size is zero.
@@ -179,6 +200,21 @@ static int64_t transfer(void *context, void *buffer, size_t length) {
 extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread, uint64_t number,
                                    uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3) {
     if (!fs || !thread || !thread->vm || !thread->system.random) return -22;
+    if (number == 29) {
+        // Pin the open description, then release the table lock before driver
+        // dispatch. A future blocking read must not serialize all descriptors.
+        std::shared_ptr<BinderOpen> binder;
+        {
+            std::lock_guard<std::mutex> guard(fs->lock);
+            descriptor *d = get(fs, static_cast<int32_t>(a0));
+            if (!d) return -9;
+            if (!d->binder) return -25;
+            binder = d->binder;
+        }
+        if (binder->vm != thread->vm) return -95; // Cross-address-space FDs are not supported.
+        return artbox_binder_device_ioctl(binder->device, binder->token, thread->tid,
+            static_cast<uint32_t>(a1), a2);
+    }
     if (number == 17) {
         // Relative path lookup already uses the virtual root as cwd. Never
         // expose the host directory backing that root. Size is unsigned long;
@@ -216,6 +252,7 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
             int error = path(fs, thread->vm, a1, static_cast<int32_t>(a0), p);
             if (error) return error;
             unsigned kind = device(p.canonical);
+            if (kind == 9 && !fs->binder) return -2;
             if (!kind && (below(p.canonical, "dev") || below(p.canonical, "proc"))) return -2;
             if (kind == 6 && fs->commandline.empty()) return -2;
             if (!kind && !fs->files.open) return -38;
@@ -250,6 +287,11 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
             while (slot < fs->descriptors.size() && fs->descriptors[slot].kind) ++slot;
             if (slot == fs->descriptors.size()) return -24;
             descriptor d; d.kind = kind ? kind : 5; d.flags = flags; d.directory = virtual_directory(kind); d.path = p.canonical;
+            if (kind == 9) {
+                d.binder = std::make_shared<BinderOpen>(fs->binder, thread->vm);
+                if ((error = artbox_binder_device_open(fs->binder, thread->vm, thread->pid,
+                        fs->binder_uid, &d.binder->token))) return error;
+            }
             if (!kind) {
                 Walk walk(fs, p.directory);
                 if ((error = walk.resolve(p.relative))) return error;
@@ -270,6 +312,7 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
             *d = descriptor{}; return error;
         }
         if (number == 62) {
+            if (d->kind == 9) return static_cast<uint32_t>(a2) <= 4 ? -29 : -22;
             if (d->kind == 6) {
                 unsigned origin = static_cast<uint32_t>(a2);
                 if (origin > 4) return -22;
@@ -291,6 +334,7 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
         bool writing = number == 64;
         unsigned access = d->flags & 3;
         if ((writing && !access) || (!writing && access == 1)) return -9;
+        if (d->kind == 9) return -22; // Binder has ioctl/mmap, no read/write methods.
         if (d->directory) return -21;
         size_t page = artbox_vm_page_size(thread->vm);
         uint64_t maximum = static_cast<uint64_t>(INT32_MAX) & ~(static_cast<uint64_t>(page) - 1);

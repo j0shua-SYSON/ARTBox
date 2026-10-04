@@ -169,6 +169,7 @@ def run_native(spec, installed, build):
             raise RuntimeError('Unexpected native module license declaration')
         invoke(commands['cc'], '-std=c11', '-D_DEFAULT_SOURCE', '-O2', '-Wall', '-Wextra', '-Werror',
                '-I', ROOT / 'core/include', ROOT / 'fixtures/binder-device/check.c',
+               ROOT / 'fixtures/binder-file/check.c',
                ROOT / 'tests/native_binder_device.c', '-o', executable)
         invoke(commands['sudo'], '-n', commands['insmod'], module, 'devices=')
         loaded = True
@@ -177,7 +178,8 @@ def run_native(spec, installed, build):
         output = invoke(commands['sudo'], '-n', executable, mount / 'binder-control', mount / 'artbox', timeout=20)
         result = json.loads(output)
         expected = len(re.findall(r'\bCHECK\(', (ROOT / 'fixtures/binder-device/check.c').read_text())) - 1
-        if result != {'protocol': 8, 'cases': expected, 'fresh_binderfs_context': True, 'passed': True}:
+        file_cases = len(re.findall(r'\bCHECK\(', (ROOT / 'fixtures/binder-file/check.c').read_text())) - 1
+        if result != {'protocol': 8, 'cases': expected, 'file_cases': file_cases, 'fresh_binderfs_context': True, 'passed': True}:
             raise RuntimeError('Native Binder reference did not execute every expected case')
         record = {**result, 'vermagic': version, 'module_license': license_name,
                   'runner_sha256': digest(executable)}
@@ -213,7 +215,7 @@ def compare_driver(build, reference):
     with log.open('w', encoding='utf-8') as output:
         for command in (
             [cmake, '-S', str(ROOT), '-B', str(build), '-DCMAKE_BUILD_TYPE=Release'],
-            [cmake, '--build', str(build), '--target', 'test_binder_device', '--parallel', '2'],
+            [cmake, '--build', str(build), '--target', 'test_binder_device', 'test_binder_vfs', '--parallel', '2'],
         ):
             output.write(' '.join(command) + '\n'); output.flush()
             subprocess.run(command, stdout=output, stderr=subprocess.STDOUT, check=True, timeout=180)
@@ -221,13 +223,22 @@ def compare_driver(build, reference):
         run = subprocess.run([str(runner)], capture_output=True, text=True, timeout=30)
         output.write(run.stdout + run.stderr)
         run.check_returncode()
+        vfs_runner = build / 'test_binder_vfs'
+        vfs_run = subprocess.run([str(vfs_runner)], capture_output=True, text=True, timeout=30)
+        output.write(vfs_run.stdout + vfs_run.stderr)
+        vfs_run.check_returncode()
     result = json.loads(run.stdout)
     expected = {'protocol': reference['protocol'], 'shared_cases': reference['cases'],
                 'vm_and_admission_controls': True, 'concurrent_lifecycles': 4000, 'passed': True}
     if result != expected:
         raise RuntimeError('Portable Binder driver did not pass the exact native fixture')
+    vfs_result = json.loads(vfs_run.stdout)
+    if vfs_result != {'shared_ioctl_cases': reference['cases'], 'shared_file_cases': reference['file_cases'],
+                      'concurrent_lifecycles': 4000, 'passed': True}:
+        raise RuntimeError('Binder VFS did not pass the exact native ioctl and descriptor fixtures')
     return {**result, 'runner_sha256': digest(runner),
-            'scope': 'Same ioctl/endpoint fixture; no transaction, polling or death comparison'}
+            'vfs': vfs_result, 'vfs_runner_sha256': digest(vfs_runner),
+            'scope': 'Same ioctl/endpoint and descriptor fixtures; no mapping, transaction, polling or death comparison'}
 
 
 def main():
@@ -261,10 +272,11 @@ def main():
     record['project_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     sources = [
         ROOT / 'fixtures/binder-device/check.c', ROOT / 'fixtures/binder-device/check.h',
+        ROOT / 'fixtures/binder-file/check.c', ROOT / 'fixtures/binder-file/check.h',
         ROOT / 'tests/native_binder_device.c', ROOT / 'core/include/artbox/binder_wire.h',
         ROOT / 'third_party/binder/kernel-reference.json', Path(__file__).resolve()]
     if args.compare_driver:
-        sources += [ROOT / 'CMakeLists.txt', ROOT / 'tests/test_binder_device.cpp']
+        sources += [ROOT / 'CMakeLists.txt', ROOT / 'tests/test_binder_device.cpp', ROOT / 'tests/test_binder_vfs.cpp']
         sources += [p for folder in ('core', 'platform') for p in (ROOT / folder).rglob('*')
                     if p.is_file() and p.suffix in ('.c', '.cpp', '.h', '.S')]
     record['project_files'] = {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p) for p in sorted(set(sources))}

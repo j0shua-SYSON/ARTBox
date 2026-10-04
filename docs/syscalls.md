@@ -367,3 +367,21 @@ policy deliberately differs from Linux, preventing other host allocations from
 occupying future managed heap pages. The explicit window allocator is a host API,
 not a new Linux syscall. See [the window contract](m3-heap-window.md) for validation
 and remaining ART integration work.
+
+### M4 Binder descriptor boundary
+
+An explicitly configured VFS exposes `/dev/binder`; it is absent otherwise.
+The signed ART startup has not attached this context yet.
+
+| ARM64 call | Implemented Binder subset | Evidence / limits |
+| --- | --- | --- |
+| openat 56, close 57 | Independent endpoint per open, owned close, `/dev` relative lookup, descriptor reuse | Shared 32-case ioctl fixture through VFS; local failed-open and table-cleanup controls |
+| ioctl 29 | VERSION, MAX_THREADS, CONTEXT_MGR/EXT, THREAD_EXIT, WRITE_READ looper commands | Linux and direct endpoint share 32 passing cases at 517ad1c; paired VFS run pending |
+| fstat 80, newfstatat 79 | Virtual character-device metadata | Host device identities are not exposed |
+| read 63, write 64, lseek 62 | Unsupported Binder transfers and non-seekability, with descriptor access checks | Separate 22-case native file comparison pending; no parcel transfer through read/write |
+
+Ioctl pins its open description before releasing the VFS lock. Unknown Binder
+ioctl words return EINVAL; recognized unimplemented work returns EOPNOTSUPP.
+Non-Binder unknown ioctls return ENOTTY and absent descriptors return EBADF.
+Binder mmap, polling and actual transactions remain pending. See
+[the Binder contract](binder.md) for host resource limits and comparison scope.
