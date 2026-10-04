@@ -2,13 +2,27 @@
 #ifndef ARTBOX_BINDER_DEVICE_CHECK_H
 #define ARTBOX_BINDER_DEVICE_CHECK_H
 #include <stdint.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 typedef struct artbox_binder_device_ops {
     int (*open)(void *context);
     int (*close)(void *context, int descriptor);
     int64_t (*ioctl)(void *context, int descriptor, uint32_t request, uint64_t argument);
     void (*pause)(void *context);
 } artbox_binder_device_ops;
+/* Keep all guest-visible buffers in caller-owned storage so the same fixture
+ * can use a registered VM mapping or ordinary native userspace memory. */
+typedef struct artbox_binder_device_scratch {
+    uint64_t write_read[6];
+    uint32_t version[3], threads, commands[2], manager[6];
+} artbox_binder_device_scratch;
 /* Requires a fresh private Binder context, protocol 8 and little-endian LP64.
- * Callbacks return negative Linux errno. Returns assertion count or -1. */
-int artbox_binder_device_check(void *context, const artbox_binder_device_ops *ops);
+ * Callbacks return negative Linux errno. scratch must be readable/writable by
+ * the tested endpoint. Returns assertion count or -1. */
+int artbox_binder_device_check(void *context, const artbox_binder_device_ops *ops,
+    artbox_binder_device_scratch *scratch);
+#ifdef __cplusplus
+}
+#endif
 #endif

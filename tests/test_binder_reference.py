@@ -132,6 +132,15 @@ class ReferencePackages(unittest.TestCase):
         self.assertEqual(stopped.exception.code, 2)
         self.assertIn('--disposable-host', errors.getvalue())
 
+    def test_driver_comparison_requires_native_execution(self):
+        errors = io.StringIO()
+        with patch.object(sys, 'argv', ['binder_reference.py', '--compare-driver']), redirect_stderr(errors):
+            with patch('binder_reference.prepare', side_effect=AssertionError('No preparation before native requirement')):
+                with self.assertRaises(SystemExit) as stopped:
+                    main()
+        self.assertEqual(stopped.exception.code, 2)
+        self.assertIn('--run-native', errors.getvalue())
+
 
 if __name__ == '__main__':
     os.environ.update(environment())

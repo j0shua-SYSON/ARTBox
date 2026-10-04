@@ -2374,8 +2374,8 @@ and source-level syscall boundary from M3 remain the execution model. See the
 
 ## 0092: Make receive-buffer ownership explicit before exposing Binder mmap
 
-Status: portable arena and concurrent lifecycle tests pass locally; native
-mapping, driver delivery and Linux comparison remain pending.
+Status: portable arena/concurrent lifecycle tests and native Mac/Linux alias
+mapping checks pass; driver delivery and allocator comparison remain pending.
 
 Give the driver a bounded metadata vector and caller-owned receive storage.
 Allocation produces a reserved buffer; only this state permits driver writes
@@ -2404,8 +2404,8 @@ These are ordinary non-executable data mappings and need no new entitlement.
 
 ## 0093: Use the CI runner's real Binder module as the Linux reference
 
-Status: official package/module/notice verified; original ioctl fixture and
-required native reference job prepared. Native execution remains pending CI.
+Status: official package/module/notice verified; the original 30-case ioctl
+fixture passes on the real Linux kernel at c773122. Paired driver CI is pending.
 
 The Ubuntu runner's `6.17.0-1022-azure` configuration enables Binder, but neither
 a device nor installed module exists. Booting another kernel is unnecessary.
@@ -2449,3 +2449,41 @@ references and verify the non-forced unload syscall returns EBUSY. Record that
 the module remains until the hosted test VM is discarded. No force removal or
 claim of successful unload is permitted; ordinary developer workstations must
 not be used for this native mode.
+
+## 0094: Bound Binder endpoints before connecting VFS and delivery
+
+Status: original endpoint API passes the shared 32-case fixture and local VM,
+resource and concurrency controls. Paired Linux and Apple CI are pending.
+
+Use one private context object with independent per-open endpoints. Identify
+endpoints with monotonically increasing tokens; reusing a metadata slot must
+not let a stale callback act on a new endpoint. Reserve all endpoint and thread
+metadata at creation, within explicit host limits. Keep guest MAX_THREADS
+separate: setting that field to zero or UINT32_MAX must not change allocation
+bounds or reject an already permitted caller. No per-ioctl allocation is needed.
+
+Keep fixed virtual opener credentials for the initial single-process runtime.
+Context-manager UID ownership survives close; busy ownership precedes UID
+checking, and the extended object's guest copy precedes both. Mutable guest
+credentials and SELinux are not implemented. The trusted owner must keep each
+VM alive until close and in-flight calls complete. A context with live endpoints
+cannot be destroyed. VM access is validated under the mapper lock, including
+header copy-back after earlier command effects. Device state uses one mutex;
+lock order is device then VM. Avoid exposing this API from VM callbacks.
+
+This checkpoint exposes only version, threadpool limit, manager registration,
+thread exit and looper writes. Receiving and recognized unimplemented work
+return EOPNOTSUPP. The 64 KiB write work bound returns E2BIG explicitly; it is
+an ARTBox admission limit, not a kernel ABI claim. Immediate synchronous close
+satisfies callers that already tolerate the reference's deferred cleanup.
+Future queues/mappings must retain their own storage lifetime after close and
+must add cancellation/death tests before that path is connected.
+
+Move shared fixture buffers into caller-owned storage so both a native process
+and a real guest VM can execute the identical assertions. Required Linux CI
+runs the kernel first, then builds and runs ARTBox's boundary, preserving the
+two executable hashes and source provenance. Additional UID/resource/VM and
+4,000 concurrent-lifecycle checks remain separately identified as ARTBox tests.
+No syscall forwarding, runtime code generation, entitlement or CPU emulation
+is involved. Context serialization and linear scans trade initial simplicity
+for throughput; measure and revise them when transaction delivery exists.

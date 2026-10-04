@@ -6,28 +6,41 @@
 #define CHECK(x) do { ++cases; if (!(x)) { fprintf(stderr, "Binder reference line %d: %s\n", __LINE__, #x); return -1; } } while (0)
 #define PTR(p) ((uint64_t)(uintptr_t)(p))
 
-int artbox_binder_device_check(void *context, const artbox_binder_device_ops *ops) {
+int artbox_binder_device_check(void *context, const artbox_binder_device_ops *ops,
+    artbox_binder_device_scratch *scratch) {
     int cases = 0, a, b, attempts;
     int64_t result;
-    uint32_t version[3] = {0xfeedface, 0, 0xc001cafe}, threads = 15;
-    uint32_t commands[2] = {ARTBOX_BC_ENTER_LOOPER, UINT32_C(0xffffffff)};
-    uint64_t write_read[6] = {0};
+    uint32_t *version = scratch->version, *commands = scratch->commands;
+    uint64_t *write_read = scratch->write_read;
+    uint32_t *manager = scratch->manager;
+    memset(scratch, 0, sizeof(*scratch));
+    version[0] = 0xfeedface; version[2] = 0xc001cafe; scratch->threads = 15;
+    commands[0] = ARTBOX_BC_ENTER_LOOPER; commands[1] = UINT32_C(0xffffffff);
     /* flat_binder_object with TXN_SECURITY_CTX, null binder/cookie. */
-    uint32_t manager[6] = {0, 0x1000, 0, 0, 0, 0};
+    manager[1] = 0x1000;
     CHECK(sizeof(uintptr_t) == 8);
     a = ops->open(context); CHECK(a >= 0);
     b = ops->open(context); CHECK(b >= 0 && b != a);
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_VERSION, PTR(&version[1])) == 0);
     CHECK(version[1] == 8 && version[0] == 0xfeedface && version[2] == 0xc001cafe);
+    /* A looper registration without a spawn request marks invalid state but
+     * still consumes the command successfully. ENTER below also remains legal
+     * as a write even though this thread already has REGISTERED state. */
+    commands[0] = ARTBOX_BC_REGISTER_LOOPER;
+    write_read[0] = 4; write_read[2] = PTR(commands);
+    CHECK(ops->ioctl(context, a, ARTBOX_BINDER_WRITE_READ, PTR(write_read)) == 0);
+    CHECK(write_read[1] == 4);
+    memset(write_read, 0, sizeof(scratch->write_read));
+    commands[0] = ARTBOX_BC_ENTER_LOOPER;
     /* VERSION, MAX_THREADS and CONTEXT_MGR_EXT report EINVAL for a failed
      * user copy; WRITE_READ reports EFAULT. Preserve each request's contract. */
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_VERSION, 1) == -22);
     CHECK(ops->ioctl(context, a, UINT32_C(0xffffffff), 1) == -22);
-    CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_MAX_THREADS, PTR(&threads)) == 0);
-    threads = 0;
-    CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_MAX_THREADS, PTR(&threads)) == 0);
-    threads = UINT32_MAX;
-    CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_MAX_THREADS, PTR(&threads)) == 0);
+    CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_MAX_THREADS, PTR(&scratch->threads)) == 0);
+    scratch->threads = 0;
+    CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_MAX_THREADS, PTR(&scratch->threads)) == 0);
+    scratch->threads = UINT32_MAX;
+    CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_MAX_THREADS, PTR(&scratch->threads)) == 0);
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_SET_MAX_THREADS, 1) == -22);
     CHECK(ops->ioctl(context, a, ARTBOX_BINDER_WRITE_READ, PTR(write_read)) == 0);
     CHECK(write_read[1] == 0 && write_read[4] == 0);

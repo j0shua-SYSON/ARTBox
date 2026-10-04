@@ -48,7 +48,8 @@ int main(int argc, char **argv) {
     if (ioctl(control, BINDER_CTL_ADD, &device)) { perror("BINDER_CTL_ADD"); return 2; }
     if (close(control)) return 2;
     const artbox_binder_device_ops ops = {open_device, close_device, call_device, pause_device};
-    int cases = artbox_binder_device_check(argv[2], &ops);
+    artbox_binder_device_scratch scratch;
+    int cases = artbox_binder_device_check(argv[2], &ops, &scratch);
     if (cases < 0) return 1;
     printf("{\"protocol\":8,\"cases\":%d,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases);
     return 0;

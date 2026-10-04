@@ -24,7 +24,7 @@ jobs:
       - name: Record the actual native kernel and package candidates
         run: python3 -B scripts/probe_binder.py
       - name: Test real Binder ioctls in a private native binderfs context
-        run: python3 -B scripts/binder_reference.py --run-native --disposable-host
+        run: python3 -B scripts/binder_reference.py --run-native --disposable-host --compare-driver
       - name: Preserve reference evidence without distributing kernel modules
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -34,6 +34,7 @@ jobs:
             artifacts/m4-binder-capabilities.json
             artifacts/m4-binder-kernel-reference.json
             build/m4/kernel-reference/reference.log
+            build/m4/kernel-reference/core/comparison.log
           if-no-files-found: warn
           retention-days: 7
   host:

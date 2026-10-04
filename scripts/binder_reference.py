@@ -203,15 +203,46 @@ def run_native(spec, installed, build):
     return record
 
 
+def compare_driver(build, reference):
+    """Run the same fixture through the portable VM-backed endpoint boundary."""
+    cmake = shutil.which('cmake')
+    if cmake is None:
+        raise RuntimeError('Driver comparison requires an existing CMake')
+    build.mkdir(parents=True, exist_ok=True)
+    log = build / 'comparison.log'
+    with log.open('w', encoding='utf-8') as output:
+        for command in (
+            [cmake, '-S', str(ROOT), '-B', str(build), '-DCMAKE_BUILD_TYPE=Release'],
+            [cmake, '--build', str(build), '--target', 'test_binder_device', '--parallel', '2'],
+        ):
+            output.write(' '.join(command) + '\n'); output.flush()
+            subprocess.run(command, stdout=output, stderr=subprocess.STDOUT, check=True, timeout=180)
+        runner = build / 'test_binder_device'
+        run = subprocess.run([str(runner)], capture_output=True, text=True, timeout=30)
+        output.write(run.stdout + run.stderr)
+        run.check_returncode()
+    result = json.loads(run.stdout)
+    expected = {'protocol': reference['protocol'], 'shared_cases': reference['cases'],
+                'vm_and_admission_controls': True, 'concurrent_lifecycles': 4000, 'passed': True}
+    if result != expected:
+        raise RuntimeError('Portable Binder driver did not pass the exact native fixture')
+    return {**result, 'runner_sha256': digest(runner),
+            'scope': 'Same ioctl/endpoint fixture; no transaction, polling or death comparison'}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run-native', action='store_true')
     parser.add_argument('--disposable-host', action='store_true',
                         help='Acknowledge that the non-unloadable module remains until this test host is discarded')
+    parser.add_argument('--compare-driver', action='store_true',
+                        help='Build and run the same fixture through ARTBox after the native reference passes')
     parser.add_argument('--kernel', help='Package kernel to prepare; native execution must match it')
     args = parser.parse_args()
     if args.run_native and not args.disposable_host:
         parser.error('--run-native requires --disposable-host; the pinned module has no exit hook')
+    if args.compare_driver and not args.run_native:
+        parser.error('--compare-driver requires --run-native; preparation alone is not a reference result')
     os.environ.update(environment())
     pins = json.loads((ROOT / 'third_party/binder/kernel-reference.json').read_text())
     kernel = args.kernel or (platform.release() if args.run_native else pins['packages'][0]['kernel'])
@@ -224,15 +255,24 @@ def main():
     if args.run_native:
         record['native'] = run_native(spec, installed, Path(os.environ['ARTBOX_BUILD_DIR']) / 'm4/kernel-reference')
         record['native_execution_verified'] = True
+        if args.compare_driver:
+            record['driver'] = compare_driver(Path(os.environ['ARTBOX_BUILD_DIR']) / 'm4/kernel-reference/core', record['native'])
+            record['artbox_driver_compared'] = True
     record['project_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
-    record['project_files'] = {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p) for p in (
+    sources = [
         ROOT / 'fixtures/binder-device/check.c', ROOT / 'fixtures/binder-device/check.h',
         ROOT / 'tests/native_binder_device.c', ROOT / 'core/include/artbox/binder_wire.h',
-        ROOT / 'third_party/binder/kernel-reference.json', Path(__file__).resolve())}
+        ROOT / 'third_party/binder/kernel-reference.json', Path(__file__).resolve()]
+    if args.compare_driver:
+        sources += [ROOT / 'CMakeLists.txt', ROOT / 'tests/test_binder_device.cpp']
+        sources += [p for folder in ('core', 'platform') for p in (ROOT / folder).rglob('*')
+                    if p.is_file() and p.suffix in ('.c', '.cpp', '.h', '.S')]
+    record['project_files'] = {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p) for p in sorted(set(sources))}
     (Path(os.environ['ARTBOX_ARTIFACTS_DIR']) / 'm4-binder-kernel-reference.json').write_text(
         json.dumps(record, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({'prepared': True, 'kernel': kernel, 'native_execution_verified': record['native_execution_verified'],
-                      'artbox_driver_compared': False, 'native': record.get('native')}, indent=2))
+                      'artbox_driver_compared': record['artbox_driver_compared'],
+                      'native': record.get('native'), 'driver': record.get('driver')}, indent=2))
 
 
 if __name__ == '__main__':

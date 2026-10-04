@@ -51,15 +51,17 @@ Unsupported operations retain explicit errors. See the individual contracts.
 ## Current work
 
 M4: the [Binder wire boundary](binder.md) recognizes the Android 15 ARM64
-commands and validates transaction/object snapshots. Local checks pass 36 host
+commands and validates transaction/object snapshots. Local checks pass 37 host
 contracts and 60 comparisons against actual NDK UAPI constants plus an
 independently produced byte fixture. A bounded receive-arena primitive also
 passes local ownership/exhaustion checks and 8,000 concurrent lifecycles;
 its driver integration is not connected. At `4012961`, all 18 host jobs and iOS
 CI pass, including actual native receive-alias coherence, protection-fault and
-close/unmap tests on Mac/Linux. A pinned native Linux Binder module/reference
-fixture is prepared for ioctl semantics; executing it remains pending.
-Driver delivery, polling, references,
+close/unmap tests on Mac/Linux. At `c773122`, the real Linux Binder device passes
+the 30-case ioctl/lifetime reference; downloaded source hashes and run identity
+verify. The portable endpoint API now passes the shared fixture (expanded to
+32 cases), VM/admission controls and 4,000 concurrent endpoint lifecycles locally.
+Its paired Linux comparison is pending CI. VFS/mapping integration, delivery, polling, references,
 death notifications and real servicemanager are next; M4 is not complete.
 
 M3 main artifacts were downloaded and verified independently: 16 signed iOS 15

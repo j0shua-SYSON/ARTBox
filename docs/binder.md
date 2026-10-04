@@ -1,7 +1,8 @@
 # Userspace Binder
 
 M4 is in progress. The current implementation validates the 64-bit Android
-Binder wire boundary; it does not expose `/dev/binder`, deliver transactions,
+Binder wire boundary and implements an initial endpoint/ioctl API. It does not
+expose `/dev/binder`, deliver transactions,
 run servicemanager or complete M4. Recognized commands are not advertised as
 implemented driver operations.
 
@@ -12,8 +13,8 @@ casting unaligned wire structs, or following guest pointers. It recognizes
 all 19 write commands and 22 return encodings in the pinned Android 15 UAPI.
 It matches the entire Linux command word, including direction and size.
 Unknown or truncated commands leave the cursor/output unchanged; earlier
-successful frames stay consumed. This cursor is a parser cursor, not yet
-the kernel's `binder_write_read.write_consumed` implementation.
+successful frames stay consumed. This parser cursor is separate from
+the endpoint's `binder_write_read.write_consumed` handling below.
 
 Transaction views preserve 64-bit addresses and lengths and distinguish the
 scatter/gather extension from the return security-context extension. Object
@@ -27,6 +28,39 @@ The public interface uses decoded values and borrowed byte views, not native
 packed structs or the host's ioctl definitions. In particular,
 `binder_handle_cookie` is 12 bytes on Android ARM64; Darwin ioctl numbers and
 a compiler's ordinary struct padding cannot define this boundary.
+
+## Endpoint/ioctl boundary
+
+`binder_device` owns a private context and independent state per open, including
+for opens from the same virtual PID. Monotonic tokens never reuse a closed
+endpoint's identity. A fixed virtual UID owns the context-manager registration;
+the UID restriction survives its owner's close. Context-manager removal is
+immediate in this synchronous boundary; callers must still tolerate Linux's
+deferred release. No host credentials or descriptors are exposed.
+
+VERSION, MAX_THREADS, CONTEXT_MGR/EXT, THREAD_EXIT and WRITE_READ's three looper
+commands are enabled. Every copy uses the guest VM. A failed write preserves
+completed prefix consumption and zeroes read consumption; header copy-back
+failure takes precedence. Full ioctl/command words are matched. Thread-exit
+reclaims the calling TID, which a later ioctl recreates. Unknown words fail with
+EINVAL; recognized work not implemented yet, including receive operations and
+transactions, fails with EOPNOTSUPP.
+
+Host limits reserve metadata for at most 1,024 endpoints and 1,024 threads per
+endpoint. These are explicit admission bounds, independent of MAX_THREADS's
+Linux threadpool setting. Endpoint exhaustion returns EMFILE, thread exhaustion
+ENOMEM, and write batches over 64 KiB E2BIG. The first implementation serializes
+state under one context mutex, with lock order device then VM. No transaction
+performance claim is made; these limits and scans need measurement once IPC
+exists. See ADR 0094 for ownership and integration requirements.
+
+The same original fixture can run in real Linux userspace or in VM-owned
+storage through ARTBox. The native 30-case baseline passed at `c773122`; the
+current 32-case fixture additionally covers registration without a spawn
+request. Local driver checks also cover UID persistence, stale tokens,
+read-only/partial/wrapped guest buffers, exhaustion, unsupported operations,
+and 4,000 endpoint lifecycles across eight threads. Those extra controls are
+ARTBox invariants, not additional Linux comparisons. Paired CI is pending.
 
 ## Receive-buffer ownership primitive
 
@@ -83,8 +117,8 @@ semantic oracle or an iPhone execution claim.
 
 ## Next contracts
 
-1. Per-open endpoint state, protocol/version/context-manager ioctls, bounded
-   read-only receive arenas and command-buffer validation through the VM layer.
+1. Connect the endpoint API to VFS open/ioctl/close and bounded read-only receive
+   mappings, preserving mappings after descriptor close until unmap.
 2. Synchronous transactions/replies across threads, thread-affine reply stacks,
    copied payloads, explicit buffer release and resource exhaustion.
 3. Node/handle translation, reference acknowledgements, ordered one-way queues,
@@ -94,8 +128,8 @@ semantic oracle or an iPhone execution claim.
    ping/pong and death notification through distinct driver endpoints.
 
 Every contract needs failure controls before being enabled. Kernel comparison
-needs an actual native Linux Binder device; its availability on CI has not been
-established. Missing access must not be reported as a passed kernel comparison.
+needs an actual native Linux Binder device. Its private binderfs context now
+runs on CI; missing access must not be reported as a passed comparison.
 `scripts/probe_binder.py` records available devices/protocols, installed module
 paths and Binder kernel configuration without loading anything. Its default
 success means the inventory completed; `--require-device` fails unless an
@@ -105,12 +139,12 @@ runner's existing package index without updating, downloading or installing.
 Multi-process APKs, FD transfer, buffer-parent fixups, scheduling/priority
 inheritance and SELinux enforcement are outside this first boundary checkpoint.
 
-## Native kernel reference under development
+## Native kernel reference
 
 The Ubuntu runner uses `6.17.0-1022-azure` with Binder configured as a module,
 but the module package is absent. The matching official package and its single
-Binder module were downloaded and hash-verified; seven package/cache and
-explicit disposable-host controls pass locally. `scripts/binder_reference.py` prepares those pinned
+Binder module were downloaded and hash-verified; eight package/cache and
+execution-mode controls pass locally. `scripts/binder_reference.py` prepares those pinned
 bytes on any host. The explicit `--run-native --disposable-host` mode requires
 the matching Linux kernel, existing compiler/module tools and passwordless sudo. A required
 Linux CI job loads the unmodified module, mounts a private binderfs below the
@@ -124,9 +158,12 @@ The fixture tests version/canaries, invalid pointers and ioctl words, thread
 limit inputs, empty write/read, a valid command prefix followed by an invalid
 command, resumed consumption, thread exit/recreation, legacy/extended context
 manager registration, duplicate ownership and delayed close/re-registration.
-Its callbacks can later drive ARTBox's implementation with the same assertions.
-Native execution is pending CI at this checkpoint; preparing a module is not
-execution, and even a passed Linux reference is not an ARTBox comparison.
+At `c773122`, the native 30-case fixture passed. The downloaded artifact's
+digest, six project source hashes and PR merge-parent identity verify. Native
+execution and ARTBox comparison remain separate: `--compare-driver` requires
+native execution, builds the portable endpoint test and compares its shared
+fixture result only after the reference succeeds. Record both executable
+hashes and all core/platform input hashes. The new paired run is pending CI.
 
 The first live attempt at `d67b7f8` confirmed two contract corrections before
 any ARTBox ioctl implementation: BINDER_VERSION's invalid output pointer returns
