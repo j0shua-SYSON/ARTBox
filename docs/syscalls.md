@@ -409,7 +409,9 @@ claim readiness polling or native signal delivery through signed Bionic.
 At `0f1ae04`, the native readiness reference passes 19 assertions for snapshots
 without consumption, initial-return lifecycle, event filtering and queued errors.
 Device/VFS snapshot helpers now share ioctl thread admission, pin the descriptor
-and observe process work without changing looper state. The expanded 31-case
-contract passes locally; its native comparison and the IPC fixtures running
-through readiness checks await CI. No guest poll/epoll syscall or persistent
-wait registration is enabled yet.
+and observe process work without changing looper state. At `fb72b68`, the
+expanded 31-case contract and IPC lifecycle through readiness pass native
+comparison, with independently verified artifact and source provenance. No guest
+poll/epoll syscall or persistent wait registration is enabled yet. The new native
+epoll reference tests persistent registration, thread teardown/re-poll and
+blocked death wakeup; execution is pending.

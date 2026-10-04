@@ -20,6 +20,7 @@
 #include <sys/wait.h>
 
 int artbox_native_binder_wait_check(const char *path);
+int artbox_native_binder_epoll_check(const char *path);
 
 struct transaction_context { const char *path; int32_t server_pid, client_pid; int server_fd, nonblocking; };
 static int32_t transaction_pid(void *opaque, int32_t role) {
@@ -207,9 +208,13 @@ int main(int argc, char **argv) {
     artbox_binder_poll_scratch poll_scratch;
     int poll_cases = artbox_binder_poll_check(argv[2], &ops, poll_device, &poll_scratch);
     if (poll_cases < 0) return 1;
+    int epoll_cases = artbox_native_binder_epoll_check(argv[2]);
+    if (epoll_cases != 31) return 1;
     printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"mapping_cases\":%d,"
            "\"same_pid_rejected\":true,\"threaded_ping_pong\":true,\"death_cases\":%d,"
            "\"object_handle_lifecycle\":true,\"oneway_lifecycle\":true,\"wait_cases\":%d,\"blocking_threaded_ping_pong\":true,"
-           "\"poll_cases\":%d,\"readiness_lifecycle\":true,\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases, wait_cases, poll_cases);
+           "\"poll_cases\":%d,\"readiness_lifecycle\":true,\"epoll_snapshot_cases\":%d,"
+           "\"epoll_registration_controls\":true,\"epoll_death_wakeup\":true,"
+           "\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases, wait_cases, poll_cases, epoll_cases);
     return 0;
 }

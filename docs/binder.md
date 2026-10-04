@@ -259,7 +259,9 @@ readiness before ENTER_LOOPER, repeated observation, and later consumption by
 an entered looper. The snapshot's process-work eligibility is separate from the
 current read-routing contract; polling itself never changes looper registration.
 Local checks cover admission, active-TID rejection, descriptor closure/reuse and
-foreign VM rejection. Native comparison of the expanded contract is pending.
+foreign VM rejection. At `fb72b68`, all 31 cases and the IPC lifecycle through
+readiness pass Linux/ARTBox comparison; artifact provenance and 99 input hashes
+verify independently.
 
 The existing ping/reply, three death cases, strong-object lifecycle and ordered
 one-way fixtures also rerun through readiness checks on both sides. Their original
@@ -267,6 +269,24 @@ mode still directly exercises empty nonblocking reads. Persistent epoll
 registration, blocking poll waits, cross-thread wakeups and the service event
 loop need additional contracts. This uses existing non-executable metadata and
 requires no new platform API or entitlement. See ADR 0107.
+
+## Persistent epoll reference
+
+The next native oracle reruns the 31 readiness assertions through persistent
+Linux epoll interests. It exercises ADD duplicate rejection, MOD after Binder
+THREAD_EXIT, DEL/re-add, event-data preservation, filtering and automatic removal
+when the last target descriptor closes. A separate worker is observed in its
+actual infinite epoll syscall before the service owner is closed. The required
+result is input readiness with the registered data, followed by the exact death
+notification and no remaining readiness after consumption.
+
+Registration and waiting occur on different native threads. Both threads are
+primed before observing the wait so an initial Binder NOOP cannot masquerade as
+a wakeup. Observation and completion waits are bounded; a stuck worker terminates
+the disposable oracle. Compilation passes; native execution is pending.
+`epoll_driver_compared` remains false, and no guest epoll syscall is enabled.
+Native event structures are used only inside the reference; their host layout
+is not an Android ARM64 wire-layout claim.
 
 ## Evidence
 

@@ -143,11 +143,19 @@ entitlements. No physical execution is claimed.
 At `0f1ae04`, all 20 host jobs and iOS pass. The native 19-case readiness
 reference, 99 input hashes, signed runtime and integrated IPA verify independently.
 Device/VFS snapshots now preserve unread work and
-share bounded thread admission with ioctl. The expanded 31-case fixture passes
-locally, including process-level death readiness before ENTER_LOOPER; native
-comparison is pending. Existing transaction/object/one-way/death fixtures also
-rerun through readiness checks in required CI. Persistent poll/epoll registration,
-actual service execution and signed Binder attachment remain ahead.
+share bounded thread admission with ioctl. At `fb72b68`, the expanded 31-case
+fixture passes Linux/ARTBox comparison, including process-level death readiness
+before ENTER_LOOPER. Transaction/object/one-way/death fixtures also pass through
+readiness checks. Artifact provenance and 99 input hashes verify. All 20 host
+jobs and iOS pass; the signed Mac runtime and integrated IPA independently verify
+managed/console controls, 16 iOS 15 images, 15 ELF/layout pairs, five resources
+and 175 notice hashes with empty entitlements.
+
+The next native reference exercises persistent epoll interests, thread teardown
+and MOD, ADD/DEL controls, last-close removal and actual blocked-wait death
+notification. ARM64 compilation passes; execution is pending and
+`epoll_driver_compared` remains false. Production epoll, actual service execution
+and signed Binder attachment remain ahead.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

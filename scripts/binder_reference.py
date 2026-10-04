@@ -173,7 +173,8 @@ def run_native(spec, installed, build):
                ROOT / 'fixtures/binder-mapping/check.c',
                ROOT / 'fixtures/binder-poll/check.c',
                ROOT / 'fixtures/binder-transaction/check.c', ROOT / 'core/src/binder_wire.c',
-               ROOT / 'tests/native_binder_device.c', ROOT / 'tests/native_binder_wait.c', '-pthread', '-o', executable)
+               ROOT / 'tests/native_binder_device.c', ROOT / 'tests/native_binder_wait.c',
+               ROOT / 'tests/native_binder_epoll.c', '-pthread', '-o', executable)
         invoke(commands['sudo'], '-n', commands['insmod'], module, 'devices=')
         loaded = True
         invoke(commands['sudo'], '-n', commands['mount'], '-t', 'binder', '-o', 'max=1', 'binder', mount)
@@ -187,7 +188,8 @@ def run_native(spec, installed, build):
                       'same_pid_rejected': True, 'threaded_ping_pong': True, 'death_cases': 3,
                       'object_handle_lifecycle': True, 'oneway_lifecycle': True, 'wait_cases': 4,
                       'blocking_threaded_ping_pong': True,
-                      'poll_cases': 31, 'readiness_lifecycle': True,
+                      'poll_cases': 31, 'readiness_lifecycle': True, 'epoll_snapshot_cases': 31,
+                      'epoll_registration_controls': True, 'epoll_death_wakeup': True,
                       'fresh_binderfs_context': True, 'passed': True}:
             raise RuntimeError('Native Binder reference did not execute every expected case')
         record = {**result, 'vermagic': version, 'module_license': license_name,
@@ -305,7 +307,7 @@ def main():
               'native_execution_verified': False, 'artbox_driver_compared': False,
               'mapping_driver_compared': False, 'transaction_driver_compared': False, 'death_driver_compared': False,
               'object_driver_compared': False, 'oneway_driver_compared': False, 'wait_driver_compared': False,
-              'poll_driver_compared': False}
+              'poll_driver_compared': False, 'epoll_driver_compared': False}
     if args.run_native:
         record['native'] = run_native(spec, installed, Path(os.environ['ARTBOX_BUILD_DIR']) / 'm4/kernel-reference')
         record['native_execution_verified'] = True
@@ -327,7 +329,8 @@ def main():
         ROOT / 'fixtures/binder-poll/check.c', ROOT / 'fixtures/binder-poll/check.h',
         ROOT / 'fixtures/binder-transaction/check.c', ROOT / 'fixtures/binder-transaction/check.h',
         ROOT / 'core/src/binder_wire.c',
-        ROOT / 'tests/native_binder_device.c', ROOT / 'tests/native_binder_wait.c', ROOT / 'core/include/artbox/binder_wire.h',
+        ROOT / 'tests/native_binder_device.c', ROOT / 'tests/native_binder_wait.c', ROOT / 'tests/native_binder_epoll.c',
+        ROOT / 'core/include/artbox/binder_wire.h',
         ROOT / 'third_party/binder/kernel-reference.json', Path(__file__).resolve()]
     if args.compare_driver:
         sources += [ROOT / 'CMakeLists.txt', ROOT / 'tests/test_binder_device.cpp', ROOT / 'tests/test_binder_vfs.cpp',
@@ -346,6 +349,7 @@ def main():
                       'oneway_driver_compared': record['oneway_driver_compared'],
                       'wait_driver_compared': record['wait_driver_compared'],
                       'poll_driver_compared': record['poll_driver_compared'],
+                      'epoll_driver_compared': record['epoll_driver_compared'],
                       'native': record.get('native'), 'driver': record.get('driver')}, indent=2))
 
 
