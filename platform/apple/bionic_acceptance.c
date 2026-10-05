@@ -102,7 +102,7 @@ static unsigned art_bootstrap;
 static unsigned tls_count;
 static uint64_t icu_check_ns;
 static uint64_t libcore_check_ns, integer128_check_ns;
-static uint64_t art_startup_ns, art_managed_bytes;
+static uint64_t art_startup_ns, art_managed_bytes, art_window_bytes, art_bootstrap_window_bytes;
 static artbox_dlfcn *guest_loader;
 static artbox_guest_dlfcn *guest_dl_service;
 static uint64_t gwp_enabled, guarded_samples;
@@ -373,8 +373,17 @@ static void check_art_bootstrap(void) {
     // The pinned ART explicitly returns JNI_ERR for this unsupported API.
     if ((int32_t)artbox_call7(entry(&images[1], "JNI_GetDefaultJavaVMInitArgs"), 0, 0, 0, 0, 0, 0, 0) != -1)
         fail("ART default initialization contract");
-    if ((int32_t)artbox_call7(entry(&images[1], "artbox_art_heap_initialize"),
-            (uintptr_t)vm, UINT64_C(0x100000000), artbox_vm_page_size(vm), 0, 0, 0, 0)) fail("ART shared heap binding");
+    // This pre-start contract needs only a guard and a few addressable pages.
+    // Unbinding retains ownership until VM destruction, so do not spend the
+    // full compressed-reference range on this preliminary check.
+    const size_t page = artbox_vm_page_size(vm);
+    art_bootstrap_window_bytes = 4 * page;
+    int32_t binding = (int32_t)artbox_call7(entry(&images[1], "artbox_art_heap_initialize"),
+            (uintptr_t)vm, art_bootstrap_window_bytes, page, 0, 0, 0, 0);
+    if (binding) {
+        fprintf(stderr, "ART bootstrap window: bytes=%" PRIu64 " error=%d\n", art_bootstrap_window_bytes, binding);
+        fail("ART shared heap binding");
+    }
     if (artbox_call7(entry(&images[1], "artbox_art_reference_compress"), 0, 0, 0, 0, 0, 0, 0) ||
         artbox_call7(entry(&images[1], "artbox_art_reference_decompress"), 0, 0, 0, 0, 0, 0, 0))
         fail("ART null reference contract");
@@ -495,15 +504,15 @@ static void *run(void *context) {
             if (reaped != 1) fail("libcore monitor worker count");
         }
         if (art_bootstrap == 4) {
-            uint64_t metrics[2] = {0, 0};
+            uint64_t metrics[3] = {0, 0, 0};
             fprintf(stderr, "signed ART runtime acceptance entry\n");
             int status = (int32_t)artbox_call7(entry(&images[1], "artbox_native_runtime_check"),
                 (uintptr_t)vm, artbox_vm_page_size(vm), (uintptr_t)metrics, 0, 0, 0, 0);
-            if (status || !metrics[0] || !metrics[1]) {
+            if (status || !metrics[0] || !metrics[1] || metrics[2] != (UINT64_C(1) << 30)) {
                 fprintf(stderr, "signed ART runtime result: %d\n", status);
                 fail("ART JavaVM, DEX and lifecycle acceptance");
             }
-            art_startup_ns = metrics[0]; art_managed_bytes = metrics[1];
+            art_startup_ns = metrics[0]; art_managed_bytes = metrics[1]; art_window_bytes = metrics[2];
             if (artbox_threads_drain(threads, 5000)) fail("ART child thread reaper");
             reaped = artbox_threads_reaped(threads);
         }
@@ -714,7 +723,8 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     artbox_system_ops system = artbox_native_system();
     // Exercise all M2 cases within a bounded address budget on Mac as well as iOS.
     // The previous 8.25 GiB Scudo reservation must fail this contract everywhere.
-    const uint64_t vm_budget = (art_mode ? UINT64_C(32) : UINT64_C(1)) << 30;
+    // ART also rejects the old 4 GiB preliminary/runtime window reservations.
+    const uint64_t vm_budget = (art_mode ? UINT64_C(2) : UINT64_C(1)) << 30;
     vm = artbox_vm_create(&ops, vm_budget, 4096);
     if (artbox_native_files_open(input->root, &backing_files)) fail("rooted filesystem");
     artbox_file_ops files = artbox_native_files_ops(backing_files);
@@ -826,7 +836,8 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
         if (art_bootstrap == 4) {
             int count = snprintf(extra, sizeof(extra),
                 "\"startup_ns\":%" PRIu64 ",\"managed_bytes\":%" PRIu64 ",\"threads_reaped\":%" PRIu64 ","
-                "\"process_peak_rss_bytes\":%ld,", art_startup_ns, art_managed_bytes, reaped, usage.ru_maxrss);
+                "\"process_peak_rss_bytes\":%ld,\"managed_window_bytes\":%" PRIu64 ",",
+                art_startup_ns, art_managed_bytes, reaped, usage.ru_maxrss, art_window_bytes);
             if (count < 0 || (size_t)count >= sizeof(extra)) fail("ART runtime result formatting");
         }
         if (art_bootstrap == 5) {
@@ -841,10 +852,11 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
         }
         length = snprintf(report, sizeof(report),
             "{\"constructors\":%u,\"tls_modules\":%u,\"linked_images\":%u,\"registered_vms\":0,%s"
+            "\"vm_budget_bytes\":%" PRIu64 ",\"reserved_bytes\":%" PRIu64 ",\"bootstrap_window_bytes\":%" PRIu64 ","
             "\"heap_binding_verified\":true,\"sigchain_cases\":22,\"sigchain_mutation\":-1005,"
             "\"runtime_started\":%s,\"dex_executed\":%s,"
             "\"load_relocate_ns\":%" PRIu64 ",\"bootstrap_ns\":%" PRIu64 ",\"cleanup\":true}",
-            constructors, tls_count, image_count, extra,
+            constructors, tls_count, image_count, extra, vm_budget, reserved, art_bootstrap_window_bytes,
             art_bootstrap == 4 ? "true" : "false", art_bootstrap == 4 ? "true" : "false",
             loaded-start, finished-loaded);
         if (length < 0 || (size_t)length >= sizeof(report)) fail("ART result formatting");

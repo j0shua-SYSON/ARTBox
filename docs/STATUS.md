@@ -55,8 +55,12 @@ suite succeeds, including a cold home-icon relaunch, with 560,988,160 reserved
 bytes. Startup/client observations are 139.642 and 274.555 ms, with roughly
 69-70 MiB peak RSS; these are traced correctness runs, not performance estimates.
 See [M2 device evidence](acceptance/m2.md#subsequent-physical-device-observation).
-The updated full ART device package is pending retest.
-All 22 host jobs and iOS pass at `2f23685`; both integrated IPAs independently
+The `31c9a4a` full ART package reaches all 38 constructors on the phone, then
+fails its preliminary 4 GiB heap binding. All 16 installed images match CI.
+A candidate uses a four-page bootstrap window, a 1 GiB managed arena and a
+2 GiB guest reservation ceiling, retaining full 4 GiB Linux reference coverage.
+Its signed and physical execution checks are pending; see ADR 0128.
+All 22 host jobs and iOS pass at `31c9a4a`; both integrated IPAs independently
 verify. M2 reserves 560,988,160 bytes in the normal Mac run and 562,118,656 in
 the forced-sampling run, within the new 1 GiB ceiling. Both retain 328/328 and
 pass all three allocation-pressure checks. These are correctness measurements.

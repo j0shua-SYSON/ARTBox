@@ -3542,3 +3542,39 @@ CPU emulation nor runtime code generation. Software checksums cost additional
 instructions; throughput is unmeasured. A future optimized profile must report
 host-verified capabilities before enabling the optional path. No CPU feature
 is inferred from the fact that the app uses arm64 or targets iOS 15.
+
+## 0128: Size the signed ART arena independently of its reference encoding
+
+At `31c9a4a`, the iPhone 6s Plus passes the complete Bionic suite, but the ART
+package finishes all 38 constructors and exits at `ART shared heap binding`.
+That pre-start check requests a 4 GiB window. Unbinding it retains the native
+reservation until VM destruction; the real runtime would then request another
+4 GiB. All 16 installed Mach-O images match the verified CI package byte for
+byte. The cache log establishes the failed binding, without an errno result
+from that older harness. Mac acceptance alone missed this device limitation.
+
+Use four native pages for the preliminary null-reference/binding contract and
+a 1 GiB managed arena for the signed diagnostic's 128 MiB Java heap maximum.
+The larger arena accommodates ART's separate spaces while avoiding the full
+compressed-reference range. The encoding remains a 32-bit base-relative offset,
+validated against the actual window; it does not require every possible offset
+to be reserved. Keep the native Linux reference's full 4 GiB mapping, class
+table, card table and large-object bitmap coverage unchanged.
+
+Enforce a 2 GiB reservation ceiling in the shared signed ART harness, including
+Bionic, guest mappings and retained windows. This is a guest-owned VM budget,
+not a process RSS or total host address-space limit. Report both window sizes,
+the ceiling and actual reserved bytes. Bootstrap, signed-runtime and device
+packaging checks reject missing or oversized evidence. Before adding that
+validation, ten negative cases reproduce the missing acceptance safeguard.
+Existing GC, exceptions, thread-state, lifecycle and console controls remain
+mandatory. Failed binding now reports its requested bytes and Linux error.
+
+Alternatives were releasing/reusing the preliminary window or making the
+reference arena grow. Early release introduces reference-lifetime concerns;
+growth complicates stable offsets and contiguous address ownership. A small
+retained preliminary window keeps the current ownership contract. Applications
+with larger heaps will need a separately validated configurable budget; a
+1 GiB arena is the diagnostic policy, not an Android compatibility guarantee.
+No executable mapping, entitlement or runtime code generator is introduced.
+Physical ART execution remains pending until the candidate passes on the phone.

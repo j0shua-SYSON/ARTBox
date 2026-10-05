@@ -40,6 +40,12 @@ def validate_acceptance(report):
         require(all(type(native[key]) is int and native[key] > 0 for key in
                     ('startup_ns', 'managed_bytes', 'process_peak_rss_bytes', 'threads_reaped')),
                 'ART requires measured execution and worker cleanup')
+        require(type(native['reserved_bytes']) is int and
+                native['vm_budget_bytes'] == 2 << 30 and
+                0 < native['reserved_bytes'] <= native['vm_budget_bytes'] and
+                native['bootstrap_window_bytes'] in (16384, 65536, 262144) and
+                native['managed_window_bytes'] == 1 << 30,
+                'ART requires bounded bootstrap, managed arena and total VM reservations')
         require(managed['heap_checksum'] == 6496 and managed['exceptions'] == 3 and
                 managed['attachments'] == 4 and type(managed['gc_before']) is int and
                 type(managed['gc_after']) is int and 0 <= managed['gc_before'] < managed['gc_after'],

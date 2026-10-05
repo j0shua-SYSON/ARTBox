@@ -30,7 +30,17 @@ static bool interpreter_policy() {
 
 // JNI varargs and C++ calls stay inside this Android-compiled signed image.
 static int run_runtime(artbox_vm* owner, size_t page, uint64_t* metrics) {
-  if (artbox_art_heap_initialize(owner, UINT64_C(0x100000000), page)) return 76;
+  // The 128 MiB Java maximum does not require the full 4 GiB reference range.
+  // Leave room for ART's separate spaces while fitting a 2 GiB shared VM budget.
+  constexpr uint64_t kManagedWindowBytes = UINT64_C(1) << 30;
+  const int binding = artbox_art_heap_initialize(owner, kManagedWindowBytes, page);
+  if (binding) {
+    fprintf(stderr, "ARTBox managed arena: bytes=%llu error=%d\n",
+            static_cast<unsigned long long>(kManagedWindowBytes), binding);
+    return 76;
+  }
+  metrics[2] = artbox_art_heap_window().length;
+  if (metrics[2] != kManagedWindowBytes) return 76;
   const char* values[] = {"-Xint", "-Xusejit:false", "-Xuseprofiledjit:false",
       "-Xnoimage-dex2oat", "-Ximage:/system/art/artbox-boot.art", "-Xms16m", "-Xmx128m",
       "-Xbootclasspath:/system/framework/classes.dex:/system/framework/classes2.dex",
@@ -120,10 +130,10 @@ void* runtime_worker(void* opaque) {
 }
 }  // namespace
 
-// Output words are startup nanoseconds and managed bytes before shutdown.
+// Output words are startup nanoseconds, managed bytes and arena reservation.
 extern "C" int artbox_native_runtime_check(artbox_vm* owner, size_t page, uint64_t* metrics) {
   if (!owner || !metrics) return -22;
-  metrics[0] = metrics[1] = 0;
+  metrics[0] = metrics[1] = metrics[2] = 0;
   setvbuf(stdout, nullptr, _IONBF, 0);
   RuntimeWorker worker{owner, page, metrics};
   pthread_attr_t attr;

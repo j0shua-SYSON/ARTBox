@@ -16,7 +16,9 @@ def completed():
                 native=dict(linked_images=15, constructors=38, tls_modules=1,
                             registered_vms=0, cleanup=True, heap_binding_verified=True,
                             runtime_started=True, dex_executed=True, startup_ns=1000,
-                            managed_bytes=4096, process_peak_rss_bytes=65536, threads_reaped=8),
+                            managed_bytes=4096, process_peak_rss_bytes=65536, threads_reaped=8,
+                            vm_budget_bytes=2 << 30, reserved_bytes=1600 << 20,
+                            bootstrap_window_bytes=65536, managed_window_bytes=1 << 30),
                 managed_checks=dict(heap_checksum=6496, exceptions=3, attachments=4,
                                     gc_before=0, gc_after=1),
                 thread_state_checks=dict(threads=3, attach_cycles=4, tls_isolated=True,
@@ -62,6 +64,18 @@ class Acceptance(unittest.TestCase):
         for key in ('native', 'managed_checks', 'thread_state_checks', 'vm_worker'):
             data = completed(); del data[key]
             with self.assertRaises(RuntimeError): validate_acceptance(data)
+
+    def test_oversized_or_missing_memory_budget(self):
+        for key, value in (('vm_budget_bytes', 32 << 30), ('reserved_bytes', (2 << 30) + 1),
+                           ('reserved_bytes', 0), ('reserved_bytes', True),
+                           ('bootstrap_window_bytes', 4 << 30), ('managed_window_bytes', 4 << 30)):
+            with self.subTest(key=key, value=value):
+                data = completed(); data['native'][key] = value
+                with self.assertRaises(RuntimeError): validate_acceptance(data)
+        for key in ('vm_budget_bytes', 'reserved_bytes', 'bootstrap_window_bytes', 'managed_window_bytes'):
+            with self.subTest(missing=key):
+                data = completed(); del data['native'][key]
+                with self.assertRaises(RuntimeError): validate_acceptance(data)
 
 
 if __name__ == '__main__': unittest.main()
