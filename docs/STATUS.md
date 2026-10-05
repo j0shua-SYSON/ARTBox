@@ -67,13 +67,14 @@ Unsupported operations retain explicit errors. See the individual contracts.
 
 ## Current work
 
-The original VINTF kernel-config parser now has one shared Android caller for
-native Linux and signed Apple execution. Local object/audit and harness checks
-pass; CI execution is pending. Its 89 assertions and two precise failure
-controls exercise the original parser and hash-pinned libc++ regex member.
-This closes a servicemanager dependency only after both execution gates pass;
-real service registration, trusted caller policy and manager/client isolation
-remain required for M4.
+At `136a087`, the original VINTF kernel-config parser passes 89 assertions and
+both precise failure controls on native Linux ARM64 and through signed Apple
+code. All 23 host jobs and iOS CI pass. Independent artifact checks verify the shared objects, source, references,
+notices and both framework layouts. Signed Mac parser calls take 0.153 ms in
+this diagnostic; the iOS framework has not been exercised on a phone. Real
+service registration, trusted caller policy and manager/client isolation remain
+required for M4. Fixed guest UID/GID queries and clone inheritance now pass
+locally; their native Linux comparison and full regression CI are next.
 
 M4: the [Binder wire boundary](binder.md) recognizes the Android 15 ARM64
 commands and validates transaction/object snapshots. Local checks pass 40 host

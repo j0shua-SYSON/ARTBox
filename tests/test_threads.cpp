@@ -41,6 +41,9 @@ static void run(void *context, artbox_kernel_thread *kernel, const artbox_thread
     auto *c = static_cast<Context*>(context);
     uint32_t tid = 0;
     CHECK(kernel->pid == 100 && kernel->tid > 100 && kernel->blocked_signals == 0xa00);
+    const uint32_t credentials[] = {1000, 1001, 1002, 1003};
+    for (unsigned i = 0; i < 4; ++i)
+        CHECK(artbox_kernel_call(kernel, 174 + i, 0, 0, 0, 0, 0, 0) == credentials[i]);
     kernel->blocked_signals = 0; // Child changes must not modify the parent.
     CHECK(artbox_vm_load_u32(kernel->vm, start->parent_tid, &c->atomic, &tid) == 0 && tid == static_cast<uint32_t>(kernel->tid));
     CHECK(kernel->clear_tid_address == start->child_tid && start->tls == 123 && start->entry == 456 && start->argument == 789);
@@ -62,7 +65,8 @@ int main() {
     artbox_vm *vm = artbox_vm_create(&memory, 16 * 1024 * 1024, 16);
     CHECK(vm);
     artbox_kernel_thread parent;
-    CHECK(artbox_kernel_thread_init(&parent, vm, &system, 100, 100) == 0);
+    const artbox_credentials credentials = {1000, 1001, 1002, 1003};
+    CHECK(artbox_kernel_thread_init_with_credentials(&parent, vm, &system, 100, 100, &credentials) == 0);
     parent.blocked_signals = 0xa00;
     artbox_futex *futex = artbox_futex_create(vm, &context.atomic, &system, 8);
     CHECK(futex);
@@ -79,6 +83,9 @@ int main() {
     CHECK(artbox_threads_start(threads, &parent, &invalid) == -14 && starts == 0);
     invalid = s; invalid.stack_base += 1;
     CHECK(artbox_threads_start(threads, &parent, &invalid) == -22 && starts == 0);
+    auto invalid_parent = parent; invalid_parent.credentials.euid = UINT32_MAX;
+    CHECK(artbox_threads_start(threads, &invalid_parent, &s) == -22 && starts == 0);
+    CHECK(artbox_threads_active(threads) == 0);
     reject_start = true;
     CHECK(artbox_vm_store_u32(vm, word, &context.atomic, 99) == 0);
     CHECK(artbox_threads_start(threads, &parent, &s) == -11 && artbox_threads_active(threads) == 0);

@@ -3,8 +3,15 @@
 
 int artbox_kernel_thread_init(artbox_kernel_thread *thread, artbox_vm *vm,
                               const artbox_system_ops *system, int32_t pid, int32_t tid) {
-    if (!thread || !vm || !system || !system->clock || !system->random || pid <= 0 || tid <= 0) return -22;
-    *thread = (artbox_kernel_thread){vm, *system, pid, tid, 0, 0, NULL};
+    const artbox_credentials app = {10000, 10000, 10000, 10000};
+    return artbox_kernel_thread_init_with_credentials(thread, vm, system, pid, tid, &app);
+}
+int artbox_kernel_thread_init_with_credentials(artbox_kernel_thread *thread, artbox_vm *vm,
+    const artbox_system_ops *system, int32_t pid, int32_t tid, const artbox_credentials *credentials) {
+    if (!thread || !vm || !system || !system->clock || !system->random || pid <= 0 || tid <= 0 ||
+        !credentials || credentials->uid == UINT32_MAX || credentials->euid == UINT32_MAX ||
+        credentials->gid == UINT32_MAX || credentials->egid == UINT32_MAX) return -22;
+    *thread = (artbox_kernel_thread){vm, *system, pid, tid, 0, 0, NULL, *credentials};
     return 0;
 }
 
@@ -28,6 +35,10 @@ int64_t artbox_kernel_call(void *context, uint64_t number, uint64_t a0, uint64_t
             return artbox_vm_write(thread->vm, a0, identity, sizeof(identity));
         }
         case 172: return thread->pid;
+        case 174: return thread->credentials.uid;
+        case 175: return thread->credentials.euid;
+        case 176: return thread->credentials.gid;
+        case 177: return thread->credentials.egid;
         case 178: return thread->tid;
         case 96:
             /* Linux stores this pointer without dereferencing or validating it.

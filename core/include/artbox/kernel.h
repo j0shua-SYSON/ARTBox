@@ -15,6 +15,11 @@ typedef struct artbox_system_ops {
 } artbox_system_ops;
 typedef struct artbox_signal_thread artbox_signal_thread;
 
+/* Immutable virtual process credentials supplied by the trusted owner before
+ * publishing a thread. UINT32_MAX is Linux's invalid UID/GID sentinel. These
+ * queries do not expose or change the host's credentials. */
+typedef struct artbox_credentials { uint32_t uid, euid, gid, egid; } artbox_credentials;
+
 /* Borrowed address space, one descriptor per native guest thread. IDs belong
  * to the runtime's process namespace. The owner provides unique positive TIDs
  * and keeps this descriptor/thread binding alive through guest exit. */
@@ -29,10 +34,17 @@ typedef struct artbox_kernel_thread {
     /* Optional shared process queue. Owner attaches before starting this
      * thread and detaches after join, before clear-TID publication. */
     artbox_signal_thread *signal_state;
+    artbox_credentials credentials;
 } artbox_kernel_thread;
 
+/* Compatibility entry: ordinary app credentials, all four IDs equal 10000. */
 int artbox_kernel_thread_init(artbox_kernel_thread *thread, artbox_vm *vm,
                               const artbox_system_ops *system, int32_t pid, int32_t tid);
+/* Copies credentials; no borrowed lifetime or guest identity mutation API.
+ * Clone inherits the parent's snapshot. Configure Binder/signals with the same
+ * process identity; credentials are not a host sandbox for native guest code. */
+int artbox_kernel_thread_init_with_credentials(artbox_kernel_thread *thread, artbox_vm *vm,
+    const artbox_system_ops *system, int32_t pid, int32_t tid, const artbox_credentials *credentials);
 int64_t artbox_kernel_call(void *thread, uint64_t number, uint64_t a0, uint64_t a1,
                           uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5);
 #ifdef __cplusplus

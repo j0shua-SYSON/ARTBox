@@ -130,10 +130,12 @@ extern "C" int64_t artbox_threads_start(artbox_threads *t, const artbox_kernel_t
         Worker *w = new (std::nothrow) Worker;
         if (!w) return -12;
         w->owner = t; w->start = s;
-        artbox_kernel_thread_init(&w->kernel, t->vm, &t->system, t->pid, static_cast<int32_t>(t->next_tid++));
+        int error = artbox_kernel_thread_init_with_credentials(&w->kernel, t->vm, &t->system,
+            t->pid, static_cast<int32_t>(t->next_tid++), &parent->credentials);
+        if (error) { delete w; return error; }
         w->kernel.clear_tid_address = s.child_tid;
         w->kernel.blocked_signals = parent->blocked_signals;
-        int error = artbox_signals_inherit(parent, &w->kernel);
+        error = artbox_signals_inherit(parent, &w->kernel);
         if (error) { delete w; return error; }
         error = artbox_vm_prepare_store_u32(t->vm, s.parent_tid, &t->atomic,
             static_cast<uint32_t>(w->kernel.tid), start_native, w);

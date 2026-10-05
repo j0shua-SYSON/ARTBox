@@ -66,6 +66,7 @@ the syscall translation and Linux byte layout remain in portable C.
 | Number | Implemented subset | Limits / differences |
 | --- | --- | --- |
 | `getpid` (172), `gettid` (178) | IDs in the guest process namespace, common PID and distinct thread descriptors | The pthread bridge assigns distinct monotonic IDs to native guest workers. General process creation remains unsupported. |
+| `getuid` (174), `geteuid` (175), `getgid` (176), `getegid` (177) | Fixed unsigned 32-bit virtual credentials, copied from trusted process configuration and inherited on clone; unused register arguments are ignored | The compatibility initializer uses app ID 10000. An explicit initializer supports service roles. Credential mutation, supplementary groups and host credential changes remain unsupported. |
 | `set_tid_address` (96) | Store the exit-clear pointer without dereferencing it, return guest TID; NULL clears registration | The native reaper clears and wakes after join; detached Bionic exit disables clearing before deferred unmap. |
 | `clock_gettime` (113) | Realtime and monotonic clocks; explicit little-endian 64-bit seconds/nanoseconds, including unaligned output | CPU, boot-time and dynamic clocks return EINVAL; coarse realtime/monotonic use the corresponding precise clocks. |
 | `getrandom` (278) | Initialized host CSPRNG; valid Linux flags, zero length, EFAULT and partial progress on a later inaccessible range | No pre-initialization entropy state or guest signal interruption. Insecure requests receive secure bytes. Large transfers use 256-byte staging chunks and the Linux page-rounded signed-32-bit transfer cap. |
@@ -84,6 +85,16 @@ The dispatcher also supports Linux REALTIME_COARSE (5) and MONOTONIC_COARSE (6)
 using the corresponding precise native clock. The result has the same epoch and
 ordering, with finer resolution and potentially more overhead than a Linux
 cached coarse-clock read. Scudo requests this during actual startup.
+
+`fixed_guest_credentials` checks distinct real/effective IDs, independent app
+and service roles, copied configuration lifetime, unsigned high IDs and invalid
+UID/GID sentinels. On Linux it compares all four raw syscalls to actual native
+credentials, including ignored arguments and unchanged errno. The existing
+thread lifecycle contract verifies inherited credentials in 130 controlled
+workers and the supported native supplied-stack path. These fixed identities
+are a libbinder dependency, not a security sandbox between native code in the
+same host process; owner configuration must also supply matching Binder and
+signal credentials. Signed servicemanager identity acceptance remains pending.
 
 The initial virtual descriptor table implements `/dev/null`, `/dev/zero` and
 read-only `/dev/urandom`: faccessat, openat, read, write, lseek, fstat and close.

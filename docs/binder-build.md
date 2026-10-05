@@ -219,7 +219,16 @@ a JavaVM. Frameworks target macOS ARM64 and iOS 15 with empty entitlements;
 only Mac execution is part of this gate. Build, reference and guest artifacts
 retain notices, command logs, corresponding source and separate execution flags.
 
-Local object builds and strict harness compilation pass. Native Linux and
-signed Apple execution of this new fixture are pending CI. This focused check
-does not establish general VINTF device/kernel metadata support or execute
-servicemanager; its remaining policy and process-isolation work stays open.
+At `136a087`, native Linux ARM64 and signed Mac execution both pass 89/-104/-105.
+Independent artifact verification checks four object hashes, exact source and
+reference identities, two framework layouts and ten notice hashes. The signed
+run initializes 33 constructors across five images, verifies pre-start heap and
+sigchain behavior, and cleans up with no workers or JavaVM. Its parser calls
+take 0.153 ms; load/relocation takes 17.834 ms and bootstrap takes 1.069 ms.
+The Linux executable's complete process takes 1.055 ms, a different measurement
+scope. These are diagnostic observations, not a sustained benchmark.
+
+This focused check does not establish general VINTF device/kernel metadata
+support or execute servicemanager; policy and process-isolation work stays open.
+The iOS framework layout and signature are verified, but this parser fixture
+has not executed on a physical iPhone.

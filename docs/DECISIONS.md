@@ -3617,5 +3617,27 @@ Regex state is ordinary heap data. All executable bytes are wrapped and signed
 at build time, with empty entitlements and iOS 15 deployment targets. Both
 frameworks retain VINTF, header, NDK/LLVM and ARTBox notices. This dependency
 contract leaves SELinux policy replacement, trusted endpoint identity and
-isolated servicemanager/client globals for separate tested changes. Local
-compilation passes; Linux and signed Apple runtime evidence is pending CI.
+isolated servicemanager/client globals for separate tested changes. At
+`136a087`, all 89 assertions and both controls pass on native Linux ARM64 and
+signed Mac. Independent verification confirms shared object identity, source,
+notices and both signed framework layouts. Parser calls take 0.153 ms on Mac
+in this run. The iOS wrapper is verified without claiming device execution.
+
+## ADR 0130: Fixed guest credentials precede servicemanager access policy
+
+The original IPCThreadState queries getuid when restoring its own caller
+identity. Returning ENOSYS cannot represent a service process; using Darwin's
+UID would expose the app container account instead of an Android identity.
+Copy four explicit virtual credentials into each kernel-thread descriptor and
+inherit them on clone. The existing initializer keeps app ID 10000; the new
+initializer accepts distinct real/effective UID/GID values from the trusted
+runtime owner. Reject UINT32_MAX, preserve unsigned return values, and leave
+setuid/setgid and group mutation unsupported.
+
+Tests compare real Linux query semantics and verify distinct identities,
+configuration lifetime, rejected initialization and clone inheritance. This
+does not bypass ServiceManager's app-UID registration rejection. The owner must
+use the same identity when configuring Binder and signals. Bionic's cached PID
+and libbinder's process globals still need separate manager/client bootstrap
+state before this can establish real service isolation; four syscall results
+alone do not provide that isolation or a sandbox for hostile native code.
