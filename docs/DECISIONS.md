@@ -3311,3 +3311,29 @@ its implementation and thread-exit behavior are verified. Costs include reserved
 register pressure and descriptor-based guest TLS lookup; neither has a Binder
 runtime measurement yet. The archive build alone cannot establish service
 registration, polling, logging isolation or teardown correctness.
+
+## 0120: Close Binder imports with original AOSP platform support
+
+A focused ProcessState/Parcel link using the reserved-register Binder archives
+and verified signed-runtime dependencies exposes the next required implementations.
+Select nine original Android 15 system/core units: Threads, SystemClock, misc,
+native_handle, multiuser, properties, ashmem-dev, trace-dev and libvndksupport's
+linker. Pin only these files and their required build/header/notice inputs.
+Keep the Android branches, real property callbacks, tracing error path and
+dynamic-loader imports. Do not use recovery/vendor defines or replacements that
+report success for unavailable kernel or loader features.
+
+libcutils does not inherit libbinder's unique_fd conversion prohibition. Undefine
+that macro only for ashmem-dev.cpp, which uses its normal implicit fd access while
+retaining RAII ownership. Keep C++20 for tracing and its original atomic initializers;
+make only the NDK's deprecated-pragma diagnostic nonfatal for trace-dev.cpp, with
+the warning retained in artifacts. This follows Soong's existing nonfatal
+deprecated-diagnostic policy without suppressing instruction or runtime checks.
+
+The private focused link still requires timespec_get, fnmatch, android_dlopen_ext
+and android_get_exported_namespace. The full servicemanager also needs VINTF and
+an explicit access policy where Android uses SELinux. Compiling these archives
+does not establish any of those behaviors. Subsequent tests must cover real
+thread lifecycle and TLS destructors before attaching Binder to signed images.
+The cost is additional signed code and dependencies; final linked size and
+execution overhead remain unmeasured. No runtime code generation is introduced.

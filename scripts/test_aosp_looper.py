@@ -160,6 +160,7 @@ def main():
                'platform/include/artbox/looper_result.h',
                'scripts/test_aosp_looper.py', 'scripts/environment.py', 'scripts/sources.py',
                'scripts/ndk.py', 'scripts/build_binder.py', 'scripts/binder_aidl.py',
+               'scripts/art_native_tls.py', 'scripts/tls_adapt.py',
                'scripts/icu_guest_link.py', 'scripts/bionic_adapt.py', 'third_party/binder/aidl-tools.json',
                'third_party/binder/native-libraries.json', 'third_party/binder/native-sources.json',
                'third_party/bionic/builtins.json', 'third_party/sources.json',

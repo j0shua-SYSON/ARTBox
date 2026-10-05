@@ -1562,5 +1562,112 @@
         "git_blob": "62a4765f4526d28ad12a1ea753c90507ab6fb321"
       }
     ]
+  },
+  "binder-platform": {
+    "repository": "aosp-mirror/platform_system_core",
+    "tag": "android-15.0.0_r1",
+    "commit": "fc7bc8c4bfb4c6095e34ea784509dae56f25b486",
+    "notice": "libutils/NOTICE",
+    "notice_sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+    "files": [
+      {
+        "path": "libutils/NOTICE",
+        "bytes": 10695,
+        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+        "git_blob": "c5b1efa7aac764ae6d8da63476a2d5cec02a6a5d"
+      },
+      {
+        "path": "libcutils/NOTICE",
+        "bytes": 10695,
+        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+        "git_blob": "c5b1efa7aac764ae6d8da63476a2d5cec02a6a5d"
+      },
+      {
+        "path": "libutils/Android.bp",
+        "bytes": 8626,
+        "sha256": "2834b03e789af42680eaee9e3e0d3f062a15a7a4d96230451d10a5f31724436d",
+        "git_blob": "4877caeeebf65c3e01517dc8bd5b3ed579fda3b9"
+      },
+      {
+        "path": "libcutils/Android.bp",
+        "bytes": 7773,
+        "sha256": "25c867b1228f9c7a5354acf74efc644b563fefdad1b81ca8fb067a9c0ff310d4",
+        "git_blob": "e2975813ced1d6219030ce58f01b1d80eab038cc"
+      },
+      {
+        "path": "libvndksupport/Android.bp",
+        "bytes": 593,
+        "sha256": "fc72ba0b719beb5cb4b28ac11cbd3721679c43546fc80708b9b1017e08f4580e",
+        "git_blob": "f800bf7a01010810c2698159bbb5b69c95640018"
+      },
+      {
+        "path": "libutils/Threads.cpp",
+        "bytes": 24808,
+        "sha256": "f9312eb11b98428221928a808e95e250ad4bed4fa15119e63995c5c142f9350b",
+        "git_blob": "90ea29b2288751a62b199f6f28eeaac97d5fe7f3"
+      },
+      {
+        "path": "libutils/SystemClock.cpp",
+        "bytes": 1802,
+        "sha256": "2e4d1d550d9bcabf52ea11a3aef4bb05928cdc0875266fdb715afb23e7803da7",
+        "git_blob": "df3a8986520e3b9094fe2ba7189d0c1ff7049793"
+      },
+      {
+        "path": "libutils/misc.cpp",
+        "bytes": 3338,
+        "sha256": "19f2d964621e5d31088139f0f47060499721332fdcc4e8f54906bf36283d7326",
+        "git_blob": "e1b5f013ccecf4e643645de17f2d9e56ce37f398"
+      },
+      {
+        "path": "libcutils/native_handle.cpp",
+        "bytes": 4779,
+        "sha256": "4912fa5ab3acd24ebdf9b2789f005d413dbaf4202e81d93320907d93451d656d",
+        "git_blob": "b85c93b81c2b30771d539d3735379a71494f3b46"
+      },
+      {
+        "path": "libcutils/multiuser.cpp",
+        "bytes": 2923,
+        "sha256": "79a9f8d6b16e253770ddc0ebf3bc14ea18584087332e149e667dc6b2ed28d07b",
+        "git_blob": "967f9918bb7962c41fdcff539f1f4c4674af359e"
+      },
+      {
+        "path": "libcutils/properties.cpp",
+        "bytes": 3593,
+        "sha256": "bb630cab910785d08ed731abd9f358463da00cea2efc3f1d69b31640b2738abc",
+        "git_blob": "03f04961cd1ce005384a8366757d23371daa6fd2"
+      },
+      {
+        "path": "libcutils/ashmem-dev.cpp",
+        "bytes": 14027,
+        "sha256": "5083e2f22fb86a8ede2c8489e2cade8e931330043f3c105f3d16fbb03d8458ed",
+        "git_blob": "46b8ef2635e40003b6896149efcc835828990655"
+      },
+      {
+        "path": "libcutils/trace-dev.cpp",
+        "bytes": 3324,
+        "sha256": "c5c1e80321022237501023230ed258f7cbb166c09bf7506240a1551e0b6a5eea",
+        "git_blob": "1827e32101cdf808a00c3ae4f3bf9cc4db886a23"
+      },
+      {
+        "path": "libvndksupport/linker.cpp",
+        "bytes": 2612,
+        "sha256": "82ea0c72e793fe571ba428e9b5afa150a283c6d55dc67e7db82638201ac19183",
+        "git_blob": "b2b257e8793197513db7c0ada11e8a7352bbf3b3"
+      },
+      {
+        "path": "libcutils/include/private/android_filesystem_config.h",
+        "bytes": 12874,
+        "sha256": "e73226d7a3139e8a4a7d679f800e02a5d31460862231fded2edd88ea93df404c",
+        "git_blob": "ea61cc2a74070ef6f9c30d5024d4a2e2ae2c97b2"
+      },
+      {
+        "path": "libcutils/trace-dev.inc",
+        "bytes": 7343,
+        "sha256": "6db87970f0f0c8807fc9d2fd32e63ecdae9e4c7846d2743a07cede2a476b92a9",
+        "git_blob": "94945ec7d4f388854d811f2bc6e547daa920533e"
+      }
+    ],
+    "upstream": "https://android.googlesource.com/platform/system/core",
+    "license_note": "Apache-2.0 sources; complete libutils and libcutils notices are included."
   }
 }

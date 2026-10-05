@@ -93,6 +93,16 @@ The Binder build graph pins the source hash and TLS access inventory; artifacts
 retain the original/adapted assembly and objects, build recipe and complete
 frameworks/native NOTICE. This build-time modification is described in ADR 0119.
 
+`binder-platform` adds 16 files at the same system/core commit and Android 15 tag:
+nine unchanged Apache-2.0 units for libutils threading/time/property callbacks,
+libcutils native handles, multiuser IDs, properties, ashmem and tracing, and
+libvndksupport loading; the remaining files are the exact supporting header,
+trace include, build descriptions and complete libutils/libcutils notices.
+Every selected file records its size, SHA-256 and Git blob identity. These
+compile into three additional support archives, not an executing Android service.
+Compiler-profile differences and unimplemented runtime dependencies are recorded
+in [the Binder build description](docs/binder-build.md) and ADR 0120.
+
 The signed Looper diagnostic also selects Bionic's unchanged
 `libc/bionic/eventfd.cpp` from the existing `android-15.0.0_r1` source pin. It
 retains its AOSP BSD notice under the complete Bionic NOTICE already included

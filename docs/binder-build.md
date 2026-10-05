@@ -1,7 +1,8 @@
 # AOSP Binder build
 
 `scripts/build_binder.py` compiles Android 15's real kernel-IPC libbinder, the
-eight libutils Binder support units, and Looper/Timers for `aarch64-linux-android35`. Its three static
+eight libutils Binder support units, Looper/Timers and nine platform support
+units for `aarch64-linux-android35`. Its six static
 archives are intermediate ELF objects for the signed native packaging pipeline.
 They are not executable iOS libraries. Linking, signed attachment and real
 servicemanager registration/ping/death acceptance remain required for M4.
@@ -67,9 +68,26 @@ execution acceptance; this archive build does not establish that behavior.
 Function/data sections permit the eventual link to discard unused routines,
 while `symbols.json` continues to describe every archive member's imports.
 
-The next service dependency is the original `libutils/Looper.cpp` and
-`libutils/Timers.cpp`, pinned at the same Android 15 tag. The Binder build now
-contains 51 objects across three archives. Looper uses the already implemented
+The platform support archives contain the original libutils Thread, system-clock
+and property-callback implementations, libcutils native-handle, multiuser,
+property, ashmem and tracing code, and libvndksupport's loader calls. They use the
+Android source branches and retain real dependencies on Bionic and the loader.
+In particular, tracing attempts to open its trace marker and handles an absent
+file through AOSP's error path; no pretend trace sink is supplied. Ashmem and
+vendor namespace APIs are not thereby implemented by ARTBox.
+
+The Binder-only macro disabling implicit `unique_fd` conversion is undefined
+for `ashmem-dev.cpp`, matching libcutils' build profile and preserving its RAII
+ownership. `trace-dev.cpp` keeps C++20 and the original atomic initialization;
+the NDK's `ATOMIC_VAR_INIT` deprecation warning remains visible but nonfatal for
+that unit. The pinned Soong configuration likewise makes deprecated diagnostics
+nonfatal. Other warnings and all instruction checks still fail the build.
+These archives require subsequent runtime tests for threading, properties,
+tracing and teardown before service acceptance.
+
+The original `libutils/Looper.cpp` and `libutils/Timers.cpp` are pinned at the
+same Android 15 tag. Adding them brought the build to 51 objects; the platform
+support selection above brings it to 60 objects across six archives. Looper uses the already implemented
 eventfd/epoll boundary; servicemanager's periodic callback also needs timerfd.
 No replacement Looper or private event-loop API is supplied.
 

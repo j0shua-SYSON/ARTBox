@@ -152,6 +152,7 @@ def main():
                    'scripts/test_looper_guest.py', 'scripts/looper_guest.py', 'scripts/test_aosp_looper.py',
                    'scripts/dynamic_bundle.py', 'scripts/guest_bundle.py', 'scripts/icu_guest_link.py',
                    'scripts/bionic_adapt.py', 'scripts/build_binder.py', 'scripts/ndk.py', 'scripts/environment.py',
+                   'scripts/art_native_tls.py', 'scripts/tls_adapt.py',
                    'tools/wrap_dynamic.py', 'tests/native_looper_guest.c', 'tests/test_looper_guest.py',
                    'third_party/bionic/m2-objects.json', '.github/workflows/host-tests.yml'], 'sources').splitlines()
     bundle = output / 'corresponding-source.zip'

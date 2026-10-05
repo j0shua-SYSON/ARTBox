@@ -44,7 +44,10 @@
       ],
       "generated_aidl": true,
       "unit_flags": {
-        "libs/binder/BufferedTextOutput.cpp": ["-fno-emulated-tls", "-ftls-model=global-dynamic"]
+        "libs/binder/BufferedTextOutput.cpp": [
+          "-fno-emulated-tls",
+          "-ftls-model=global-dynamic"
+        ]
       },
       "compiler_tls": {
         "libs/binder/BufferedTextOutput.cpp": {
@@ -78,8 +81,42 @@
         "libutils/Timers.cpp"
       ],
       "unit_flags": {
-        "libutils/Timers.cpp": ["-Wno-error=sign-compare"]
+        "libutils/Timers.cpp": [
+          "-Wno-error=sign-compare"
+        ]
       }
+    },
+    "libutils_runtime": {
+      "source": "binder-platform",
+      "units": [
+        "libutils/Threads.cpp",
+        "libutils/SystemClock.cpp",
+        "libutils/misc.cpp"
+      ]
+    },
+    "libcutils_binder": {
+      "source": "binder-platform",
+      "units": [
+        "libcutils/native_handle.cpp",
+        "libcutils/multiuser.cpp",
+        "libcutils/properties.cpp",
+        "libcutils/ashmem-dev.cpp",
+        "libcutils/trace-dev.cpp"
+      ],
+      "unit_flags": {
+        "libcutils/ashmem-dev.cpp": [
+          "-UANDROID_BASE_UNIQUE_FD_DISABLE_IMPLICIT_CONVERSION"
+        ],
+        "libcutils/trace-dev.cpp": [
+          "-Wno-error=deprecated-pragma"
+        ]
+      }
+    },
+    "libvndksupport": {
+      "source": "binder-platform",
+      "units": [
+        "libvndksupport/linker.cpp"
+      ]
     }
   },
   "includes": {
@@ -98,7 +135,8 @@
       "libprocessgroup/include",
       "libvndksupport/include",
       "libsystem/include",
-      "libvendorsupport/include_llndk"
+      "libvendorsupport/include_llndk",
+      "libvndksupport/include/vndksupport"
     ],
     "binder-apex-headers": [
       "libs/libapexsupport/include"
@@ -108,6 +146,9 @@
     ],
     "liblog-dex": [
       "liblog/include"
+    ],
+    "binder-platform": [
+      "libcutils/include"
     ]
   }
 }

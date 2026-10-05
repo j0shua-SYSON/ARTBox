@@ -285,6 +285,19 @@ per-thread object and initialization guard. Source, symbol and access-count
 checks retain the original object for comparison. Linking and signed execution
 of libbinder, including its thread-exit destructors, remain ahead.
 
+At `25c3c1a`, the Binder CI build passes. Downloaded evidence independently
+verifies all 51 objects, three archives, 333 upstream files, 19 project inputs
+and 96,434 instructions with no forbidden instructions. Both original and
+adapted TLS assembly reproduce the CI object bytes when reassembled locally.
+The next source selection adds nine original AOSP thread, clock, property,
+native-handle, multiuser, ashmem, trace and vendor-loader units. All 60 local
+objects in six archives pass the audit: 100,295 instructions, with none forbidden.
+The build takes 115.737 seconds locally; 19 package/TLS controls pass. A private focused
+Binder link then reaches four unresolved imports: timespec_get, fnmatch and two
+Android loader APIs. Original servicemanager main and ServiceManager translation
+units compile in a private dependency probe; full VINTF linkage, access policy,
+signed service registration and ping/death acceptance are still required.
+
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write
 acceptance records fix the framing without weakening the exact-line checks.
