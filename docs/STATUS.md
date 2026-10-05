@@ -308,10 +308,33 @@ deliberate failure controls. Its caller first failed to link against the prior
 Bionic image with the expected missing fnmatch/timespec_get imports. The original
 upstream units are now selected, with their BSD/ISC notices. The native Linux
 oracle and both signed Bionic profiles must pass before artifact staging; these
-new execution results are pending. All 341 selected Bionic units compile locally
+new execution results pass at `6c44531`: all 22 host jobs and iOS CI are green.
+Downloaded evidence verifies the shared caller, original source/object hashes,
+Linux executable and all three profiles' 50 cases and both controls. The native
+Linux process takes 0.698 ms in this correctness run. All 341 selected Bionic units compile locally
 with 117,840 audited instructions and none forbidden; the caller now links into
-the Bionic startup image and its native Linux reference. The Android namespace APIs, real VINTF,
-servicemanager access policy and signed Binder/service execution remain ahead.
+the Bionic startup image and its native Linux reference.
+The same head's 60 Binder objects, all 100,295 instructions and integrated ART
+IPA verify independently. The IPA retains 16 iOS 15 images, 15 ELF/layout pairs,
+five runtime resources, 175 notices and empty entitlements. Its signed Mac VM
+starts in 60.892 ms; load/relocation takes 31.056 ms and peak RSS is 66,797,568
+bytes. These are correctness-run observations, not iPhone measurements.
+
+The next loader change adds an explicitly configured visible namespace for each
+immutable signed group, context-specific tokens and the 48-byte Android extension
+bridge. Portable tests pass for open/reference behavior, invalid and foreign
+tokens, unreadable guest records, pending-error preservation and concurrent calls.
+Original AOSP libdl/libdl_android and the 51-case NDK fixture now compile and
+link locally with no forbidden instructions. Signed Mac execution, its two
+precise controls and four-image iOS 15 packaging are pending CI. The integrated
+ART IPA still uses its existing 15-image group; libdl_android is only added to
+the dedicated loader fixture. All 43 available Windows contracts pass, with the
+three existing native-backing skips; strict NDK compilation passes too. A private
+focused ProcessState/IPCThreadState/BBinder/Parcel caller now links against the
+60 original Binder/platform objects, verified `6c44531` runtime images and the
+new local loader frontends with no missing symbols. This establishes link
+closure only. Real VINTF, servicemanager access policy and signed Binder/service
+execution remain ahead.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

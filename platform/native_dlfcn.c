@@ -16,6 +16,14 @@ static void *loader_open(const char *name, int flags, const void *caller) {
     (void)caller;
     return (void *)(uintptr_t)artbox_guest_dlopen(current, (uintptr_t)name, (unsigned)flags);
 }
+static void *loader_open_ext(const char *name, int flags, const void *extinfo, const void *caller) {
+    (void)caller;
+    return (void *)(uintptr_t)artbox_guest_android_dlopen_ext(current,
+        (uintptr_t)name, (unsigned)flags, (uintptr_t)extinfo);
+}
+static void *loader_namespace(const char *name) {
+    return (void *)(uintptr_t)artbox_guest_android_get_exported_namespace(current, (uintptr_t)name);
+}
 static char *loader_error(void) {
     return (char *)(uintptr_t)artbox_guest_dlerror(current);
 }
@@ -40,7 +48,8 @@ artbox_elf_result artbox_native_dlfcn_resolve(void *context,
     const artbox_dynamic *dynamic, uint32_t index, uint64_t *address) {
     (void)context;
     if (!dynamic || !address) return ARTBOX_ELF_INVALID;
-    if (!dynamic->soname || strcmp(dynamic->soname, "libdl.so")) return ARTBOX_ELF_NOT_FOUND;
+    if (!dynamic->soname || (strcmp(dynamic->soname, "libdl.so") &&
+        strcmp(dynamic->soname, "libdl_android.so"))) return ARTBOX_ELF_NOT_FOUND;
     artbox_elf_symbol symbol;
     artbox_elf_version version;
     artbox_elf_result r = artbox_dynamic_symbol(dynamic, index, &symbol);
@@ -49,6 +58,11 @@ artbox_elf_result artbox_native_dlfcn_resolve(void *context,
     if (r != ARTBOX_ELF_OK) return r;
     if (version.name || symbol.section) return ARTBOX_ELF_NOT_FOUND;
 #define EXPORT(label, function) if (!strcmp(symbol.name, label)) { *address = (uintptr_t)function; return ARTBOX_ELF_OK; }
+    if (!strcmp(dynamic->soname, "libdl_android.so")) {
+        EXPORT("__loader_android_get_exported_namespace", loader_namespace)
+        return ARTBOX_ELF_NOT_FOUND;
+    }
+    EXPORT("__loader_android_dlopen_ext", loader_open_ext)
     EXPORT("__loader_dlopen", loader_open)
     EXPORT("__loader_dlerror", loader_error)
     EXPORT("__loader_dlsym", loader_symbol)

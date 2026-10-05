@@ -3,7 +3,21 @@
   "files": {
     "libdl/libdl.cpp": "57a9079aa63c342ef8061c51b3c92291ee5f9612c668fbd821f0fe56cad2f82d",
     "libdl/NOTICE": "0ceed7dec9f5d87c2ef8d4a5207b7460c4a7020bccbb4bc06c64652cc1d77cee",
-    "libdl/Android.bp": "8d536fbf7cb56dbd536af31a9b86fb19e5b4cc21c0331704eba4a545447e54b6"
+    "libdl/Android.bp": "8d536fbf7cb56dbd536af31a9b86fb19e5b4cc21c0331704eba4a545447e54b6",
+    "libdl/libdl_android.cpp": "6df5e2d66d6592789c95bd4cfdb2b447bcee0fd7e03f2722716b6efffd59f5f6",
+    "libc/include/android/dlext.h": "06f396c3624e580cc54283b1415e1e09919af317390104c44f9e217e37c94556"
   },
-  "exports": ["dlopen", "dlerror", "dlsym", "dlvsym", "dladdr", "dlclose", "dl_iterate_phdr"]
+  "exports": [
+    "dlopen",
+    "dlerror",
+    "dlsym",
+    "dlvsym",
+    "dladdr",
+    "dlclose",
+    "dl_iterate_phdr",
+    "android_dlopen_ext"
+  ],
+  "android_exports": [
+    "android_get_exported_namespace"
+  ]
 }

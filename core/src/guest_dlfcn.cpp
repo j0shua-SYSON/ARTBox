@@ -34,6 +34,11 @@ void fail(artbox_guest_dl_thread *t,const char *text) {
 void word(unsigned char *bytes,unsigned offset,uint64_t value,unsigned size=8) {
     for (unsigned i=0;i<size;++i) bytes[offset+i]=static_cast<unsigned char>(value>>(i*8));
 }
+uint64_t read_word(const unsigned char *bytes) {
+    uint64_t value=0;
+    for (unsigned i=0;i<8;++i) value|=static_cast<uint64_t>(bytes[i])<<(i*8);
+    return value;
+}
 bool string(artbox_guest_dl_thread *t,uint64_t address,char (&out)[4097]) {
     if (!address) { fail(t,"loader: null string");return false; }
     for (unsigned i=0;i<sizeof(out);++i) {
@@ -128,10 +133,25 @@ artbox_elf_result artbox_guest_dl_thread_create(artbox_guest_dlfcn *s,artbox_gue
 }
 void artbox_guest_dl_thread_destroy(artbox_guest_dl_thread *t) { delete t; }
 uint64_t artbox_guest_dlopen(artbox_guest_dl_thread *t,uint64_t name,unsigned flags) {
+    return artbox_guest_android_dlopen_ext(t,name,flags,0);
+}
+uint64_t artbox_guest_android_dlopen_ext(artbox_guest_dl_thread *t,
+    uint64_t name,unsigned flags,uint64_t extinfo) {
     if (!t) return 0;
     char text[4097];
     if (name && !string(t,name,text)) return 0;
-    return artbox_dlopen(t->service->loader,&t->error,name?text:nullptr,flags);
+    unsigned char extension[48]{};
+    if (extinfo && artbox_vm_read(t->service->vm,extinfo,extension,sizeof(extension))) {
+        fail(t,"android_dlopen_ext: unreadable extension record");return 0;
+    }
+    return artbox_android_dlopen_ext(t->service->loader,&t->error,name?text:nullptr,flags,
+        read_word(extension),read_word(extension+40));
+}
+uint64_t artbox_guest_android_get_exported_namespace(artbox_guest_dl_thread *t,uint64_t name) {
+    if (!t || !name) return 0;
+    char text[4097];
+    if (!string(t,name,text)) return 0;
+    return artbox_android_get_exported_namespace(t->service->loader,text);
 }
 uint64_t artbox_guest_dlsym(artbox_guest_dl_thread *t,uint64_t handle,uint64_t name,uint64_t version,uint64_t caller) {
     if (!t) return 0;

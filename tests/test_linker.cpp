@@ -257,6 +257,92 @@ static void dlfcn_tests() {
     artbox_dlfcn_destroy(loader);
     artbox_load_group_destroy(group);
 }
+static void namespace_tests() {
+    Module root("root.so",0x100000,{"provider.so"},{{"value",true,false}});
+    Module provider("provider.so",0x200000,{},{{"value",true,false}});
+    Module excluded("excluded.so",0x300000,{},{{"absent",true,false}});
+    artbox_link_module modules[]={root.view,provider.view,excluded.view};
+    artbox_load_group *group=nullptr;
+    CHECK(artbox_load_group_create(modules,3,"root.so",nullptr,nullptr,&group)==ARTBOX_ELF_OK);
+    CHECK(artbox_load_group_relocate(group)==ARTBOX_ELF_OK);
+    artbox_dlfcn *loader=nullptr,*hidden=nullptr,*other=nullptr;
+    char exported[]="default";
+    CHECK(artbox_dlfcn_create_with_namespace(group,nullptr,0,exported,&loader)==ARTBOX_ELF_OK);
+    exported[0]='x'; // Configuration is copied, never borrowed from the caller.
+    CHECK(artbox_dlfcn_create(group,nullptr,0,&hidden)==ARTBOX_ELF_OK);
+    CHECK(artbox_dlfcn_create_with_namespace(group,nullptr,0,"default",&other)==ARTBOX_ELF_OK);
+    artbox_dlfcn *invalid=nullptr;
+    CHECK(artbox_dlfcn_create_with_namespace(group,nullptr,0,"",&invalid)==ARTBOX_ELF_INVALID && !invalid);
+    const std::string long_name(4097,'n');
+    CHECK(artbox_dlfcn_create_with_namespace(group,nullptr,0,long_name.c_str(),&invalid)==ARTBOX_ELF_INVALID && !invalid);
+    const uint64_t ns=artbox_android_get_exported_namespace(loader,"default");
+    const uint64_t foreign=artbox_android_get_exported_namespace(other,"default");
+    CHECK(ns && foreign && ns!=foreign && ns!=ARTBOX_RTLD_NEXT);
+    CHECK(!artbox_android_get_exported_namespace(hidden,"default"));
+    CHECK(!artbox_android_get_exported_namespace(loader,"sphal"));
+    CHECK(!artbox_android_get_exported_namespace(loader,"Default"));
+    CHECK(!artbox_android_get_exported_namespace(loader,nullptr));
+    CHECK(!artbox_android_get_exported_namespace(nullptr,"default"));
+    artbox_dl_error error{};
+    uint64_t handle=artbox_dlopen(loader,&error,"provider.so",ARTBOX_RTLD_NOW);
+    CHECK(handle && handle!=ns);
+    CHECK(artbox_android_dlopen_ext(loader,&error,"provider.so",ARTBOX_RTLD_NOW,
+        ARTBOX_DLEXT_USE_NAMESPACE,ns)==handle);
+    CHECK(artbox_dlsym(loader,&error,handle,"value",nullptr,0)==0x204508);
+    CHECK(artbox_dlclose(loader,&error,handle)==0);
+    CHECK(artbox_dlclose(loader,&error,handle)==0);
+    CHECK(artbox_dlclose(loader,&error,handle)==-1 && artbox_dlerror(&error));
+    CHECK(!artbox_dlsym(loader,&error,ns,"value",nullptr,0) && artbox_dlerror(&error));
+    CHECK(artbox_dlclose(loader,&error,ns)==-1 && artbox_dlerror(&error));
+    const uint64_t bad_namespaces[]={0,handle,foreign,UINT64_MAX,ns^UINT64_C(0x100000000)};
+    for (uint64_t token:bad_namespaces) {
+        CHECK(!artbox_android_dlopen_ext(loader,&error,"provider.so",ARTBOX_RTLD_NOW,
+            ARTBOX_DLEXT_USE_NAMESPACE,token));
+        CHECK(artbox_dlerror(&error) && !artbox_dlerror(&error));
+    }
+    CHECK(!artbox_android_dlopen_ext(hidden,&error,"provider.so",ARTBOX_RTLD_NOW,
+        ARTBOX_DLEXT_USE_NAMESPACE,ns) && artbox_dlerror(&error));
+    // No extension request may hide unsupported loading behind an existing image.
+    const uint64_t rejected[]={1,2,4,8,0x10,0x20,0x40,0x80,0x100,0x400,UINT64_C(1)<<63};
+    for (uint64_t flags:rejected) for (uint64_t extra:{UINT64_C(0),UINT64_C(0x200)}) {
+        CHECK(!artbox_android_dlopen_ext(loader,&error,"provider.so",ARTBOX_RTLD_NOW,flags|extra,ns));
+        CHECK(artbox_dlerror(&error) && !artbox_dlerror(&error));
+    }
+    CHECK(!artbox_android_dlopen_ext(loader,&error,"excluded.so",ARTBOX_RTLD_NOW,0x200,ns));
+    const std::string pending=error.message;
+    CHECK(!artbox_android_get_exported_namespace(loader,"missing"));
+    CHECK(artbox_android_get_exported_namespace(loader,"default")==ns);
+    // Without USE_NAMESPACE the token is ignored, as are the other optional fields.
+    handle=artbox_android_dlopen_ext(loader,&error,"provider.so",ARTBOX_RTLD_NOLOAD,0,foreign);
+    CHECK(handle && error.pending && pending==error.message);
+    CHECK(artbox_dlerror(&error) && !artbox_dlerror(&error));
+    CHECK(artbox_dlclose(loader,&error,handle)==0);
+    handle=artbox_android_dlopen_ext(loader,&error,nullptr,ARTBOX_RTLD_NOW,0x200,ns);
+    CHECK(handle && artbox_dlsym(loader,&error,handle,"value",nullptr,0)==0x104508);
+    CHECK(artbox_dlclose(loader,&error,handle)==0);
+    CHECK(!artbox_android_dlopen_ext(loader,&error,"provider.so",0x80000000,0,0));
+    CHECK(artbox_dlerror(&error));
+    std::thread worker([&] {
+        artbox_dl_error own{};
+        for (unsigned i=0;i<100;++i) {
+            CHECK(artbox_android_get_exported_namespace(loader,"default")==ns);
+            uint64_t h=artbox_android_dlopen_ext(loader,&own,"provider.so",ARTBOX_RTLD_NOW,0x200,ns);
+            CHECK(h && artbox_dlsym(loader,&own,h,"value",nullptr,0)==0x204508);
+            CHECK(artbox_dlclose(loader,&own,h)==0 && !artbox_dlerror(&own));
+        }
+    });
+    for (unsigned i=0;i<100;++i) {
+        uint64_t h=artbox_dlopen(loader,&error,"provider.so",ARTBOX_RTLD_NOW);
+        CHECK(h && artbox_dlclose(loader,&error,h)==0);
+    }
+    worker.join();
+    artbox_dlfcn_destroy(other);other=nullptr;
+    CHECK(artbox_dlfcn_create_with_namespace(group,nullptr,0,"default",&other)==ARTBOX_ELF_OK);
+    CHECK(!artbox_android_dlopen_ext(other,&error,"provider.so",ARTBOX_RTLD_NOW,0x200,foreign));
+    CHECK(artbox_dlerror(&error));
+    artbox_dlfcn_destroy(other);artbox_dlfcn_destroy(hidden);artbox_dlfcn_destroy(loader);
+    artbox_load_group_destroy(group);
+}
 struct GuestLoaderCallback {
     artbox_vm *vm;
     artbox_guest_dl_thread *thread;
@@ -295,7 +381,7 @@ static void guest_dlfcn_tests() {
     uint64_t library_name=base+static_cast<uint64_t>(reinterpret_cast<const unsigned char*>(module.dynamic.soname)-module.bytes.data());
     artbox_dlfcn *loader=nullptr;
     artbox_dl_alias alias{"/system/lib64/fixture.so","fixture.so"};
-    CHECK(artbox_dlfcn_create(group,&alias,1,&loader)==ARTBOX_ELF_OK);
+    CHECK(artbox_dlfcn_create_with_namespace(group,&alias,1,"default",&loader)==ARTBOX_ELF_OK);
     GuestLoaderCallback callback{vm,nullptr,base,symbol_name,0};
     const artbox_guest_dl_ops guest_ops{&callback,guest_loader_callback,nullptr};
     artbox_guest_dlfcn *service=nullptr;
@@ -305,6 +391,42 @@ static void guest_dlfcn_tests() {
     CHECK(artbox_guest_dl_thread_create(service,&other)==ARTBOX_ELF_OK);callback.thread=thread;
     uint64_t handle=artbox_guest_dlopen(thread,library_name,ARTBOX_RTLD_NOW);
     CHECK(handle && !artbox_guest_dlerror(thread));
+    const uint64_t ns_name=base+0x4840,ext_address=base+0x4801;
+    CHECK(!artbox_vm_write(vm,ns_name,"default",8));
+    const uint64_t ns=artbox_guest_android_get_exported_namespace(thread,ns_name);
+    CHECK(ns && ns!=handle && artbox_guest_android_get_exported_namespace(other,ns_name)==ns);
+    CHECK(!artbox_guest_android_get_exported_namespace(thread,0) && !artbox_guest_dlerror(thread));
+    CHECK(!artbox_guest_android_get_exported_namespace(thread,library_name) && !artbox_guest_dlerror(thread));
+    unsigned char ext[48];std::memset(ext,0xff,sizeof(ext));
+    put(ext,0,8); // Inactive fields, including pointers and FDs, must be ignored.
+    CHECK(!artbox_vm_write(vm,ext_address,ext,sizeof(ext)));
+    CHECK(artbox_guest_android_dlopen_ext(thread,library_name,ARTBOX_RTLD_NOW,ext_address)==handle);
+    CHECK(artbox_guest_dlclose(thread,handle)==0);
+    put(ext,0x200,8);put(ext+40,ns,8);
+    CHECK(!artbox_vm_write(vm,ext_address,ext,sizeof(ext)));
+    CHECK(artbox_guest_android_dlopen_ext(thread,library_name,ARTBOX_RTLD_NOW,ext_address)==handle);
+    CHECK(artbox_guest_dlclose(thread,handle)==0);
+    CHECK(artbox_guest_android_dlopen_ext(thread,library_name,ARTBOX_RTLD_NOW,0)==handle);
+    CHECK(artbox_guest_dlclose(thread,handle)==0);
+    CHECK(!artbox_guest_android_dlopen_ext(thread,library_name,ARTBOX_RTLD_NOW,UINT64_MAX));
+    CHECK(!artbox_guest_android_get_exported_namespace(thread,0));
+    CHECK(artbox_guest_android_get_exported_namespace(thread,ns_name)==ns);
+    CHECK(artbox_guest_dlerror(thread) && !artbox_guest_dlerror(thread));
+    CHECK(!artbox_guest_android_get_exported_namespace(thread,UINT64_MAX));
+    CHECK(artbox_guest_dlerror(thread) && !artbox_guest_dlerror(other));
+    uint64_t page=artbox_vm_page_size(vm);
+    int64_t guard=artbox_vm_mmap(vm,0,2*page,3,0x22,-1,0);CHECK(guard>0);
+    CHECK(!artbox_vm_mprotect(vm,static_cast<uint64_t>(guard)+page,page,0));
+    const uint64_t partial=static_cast<uint64_t>(guard)+page-47;
+    CHECK(!artbox_vm_write(vm,partial,ext,47));
+    CHECK(!artbox_guest_android_dlopen_ext(thread,library_name,ARTBOX_RTLD_NOW,partial));
+    CHECK(artbox_guest_dlerror(thread));
+    CHECK(!artbox_vm_write(vm,partial,"no-terminator",13));
+    // The string starts in the last byte of a readable page and cannot terminate.
+    CHECK(!artbox_vm_write(vm,static_cast<uint64_t>(guard)+page-1,"x",1));
+    CHECK(!artbox_guest_android_get_exported_namespace(thread,static_cast<uint64_t>(guard)+page-1));
+    CHECK(artbox_guest_dlerror(thread));
+    CHECK(!artbox_vm_munmap(vm,static_cast<uint64_t>(guard),2*page));
     CHECK(artbox_guest_dlsym(thread,handle,symbol_name,0,base+0x204)==base+0x4508);
     CHECK(artbox_guest_dladdr(thread,base+0x4509,base+0x4700)==1);
     unsigned char location[32];
@@ -347,7 +469,29 @@ static void guest_dlfcn_tests() {
     });
     bound_worker.join();
     CHECK(!error_call() && artbox_native_dlfcn_swap(nullptr)==thread);
+    Module ext_frontend("libdl.so",0x100000,{},{{"__loader_android_dlopen_ext",false,true},
+        {"__loader_android_get_exported_namespace",false,true}});
+    Module ns_frontend("libdl_android.so",0x100000,{},{{"__loader_android_get_exported_namespace",false,true},
+        {"__loader_android_dlopen_ext",false,true},{"__loader_dlopen",false,true}});
+    uint64_t ext_entry=0,ns_entry=0,wrong_entry=0;
+    CHECK(artbox_native_dlfcn_resolve(nullptr,&ext_frontend.dynamic,1,&ext_entry)==ARTBOX_ELF_OK);
+    CHECK(artbox_native_dlfcn_resolve(nullptr,&ns_frontend.dynamic,1,&ns_entry)==ARTBOX_ELF_OK);
+    CHECK(artbox_native_dlfcn_resolve(nullptr,&ext_frontend.dynamic,2,&wrong_entry)==ARTBOX_ELF_NOT_FOUND);
+    CHECK(artbox_native_dlfcn_resolve(nullptr,&ns_frontend.dynamic,2,&wrong_entry)==ARTBOX_ELF_NOT_FOUND);
+    CHECK(artbox_native_dlfcn_resolve(nullptr,&ns_frontend.dynamic,3,&wrong_entry)==ARTBOX_ELF_NOT_FOUND);
+    auto ext_call=reinterpret_cast<void*(*)(const char*,int,const void*,const void*)>(static_cast<uintptr_t>(ext_entry));
+    auto ns_call=reinterpret_cast<void*(*)(const char*)>(static_cast<uintptr_t>(ns_entry));
+    auto namespace_name=reinterpret_cast<const char*>(static_cast<uintptr_t>(ns_name));
+    auto library=reinterpret_cast<const char*>(static_cast<uintptr_t>(library_name));
+    auto extension=reinterpret_cast<const void*>(static_cast<uintptr_t>(ext_address));
+    CHECK(!ns_call(namespace_name) && !ext_call(library,ARTBOX_RTLD_NOW,extension,nullptr));
+    CHECK(!artbox_native_dlfcn_swap(thread));
+    CHECK(reinterpret_cast<uintptr_t>(ns_call(namespace_name))==ns);
+    CHECK(reinterpret_cast<uintptr_t>(ext_call(library,ARTBOX_RTLD_NOW,extension,nullptr))==handle);
     CHECK(artbox_guest_dlclose(thread,handle)==0);
+    CHECK(artbox_native_dlfcn_swap(nullptr)==thread);
+    CHECK(artbox_guest_dlclose(thread,handle)==0);
+    CHECK(artbox_guest_dlclose(thread,handle)==-1 && artbox_guest_dlerror(thread));
     artbox_guest_dl_thread_destroy(other);artbox_guest_dl_thread_destroy(thread);
     artbox_guest_dlfcn_destroy(service);artbox_dlfcn_destroy(loader);artbox_load_group_destroy(group);
     CHECK(artbox_vm_reserved_bytes(vm)==length);
@@ -358,6 +502,7 @@ int main() {
     tls_tests();
     query_tests();
     dlfcn_tests();
+    namespace_tests();
     guest_dlfcn_tests();
     Module root("root.so",0x100000,{"left.so","right.so"},{{"root",true,false},{"shared",false,false},{"optional",false,true},{"bridge",false,false}});
     Module left("left.so",0x200000,{"leaf.so"},{{"shared",true,true},{"root",false,false}});

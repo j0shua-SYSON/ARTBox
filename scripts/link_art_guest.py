@@ -102,6 +102,8 @@ def main():
     if math['native'] != {'cases': 130, 'first_failure': 0, 'cleanup': True} or libdl['native'] != {
             'cases': 32, 'thread_error_checks': 6, 'cleanup': True}:
         raise RuntimeError('Native math or loader acceptance is incomplete')
+    if libdl.get('android_extensions') != dict(extension_cases=51, namespace_control=-1001, flags_control=-1009):
+        raise RuntimeError('Android signed namespace acceptance is incomplete')
     if context['native'] != {'checks': 4, 'failure_mask': 0, 'expected_rejection': False, 'cleanup': True}:
         raise RuntimeError('Native LLVM context acceptance is incomplete')
     deps = {

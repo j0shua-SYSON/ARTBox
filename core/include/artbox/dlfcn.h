@@ -27,6 +27,12 @@ typedef struct artbox_dl_alias {
  * The owner prevents mutation/destruction of the group while calls are active. */
 artbox_elf_result artbox_dlfcn_create(const artbox_load_group *group,
     const artbox_dl_alias *aliases, unsigned alias_count, artbox_dlfcn **out);
+/* Optional visible namespace for this one immutable group. A null name keeps
+ * it invisible (the ordinary create behavior); otherwise copy 1..4096 bytes.
+ * This does not create Android's dynamic or linked namespaces. */
+artbox_elf_result artbox_dlfcn_create_with_namespace(const artbox_load_group *group,
+    const artbox_dl_alias *aliases, unsigned alias_count, const char *namespace_name,
+    artbox_dlfcn **out);
 void artbox_dlfcn_destroy(artbox_dlfcn *loader);
 
 /* Each guest thread supplies its own zero-initialized error state. A failure
@@ -37,6 +43,14 @@ void artbox_dlfcn_destroy(artbox_dlfcn *loader);
 const char *artbox_dlerror(artbox_dl_error *error);
 uint64_t artbox_dlopen(artbox_dlfcn *loader, artbox_dl_error *error,
     const char *name, unsigned flags);
+enum { ARTBOX_DLEXT_USE_NAMESPACE=0x200 };
+/* Query does not affect dlerror. Tokens belong to this context, are not library
+ * handles, and must never be dereferenced. Absent/invisible names return zero.
+ * Only zero flags and USE_NAMESPACE are supported. Other extension bits fail
+ * even if the named library is already loaded. */
+uint64_t artbox_android_get_exported_namespace(const artbox_dlfcn *loader, const char *name);
+uint64_t artbox_android_dlopen_ext(artbox_dlfcn *loader, artbox_dl_error *error,
+    const char *name, unsigned flags, uint64_t extension_flags, uint64_t namespace_handle);
 int artbox_dlclose(artbox_dlfcn *loader, artbox_dl_error *error, uint64_t handle);
 uint64_t artbox_dlsym(artbox_dlfcn *loader, artbox_dl_error *error,
     uint64_t handle, const char *name, const char *version, uint64_t caller);

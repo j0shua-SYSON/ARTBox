@@ -621,14 +621,22 @@ it does not establish Apple unwinder execution or general exception support.
 
 ## AOSP libdl frontend
 
-`third_party/bionic/libdl.json` selects the unchanged `libdl/libdl.cpp` at the
+`third_party/bionic/libdl.json` selects the unchanged `libdl/libdl.cpp` and
+`libdl/libdl_android.cpp` at the
 existing Bionic commit `361ba86734fb2821a6adcfdf775db8abd04e0de0`.
-Its seven selected APIs use **Apache-2.0**; the complete `libdl/NOTICE`, original
+Its eight public loader APIs and one internal exported-namespace API use
+**Apache-2.0**; the complete `libdl/NOTICE`, original
 source header and `Android.bp` license declaration are retained and hash-checked.
-The corresponding-source archive contains those files and the ARTBox bridge and
+The corresponding-source archive contains those files, the original Apache-2.0
+`android/dlext.h` ABI documentation, and the ARTBox bridge and
 build inputs. Every signed framework includes the libdl notice, the pinned NDK
 notice covering its compile-time headers, and ARTBox's MIT license. No upstream
 code is copied into original ARTBox source files.
+
+The two frontends retain their separate `libdl.so` and `libdl_android.so` names.
+The extension fixture compiles against the NDK's actual LP64 structure and checks
+every field offset. Namespace policy is original MIT code for the pre-signed
+startup group; no Android linker implementation is copied or relicensed.
 
 The full Android ART guest link also uses the pinned NDK r28c's
 `libc++_static.a`, `libc++abi.a`, `libunwind.a`, compiler-rt builtins and Android

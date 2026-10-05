@@ -26,6 +26,7 @@ struct artbox_dlfcn {
     const artbox_load_group *group=nullptr;
     unsigned count=0;
     uint64_t identity=0;
+    std::string namespace_name;
     std::array<artbox_link_info,64> images{};
     std::array<std::string,64> names;
     std::array<uint64_t,64> references{};
@@ -45,12 +46,18 @@ struct artbox_dlfcn {
 
 artbox_elf_result artbox_dlfcn_create(const artbox_load_group *group,
     const artbox_dl_alias *aliases,unsigned alias_count,artbox_dlfcn **out) {
+    return artbox_dlfcn_create_with_namespace(group,aliases,alias_count,nullptr,out);
+}
+artbox_elf_result artbox_dlfcn_create_with_namespace(const artbox_load_group *group,
+    const artbox_dl_alias *aliases,unsigned alias_count,const char *namespace_name,artbox_dlfcn **out) {
     unsigned count=artbox_load_group_count(group);
     if (!group || !out || !count || count>64 || alias_count>128 || (alias_count && !aliases))
         return ARTBOX_ELF_INVALID;
+    if (namespace_name && (!*namespace_name || std::strlen(namespace_name)>4096)) return ARTBOX_ELF_INVALID;
     try {
         std::unique_ptr<artbox_dlfcn> loader(new artbox_dlfcn);
         loader->group=group;loader->count=count;
+        if (namespace_name) loader->namespace_name=namespace_name;
         for (unsigned i=0;i<count;++i) {
             artbox_elf_result r=artbox_load_group_info(group,i,&loader->images[i]);
             if (r!=ARTBOX_ELF_OK) return r;
@@ -81,9 +88,25 @@ const char *artbox_dlerror(artbox_dl_error *error) {
     error->pending=0;return error->message;
 }
 uint64_t artbox_dlopen(artbox_dlfcn *loader,artbox_dl_error *error,const char *name,unsigned flags) {
+    return artbox_android_dlopen_ext(loader,error,name,flags,0,0);
+}
+uint64_t artbox_android_get_exported_namespace(const artbox_dlfcn *loader,const char *name) {
+    // Even low byte cannot alias any odd library handle. Identity is never reused.
+    return loader && name && !loader->namespace_name.empty() && loader->namespace_name==name
+        ? loader->identity|UINT64_C(0x80) : 0;
+}
+uint64_t artbox_android_dlopen_ext(artbox_dlfcn *loader,artbox_dl_error *error,
+    const char *name,unsigned flags,uint64_t extension_flags,uint64_t namespace_handle) {
     constexpr unsigned allowed=ARTBOX_RTLD_LAZY|ARTBOX_RTLD_NOW|ARTBOX_RTLD_NOLOAD|
         ARTBOX_RTLD_GLOBAL|ARTBOX_RTLD_NODELETE;
     if (!loader || (flags&~allowed)) { fail(error,"dlopen: invalid loader or flags");return 0; }
+    if (extension_flags&~static_cast<uint64_t>(ARTBOX_DLEXT_USE_NAMESPACE)) {
+        fail(error,"android_dlopen_ext: unsupported extension flags");return 0;
+    }
+    if ((extension_flags&ARTBOX_DLEXT_USE_NAMESPACE) && (loader->namespace_name.empty() ||
+        namespace_handle!=(loader->identity|UINT64_C(0x80)))) {
+        fail(error,"android_dlopen_ext: namespace does not belong to this signed group");return 0;
+    }
     unsigned index=name?loader->find(name):0;
     if (name && index==loader->count) for (const auto &alias:loader->aliases)
         if (alias.path==name) { index=alias.index;break; }

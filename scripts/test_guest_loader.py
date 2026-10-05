@@ -17,6 +17,8 @@ from bionic_adapt import inventory
 from dynamic_bundle import prepare
 from test_loader_reference import EXPECTED
 
+EXTENSIONS = dict(extension_cases=51, namespace_control=-1001, flags_control=-1009)
+
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -61,27 +63,37 @@ def main():
               '-Wall', '-Wextra', '-Werror']
     objects = {}
     for name, source in [('libdl', bionic / 'libdl/libdl.cpp'),
+                         ('libdl_android', bionic / 'libdl/libdl_android.cpp'),
                          ('client', ROOT / 'fixtures/loader-api/check.c'),
+                         ('dlext', ROOT / 'fixtures/loader-api/dlext.c'),
                          ('provider', ROOT / 'fixtures/loader-api/provider.c')]:
         obj = output / (name + '.o')
-        language = ['-std=c++17', '-fno-exceptions', '-fno-rtti'] if name == 'libdl' else ['-std=c11']
-        run([tool('clang++' if name == 'libdl' else 'clang'), *common, *language,
+        language = ['-std=c++17', '-fno-exceptions', '-fno-rtti'] if name.startswith('libdl') else ['-std=c11']
+        run([tool('clang++' if name.startswith('libdl') else 'clang'), *common, *language,
              '-c', source, '-o', obj], name + '-compile')
         objects[name] = {'filename': obj.name, 'sha256': digest(obj), 'source_sha256': digest(source)}
-    export_map = output / 'exports.map'
-    export_map.write_text('{ global: ' + '; '.join(selection['exports']) + '; local: *; };\n', encoding='utf-8')
+    frontend_exports = {'libdl': selection['exports'], 'libdl_android': selection['android_exports']}
+    export_maps = {}
+    for name, exports in frontend_exports.items():
+        export_maps[name] = output / (name + '-exports.map')
+        export_maps[name].write_text('{ global: ' + '; '.join(exports) + '; local: *; };\n', encoding='utf-8')
     flags = ['-shared', '--hash-style=both', '--build-id=none', '-z', 'max-page-size=16384',
              '--pack-dyn-relocs=relr', '-T', ROOT / 'fixtures/bionic-dynamic/image.ld']
-    binaries = {'libdl': output / 'libdl.so', 'provider': output / 'libartbox_loader_provider.so',
+    binaries = {'libdl': output / 'libdl.so', 'libdl_android': output / 'libdl_android.so',
+                'provider': output / 'libartbox_loader_provider.so',
                 'client': output / 'libartbox_loader_client.so'}
-    for name in ('libdl', 'provider', 'client'):
-        extras = ['--gc-sections', '--version-script=' + str(export_map)] if name == 'libdl' else ['-z', 'defs']
-        dependencies = ['--no-as-needed', binaries['libdl'], binaries['provider']] if name == 'client' else []
+    for name in ('libdl', 'libdl_android', 'provider', 'client'):
+        extras = (['--gc-sections', '--version-script=' + str(export_maps[name])]
+                  if name in frontend_exports else ['-z', 'defs'])
+        dependencies = (['--no-as-needed', binaries['libdl'], binaries['provider'], binaries['libdl_android']]
+                        if name == 'client' else [])
+        extra_objects = [output / 'dlext.o'] if name == 'client' else []
         run([tool('ld.lld'), *flags, *extras, '-soname', binaries[name].name,
-             output / (name + '.o'), *dependencies, '-o', binaries[name]], name + '-link')
+             output / (name + '.o'), *extra_objects, *dependencies, '-o', binaries[name]], name + '-link')
     records = {}
-    expected_imports = {'libdl': sorted('__loader_' + n for n in selection['exports']), 'provider': [],
-                        'client': sorted(n for n in selection['exports'] if n != 'dlvsym')}
+    expected_imports = {name: sorted('__loader_' + n for n in exports) for name, exports in frontend_exports.items()}
+    expected_imports.update(provider=[], client=sorted([n for n in selection['exports'] if n != 'dlvsym'] +
+                                                     selection['android_exports']))
     for name, elf in binaries.items():
         disassembly = run([tool('llvm-objdump'), '-d', '--no-show-raw-insn', elf], name + '-disassembly').decode()
         boundary = inventory(disassembly)
@@ -90,9 +102,9 @@ def main():
         imports = run([tool('llvm-nm'), '-D', '--undefined-only', '--format=posix', elf], name + '-imports').decode()
         if sorted(line.split()[0] for line in imports.splitlines()) != expected_imports[name]:
             raise RuntimeError('Unexpected guest loader imports: ' + name)
-        if name == 'libdl':
-            exports = run([tool('llvm-nm'), '-D', '--defined-only', '--format=posix', elf], 'libdl-exports').decode()
-            if sorted(line.split()[0] for line in exports.splitlines()) != sorted(selection['exports']):
+        if name in frontend_exports:
+            exports = run([tool('llvm-nm'), '-D', '--defined-only', '--format=posix', elf], name + '-exports').decode()
+            if sorted(line.split()[0] for line in exports.splitlines()) != sorted(frontend_exports[name]):
                 raise RuntimeError('Unexpected AOSP frontend exports')
         records[name] = {'filename': elf.name, 'sha256': digest(elf), 'bytes': elf.stat().st_size,
                          'inventory': boundary, 'imports': expected_imports[name]}
@@ -107,6 +119,7 @@ def main():
                'scripts/guest_bundle.py', 'tools/wrap_dynamic.py', 'tools/pack_elf.py',
                'third_party/bionic/libdl.json', 'third_party/bionic/builtins.json', 'third_party/sources.json',
                'fixtures/bionic-dynamic/image.ld', 'fixtures/loader-api/check.c', 'fixtures/loader-api/provider.c',
+               'fixtures/loader-api/dlext.c',
                'tests/native_loader.c', 'CMakeLists.txt', '.github/workflows/host-tests.yml', 'LICENSE', 'THIRD_PARTY.md']
     project += [p.relative_to(ROOT).as_posix() for directory in ('core', 'platform')
                 for p in (ROOT / directory).rglob('*') if p.is_file()]
@@ -117,7 +130,9 @@ def main():
         for name, (path, _) in notices.items(): z.write(path, 'notices/' + name)
         for name in project: z.write(ROOT / name, 'artbox/' + name)
     report = {'project_commit': run(['git', 'rev-parse', 'HEAD'], 'revision').decode().strip(),
-              'scope': 'Fixed signed startup group and original AOSP libdl frontend; not ART startup',
+              'scope': 'Fixed signed startup group and original AOSP libdl/libdl_android frontends; not ART startup',
+              'extension_expected': EXTENSIONS,
+              'extension_reference': 'Declared signed-group policy and NDK LP64 ABI; not a live Android linker oracle',
               'selection': selection, 'objects': objects, 'binaries': records, 'commands': commands,
               'project_sources': {p: digest(ROOT / p) for p in project},
               'source_bundle_sha256': digest(bundle), 'notices': {n: h for n, (_, h) in notices.items()},
@@ -132,26 +147,29 @@ def main():
             raise RuntimeError('Signed loader execution requires native ARM64 macOS')
         for target in ('macos', 'ios'):
             frameworks = {}
-            for name in ('client', 'libdl', 'provider'):
+            image_order = ('client', 'libdl', 'provider', 'libdl_android')
+            for name in image_order:
                 binary, details = prepare(output / (name + '-pack'), output / target / name, target,
                     bionic / 'libdl/NOTICE', selection['files']['libdl/NOTICE'],
                     {n: pair for n, pair in notices.items() if n != 'BIONIC-LIBDL-NOTICE.txt'},
-                    name='ARTBoxLoader' + name.title(), notice_name='BIONIC-LIBDL-NOTICE.txt')
+                    name='ARTBoxLoader' + ''.join(part.title() for part in name.split('_')),
+                    notice_name='BIONIC-LIBDL-NOTICE.txt')
                 frameworks[name] = binary
                 report['frameworks'][target + '-' + name] = details
                 save()
             if target == 'macos':
                 runner = Path(os.environ['ARTBOX_BUILD_DIR']) / 'host/artbox_native_loader'
-                arguments = [p for name in ('client', 'libdl', 'provider') for p in (frameworks[name], binaries[name])]
+                arguments = [p for name in image_order for p in (frameworks[name], binaries[name])]
                 started = time.perf_counter_ns()
                 observed = json.loads(run([runner, *arguments], 'native'))
                 report['process_ns'] = time.perf_counter_ns() - started
-                if observed != EXPECTED:
-                    raise RuntimeError('Signed Android loader and native Linux reference disagree')
-                report['native'] = observed
+                if observed != {**EXPECTED, **EXTENSIONS}:
+                    raise RuntimeError('Signed Android ordinary loader, extension policy or controls failed')
+                report['native'] = {key: observed[key] for key in EXPECTED}
+                report['android_extensions'] = {key: observed[key] for key in EXTENSIONS}
                 save()
     print('AOSP libdl frontend and original Android loader fixture built; ' +
-          ('32 signed Mac cases, six thread-error checks and iOS 15 packaging pass' if sys.platform == 'darwin'
+          ('32 ordinary cases, six thread-error checks, 51 extension cases, two controls and iOS 15 packaging pass' if sys.platform == 'darwin'
            else 'native execution pending'))
 
 

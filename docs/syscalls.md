@@ -512,5 +512,20 @@ specified checks. Signed Bionic and native Linux execution are required in CI.
 
 This source selection does not implement `clock_getres` (114): the accompanying
 `timespec_getres` wrapper reaches the existing unsupported syscall path. CPU-time
-bases and non-C-locale matching are not verified by this contract. Android
-namespace loading is still separate, unsupported work.
+bases and non-C-locale matching are not verified by this contract.
+
+## M4: Android loader extensions
+
+These are userspace APIs, not new syscalls. Original AOSP `libdl` and
+`libdl_android` frontends now have a portable bridge for `android_dlopen_ext`
+and exported-namespace lookup. One explicitly configured visible namespace
+names the immutable signed startup group. Null extension information, zero flags
+and USE_NAMESPACE for that group's token share ordinary library references.
+Missing namespaces return null without changing a pending loader error.
+
+The guest bridge snapshots the NDK's 48-byte LP64 record. FD loading, address
+reservations, forced copies, RELRO sharing and recursive loading are rejected;
+dynamic/linked namespaces and vendor/sphal namespaces remain unsupported.
+Portable tests pass; the additional signed fixture requires 51 cases and two
+precise negative controls. It is a signed-group policy test, not a comparison
+against a live Android linker. Real Binder/service attachment remains pending.

@@ -3366,3 +3366,42 @@ remains unsupported and is not counted as implemented by this selection. CPU
 clock bases and non-C-locale pattern semantics likewise remain outside this
 contract. No executable-memory transition or runtime code generation is added;
 the signed wrappers use the existing clock translation and precompiled code.
+
+## 0122: Bind Android loader extensions to an explicit signed namespace
+
+Original libvndksupport requires android_dlopen_ext and exported-namespace lookup.
+Bionic's pinned linker uses a configured visibility map; a missing namespace
+returns null without changing dlerror. It does not imply that every Android
+namespace exists. Model one optional, explicitly named visible namespace per
+immutable signed startup group. Existing unnamed contexts remain invisible.
+Copy the name at creation and issue a context-specific opaque token distinct
+from library handles. Do not infer vendor/sphal namespaces or host search paths.
+
+Support null extension information, zero extension flags and USE_NAMESPACE for
+that context's token. Open acquires the same reference and symbol scope as an
+ordinary open in the group. Reject foreign/stale/null tokens and every other
+extension bit before acquiring a reference. FD loading, new mappings, forced
+copies, address reservations and RELRO sharing require separate implementations;
+silently accepting them would violate their semantics and could bypass signed
+code provenance. Dynamic namespace creation and namespace-to-namespace links
+also remain unsupported. Accept the narrower runtime capability until a real
+caller needs those features, without patching that caller to hide the request.
+
+Decode the 48-byte Android LP64 extension record through the guest mapper rather
+than dereferencing host-layout structures. Bound namespace-name reads like other
+loader strings. Preserve thread-local pending errors on successful opens and
+valid namespace queries. Invalid guest memory fails safely at the bridge.
+Keep __loader_android_dlopen_ext restricted to libdl.so and namespace lookup to
+libdl_android.so, matching the separate original AOSP frontends. Portable tests
+precede implementation. The dedicated signed loader fixture now includes both
+unchanged frontends in separate images, with 51 extension cases and two precise
+negative controls, while retaining the 32-case ordinary Linux oracle comparison.
+Require those signed results before linking ART. The ART runtime keeps its
+15-image group and has no visible namespace configured; adding libdl_android and
+attaching real Binder remains separate work. Do not claim the extension fixture
+is an execution comparison against Android's full dynamic linker.
+
+No writable executable memory or new runtime code is introduced. The costs are a
+copied namespace name, integer-token validation and the existing guest-memory
+snapshot/open lock; execution overhead is not yet measured. This is a declared
+single-group namespace model, not Android's full linkerconfig isolation policy.

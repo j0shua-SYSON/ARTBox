@@ -33,6 +33,12 @@ void artbox_guest_dl_thread_destroy(artbox_guest_dl_thread *thread);
  * guest thread owns one thread object; callbacks may reenter on that thread.
  * The returned error string remains guest-readable until thread teardown. */
 uint64_t artbox_guest_dlopen(artbox_guest_dl_thread *thread,uint64_t name,unsigned flags);
+/* extinfo is null or a readable 48-byte Android LP64 android_dlextinfo.
+ * All bytes are snapshotted before validation; unsupported flags fail without
+ * opening anything. Namespace tokens are opaque, never guest-memory pointers. */
+uint64_t artbox_guest_android_dlopen_ext(artbox_guest_dl_thread *thread,
+    uint64_t name,unsigned flags,uint64_t extinfo);
+uint64_t artbox_guest_android_get_exported_namespace(artbox_guest_dl_thread *thread,uint64_t name);
 uint64_t artbox_guest_dlsym(artbox_guest_dl_thread *thread,uint64_t handle,
     uint64_t name,uint64_t version,uint64_t caller);
 int artbox_guest_dlclose(artbox_guest_dl_thread *thread,uint64_t handle);
