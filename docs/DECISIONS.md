@@ -3056,3 +3056,36 @@ separate persistent-registration test retains a target through a duplicate,
 reuses its descriptor number, and confirms that final close removes the original
 interest. This is a test-only host oracle, not a guest proc dependency, guest dup
 implementation or proof that eventfd/Looper executes in the signed runtime.
+
+## 0112: Keep eventfd state portable and share bounded wait admission with epoll
+
+After the native reference passes on Linux x86_64 and ARM64 at `ca55328`, add
+eventfd2 to the existing VFS entry. The descriptor table owns the counter,
+initial flags and VM identity. Its mutex serializes counter changes, so the
+implementation needs no host eventfd, additional kernel-facing API or second
+counter lock. Encode the eight-byte Android value explicitly. Creation requires
+the configured wake provider already used by the signed runtime's epoll path.
+
+Pin an open description for the entire read/write, releasing the descriptor
+mutex before a native wait and before read copyout. A pending operation keeps
+the original counter through descriptor close/reuse. Epoll interests hold weak
+counter references, not the current occupant of an fd number. They can observe
+an old counter while an in-flight transfer retains it, and are reaped after
+that final owner leaves. Binder interests retain their existing token/mapping
+identity. No generic duplication or cross-VM descriptor sharing is implied.
+
+Blocking counter I/O shares the epoll hub's bounded wait slots. Publish each
+private native wake owner before rechecking the counter; every counter mutation
+sends coalescible hints. Recheck ready state before interruption, preserving the
+same delivered-epoch policy as Binder and epoll. The 5 ms ordinary-context check
+remains a documented idle cost. Semaphore reads decrement by one; normal reads
+consume the whole count before copyout. Never roll back on EFAULT. User writes
+cannot reach UINT64_MAX, and zero writes remain valid at saturation.
+
+The shared 63-case fixture precedes the implementation. Further tests cover
+three real-provider wakeups, close/reuse followed by injected interruption,
+weak-interest removal, semaphore contention, shared wait admission, native
+provider failures, copy faults across a protected page, foreign VM rejection,
+descriptor exhaustion and 2,048 concurrent increments. Native Linux interruption
+and ARTBox's injected delivery remain different evidence. Anonymous-inode stat,
+fcntl/dup, general I/O readiness and signed Looper execution are still pending.

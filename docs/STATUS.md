@@ -205,8 +205,14 @@ An original shared eventfd fixture now covers counter/semaphore transfers,
 readiness, saturation, sizes, copy faults and seek. Native controls add nine
 observed blocking read/write/epoll cases for wakeup, real signal interruption
 and descriptor close/reuse, plus persistent epoll interest lifetime. Both
-units compile strictly for Android ARM64; Linux execution awaits CI. Guest
-eventfd dispatch is not implemented yet.
+units compile strictly for Android ARM64. At `ca55328`, Linux x86_64 and ARM64
+both pass all 63 shared cases and nine native blocking cases; downloaded logs,
+artifact digests and binary architectures verify. Guest eventfd2/read/write
+now pass the same fixture locally, plus epoll wakeup, weak-interest lifetime,
+injected interruption after close/reuse, semaphore contention, wait admission,
+VM/copy-fault controls and 2,048 concurrent increments. Native production
+comparison and signed-runtime regression await CI. Timerfd and actual AOSP
+Looper/servicemanager execution remain ahead.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

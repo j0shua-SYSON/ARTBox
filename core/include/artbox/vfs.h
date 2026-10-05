@@ -50,14 +50,18 @@ int artbox_vfs_set_binder(artbox_vfs *fs, artbox_binder_device *device, uint32_t
  * before guest execution. The copied provider/context outlives the table and
  * every call. Binder may be attached before or after this configuration.
  * The process VM must outlive its epoll opens and calls. Interest limits are
- * 1..4096; wait limits are 1..1024. Level-triggered Binder interests are supported;
+ * 1..4096; wait limits are 1..1024 and shared by epoll and blocking eventfd I/O.
+ * Level-triggered Binder/eventfd interests are supported;
  * edge/oneshot/exclusive/nested epoll and signal-mask substitution return
  * EOPNOTSUPP. Other target types return EPERM until their readiness is supported.
- * Waits use ordinary-context 5 ms checks for passive unmap and signal epochs. */
+ * Waits use ordinary-context 5 ms checks for passive unmap and signal epochs.
+ * This also enables eventfd2 counters with ordinary/semaphore reads and
+ * blocking/nonblocking transfers. Anonymous-inode stat and fcntl/dup remain
+ * unsupported. Active transfers pin the open; epoll interests do not. */
 int artbox_vfs_set_epoll(artbox_vfs *fs, const artbox_wake_ops *wake,
     size_t interest_limit, size_t waiter_limit);
 /* Pin the open description and observe Linux readiness bits without consuming
- * work. Initially supports configured Binder descriptors only; other types
+ * work. Supports configured Binder/eventfd descriptors; other types
  * return EOPNOTSUPP, missing descriptors EBADF and foreign VMs EOPNOTSUPP.
  * This helper does not enable a guest poll/epoll syscall or register a waiter. */
 int artbox_vfs_events(artbox_vfs *fs, artbox_kernel_thread *thread, int fd);

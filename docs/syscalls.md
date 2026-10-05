@@ -430,7 +430,7 @@ operation observes it.
 | Syscall (AArch64 number) | Implemented subset | Deliberate differences / missing behavior |
 | --- | --- | --- |
 | `epoll_create1` (20) | Independent virtual open, zero/CLOEXEC flags, descriptor admission | Requires an explicitly configured wake provider. No host descriptor is exposed. |
-| `epoll_ctl` (21) | ADD/MOD/DEL for Binder, opaque 64-bit data, duplicate/missing registration errors | Identity includes fd number and original Binder token. Interest cap is configured per epoll. Other targets, edge/oneshot/exclusive modes and nesting remain unsupported. |
+| `epoll_ctl` (21) | ADD/MOD/DEL for Binder and eventfd, opaque 64-bit data, duplicate/missing registration errors | Identity includes fd number and the original target. Interest cap is configured per epoll. Other targets, edge/oneshot/exclusive modes and nesting remain unsupported. |
 | `epoll_pwait` (22) | ARM64 16-byte events, level readiness and error bits, rotating scans, zero/finite/infinite waits, partial output faults, concurrent waiters and interruption | Non-null signal-mask substitution returns EOPNOTSUPP (wrong sigset size returns EINVAL). Waiter cap is configured per VFS. Passive unmap and delivered signal epochs are checked at 5 ms intervals. |
 
 The same 31-case native Binder readiness fixture now runs locally through these
@@ -447,16 +447,27 @@ Each active sleeping call owns a separate native wake object, retains its epoll
 open across descriptor close/reuse, and drops descriptor/device locks before
 waiting. Interests do not retain target Binder endpoints. A receive mapping may
 keep an old token alive after its fd number is reused, until final unmap. The
-new implementation does not add guest eventfd/timerfd or general I/O readiness.
+implementation does not add timerfd or general I/O readiness. Eventfd is described below.
 Epoll read/write return EINVAL; metadata and seek remain explicitly unsupported.
 
-## M4: eventfd reference before implementation
+## M4: guest eventfd
 
-`eventfd2` (AArch64 19) is not yet enabled in the guest. A new shared fixture
-tests the counter, semaphore flag, readiness, unsigned argument truncation,
-transfer sizes, saturation, fault ordering and no-op seek against native Linux.
-Additional native controls test blocking read/write/epoll, non-restarting signal
-interruption, close/reuse during those waits and persistent-interest lifetime.
-Actual syscall observation precedes each wake/interrupt, rather than assuming
-that a started thread has blocked. The fixture compiles strictly for Android
-ARM64; native execution awaits CI. No guest comparison is claimed yet.
+| Syscall | Implemented subset | Deliberate differences / missing behavior |
+| --- | --- | --- |
+| `eventfd2` (19) | Unsigned 32-bit initial count; NONBLOCK, CLOEXEC and SEMAPHORE flags; bounded descriptor admission | Requires the configured native wake provider; no host descriptor is exposed. |
+| `read` (63), `write` (64) | Eight-byte counter transfers, saturation, blocking/nonblocking I/O, semaphore decrement, read consumption before failed copyout | Waits use the same bounded admission and injected interrupt-epoch policy as epoll. Generic readv/writev and fcntl/dup remain unsupported. |
+| `lseek` (62), `close` (57) | No-op seek for valid origins; descriptor close with in-flight ownership | Anonymous-inode fstat returns EOPNOTSUPP; mmap returns ENODEV. |
+
+At `ca55328`, both native Linux x86_64 and ARM64 pass the same 63-case fixture,
+nine observed blocking wake/interrupt/close-reuse cases, protected-page copy
+faults and persistent-interest lifetime. Downloaded logs, artifact digests and
+binary architectures verify. Native workers enter the exact syscall before
+wakeup or interruption; this is separate from guest test-provider observation.
+
+The portable implementation now passes the shared fixture locally plus
+read/write/epoll wakeups, semaphore contention, wait/resource exhaustion,
+foreign VM rejection, copy faults, injected interruption after close/reuse and
+2,048 concurrent increments. Epoll retains only weak counter identity; an active
+read/write may keep an old interest alive until it returns. Paired Linux CI and
+signed-runtime regression for the implementation remain pending. Native Bionic
+signal-handler interruption and actual signed Looper execution are not claimed.
