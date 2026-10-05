@@ -436,6 +436,11 @@ manager/provider/client contexts. Local link and wrapper checks pass with
 portable contracts pass, with three native-provider tests skipped on Windows.
 Actual service execution has not yet passed; registration, 32 ping/pong calls,
 access denials and original death notification remain the M4 target.
+At `4644b0c`, all 36 role frameworks sign and verify and the first Access
+process reaches Bionic startup. Constructor validation then fails: the harness
+had passed stack-local relocation descriptors to a load group that borrows
+them. The descriptors now live with the role, and the group is destroyed before
+its backing VM. Signed execution must still verify this lifetime correction.
 
 One signed Mac main-branch run at `8cf6315` creates the VM in **54.157 ms**,
 loads/relocates in 32.226 ms and reaches **66,699,264 bytes peak process RSS**.

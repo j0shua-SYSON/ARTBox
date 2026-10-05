@@ -39,6 +39,8 @@ typedef struct service_image {
 } service_image;
 typedef struct service_role {
     service_image images[MODULES];
+    // The load group borrows these descriptors through constructor execution.
+    artbox_relocation_memory writable[MODULES];
     artbox_vm *vm;
     artbox_native_files *files;
     artbox_vfs *vfs;
@@ -210,7 +212,12 @@ static void run_role(void *opaque) {
     artbox_native_signal_thread signal_thread=r->signal_template;
     signal_thread.kernel=current; signal_thread.guest_tls=artbox_bionic_get_tls();
     if(artbox_native_signal_thread_attach(&signal_thread)) fail("primary signal attachment");
-    if(artbox_load_group_initialize(r->group,construct,r)!=ARTBOX_ELF_OK) fail("constructors");
+    artbox_elf_result initialized=artbox_load_group_initialize(r->group,construct,r);
+    if(initialized!=ARTBOX_ELF_OK) {
+        fprintf(stderr,"role %u constructor result: %d after %u calls\n",
+                r->index,initialized,r->constructors);
+        fail("constructors");
+    }
     if((int32_t)call(r,0,"getpid",0,0,0)!=r->kernel.pid ||
             call(r,0,"getuid",0,0,0)!=uid) fail("Bionic process identity");
     r->bootstrap_ns=now()-r->started_ns;
@@ -289,11 +296,11 @@ static void prepare_role(service_role *r,const artbox_service_input *input,unsig
             artbox_signals_attach(r->signals,&r->kernel)) fail("role signals");
     r->signal_template.actions=artbox_signals_action_table(r->signals);
     const char *names[]={"libc.so","libart.so","libm.so","libdl.so","libdl_android.so","libartbox_servicemanager.so"};
-    artbox_relocation_memory writable[MODULES]; artbox_link_module modules[MODULES];
+    artbox_link_module modules[MODULES];
     for(unsigned i=0;i<MODULES;++i) {
         if(!r->images[i].dynamic.soname || strcmp(r->images[i].dynamic.soname,names[i])) fail("role image order");
-        writable[i]=(artbox_relocation_memory){1,r->images[i].rw,(size_t)r->images[i].elf.segments[1].memory_size};
-        modules[i]=(artbox_link_module){names[i],&r->images[i].dynamic,(uintptr_t)r->images[i].rx,&writable[i],1};
+        r->writable[i]=(artbox_relocation_memory){1,r->images[i].rw,(size_t)r->images[i].elf.segments[1].memory_size};
+        modules[i]=(artbox_link_module){names[i],&r->images[i].dynamic,(uintptr_t)r->images[i].rx,&r->writable[i],1};
     }
     artbox_elf_result linked=artbox_load_group_create(modules,MODULES,names[5],resolve,r,&r->group);
     if(linked==ARTBOX_ELF_OK) linked=artbox_load_group_tls_resolver(r->group,(uintptr_t)entry(r,0,"artbox_tlsdesc_absolute"));
@@ -319,9 +326,9 @@ static void destroy_role(service_role *r) {
     if(artbox_threads_destroy(r->threads) || artbox_signals_detach(&r->kernel) || artbox_signals_destroy(r->signals))
         fail("role thread cleanup");
     artbox_guest_dlfcn_destroy(r->dl); artbox_dlfcn_destroy(r->loader);
+    artbox_load_group_destroy(r->group);
     if(artbox_vfs_destroy(r->vfs) || artbox_futex_destroy(r->futex) || artbox_vm_destroy(r->vm) ||
             artbox_native_files_close(r->files)) fail("finite role cleanup");
-    artbox_load_group_destroy(r->group);
     // Signed images stay mapped: process globals cannot safely be reused.
 }
 static void fault(int n,siginfo_t *info,void *state) {
