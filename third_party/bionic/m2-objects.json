@@ -798,6 +798,34 @@
       "-include",
       "openbsd-compat.h",
       "-Wno-sign-compare"
+    ],
+    "libc/upstream-netbsd/lib/libc/regex/regcomp.c": [
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter",
+      "-DPOSIX_MISTAKE",
+      "-include",
+      "netbsd-compat.h"
+    ],
+    "libc/upstream-netbsd/lib/libc/regex/regexec.c": [
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter",
+      "-DPOSIX_MISTAKE",
+      "-include",
+      "netbsd-compat.h"
+    ],
+    "libc/upstream-netbsd/lib/libc/regex/regfree.c": [
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter",
+      "-DPOSIX_MISTAKE",
+      "-include",
+      "netbsd-compat.h"
+    ],
+    "libc/upstream-netbsd/lib/libc/regex/regerror.c": [
+      "-Wno-sign-compare",
+      "-Wno-unused-parameter",
+      "-DPOSIX_MISTAKE",
+      "-include",
+      "netbsd-compat.h"
     ]
   },
   "sources": [
@@ -1102,7 +1130,11 @@
     "libc/upstream-netbsd/lib/libc/inet/nsap_addr.c",
     "libc/upstream-openbsd/lib/libc/crypt/arc4random_uniform.c",
     "libc/bionic/time.cpp",
-    "libc/upstream-openbsd/lib/libc/gen/fnmatch.c"
+    "libc/upstream-openbsd/lib/libc/gen/fnmatch.c",
+    "libc/upstream-netbsd/lib/libc/regex/regcomp.c",
+    "libc/upstream-netbsd/lib/libc/regex/regexec.c",
+    "libc/upstream-netbsd/lib/libc/regex/regfree.c",
+    "libc/upstream-netbsd/lib/libc/regex/regerror.c"
   ],
   "generated_sources": [
     "generated/syscalls-arm64.S"
@@ -1240,6 +1272,10 @@
     "libc/upstream-openbsd/lib/libc/crypt/arc4random_uniform.c": "e11f507266269de440b875e68f978f11efc3ed365b5745c2c5cbc4957e78be08",
     "libc/bionic/eventfd.cpp": "bdcc58056c8346a36b9ba4d5f1ea1088f5b3c8750512aaea9055a8278817d1c2",
     "libc/bionic/time.cpp": "dfb25e531df382799d60cf620250c59b227cb9ee34e1319a86459d0ea30ed3e7",
-    "libc/upstream-openbsd/lib/libc/gen/fnmatch.c": "2d1a9dba8b52dccbb44b5f962f868654eed1e49f1aa0b8ded0dd349366e99e4f"
+    "libc/upstream-openbsd/lib/libc/gen/fnmatch.c": "2d1a9dba8b52dccbb44b5f962f868654eed1e49f1aa0b8ded0dd349366e99e4f",
+    "libc/upstream-netbsd/lib/libc/regex/regcomp.c": "7bd3c980447043b8d9c897118375368c70babe6bda9f64b25787c25fd13799ee",
+    "libc/upstream-netbsd/lib/libc/regex/regexec.c": "8160d06bb401d8bcfa510954d06c5cd9c13bc765dafd13590c66e401922473e6",
+    "libc/upstream-netbsd/lib/libc/regex/regfree.c": "251771e0b34a2ee0260ee1314b0bd5f5a4595d35c3c1e2b254668a548e0ba697",
+    "libc/upstream-netbsd/lib/libc/regex/regerror.c": "912d0f77e99952690a28974569e976b9bf6f824875c3e6d4bc584f087804e989"
   }
 }

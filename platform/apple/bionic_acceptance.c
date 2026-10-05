@@ -64,6 +64,7 @@ static int64_t vm_cases, timeout_cases;
 static int64_t proc_cases;
 static int64_t art_libc_cases;
 static int32_t binder_libc_cases, binder_libc_path_control, binder_libc_clock_control;
+static int32_t binder_regex_cases, binder_regex_newline_control, binder_regex_capture_control;
 static int64_t vfork_cases;
 static int64_t libcore_frontend_cases;
 static int64_t unlink_cases;
@@ -538,6 +539,17 @@ static void *run(void *context) {
                 binder_libc_path_control, binder_libc_clock_control);
         fail("Binder libc dependency acceptance");
     }
+    const void *binder_regex = entry(&images[1], "artbox_binder_regex_check");
+    binder_regex_cases = (int32_t)artbox_call7(binder_regex, 0, 0, 0, 0, 0, 0, 0);
+    binder_regex_newline_control = (int32_t)artbox_call7(binder_regex, 1, 0, 0, 0, 0, 0, 0);
+    binder_regex_capture_control = (int32_t)artbox_call7(binder_regex, 2, 0, 0, 0, 0, 0, 0);
+    if (binder_regex_cases != ARTBOX_BINDER_REGEX_CASES ||
+        binder_regex_newline_control != ARTBOX_BINDER_REGEX_NEWLINE_CONTROL ||
+        binder_regex_capture_control != ARTBOX_BINDER_REGEX_CAPTURE_CONTROL) {
+        fprintf(stderr, "Binder regex caller: %d, controls %d/%d\n", binder_regex_cases,
+                binder_regex_newline_control, binder_regex_capture_control);
+        fail("Binder regex dependency acceptance");
+    }
     vfork_cases = (int32_t)artbox_call7(entry(&images[1], "artbox_vfork_check"), 0, 0, 0, 0, 0, 0, 0);
     if (vfork_cases != 28) {
         fprintf(stderr, "vfork capture caller: %" PRId64 "\n", vfork_cases);
@@ -837,13 +849,15 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
            "\"signal_mask_cases\":%d,\"signal_mask_mutation\":%d,\"signal_mask_threads\":%" PRIu64 ","
            "\"futex_requeue_cases\":%" PRId64 ",\"cwd_cases\":%" PRId64 ",\"signal_realtime_cases\":%d,\"signal_interrupt_cases\":%d,\"signal_interrupt_mutation\":%d,\"signal_interrupt_threads\":%" PRIu64 ","
            "\"signal_fault_cases\":%d,\"signal_fault_edit_mutation\":%d,\"signal_fault_address_mutation\":%d,"
-           "\"binder_libc_cases\":%d,\"binder_libc_path_control\":%d,\"binder_libc_clock_control\":%d,\"unsupported_syscalls\":{",
+           "\"binder_libc_cases\":%d,\"binder_libc_path_control\":%d,\"binder_libc_clock_control\":%d,"
+           "\"binder_regex_cases\":%d,\"binder_regex_newline_control\":%d,\"binder_regex_capture_control\":%d,\"unsupported_syscalls\":{",
            constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases, unlink_cases, signal_wait_cases,signal_handler_cases,signal_handler_mutation,
            signal_stack_cases,signal_stack_handler_cases,signal_stack_mutation,signal_stack_threads,
            signal_mask_cases,signal_mask_mutation,signal_mask_threads,
            futex_requeue_cases,cwd_cases,signal_realtime_cases,signal_interrupt_cases,signal_interrupt_mutation,signal_interrupt_threads,
            signal_fault_cases,signal_fault_edit_mutation,signal_fault_address_mutation,
-           binder_libc_cases,binder_libc_path_control,binder_libc_clock_control);
+           binder_libc_cases,binder_libc_path_control,binder_libc_clock_control,
+           binder_regex_cases,binder_regex_newline_control,binder_regex_capture_control);
     if (length < 0 || (size_t)length >= sizeof(report)) fail("result formatting");
     size_t used_bytes = (size_t)length;
     unsigned printed = 0;

@@ -3437,3 +3437,34 @@ No device-side compiler, executable-memory transition or new entitlement is
 introduced. The costs are a host JDK/generator step and additional signed code;
 final linked size and runtime overhead remain unmeasured. Successful archive
 compilation establishes neither service execution nor full XML schema validation.
+
+## 0124: Exercise original Bionic regex before attaching real VINTF
+
+The Android VINTF path calls Bionic's POSIX regex API. Add the four unchanged
+NetBSD-derived implementations from the already pinned Android 15 Bionic tree,
+using its original libc_netbsd compile flags and compatibility headers. Keep
+the production libc and Linux reference source hashes pinned together. The
+reference uses the NDK's ordinary Linux syscall/TLS runtime; it is never an
+Apple bundle input. No host regex replacement or source-level regex adaptation
+is introduced.
+
+Write the Android LP64 caller before selecting these units. Its first link
+against the preceding signed-runtime ELF fails on all four public regex
+functions, demonstrating the missing dependency. Compile that same caller once
+with NDK headers and use the identical object in the native Linux ARM64 oracle
+and both signed Bionic profiles. Preserve the existing 50 libc checks and M2's
+fixed denominator; report 120 new regex expectations separately. Cover BRE/ERE,
+backreferences, POSIX character classes, leftmost-longest matching, captures,
+newline/anchor flags, bounded embedded-NUL input, compile errors, truncated
+error strings, ABI canaries and repeated allocation/free. Deliberately remove
+REG_NEWLINE and truncate the capture count; each must fail at its exact check.
+The native Linux comparison verifies both caller hashes, the complete reference
+source archive and executable identity before running it. Both signed profiles
+must pass before staging their device frameworks or linking ART.
+
+Regex compilation produces ordinary heap data, not executable instructions.
+This adds signed native code and guest allocations without a runtime compiler,
+executable-memory transition or entitlement. Full linked size and execution
+cost are still to be measured. C-locale regex behavior is the current contract;
+broader locale behavior, libc++ regex helpers and actual VINTF/service execution
+require separate evidence. Successful object compilation is not that evidence.

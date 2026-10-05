@@ -3,6 +3,17 @@
   "files": {
     "libc/bionic/time.cpp": "dfb25e531df382799d60cf620250c59b227cb9ee34e1319a86459d0ea30ed3e7",
     "libc/upstream-openbsd/lib/libc/gen/fnmatch.c": "2d1a9dba8b52dccbb44b5f962f868654eed1e49f1aa0b8ded0dd349366e99e4f",
-    "libc/NOTICE": "75b5d593f1f741cd94dc88d18ba39d7c33d6b716e6985d7cabe308539f46b264"
+    "libc/NOTICE": "75b5d593f1f741cd94dc88d18ba39d7c33d6b716e6985d7cabe308539f46b264",
+    "libc/upstream-netbsd/lib/libc/regex/regcomp.c": "7bd3c980447043b8d9c897118375368c70babe6bda9f64b25787c25fd13799ee",
+    "libc/upstream-netbsd/lib/libc/regex/regexec.c": "8160d06bb401d8bcfa510954d06c5cd9c13bc765dafd13590c66e401922473e6",
+    "libc/upstream-netbsd/lib/libc/regex/regfree.c": "251771e0b34a2ee0260ee1314b0bd5f5a4595d35c3c1e2b254668a548e0ba697",
+    "libc/upstream-netbsd/lib/libc/regex/regerror.c": "912d0f77e99952690a28974569e976b9bf6f824875c3e6d4bc584f087804e989",
+    "libc/upstream-netbsd/lib/libc/regex/engine.c": "c6241e6e45d2735e56e6c7a3a4684a5ea7cbb1a289d1d6e30b0933c3f4a7b7df",
+    "libc/upstream-netbsd/lib/libc/regex/utils.h": "dcb75edd2a28819f37252225fd7cc3fcd2adcf195d64a7af714bede52a95e586",
+    "libc/upstream-netbsd/lib/libc/regex/regex2.h": "9209e6b45bed50e2923e66ce85fee75e488f02e761a7cee452f86b9d261f052d",
+    "libc/upstream-netbsd/lib/libc/regex/cname.h": "51a618a5e68bb1c5fb0c736ccf5733423f9b04ed25026150119a881efd1fd58a",
+    "libc/upstream-netbsd/android/include/netbsd-compat.h": "51e465fbc947ca36fb4a34f091fac3c4a8a4ec6c660b6def036e7920594b0400",
+    "libc/upstream-netbsd/android/include/namespace.h": "a4df4815ab597fe63d127f21e6b9216d97b6051ebf686b51d63a00343d5f7b55",
+    "libc/Android.bp": "78a169fa5535205a29f5b0e8ea33496cc53394a61af7de7d2a51cf4e4bc699de"
   }
 }

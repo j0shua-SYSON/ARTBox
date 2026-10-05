@@ -115,6 +115,17 @@ pinned NDK's static libc and retains both NDK distribution and toolchain notices
 That Linux executable is test-only and is not an iOS bundle input. The shared
 caller, negative controls and build scripts are original MIT code.
 
+The same selection now includes unchanged NetBSD-derived `regcomp.c`,
+`regexec.c`, `regfree.c` and `regerror.c`, together with their original
+`engine.c`, `utils.h`, `regex2.h` and `cname.h` includes. These retain the
+BSD-3-Clause notices for Henry Spencer, the University of California and the
+other named contributors. The original Android `netbsd-compat.h`, `namespace.h`
+and `Android.bp` retain Apache-2.0 notices. All eleven added files are hashed in
+the same pin and included in the Linux reference source archive. The signed
+runtime retains the complete Bionic NOTICE. Original Soong NetBSD flags select
+the implementation without editing its sources; the new shared regex caller
+and its two deliberate failure controls are original MIT code.
+
 The signed Looper diagnostic also selects Bionic's unchanged
 `libc/bionic/eventfd.cpp` from the existing `android-15.0.0_r1` source pin. It
 retains its AOSP BSD notice under the complete Bionic NOTICE already included

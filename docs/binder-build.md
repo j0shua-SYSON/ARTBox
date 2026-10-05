@@ -178,5 +178,18 @@ These are compile and code-generation checks. They do not demonstrate parser
 execution, complete XSD validation, VINTF access to a device, SELinux behavior,
 or signed servicemanager registration. A private full-service link currently
 exposes eight unresolved symbols: two Access methods, three libc++ regex helpers,
-Bionic regcomp/regfree and security_policyvers. The remaining implementations
-and real Binder/service execution still require their own acceptance tests.
+Bionic regcomp/regfree and security_policyvers. Adding the four original Bionic
+regex units and one original libc++ regex member in the private probe leaves
+three policy imports. That probe establishes neither signed execution nor a
+complete access-policy implementation.
+
+The public Bionic selection now includes the original regex units. Its shared
+NDK caller has 120 checks for the LP64 ABI, BRE/ERE, matching/captures, flags,
+bounded embedded-NUL input, errors and allocation/free. Removing newline
+semantics or truncating the capture count must fail at the specified checks.
+`test_bionic_startup.py` links that exact caller into both signed profiles and
+builds a static Linux ARM64 reference from the same original Bionic sources.
+`test_binder_libc.py` verifies its source/object identity and compares native
+execution with both signed reports. The existing 50 libc checks and their two
+controls remain separate. Regex runtime acceptance is pending CI; actual VINTF
+and Binder/service execution still require their own acceptance tests.

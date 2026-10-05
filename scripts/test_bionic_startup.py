@@ -110,6 +110,7 @@ def main():
     vfork_native_object = build / "vfork-rejection.o"
     libcore_common, libcore_accounts = build / "libcore-common.o", build / "libcore-accounts.o"
     binder_libc_object = build / "binder-libc-check.o"
+    binder_regex_object = build / "binder-regex-check.o"
     vfork_object = inputs / "vfork/native-test.o"
     if report["vfork"]["cases"] != 28 or digest(vfork_object) != report["vfork"]["native"]["object_sha256"]:
         raise RuntimeError("Vfork caller differs from the verified production-object oracle")
@@ -127,11 +128,13 @@ def main():
                                 ("fixtures/kernel-signals/interrupt.c", interrupt_object),
                                 ("fixtures/bionic-vfork/native.c", vfork_native_object),
                                 ("fixtures/bionic-libcore/common.c", libcore_common), ("fixtures/bionic-libcore/accounts.c", libcore_accounts),
-                                ("fixtures/binder-libc/check.c", binder_libc_object)):
+                                ("fixtures/binder-libc/check.c", binder_libc_object),
+                                ("fixtures/binder-libc/regex.c", binder_regex_object)):
         command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
                 "-mbranch-protection=none", "-mno-outline-atomics", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
                 "-I", ROOT / "platform/include", "-c", ROOT / source_name, "-o", target)
-    binder_libc = prepare_binder_libc_reference(build / 'binder-libc-reference', source, tools, ndk, binder_libc_object)
+    binder_libc = prepare_binder_libc_reference(build / 'binder-libc-reference', source, tools, ndk,
+                                               binder_libc_object, binder_regex_object)
     for source_name, target in (("versions.c", version_object), ("version_client.c", version_client_object)):
         command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
                 "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
@@ -194,7 +197,7 @@ def main():
             version_client_object, tls_access, tls_abi, vm_object, timeout_object, proc_object, art_libc_object, comparison,
             vfork_object, vfork_native_object,
             libcore_common, libcore_accounts, unlink_object, signal_object, handler_object, stack_object, stack_handler_object, mask_handler_object, fault_object,
-            realtime_object, interrupt_object, cwd_object, requeue_object, binder_libc_object,
+            realtime_object, interrupt_object, cwd_object, requeue_object, binder_libc_object, binder_regex_object,
             "--no-as-needed", libc, versions, tls_library, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator through a manifest load group; not full M2",
               "project_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
@@ -292,7 +295,7 @@ def main():
             process.check_returncode()
             result[key] = json.loads(process.stdout)
             if any(result[key].get(name) != expected for name, expected in BINDER_LIBC_EXPECTED.items()):
-                raise RuntimeError('Binder libc caller or its two negative controls did not complete')
+                raise RuntimeError('Binder libc/regex callers or their four negative controls did not complete')
             if result[key]["cases"] != 146 or result[key]["futex_cases"] != 19:
                 raise RuntimeError("NDK allocator client did not complete")
             if result[key]['futex_requeue_cases'] != 18:

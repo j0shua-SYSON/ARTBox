@@ -399,6 +399,7 @@ jobs:
             build/m2/bionic-startup/libcore-common.o
             build/m2/bionic-startup/libcore-accounts.o
             build/m2/bionic-startup/binder-libc-check.o
+            build/m2/bionic-startup/binder-regex-check.o
             build/m2/bionic-startup/binder-libc-reference/
             build/m2/dynamic-wrapper/libartbox_bionic_slice.so
             build/m2/dynamic-wrapper/vm-check.o

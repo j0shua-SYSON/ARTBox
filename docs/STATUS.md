@@ -352,8 +352,26 @@ units. All 33 objects in four archives pass locally, with 130,989 audited
 instructions and none forbidden; compilation takes 86.086 seconds. The private
 full-servicemanager link is
 down to eight unresolved symbols: Access construction/context formatting, three
-libc++ regex helpers, regcomp/regfree and security_policyvers. CI reproduction,
-remaining runtime implementations and real signed service execution remain ahead.
+libc++ regex helpers, regcomp/regfree and security_policyvers. At `cce2bb9`, all
+22 host jobs and iOS CI pass. All three XSdc artifacts independently reproduce
+the four canonical outputs and both rejection controls. The downloaded VINTF
+artifact verifies 33 objects, four archives and 130,989 instructions, with a
+15.460-second Mac compilation. The integrated IPA retains 16 iOS 15 images,
+15 ELF/layout pairs, five resources, 175 notices and empty entitlements. Its
+signed Mac VM starts in 122.485 ms with 67,616,768 bytes peak RSS; managed,
+console, signal-chain and worker-cleanup controls pass. These are correctness
+measurements, not physical-device results.
+
+The next change selects the four original Bionic regex implementations using
+their original NetBSD build flags. The new Android LP64 fixture compiled and
+failed its first link against the preceding runtime on all four missing regex
+functions. Its 120 expectations and two exact failure controls are now wired
+into the native Linux reference and both signed Bionic profiles, alongside the
+existing 50 libc expectations. The reference executable builds locally; runtime
+execution and CI are pending. The separate private full-service probe, including
+one original libc++ regex object, is down to three policy-related imports. It is
+not service execution. Real access policy, signed service registration and
+cross-thread Binder ping/death acceptance remain ahead.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

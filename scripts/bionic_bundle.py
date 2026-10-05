@@ -9,6 +9,7 @@ from environment import ROOT
 sys.path.insert(0, str(ROOT / 'tools'))
 from wrap_dynamic import pack_layout, verify_macho
 from m2_acceptance import evaluate
+from binder_libc import SIGNED_EXPECTED as BINDER_LIBC_EXPECTED
 
 IMAGES = [('libc', 'libc.so', 'ARTBoxBionic'), ('client', 'libstartup_client.so', 'ARTBoxStartupClient'),
           ('versions', 'libartbox_versions.so', 'ARTBoxVersions'), ('tls', 'libartbox_tls.so', 'ARTBoxTLS')]
@@ -31,7 +32,7 @@ def prepare(evidence, output, revision):
     expected.update(signal_realtime_cases=26, signal_interrupt_cases=4, signal_interrupt_mutation=-1008, signal_interrupt_threads=1)
     expected.update(cwd_cases=22)
     expected.update(futex_requeue_cases=18)
-    expected.update(binder_libc_cases=50, binder_libc_path_control=-108, binder_libc_clock_control=-211)
+    expected.update(BINDER_LIBC_EXPECTED)
     for mode in ('native', 'sampled_native'):
         if any(report[mode].get(k) != v for k, v in expected.items()):
             raise RuntimeError('M2 source artifact did not pass the required native suites')

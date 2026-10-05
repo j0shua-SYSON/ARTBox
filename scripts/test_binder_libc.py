@@ -29,18 +29,23 @@ def main():
     metadata = report['binder_libc']
     if (report['project_commit'] != head or metadata['expected'] != EXPECTED or
             metadata['source_sha256'] != digest(ROOT / 'fixtures/binder-libc/check.c') or
+            metadata['regex_source_sha256'] != digest(ROOT / 'fixtures/binder-libc/regex.c') or
             any(report[mode].get(k) != value for mode in ('native', 'sampled_native')
                 for k, value in SIGNED_EXPECTED.items())):
-        raise RuntimeError('Both signed Bionic modes must pass this revision and its two controls')
+        raise RuntimeError('Both signed Bionic modes must pass this revision and all four controls')
     inputs = evidence / 'build/m2/bionic-startup'
     caller = inputs / 'binder-libc-check.o'
+    regex_caller = inputs / 'binder-regex-check.o'
     reference = inputs / 'binder-libc-reference'
     manifest = reference / 'build.json'
-    if digest(caller) != metadata['object_sha256'] or digest(manifest) != metadata['reference_manifest_sha256']:
+    if (digest(caller) != metadata['object_sha256'] or
+            digest(regex_caller) != metadata['regex_object_sha256'] or
+            digest(manifest) != metadata['reference_manifest_sha256']):
         raise RuntimeError('Binder libc caller or reference metadata differs from the producer')
     build = json.loads(manifest.read_text(encoding='utf-8'))
     pin = json.loads((ROOT / 'third_party/bionic/binder-libc.json').read_text(encoding='utf-8'))
-    if build['pin'] != pin or build['expected'] != EXPECTED or build['caller_sha256'] != digest(caller):
+    if (build['pin'] != pin or build['expected'] != EXPECTED or build['caller_sha256'] != digest(caller) or
+            build['regex_caller_sha256'] != digest(regex_caller)):
         raise RuntimeError('Binder libc native reference pin or caller differs')
     for name, expected in build['objects'].items():
         if Path(name).name != name or digest(reference / name) != expected:
@@ -75,12 +80,13 @@ def main():
         raise RuntimeError('Original Linux/Bionic reference differs from signed Bionic')
     result = dict(project_commit=head, native_linux=observed, signed_bionic_modes=['native', 'sampled_native'],
                   elapsed_process_ns=elapsed, producer_sha256=digest(producer), caller_sha256=digest(caller),
+                  regex_caller_sha256=digest(regex_caller),
                   executable_sha256=digest(binary), source_bundle_sha256=digest(bundle), pin=pin,
-                  scope='36 C-locale pattern cases, 14 realtime/monotonic/error checks, two deliberate controls',
+                  scope='36 C-locale patterns, 14 time/error checks, 120 regex checks, four deliberate controls',
                   physical_execution_verified=False)
     artifacts = Path(os.environ['ARTBOX_ARTIFACTS_DIR']); artifacts.mkdir(parents=True, exist_ok=True)
     (artifacts / 'm4-binder-libc-linux.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
-    print('Original Linux/Bionic and both signed Bionic profiles pass 50 libc cases and both controls')
+    print('Original Linux/Bionic and both signed profiles pass 50 libc and 120 regex checks plus four controls')
 
 
 if __name__ == '__main__': main()
