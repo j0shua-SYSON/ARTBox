@@ -73,8 +73,12 @@ code. All 23 host jobs and iOS CI pass. Independent artifact checks verify the s
 notices and both framework layouts. Signed Mac parser calls take 0.153 ms in
 this diagnostic; the iOS framework has not been exercised on a phone. Real
 service registration, trusted caller policy and manager/client isolation remain
-required for M4. Fixed guest UID/GID queries and clone inheritance now pass
-locally; their native Linux comparison and full regression CI are next.
+required for M4. At `5fead21`, fixed guest UID/GID queries, clone inheritance
+and native Linux comparisons pass across all 23 host jobs and iOS. The ART IPA
+independently verifies and preserves the managed/runtime acceptance.
+An immutable default-deny service policy also passes local tests for explicit
+role/name grants, invalid input, copied configuration and concurrent queries.
+It is not yet connected to real servicemanager execution.
 
 M4: the [Binder wire boundary](binder.md) recognizes the Android 15 ARM64
 commands and validates transaction/object snapshots. Local checks pass 40 host

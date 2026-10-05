@@ -3641,3 +3641,31 @@ use the same identity when configuring Binder and signals. Bionic's cached PID
 and libbinder's process globals still need separate manager/client bootstrap
 state before this can establish real service isolation; four syscall results
 alone do not provide that isolation or a sandbox for hostile native code.
+At `5fead21`, all 23 host jobs and iOS pass, including the Linux comparisons
+and existing signed Bionic/ART regressions. The integrated ART IPA verifies
+independently with empty entitlements.
+
+## ADR 0131: Explicit service grants replace no SELinux behavior implicitly
+
+The Android Access implementation depends on SELinux, while its host branch
+allows every request. Neither represents the intended ARTBox service boundary.
+Use an original portable policy with explicit calling PID/UID, operation and
+service-name grants. Empty configuration denies everything, including root;
+there are no wildcards or implicit system privileges. List permission requires
+a separate explicit grant. Keep Android's existing app-UID registration check
+in the real ServiceManager implementation.
+
+Copy at most 1024 rules and their names during construction, then permit only
+immutable queries. Duplicate or malformed configuration fails construction.
+Names use the original service contract's bounded ASCII alphabet. Separate
+real/effective guest credentials stay owned by the runtime; the eventual Access
+adapter must consume original IPCThreadState calling identity, populated by
+Binder endpoint metadata, rather than identity bytes in the Parcel payload.
+This is an application service policy, not SELinux compatibility or a native
+code memory sandbox. Process-state separation remains independently necessary.
+
+The portable contract covers explicit grants, unknown identities/services,
+root denial, operation confusion, case/prefix mismatches, embedded NUL and
+invalid names, configuration ownership, size limits and concurrent queries.
+Local tests pass. Connecting the policy to real servicemanager, signed guest
+execution and the complete M4 service acceptance remain separate pending work.

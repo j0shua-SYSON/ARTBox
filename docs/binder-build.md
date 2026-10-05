@@ -232,3 +232,15 @@ This focused check does not establish general VINTF device/kernel metadata
 support or execute servicemanager; policy and process-isolation work stays open.
 The iOS framework layout and signature are verified, but this parser fixture
 has not executed on a physical iPhone.
+
+### Service access policy
+
+The portable `artbox_service_policy` stores up to 1024 immutable, copied grants
+for exact calling PID/UID, operation and service name. Unconfigured identities,
+root without a grant, unknown names and unknown or combined query operations
+are denied. List permission is explicit and separate from find/add. Names and
+credentials cannot change by modifying the original configuration storage.
+The Windows contract passes malformed/duplicate configuration, name boundaries,
+identity substitution and concurrent query checks. Cross-platform CI and the
+Access adapter's signed execution remain pending; this is not yet a running
+service or an implementation of SELinux.
