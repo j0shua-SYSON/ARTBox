@@ -19,6 +19,13 @@ header for a compile-time comparison and data fixture; its existing bundled
 license terms continue to apply. No additional runtime library is imported.
 See [the Binder contract](docs/binder.md).
 
+The eventfd oracle and shared counter fixture are original MIT userspace code.
+Linux v6.17 [`fs/eventfd.c`](https://github.com/torvalds/linux/blob/v6.17/fs/eventfd.c)
+(GPL-2.0-only) was reviewed for transfer ordering and lifetime semantics only;
+no implementation is copied, vendored, linked or included in an Apple bundle.
+Native tests call the CI host's existing Linux syscalls and use its system UAPI
+headers. The Android ARM64 compile check uses the already reviewed NDK headers.
+
 The native Linux reference fixture additionally uses Ubuntu's unmodified
 `linux-modules-extra-6.17.0-1022-azure`, version `6.17.0-1022.22`, matching CI's
 running kernel. `third_party/binder/kernel-reference.json` records the official

@@ -437,7 +437,8 @@ The same 31-case native Binder readiness fixture now runs locally through these
 syscalls, with extra mapped fd reuse, lifetime, copy-fault, owner/admission,
 deadline and concurrent-wait controls. The native reference already proves
 mapped-interest lifetime and persistent epoll death wakeup. The new production
-comparison awaits CI; ARTBox interruption still injects a delivered epoch.
+comparison passes at `08aaf4e`, with downloaded artifact provenance and 104
+input hashes verified; ARTBox interruption still injects a delivered epoch.
 The signed native dispatcher now passes all six arguments, so an unsupported
 mask is never silently discarded. Its default policy permits 1,024 interests
 per epoll and 128 concurrent waits; the portable API accepts configurable bounds.
@@ -448,3 +449,14 @@ waiting. Interests do not retain target Binder endpoints. A receive mapping may
 keep an old token alive after its fd number is reused, until final unmap. The
 new implementation does not add guest eventfd/timerfd or general I/O readiness.
 Epoll read/write return EINVAL; metadata and seek remain explicitly unsupported.
+
+## M4: eventfd reference before implementation
+
+`eventfd2` (AArch64 19) is not yet enabled in the guest. A new shared fixture
+tests the counter, semaphore flag, readiness, unsigned argument truncation,
+transfer sizes, saturation, fault ordering and no-op seek against native Linux.
+Additional native controls test blocking read/write/epoll, non-restarting signal
+interruption, close/reuse during those waits and persistent-interest lifetime.
+Actual syscall observation precedes each wake/interrupt, rather than assuming
+that a started thread has blocked. The fixture compiles strictly for Android
+ARM64; native execution awaits CI. No guest comparison is claimed yet.

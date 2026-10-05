@@ -194,9 +194,19 @@ as do mapped fd reuse, fair scanning, full/partial output faults, independent
 waiters, close/reuse during a wait, injected interruption, deadlines during
 repeated hints and resource/owner controls. All 41 available Windows contracts
 pass; three native-backing cases remain skipped. Strict Android ARM64 compilation
-passes. Native comparison, signed Mac regression and IPA packaging for this
-guest epoll implementation await CI. Guest eventfd/timerfd, real servicemanager
-execution and signed Binder attachment remain required for M4.
+passes. At `08aaf4e`, all 20 host jobs and the iOS build pass; downloaded
+native comparison verifies all 104 inputs and the production epoll comparison.
+Signed Mac ART, Binder archives and the integrated IPA verify independently:
+16 iOS 15 images, 15 ELF/layout pairs, five runtime resources and 175 notices,
+with empty entitlements. Guest eventfd/timerfd, real servicemanager execution
+and signed Binder attachment remain required for M4.
+
+An original shared eventfd fixture now covers counter/semaphore transfers,
+readiness, saturation, sizes, copy faults and seek. Native controls add nine
+observed blocking read/write/epoll cases for wakeup, real signal interruption
+and descriptor close/reuse, plus persistent epoll interest lifetime. Both
+units compile strictly for Android ARM64; Linux execution awaits CI. Guest
+eventfd dispatch is not implemented yet.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

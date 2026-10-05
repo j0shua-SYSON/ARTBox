@@ -275,6 +275,7 @@ jobs:
             artifacts/m4-binder-mapping.log
             build/m4/binder-wire/
             build/host/test_binder_wire
+            build/host/test_eventfd_reference
             build/host/Release/test_binder_wire.exe
             artifacts/m3-low-address.json
             build/m3/low-address/
@@ -619,6 +620,7 @@ jobs:
             build/m3/art-sigchain-reference/
             build/host/signal-context/
             build/host/test_signal_context_linux
+            build/host/test_eventfd_reference
             build/host/signal-faults/
             build/host/test_signal_faults
             build/host/Testing/Temporary/LastTest.log

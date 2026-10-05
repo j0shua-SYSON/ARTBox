@@ -3032,3 +3032,27 @@ The native wake implementation remains the only platform-specific piece. No
 executable allocation, JIT or entitlement is introduced. Eventfd/timerfd and
 real servicemanager integration are still required; this is not full epoll
 compatibility or M4 acceptance.
+
+## 0111: Establish eventfd counter and wait behavior before Looper integration
+
+Pinned AOSP Looper creates a nonblocking eventfd, registers it with epoll and
+uses eight-byte writes/reads to wake its loop. Implement that ABI as a portable
+counter, separate from the platform's private wake object. First run an original
+shared fixture against native Linux on x86_64 and ARM64. Cover unsigned argument
+truncation, ordinary and semaphore reads, saturation, readiness, transfer sizes,
+copy faults and descriptor errors. The fixture uses operation callbacks so the
+same expectations can later exercise guest syscalls without exposing host FDs.
+
+Kernel source review identifies two easily missed rules to verify experimentally:
+eventfd writes require exactly eight bytes, and a read consumes its counter before
+copying to an inaccessible destination. Do not make that fault transactional.
+Native controls also cross a protected-page boundary for both reads and writes.
+No Linux kernel implementation is copied; see THIRD_PARTY.md for the reference.
+
+Observe the exact read, write or epoll_pwait syscall in the worker's native
+`/proc/self/task/TID/syscall` before releasing or interrupting it. Verify all three
+waits with a real non-restarting signal and through descriptor close/reuse. A
+separate persistent-registration test retains a target through a duplicate,
+reuses its descriptor number, and confirms that final close removes the original
+interest. This is a test-only host oracle, not a guest proc dependency, guest dup
+implementation or proof that eventfd/Looper executes in the signed runtime.
