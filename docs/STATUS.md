@@ -75,11 +75,16 @@ Unsupported operations retain explicit errors. See the individual contracts.
 
 ## Current work
 
-M5: prepare a bounded, pinned ANGLE Metal profile for native Apple compilation
-and a shader/pixel-readback probe. Original Activity construction and framework
+M5: at `01e6e05`, pinned ANGLE builds as signed native Mac and iOS 15 frameworks.
+On CI's Apple Paravirtual Metal device, both shader translations, malformed
+shader rejection, 2,048 exact color-readback pixels and context/surface cleanup
+pass. The independently verified device framework is 7,760,016 bytes with no
+entitlements or writable executable segments. The cold probe takes 5,641.618 ms,
+including initialization; physical graphics and frame throughput are unmeasured.
+Original Activity construction and framework
 dependencies, ART/service lifecycle integration, composition and touch dispatch
-remain ahead. See [graphics bring-up](graphics.md). No M5 runtime success is
-claimed until the corresponding execution evidence is verified.
+remain ahead. See [graphics bring-up](graphics.md). This is a native graphics
+boundary, not completed Activity or APK acceptance.
 
 ## M4 bring-up record (historical checkpoints)
 

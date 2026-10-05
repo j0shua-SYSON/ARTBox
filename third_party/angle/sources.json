@@ -5522,6 +5522,18 @@
         "bytes": 2189,
         "sha256": "67cee2c3bf2c38cb57bd99dc058b874e5b85b69c07aa19ae59a7af6d2da926ad",
         "git_blob": "28a56ca9d3a81c25abb57c1ed9e35341d231eedf"
+      },
+      {
+        "path": "third_party/spirv-headers/LICENSE",
+        "bytes": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "git_blob": "d645695673349e3947e8e5ae42332d0ac3164cd7"
+      },
+      {
+        "path": "tools/flex-bison/third_party/skeletons/LICENSE",
+        "bytes": 35147,
+        "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+        "git_blob": "94a9ed024d3859793618152ea559a168bbcbb5e2"
       }
     ]
   },

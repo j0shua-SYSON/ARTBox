@@ -777,6 +777,17 @@ reference come from ANGLE DEPS' Chromium revision
 `972874fcbdf2c07ca1e9680e6f23ad950bd80868`, retaining Chromium's **BSD-3-Clause**
 LICENSE. Because the helper adapts zlib routines, its original **zlib license**
 is also retained. It links Apple's public system zlib; no separate zlib binary
-is embedded. All four license texts accompany the corresponding-source archive
-and both native frameworks. ARTBox's recipe, generated metadata and probes are
-MIT. This source build does not establish Activity or APK compatibility.
+is embedded. The two generated Bison parsers contain **GPL-3.0-or-later WITH
+Bison-exception-2.2** notices. Preserve both generated files verbatim, including
+their output exception, together with the complete GPL-3.0 text from the same
+ANGLE checkout. No Bison parser generator is built or embedded. The exception
+permits the larger shader compiler work to retain its other license terms;
+see [GNU's output conditions](https://www.gnu.org/s/bison/manual/html_node/Conditions.html).
+
+Khronos declaration headers retain their Apache-2.0 and MIT notices. Include the
+complete Apache-2.0 text from the checkout's SPIR-V headers license file (license
+text only; no SPIR-V backend), and the complete Khronos platform declaration
+header with its MIT terms. Nine notice inputs, including the original parser
+files, accompany the corresponding-source archive and both native frameworks.
+ARTBox's recipe, generated metadata and probes are MIT. This source build does
+not establish Activity or APK compatibility.

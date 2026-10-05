@@ -15,7 +15,9 @@ checkout, depot_tools, GN, Vulkan, SwiftShader or software CPU JIT is needed.
 
 The small Chromium compression helper uses the Chromium revision declared by
 that ANGLE DEPS file. Its original implementation calls public system zlib.
-ANGLE, xxHash, Chromium and zlib notices accompany the source and frameworks.
+ANGLE, xxHash, Chromium, zlib, Khronos and generated-parser notices accompany
+the source and frameworks. Both generated parser files retain their Bison
+output exception verbatim, alongside the complete GPL-3.0 text.
 The build is original ARTBox glue; upstream implementation files are unchanged.
 This focused recipe must be reviewed again when changing the upstream pin.
 
@@ -60,3 +62,18 @@ The next integration needs original AOSP Activity/Looper/MessageQueue support,
 a Metal-backed window with lifetime tests, UIKit-to-MotionEvent translation,
 and compatible ownership of ART and retained Binder services. Launcher polish
 remains deferred.
+
+At `01e6e05`, the native Apple job passes and its artifact independently verifies
+924 source inputs, ten project files, both signed framework images and the
+signed probe. The Mac runner exposes an Apple Paravirtual Metal device: both
+shader translations, malformed-shader rejection, all 2,048 pixel checks and
+surface/context teardown pass. The complete cold probe takes 5,641.618 ms;
+this includes initialization and is not frame throughput. The iOS 15 framework
+is 7,760,016 bytes and has no entitlements or writable executable segments.
+Physical graphics execution and the complete M5 Activity test remain pending.
+
+The first candidate stopped at a probe-only default-display type error. The
+second compiled all selected units but failed linking because an upstream
+implementation unit was grouped under `libangle_headers`. The source recipe
+now includes that group and rejects disagreement between its reviewed groups
+and compilation units. No upstream implementation changes were needed.

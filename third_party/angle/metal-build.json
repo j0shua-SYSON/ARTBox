@@ -1148,7 +1148,12 @@
   "notices": {
     "angle": [
       "LICENSE",
-      "src/common/third_party/xxhash/LICENSE"
+      "src/common/third_party/xxhash/LICENSE",
+      "tools/flex-bison/third_party/skeletons/LICENSE",
+      "third_party/spirv-headers/LICENSE",
+      "src/compiler/preprocessor/preprocessor_tab_autogen.cpp",
+      "src/compiler/translator/glslang_tab_autogen.cpp",
+      "include/KHR/khrplatform.h"
     ],
     "chromium-compression": [
       "LICENSE",
