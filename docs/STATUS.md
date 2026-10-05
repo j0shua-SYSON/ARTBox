@@ -180,8 +180,23 @@ Binder now exposes bounded wake subscriptions and keeps mapped, closed tokens
 observable until final unmap. Local tests cover 64-listener exhaustion, independent
 wake objects, unsubscribe during ongoing ioctls, stale subscription identities
 and passive unmap detection outside VM locks. All 41 Windows host contracts and
-strict Android ARM64 compilation pass; the new bridge awaits CI. It does not yet
-enable guest epoll, real servicemanager execution or signed Binder attachment.
+strict Android ARM64 compilation pass. At `a3129ca`, the downloaded native Linux
+comparison verifies these controls and 103 input hashes. Two diagnostic uploads
+initially failed with ENOTFOUND; rerunning the failed Mac job and dependents
+restored all 20 host jobs to green without changing checks. The iOS build passes.
+The downloaded signed ART runtime, Binder archives and integrated IPA also
+verify at that head, including all 16 iOS 15 images and empty entitlements.
+
+Guest `epoll_create1`, `epoll_ctl` and `epoll_pwait` now implement bounded,
+level-triggered Binder interests through the six-argument VFS entry. The shared
+31-case readiness fixture passes locally through actual guest syscall dispatch,
+as do mapped fd reuse, fair scanning, full/partial output faults, independent
+waiters, close/reuse during a wait, injected interruption, deadlines during
+repeated hints and resource/owner controls. All 41 available Windows contracts
+pass; three native-backing cases remain skipped. Strict Android ARM64 compilation
+passes. Native comparison, signed Mac regression and IPA packaging for this
+guest epoll implementation await CI. Guest eventfd/timerfd, real servicemanager
+execution and signed Binder attachment remain required for M4.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

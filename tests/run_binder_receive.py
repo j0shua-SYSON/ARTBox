@@ -24,7 +24,8 @@ def main():
         if json.loads(result.stdout) != dict(shared_mapping_cases=35, shared_poll_cases=31, native_alias_verified=True,
                                             ownership_controls=True, wait_contract_cases=4, interrupt_epoch_injected=True,
                                             passive_unmap_wakeup=True, mapped_poll_lifetime=True,
-                                            wake_observers=True, passed=True):
+                                            wake_observers=True, shared_epoll_cases=31, epoll_lifecycle=True,
+                                            epoll_interrupt_epoch_injected=True, passed=True):
             raise RuntimeError('Native receive ownership or alias coherence was not verified')
         if any(Path(root).iterdir()):
             raise RuntimeError('Receive backing was not unlinked before publication')

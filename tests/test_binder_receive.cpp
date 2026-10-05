@@ -284,6 +284,7 @@ static void mapped_owner_wakeup(Context &c, artbox_binder_device *device, size_t
     CHECK(read[1] == ARTBOX_BR_DEAD_BINDER && delivered_cookie == cookie);
     CHECK(close_device(&c, fd) == 0 && artbox_binder_device_waiter_count(device) == 0);
 }
+#include "binder_epoll_checks.h"
 int main(int argc, char **argv) {
     CHECK(argc == 1 || argc == 2);
     Provider provider;
@@ -320,6 +321,7 @@ int main(int argc, char **argv) {
     CHECK(artbox_binder_poll_check(&c, &ioctls, poll_device, poll_scratch) == 31);
     readiness_observers(c, device);
     mapped_readiness(c, device, page);
+    guest_epoll_checks(c, device, page);
     // Readiness admits threads into the same bounded pool as ioctl. Exhaustion
     // reports POLLERR without discarding another thread or its initial return.
     {
@@ -680,6 +682,6 @@ int main(int argc, char **argv) {
     CHECK(artbox_vm_destroy(vm) == 0);
     CHECK(artbox_binder_device_destroy(device) == 0 && provider.live == 0);
     if (provider.native) CHECK(artbox_native_files_close(provider.native) == 0);
-    std::printf("{\"shared_mapping_cases\":35,\"shared_poll_cases\":31,\"native_alias_verified\":%s,\"ownership_controls\":true,\"wait_contract_cases\":4,\"interrupt_epoch_injected\":true,\"passive_unmap_wakeup\":true,\"mapped_poll_lifetime\":true,\"wake_observers\":true,\"passed\":true}\n",
+    std::printf("{\"shared_mapping_cases\":35,\"shared_poll_cases\":31,\"native_alias_verified\":%s,\"ownership_controls\":true,\"wait_contract_cases\":4,\"interrupt_epoch_injected\":true,\"passive_unmap_wakeup\":true,\"mapped_poll_lifetime\":true,\"wake_observers\":true,\"shared_epoll_cases\":31,\"epoll_lifecycle\":true,\"epoll_interrupt_epoch_injected\":true,\"passed\":true}\n",
         argc == 2 ? "true" : "false");
 }

@@ -268,7 +268,8 @@ def compare_driver(build, reference):
                               ownership_controls=True, wait_contract_cases=reference['wait_cases'],
                               interrupt_epoch_injected=True, passive_unmap_wakeup=True,
                               mapped_poll_lifetime=reference['epoll_mapped_target_lifetime'],
-                              wake_observers=True, passed=True):
+                              wake_observers=True, shared_epoll_cases=reference['epoll_snapshot_cases'],
+                              epoll_lifecycle=True, epoll_interrupt_epoch_injected=True, passed=True):
         raise RuntimeError('Binder receive mapping did not pass the exact native lifetime fixture')
     transaction_result = json.loads(transaction_run.stdout)
     if transaction_result != dict(same_pid_rejected=reference['same_pid_rejected'],
@@ -283,7 +284,7 @@ def compare_driver(build, reference):
             'vfs': vfs_result, 'vfs_runner_sha256': digest(vfs_runner),
             'receive': receive_result, 'receive_runner_sha256': digest(receive_runner),
             'transactions': transaction_result, 'transaction_runner_sha256': digest(transaction_runner),
-            'scope': 'Paired ioctl, descriptor, mapping, synchronous parcels, strong-object, one-way, death and wait contracts; injected ARTBox signal epoch and readiness snapshots; no persistent poll/epoll wait registration'}
+            'scope': 'Paired ioctl, descriptor, mapping, parcels, object, one-way, death, wait and level-triggered Binder epoll readiness/lifetime contracts; ARTBox signal epochs injected; no eventfd/timerfd, edge/oneshot/nested epoll or signal-mask substitution'}
 
 
 def main():
@@ -324,6 +325,7 @@ def main():
             record['oneway_driver_compared'] = True
             record['wait_driver_compared'] = True
             record['poll_driver_compared'] = True
+            record['epoll_driver_compared'] = True
     record['project_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     sources = [
         ROOT / 'fixtures/binder-device/check.c', ROOT / 'fixtures/binder-device/check.h',
@@ -333,6 +335,7 @@ def main():
         ROOT / 'fixtures/binder-transaction/check.c', ROOT / 'fixtures/binder-transaction/check.h',
         ROOT / 'core/src/binder_wire.c',
         ROOT / 'tests/native_binder_device.c', ROOT / 'tests/native_binder_wait.c', ROOT / 'tests/native_binder_epoll.c',
+        ROOT / 'tests/binder_epoll_checks.h',
         ROOT / 'core/include/artbox/binder_wire.h',
         ROOT / 'third_party/binder/kernel-reference.json', Path(__file__).resolve()]
     if args.compare_driver:

@@ -423,4 +423,28 @@ Mapped closed Binder tokens now remain observable until final unmap, without
 reopening a descriptor or permitting ioctl on it. Up to 64 trusted listeners
 per device can receive ordinary-context change hints. Unsubscribe serializes
 with callbacks; passive unmap only publishes a hint when an ordinary device
-operation observes it. Guest epoll dispatch is still pending.
+operation observes it.
+
+## M4: guest epoll
+
+| Syscall (AArch64 number) | Implemented subset | Deliberate differences / missing behavior |
+| --- | --- | --- |
+| `epoll_create1` (20) | Independent virtual open, zero/CLOEXEC flags, descriptor admission | Requires an explicitly configured wake provider. No host descriptor is exposed. |
+| `epoll_ctl` (21) | ADD/MOD/DEL for Binder, opaque 64-bit data, duplicate/missing registration errors | Identity includes fd number and original Binder token. Interest cap is configured per epoll. Other targets, edge/oneshot/exclusive modes and nesting remain unsupported. |
+| `epoll_pwait` (22) | ARM64 16-byte events, level readiness and error bits, rotating scans, zero/finite/infinite waits, partial output faults, concurrent waiters and interruption | Non-null signal-mask substitution returns EOPNOTSUPP (wrong sigset size returns EINVAL). Waiter cap is configured per VFS. Passive unmap and delivered signal epochs are checked at 5 ms intervals. |
+
+The same 31-case native Binder readiness fixture now runs locally through these
+syscalls, with extra mapped fd reuse, lifetime, copy-fault, owner/admission,
+deadline and concurrent-wait controls. The native reference already proves
+mapped-interest lifetime and persistent epoll death wakeup. The new production
+comparison awaits CI; ARTBox interruption still injects a delivered epoch.
+The signed native dispatcher now passes all six arguments, so an unsupported
+mask is never silently discarded. Its default policy permits 1,024 interests
+per epoll and 128 concurrent waits; the portable API accepts configurable bounds.
+
+Each active sleeping call owns a separate native wake object, retains its epoll
+open across descriptor close/reuse, and drops descriptor/device locks before
+waiting. Interests do not retain target Binder endpoints. A receive mapping may
+keep an old token alive after its fd number is reused, until final unmap. The
+new implementation does not add guest eventfd/timerfd or general I/O readiness.
+Epoll read/write return EINVAL; metadata and seek remain explicitly unsupported.

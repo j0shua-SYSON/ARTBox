@@ -1,6 +1,7 @@
 #ifndef ARTBOX_VFS_H
 #define ARTBOX_VFS_H
 #include "artbox/kernel.h"
+#include "artbox/wake.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,9 +43,19 @@ artbox_vfs *artbox_vfs_create(const artbox_file_ops *files, size_t descriptor_li
  * independent state with this fixed virtual UID and the caller's PID/VM.
  * The table owns endpoint close; guest descriptors are never device tokens.
  * Receive mmap requires a private backing provider configured on the device.
- * Readiness snapshots and the documented transaction subset are supported;
- * persistent poll/epoll registration remains pending. */
+ * Readiness snapshots and the documented transaction subset are supported.
+ * epoll requires the separately configured native wake provider below. */
 int artbox_vfs_set_binder(artbox_vfs *fs, artbox_binder_device *device, uint32_t uid);
+/* Configure bounded epoll interests per open and concurrent waiters per table
+ * before guest execution. The copied provider/context outlives the table and
+ * every call. Binder may be attached before or after this configuration.
+ * The process VM must outlive its epoll opens and calls. Interest limits are
+ * 1..4096; wait limits are 1..1024. Level-triggered Binder interests are supported;
+ * edge/oneshot/exclusive/nested epoll and signal-mask substitution return
+ * EOPNOTSUPP. Other target types return EPERM until their readiness is supported.
+ * Waits use ordinary-context 5 ms checks for passive unmap and signal epochs. */
+int artbox_vfs_set_epoll(artbox_vfs *fs, const artbox_wake_ops *wake,
+    size_t interest_limit, size_t waiter_limit);
 /* Pin the open description and observe Linux readiness bits without consuming
  * work. Initially supports configured Binder descriptors only; other types
  * return EOPNOTSUPP, missing descriptors EBADF and foreign VMs EOPNOTSUPP.
@@ -55,8 +66,12 @@ int artbox_vfs_events(artbox_vfs *fs, artbox_kernel_thread *thread, int fd);
 int artbox_vfs_set_commandline(artbox_vfs *fs, const void *bytes, size_t length);
 /* Stop guest access before destroy. All descriptors close, even on an error. */
 int artbox_vfs_destroy(artbox_vfs *fs);
+/* Legacy file dispatch. Poll families require the six-argument entry below. */
 int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread, uint64_t number,
                         uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3);
+/* Six-argument dispatch preserves epoll_pwait's signal-mask arguments. */
+int64_t artbox_vfs_syscall(artbox_vfs *fs, artbox_kernel_thread *thread, uint64_t number,
+    uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5);
 /* mmap dispatches anonymous storage to VM, otherwise pins the guest descriptor
  * while the mapping acquires its independent native backing reference. */
 int64_t artbox_vfs_mmap(artbox_vfs *fs, artbox_vm *vm, uint64_t address,

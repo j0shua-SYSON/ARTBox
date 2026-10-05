@@ -15,6 +15,7 @@
 #include "artbox/native_vm.h"
 #include "artbox/native_system.h"
 #include "artbox/native_files.h"
+#include "artbox/native_wake.h"
 #include "artbox/futex.h"
 #include "artbox/native_atomic.h"
 #include "artbox/native_thread.h"
@@ -277,7 +278,7 @@ static int64_t dispatch(void *context, uint64_t n, uint64_t a0, uint64_t a1, uin
     int64_t value = n == 222 ? artbox_vfs_mmap(filesystem, vm, a0, a1, a2, a3, (int64_t)a4, a5) :
         artbox_kernel_call(context, n, a0, a1, a2, a3, a4, a5);
     if (n == 98) value = artbox_futex_call_interruptible(futex, context, a0, a1, a2, a3, a4, a5);
-    if (value == -38) value = artbox_vfs_call(filesystem, context, n, a0, a1, a2, a3);
+    if (value == -38) value = artbox_vfs_syscall(filesystem, context, n, a0, a1, a2, a3, a4, a5);
     if (n == 66 && a0 == 2 && a2 <= 16) {
         // Observe Bionic's fatal diagnostics without pretending writev is
         // implemented: the syscall still returns its original ENOSYS below.
@@ -664,6 +665,8 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     artbox_atomic_u32_ops atomic = artbox_native_atomic_u32();
     futex = artbox_futex_create(vm, &atomic, &system, 4096);
     if (!vm || !filesystem || !futex || artbox_kernel_thread_init(&thread, vm, &system, 10000, 10000)) fail("kernel context");
+    artbox_wake_ops wake = artbox_native_wake();
+    if (artbox_vfs_set_epoll(filesystem, &wake, 1024, 128)) fail("epoll context");
     process_signals = artbox_signals_create(vm, 10000, 10000, 65);
     if (!process_signals) fail("signal process context");
     artbox_thread_ops native_threads = artbox_native_threads();

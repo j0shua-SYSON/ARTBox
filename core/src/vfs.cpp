@@ -1,6 +1,8 @@
 // Original rooted guest descriptor table, MIT.
 #include "artbox/vfs.h"
 #include "artbox/binder_device.h"
+#include "artbox/signals.h"
+#include <algorithm>
 #include <cstring>
 #include <exception>
 #include <mutex>
@@ -16,6 +18,29 @@ struct BinderOpen {
     BinderOpen(artbox_binder_device *d, artbox_vm *v) : device(d), vm(v) {}
     ~BinderOpen() { if (token) (void)artbox_binder_device_close(device, token); }
 };
+struct PollWaiter { void *owner = nullptr; int error = 0; };
+struct PollHub {
+    std::mutex lock;
+    artbox_wake_ops wake{};
+    size_t interests = 0, limit = 0;
+    uint64_t subscription = 0;
+    std::vector<PollWaiter *> waiters;
+};
+static void poll_notify(void *context) {
+    auto *hub = static_cast<PollHub *>(context);
+    std::lock_guard<std::mutex> guard(hub->lock);
+    for (auto *waiter : hub->waiters) if (waiter->owner) {
+        int error = hub->wake.signal(waiter->owner);
+        if (error && !waiter->error) waiter->error = error < 0 ? error : -5;
+    }
+}
+struct EpollInterest { int32_t fd; uint32_t events; uint64_t token, data; };
+struct EpollOpen {
+    artbox_vm *vm;
+    size_t cursor = 0;
+    std::vector<EpollInterest> interests;
+    explicit EpollOpen(artbox_vm *v) : vm(v) {}
+};
 struct descriptor {
     unsigned kind = 0, flags = 0;
     bool directory = false;
@@ -23,6 +48,7 @@ struct descriptor {
     std::string path;
     uint64_t position = 0;
     std::shared_ptr<BinderOpen> binder;
+    std::shared_ptr<EpollOpen> epoll;
 };
 struct artbox_vfs {
     std::mutex lock;
@@ -31,6 +57,7 @@ struct artbox_vfs {
     std::vector<unsigned char> commandline;
     artbox_binder_device *binder = nullptr;
     uint32_t binder_uid = 0;
+    std::unique_ptr<PollHub> poll;
 };
 extern "C" artbox_vfs *artbox_vfs_create(const artbox_file_ops *files, size_t limit) {
     if (!limit || limit > 4096 || (files && (!files->open || !files->close || !files->read || !files->write ||
@@ -46,6 +73,10 @@ extern "C" int artbox_vfs_set_binder(artbox_vfs *fs, artbox_binder_device *devic
     if (!fs || !device) return -22;
     std::lock_guard<std::mutex> guard(fs->lock);
     if (fs->binder) return -114;
+    if (fs->poll) {
+        int error = artbox_binder_device_observe(device, poll_notify, fs->poll.get(), &fs->poll->subscription);
+        if (error) return error;
+    }
     fs->binder = device; fs->binder_uid = uid;
     return 0;
 }
@@ -61,8 +92,37 @@ extern "C" int artbox_vfs_set_commandline(artbox_vfs *fs, const void *bytes, siz
         return 0;
     } catch (const std::exception&) { return -12; }
 }
+extern "C" int artbox_vfs_set_epoll(artbox_vfs *fs, const artbox_wake_ops *wake,
+    size_t interest_limit, size_t waiter_limit) {
+    if (!fs || !wake || !wake->create || !wake->signal || !wake->wait || !wake->close ||
+        !interest_limit || interest_limit > 4096 || !waiter_limit || waiter_limit > 1024) return -22;
+    try {
+        std::lock_guard<std::mutex> guard(fs->lock);
+        if (fs->poll) return -114;
+        std::unique_ptr<PollHub> hub(new PollHub);
+        hub->wake = *wake; hub->interests = interest_limit; hub->limit = waiter_limit;
+        hub->waiters.reserve(waiter_limit);
+        if (fs->binder) {
+            int error = artbox_binder_device_observe(fs->binder, poll_notify, hub.get(), &hub->subscription);
+            if (error) return error;
+        }
+        fs->poll = std::move(hub);
+        return 0;
+    } catch (const std::exception &) { return -12; }
+}
+static int64_t epoll_dispatch(artbox_vfs *, artbox_kernel_thread *, uint64_t,
+    uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+extern "C" int64_t artbox_vfs_syscall(artbox_vfs *fs, artbox_kernel_thread *thread, uint64_t number,
+    uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5) {
+    if (number >= 20 && number <= 22) return epoll_dispatch(fs, thread, number, a0, a1, a2, a3, a4, a5);
+    return artbox_vfs_call(fs, thread, number, a0, a1, a2, a3);
+}
 extern "C" int artbox_vfs_destroy(artbox_vfs *fs) {
     if (!fs) return -22;
+    if (fs->poll && fs->poll->subscription) {
+        int error = artbox_binder_device_unobserve(fs->binder, fs->poll->subscription);
+        if (error) return error; // Preserve the callback owner if removal failed.
+    }
     int result = 0;
     for (descriptor &d : fs->descriptors) if (d.kind == 5) {
         int error = fs->files.close(d.handle);
@@ -88,6 +148,187 @@ extern "C" int artbox_vfs_events(artbox_vfs *fs, artbox_kernel_thread *thread, i
     }
     if (binder->vm != thread->vm) return -95;
     return artbox_binder_device_events(binder->device, binder->token, thread->tid);
+}
+struct PollRegistration {
+    PollHub *hub;
+    PollWaiter waiter;
+    bool registered = false;
+    explicit PollRegistration(PollHub *h) : hub(h) {}
+    int attach() {
+        {
+            std::lock_guard<std::mutex> guard(hub->lock);
+            if (hub->waiters.size() == hub->limit) return -12;
+            hub->waiters.push_back(&waiter); registered = true;
+        }
+        // The slot is already bounded, but callbacks skip its empty owner.
+        // A fresh readiness scan after publication covers every earlier change.
+        void *owner = nullptr;
+        int error = hub->wake.create(hub->wake.context, &owner);
+        if (error) return error < 0 ? error : -5;
+        if (!owner) return -5;
+        std::lock_guard<std::mutex> guard(hub->lock);
+        waiter.owner = owner;
+        return 0;
+    }
+    int error() {
+        std::lock_guard<std::mutex> guard(hub->lock);
+        return waiter.error;
+    }
+    ~PollRegistration() {
+        if (registered) {
+            std::lock_guard<std::mutex> guard(hub->lock);
+            auto found = std::find(hub->waiters.begin(), hub->waiters.end(), &waiter);
+            hub->waiters.erase(found);
+        }
+        if (waiter.owner) (void)hub->wake.close(waiter.owner);
+    }
+};
+static void put(unsigned char *, uint64_t, unsigned);
+static uint64_t epoll_word(const unsigned char *bytes, unsigned count) {
+    uint64_t value = 0;
+    for (unsigned i = 0; i < count; ++i) value |= uint64_t(bytes[i]) << (8 * i);
+    return value;
+}
+static int monotonic_ns(artbox_kernel_thread *thread, int64_t &value) {
+    if (!thread->system.clock) return -95;
+    artbox_timespec time{};
+    int error = thread->system.clock(1, &time);
+    if (error) return error;
+    if (time.seconds < 0 || time.nanoseconds < 0 || time.nanoseconds >= 1000000000 ||
+        time.seconds > (INT64_MAX - time.nanoseconds) / 1000000000) return -75;
+    value = time.seconds * 1000000000 + time.nanoseconds;
+    return 0;
+}
+// Descriptor mutex held. No interest owns the endpoint: mapped lifetime is
+// tracked by Binder's existing token/watch, not by the fd's current occupant.
+static int epoll_scan(artbox_vfs *fs, EpollOpen &ep, artbox_kernel_thread *thread,
+    uint64_t output, int maximum) {
+    size_t remaining = ep.interests.size(), index = ep.cursor;
+    int copied = 0;
+    while (remaining && !ep.interests.empty() && copied < maximum) {
+        --remaining;
+        index %= ep.interests.size();
+        const auto interest = ep.interests[index];
+        int ready = artbox_binder_device_events(fs->binder, interest.token, thread->tid);
+        if (ready == -9) {
+            ep.interests.erase(ep.interests.begin() + static_cast<ptrdiff_t>(index));
+            continue;
+        }
+        if (ready < 0) return copied ? copied : ready;
+        const uint32_t events = static_cast<uint32_t>(ready) & (interest.events | 0x18u);
+        if (events) {
+            unsigned char bytes[16] = {};
+            put(bytes, events, 4); put(bytes + 8, interest.data, 8);
+            int error = artbox_vm_write(thread->vm, output + static_cast<uint64_t>(copied) * 16, bytes, sizeof(bytes));
+            if (error) return copied ? copied : error;
+            ++copied;
+        }
+        ++index;
+    }
+    ep.cursor = ep.interests.empty() ? 0 : index % ep.interests.size();
+    return copied;
+}
+static int64_t epoll_dispatch(artbox_vfs *fs, artbox_kernel_thread *thread, uint64_t number,
+    uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5) {
+    if (!fs || !thread || !thread->vm || thread->tid <= 0) return -22;
+    try {
+        std::unique_lock<std::mutex> guard(fs->lock);
+        if (!fs->poll) return -38;
+        if (number == 20) {
+            uint32_t flags = static_cast<uint32_t>(a0);
+            if (flags & ~UINT32_C(0x80000)) return -22;
+            size_t slot = 0;
+            while (slot < fs->descriptors.size() && fs->descriptors[slot].kind) ++slot;
+            if (slot == fs->descriptors.size()) return -24;
+            descriptor d; d.kind = 10; d.flags = flags | 2;
+            d.epoll = std::make_shared<EpollOpen>(thread->vm);
+            d.epoll->interests.reserve(fs->poll->interests);
+            fs->descriptors[slot] = std::move(d);
+            return static_cast<int64_t>(slot + 3);
+        }
+        descriptor *d = get(fs, static_cast<int32_t>(a0));
+        if (!d) return -9;
+        if (!d->epoll) return -22;
+        const auto ep = d->epoll; // Survives close/reuse while this wait is active.
+        if (ep->vm != thread->vm) return -95;
+        if (number == 21) {
+            const int operation = static_cast<int32_t>(a1), fd = static_cast<int32_t>(a2);
+            if (operation < 1 || operation > 3 || fd == static_cast<int32_t>(a0)) return -22;
+            descriptor *target = get(fs, fd);
+            if (!target) return -9;
+            if (target->epoll) return -95; // Nested epoll needs its own cycle/lifetime contract.
+            if (!target->binder) return -1;
+            if (target->binder->vm != thread->vm) return -95;
+            unsigned char bytes[16]{};
+            if (operation != 2 && artbox_vm_read(thread->vm, a3, bytes, sizeof(bytes))) return -14;
+            const uint32_t events = static_cast<uint32_t>(epoll_word(bytes, 4));
+            if (events & ~UINT32_C(0x201f)) return -95; // Only tested level-triggered interests.
+            const uint64_t token = target->binder->token;
+            // Reap dead interests before enforcing this epoll's configured cap.
+            for (size_t i = 0; i < ep->interests.size();) {
+                if (artbox_binder_device_events(fs->binder, ep->interests[i].token, thread->tid) == -9)
+                    ep->interests.erase(ep->interests.begin() + static_cast<ptrdiff_t>(i));
+                else ++i;
+            }
+            auto found = std::find_if(ep->interests.begin(), ep->interests.end(),
+                [fd, token](const EpollInterest &interest) { return interest.fd == fd && interest.token == token; });
+            if (operation == 1) {
+                if (found != ep->interests.end()) return -17;
+                if (ep->interests.size() == fs->poll->interests) return -28;
+                int ready = artbox_binder_device_events(fs->binder, token, thread->tid);
+                if (ready < 0) return ready;
+                ep->interests.push_back(EpollInterest{fd, events, token, epoll_word(bytes + 8, 8)});
+            } else {
+                if (found == ep->interests.end()) return -2;
+                if (operation == 2) ep->interests.erase(found);
+                else { found->events = events; found->data = epoll_word(bytes + 8, 8); }
+            }
+            poll_notify(fs->poll.get());
+            return 0;
+        }
+        const int maximum = static_cast<int32_t>(a2), timeout = static_cast<int32_t>(a3);
+        if (maximum <= 0 || maximum > INT32_MAX / 16) return -22;
+        const uint64_t length = static_cast<uint64_t>(maximum) * 16;
+        if (a1 > static_cast<uint64_t>(INT64_MAX) - length) return -14;
+        if (a4) return a5 == 8 ? -95 : -22; // Never drop an unimplemented mask substitution.
+        int64_t deadline = 0;
+        if (timeout > 0) {
+            int error = monotonic_ns(thread, deadline);
+            if (error) return error;
+            if (deadline > INT64_MAX - int64_t(timeout) * 1000000) return -75;
+            deadline += int64_t(timeout) * 1000000;
+        }
+        const bool interruptible = artbox_signals_interrupt_number(thread) != 0;
+        const uint64_t epoch = artbox_signals_interrupt_epoch(thread);
+        PollRegistration registration(fs->poll.get());
+        for (;;) {
+            int result = epoll_scan(fs, *ep, thread, a1, maximum);
+            if (result || !timeout) return result;
+            guard.unlock();
+            if (interruptible && artbox_signals_interrupt_epoch(thread) != epoch) return -4;
+            int milliseconds = 5; // Passive VM watches and signal epochs cannot call poll_notify.
+            if (timeout > 0) {
+                int64_t now = 0;
+                int error = monotonic_ns(thread, now);
+                if (error) return error;
+                if (now >= deadline) return 0;
+                const int64_t remaining = deadline - now;
+                if (remaining < 5000000) milliseconds = static_cast<int>((remaining + 999999) / 1000000);
+            }
+            if (!registration.registered) {
+                int error = registration.attach();
+                if (error) return error;
+                guard.lock();
+                continue; // Register first, then perform the final readiness check before sleep.
+            }
+            int error = registration.error();
+            if (error) return error;
+            result = fs->poll->wake.wait(registration.waiter.owner, milliseconds);
+            if (result < 0) return result;
+            if (result > 1) return -5;
+            guard.lock();
+        }
+    } catch (const std::exception &) { return -12; }
 }
 extern "C" int64_t artbox_vfs_mmap(artbox_vfs *fs, artbox_vm *vm, uint64_t address,
     uint64_t length, uint64_t prot, uint64_t flags, int64_t fd, uint64_t offset) {
@@ -333,6 +574,7 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
             int error = d->kind == 5 ? fs->files.close(d->handle) : 0;
             *d = descriptor{}; return error;
         }
+        if (d->epoll) return number == 63 || number == 64 ? -22 : -95;
         if (number == 62) {
             if (d->kind == 9) return static_cast<uint32_t>(a2) <= 4 ? -29 : -22;
             if (d->kind == 6) {

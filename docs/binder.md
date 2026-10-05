@@ -339,8 +339,11 @@ semantic oracle or an iPhone execution claim.
    Partial unmap keeps it alive. This control never reads unpopulated Binder
    receive pages. At `cf15426`, the native wait/wake provider passes on all three
    host platforms, with native interruption verified on Mac/Linux. Binder now
-   supplies bounded ordinary-context wake subscriptions; guest epoll attachment
-   remains ahead.
+   supplies bounded ordinary-context wake subscriptions. Guest epoll now passes
+   the same readiness fixture locally through six-argument VFS dispatch, plus
+   mapped lifetime, output-fault, concurrent-wait, close/reuse, deadline and
+   injected-interruption controls. Native comparison awaits CI. Add eventfd and
+   timerfd next so the real AOSP Looper can use its wake and timer descriptors.
 2. Threadpool behavior and additional protocol requests actually needed by
    servicemanager, including node client-count observations.
 3. Complete the remaining dependencies and link the pinned real AOSP

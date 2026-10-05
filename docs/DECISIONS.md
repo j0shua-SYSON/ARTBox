@@ -2992,3 +2992,43 @@ polling. Tests cover mapped-token lifetime, callback fanout, exhaustion, stale
 subscription reuse, unsubscribe during ongoing ioctls, and notifications after
 ordinary-context final-unmap detection. This adds no executable memory or
 entitlement and does not itself implement guest epoll.
+
+## 0110: Implement guest epoll around file identity and native wake hints
+
+Add the ARM64 epoll family to a six-argument VFS dispatcher. Preserve the
+four-argument file API for existing callers, but route signed native syscalls
+through the full entry so epoll_pwait cannot lose its mask pointer or size.
+Encode the 16-byte ARM64 event explicitly, with data at offset eight; host
+x86_64 epoll uses a different layout. Return errors for unsupported mask
+substitution, nesting and edge/oneshot/exclusive modes. The pinned AOSP Looper
+uses the implemented level-triggered ADD/MOD/DEL operations.
+
+An epoll descriptor owns its bounded interest vector. Each wait pins that
+epoll open across descriptor close/reuse, while interests hold only fd/token
+identity for Binder. Polling reaps expired tokens and rotates through ready
+interests when the output capacity is smaller than the ready set. Copy faults
+do not consume Binder work; a partial copy returns the number already delivered.
+The process VM and configured providers outlive the descriptor table and calls.
+
+Use one device subscription per configured VFS and one native wake object per
+active sleeping call. Register the waiter before the final readiness scan so a
+change racing with sleep leaves a retained hint. A separate hub mutex protects
+waiter publication and removal; its callbacks never enter VFS, Binder or VM.
+The lock order is VFS, then device, then hub. Drop VFS/device locks before native
+wait. Synchronous subscription removal precedes hub destruction.
+
+Finite waits keep one monotonic deadline across spurious hints. Ready events
+take precedence over an observed interruption. Passive mapping watches and
+signal epochs still need ordinary-context checks every 5 ms; accept that idle
+wakeup and scheduler cost until a separately tested notification path replaces
+it. The signed runtime starts with 1,024 interests per epoll and 128 concurrent
+waits; embedding hosts can configure lower or higher documented bounds.
+
+Tests precede dispatch implementation and reuse the native 31-case readiness
+fixture. Additional controls cover resource and foreign-VM rejection, mapped
+fd reuse, fair scans, partial output faults, concurrent waiters, epoll close and
+reuse during death wakeup, interruption and deadlines under repeated hints.
+The native wake implementation remains the only platform-specific piece. No
+executable allocation, JIT or entitlement is introduced. Eventfd/timerfd and
+real servicemanager integration are still required; this is not full epoll
+compatibility or M4 acceptance.
