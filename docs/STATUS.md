@@ -4,13 +4,16 @@ M0-M3 are merged and tagged. **Real AOSP ART executes hello DEX on macOS
 ARM64 through signed frameworks**, with collection, exceptions, native-thread
 attachment and shutdown verified. M3's shared console and integrated ART IPA
 also pass automated acceptance. Target: ordinary signed arm64 **iOS 15+**, no JIT or private
-entitlements. Physical checks are waived; iPhone execution is unverified.
+entitlements. Physical checks are waived. M0/M1 now pass on a jailbroken iPhone
+6s Plus running iOS 15.8.5; the full ART diagnostic exits during startup on that
+phone. Ordinary provisioning and physical ART execution remain unverified.
 
 ## What runs
 
 - M0: portable startup and the independent iOS console print `ARTBox ready`.
-- M1: a static NDK ARM64 hello runs on Mac through both signed packaging
-  prototypes, with five translated syscalls and exit zero.
+- M1: a static NDK ARM64 hello runs on Mac and the test iPhone through both
+  signed packaging prototypes, with five translated syscalls and exit zero.
+  Home-icon launch, background/foreground and cold relaunch pass on the phone.
 - M2: pinned AOSP Bionic, Scudo and GWP-ASan pass **328/328** expectations in
   both normal and forced-sampling processes. Six Bionic pthreads exercise
   allocation, rooted files, mappings, synchronization, TLS, errno and cleanup.
@@ -37,8 +40,10 @@ framework layouts and diagnostic IPA verify independently. See
 ## What does not run
 
 The verified ART IPA contains 16 signed iOS 15 Mach-O images, 15 original ELF
-resources, boot/managed/hello DEX and ICU data. Device execution remains
-unverified. Binder/services, Activities, AndroidX APKs, graphics and audio remain future
+resources, boot/managed/hello DEX and ICU data. On the test iPhone, the `cce2bb9`
+ART build returns to the home screen before an ART result is visible, with no
+crash report found. Startup diagnostics now persist in the app's cache directory
+to investigate that failure. Binder/services, Activities, AndroidX APKs, graphics and audio remain future
 milestones. The runtime is a one-shot diagnostic; repeated VM creation and
 general dynamic library growth/unloading are not supported. AOT/OAT and host
 dex2oat remain future coverage under interpreter-only M3 acceptance.
@@ -362,13 +367,17 @@ signed Mac VM starts in 122.485 ms with 67,616,768 bytes peak RSS; managed,
 console, signal-chain and worker-cleanup controls pass. These are correctness
 measurements, not physical-device results.
 
-The next change selects the four original Bionic regex implementations using
+The `580bacb` change selects the four original Bionic regex implementations using
 their original NetBSD build flags. The new Android LP64 fixture compiled and
 failed its first link against the preceding runtime on all four missing regex
 functions. Its 120 expectations and two exact failure controls are now wired
 into the native Linux reference and both signed Bionic profiles, alongside the
-existing 50 libc expectations. The reference executable builds locally; runtime
-execution and CI are pending. The separate private full-service probe, including
+existing 50 libc expectations. All 22 host jobs and iOS CI pass. Downloaded Linux
+and signed Mac artifacts independently verify both caller hashes, 14 upstream
+inputs, all 170 expectations and four exact negative controls. The integrated
+ART IPA verifies 16 iOS 15 images, 15 ELF/layout pairs, five resources, 175
+notices and empty entitlements. Its signed Mac VM starts in 100.356 ms with
+67,551,232 bytes peak RSS; these are correctness-run measurements. The separate private full-service probe, including
 one original libc++ regex object, is down to three policy-related imports. It is
 not service execution. Real access policy, signed service registration and
 cross-thread Binder ping/death acceptance remain ahead.
@@ -396,5 +405,6 @@ interpreter throughput or iPhone memory measurements.
 
 The next three risks are transaction-buffer ownership and bounded memory;
 reference/death-notification races; and real servicemanager's polling and
-dependency requirements. Physical execution remains unverified; checks are
-waived for every milestone.
+dependency requirements. Physical ART execution remains unverified despite the
+M0/M1 hardware success; checks remain waived for every milestone. See
+[the M1 device record](acceptance/m1.md#subsequent-physical-device-observation).

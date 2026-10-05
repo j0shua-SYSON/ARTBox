@@ -4,8 +4,8 @@ CI produces a Release arm64 iOS 15+ app with an empty entitlement dictionary
 and an ad-hoc transport signature. Physical-device checks are recorded separately.
 The project owner waived physical-device checks for all milestones. This
 optional procedure remains available to contributors; it does not block
-milestone completion. Launch and lifecycle behavior remain unverified until
-actual observations are recorded.
+milestone completion. The M0/M1 check on an existing jailbroken iPhone is recorded
+in [M1 acceptance](acceptance/m1.md); ordinary provisioning remains unverified.
 
 1. Obtain `ARTBox.ipa` and `build-info.json` from a passing `ios-build` run.
    Record the source commit and IPA SHA-256 before re-signing.
@@ -37,6 +37,13 @@ Tester and date:
 
 Do not commit certificates, profiles, private keys or device identifiers.
 
+The diagnostic app writes console output, stdout and stderr to
+`Library/Caches/ARTBox/launch.log` in its own data container. Each launch replaces
+the previous log. Retrieve it before relaunching when startup exits without a
+crash report; the native acceptance harness can call `_Exit` before UIKit displays
+its last queued message. Log creation is best effort and needs no entitlement.
+Review logs for container paths or other private data before sharing them.
+
 For the integrated M2 build, use `ARTBox-M2-ipa` from a passing `host-tests`
 run. It includes four additional signed frameworks and the same native suite
 used on macOS. The expected final console message is `M2: suite passed`, after
@@ -52,4 +59,6 @@ with the same ordinary team/profile. Expected guest output includes
 The equivalent Mac build command is
 `python3 scripts/build.py ios --m3-evidence PATH_TO_MERGED_ART_ARTIFACTS`.
 See [M3 acceptance](acceptance/m3.md) for the required same-run inputs and
-automated evidence. Physical checks remain optional and unperformed.
+automated evidence. On the existing jailbroken iPhone 6s Plus running iOS 15.8.5,
+the `cce2bb9` ART diagnostic exits after launch; no ART result or crash report was
+observed. This remains an unresolved physical-runtime failure.

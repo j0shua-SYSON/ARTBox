@@ -3468,3 +3468,21 @@ executable-memory transition or entitlement. Full linked size and execution
 cost are still to be measured. C-locale regex behavior is the current contract;
 broader locale behavior, libc++ regex helpers and actual VINTF/service execution
 require separate evidence. Successful object compilation is not that evidence.
+
+## 0125: Preserve early iOS diagnostic failures in the app container
+
+The first physical M0/M1 launch succeeds, but the integrated ART diagnostic
+returns to SpringBoard before reporting a result. The acceptance harness can
+print a failure and call `_Exit`, which neither produces a crash report nor
+drains queued UIKit log updates. Redirect stdout/stderr to a cache file before
+UIApplicationMain and mirror console messages there before UI dispatch.
+Overwrite this file on each launch so repeated tests do not accumulate logs;
+failure to open it must not prevent startup. Retrieve the file before relaunch.
+
+This uses ordinary container file I/O and adds no debugger, entitlement, runtime
+code generation or jailbreak dependency. The supplied jailbroken phone is
+useful for hardware diagnosis, but its installation path cannot establish
+ordinary stock-device provisioning. Record the two evidence scopes separately.
+The logging cost is synchronous, unbuffered diagnostic I/O; it is not intended
+as a performance benchmark configuration. The underlying ART exit is still an
+unresolved failure, not an accepted slow path or a successful device test.

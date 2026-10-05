@@ -1,6 +1,7 @@
 #import "ConsoleViewController.h"
 
 #include "artbox/runtime.h"
+#include <stdio.h>
 #include <string.h>
 #if ARTBOX_M1
 #include "artbox/native_hello.h"
@@ -22,6 +23,9 @@
 @end
 
 static void app_log(void *context, const char *message, size_t length) {
+    // Persist the message before asynchronous UI delivery; fatal startup can exit first.
+    if (length) fwrite(message, 1, length, stderr);
+    if (!length || message[length - 1] != '\n') fputc('\n', stderr);
     // Guest pthreads do not come from UIKit's run loop or its autorelease pool.
     @autoreleasepool {
         ConsoleViewController *controller = (__bridge ConsoleViewController *)context;
