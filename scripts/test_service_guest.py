@@ -27,6 +27,26 @@ def verify(path, expected):
     return path
 
 
+def source_catalog(label, record):
+    # Binder and VINTF producers record their pinned project inputs and notice
+    # inventory, but do not embed a second full source catalog in build.json.
+    # Reconstruct only their declared selections after verifying those inputs.
+    common=read(ROOT/'third_party/sources.json')
+    native=read(ROOT/'third_party/binder/native-sources.json')
+    if label=='binder':
+        catalog=native
+        for name in ('libbase-dex','liblog-dex','binder-aidl'): catalog[name]=common[name]
+    elif label=='vintf':
+        catalog=read(ROOT/'third_party/binder/vintf-sources.json')
+        for name in ('libbase-dex','liblog-dex','fmtlib-references'): catalog[name]=common[name]
+        catalog['binder-build-reference']=native['binder-build-reference']
+    else: catalog=record['sources']
+    notices={name:dict(path=spec['notice'],sha256=spec['notice_sha256']) for name,spec in catalog.items()}
+    if notices!=record['source_notices']:
+        raise ValueError('Service source selection differs from producer notices: '+label)
+    return catalog
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('native','binder','vintf','parser','guest','dependency'):
@@ -64,7 +84,7 @@ def main():
         for name,expected in record['archives'].items(): archives.append(verify(directory/name,expected))
         bundle=verify(directory/'corresponding-source.zip',record['source_bundle_sha256']); bundles[label]=bundle
         with zipfile.ZipFile(bundle) as source:
-            for name,spec in record['sources'].items():
+            for name,spec in source_catalog(label,record).items():
                 for row in spec['files']:
                     data=source.read('upstream/'+name+'/'+row['path'])
                     if hashlib.sha256(data).hexdigest()!=row['sha256']: raise ValueError('Source archive changed')
