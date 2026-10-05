@@ -220,7 +220,7 @@ static void ep_configuration(artbox_binder_device *device, const artbox_wake_ops
 }
 static void ep_owner_and_errors(Context &c, artbox_binder_device *device, const artbox_wake_ops &wake) {
     int ep = static_cast<int>(ep_call(c, 20)), fd = open_device(&c); CHECK(ep >= 3 && fd >= 3);
-    CHECK(ep_call(c, 21, -1, 1, fd, c.path + 3072) == -9);
+    CHECK(ep_call(c, 21, UINT64_MAX, 1, fd, c.path + 3072) == -9);
     CHECK(ep_call(c, 21, fd, 1, ep, c.path + 3072) == -22);
     CHECK(ep_ctl(c, ep, 1, -1, 1, 0) == -9);
     CHECK(ep_ctl(c, ep, 1, fd, 0, 123) == 0); // POLLERR is reported despite an empty interest mask.
