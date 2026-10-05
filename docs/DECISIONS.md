@@ -3225,3 +3225,10 @@ Binder is not yet attached to this profile. Real servicemanager policy,
 node-count/threadpool support, registration, ping and death acceptance remain
 M4 requirements. The diagnostic framework is not yet integrated into the app's
 M4 IPA, and no physical iPhone execution is claimed.
+
+Validation at `480238f`: all 22 host jobs and iOS CI pass. The downloaded signed
+Mac artifact independently verifies 43 shared assertions, both precise failure
+controls, and cleanup of one Bionic worker in each process. It contains verified
+macOS and iOS 15 Looper frameworks with ordinary signatures. The normal fixture
+takes 14.976 ms, with 28.089 ms loading/relocation and 16.873 ms bootstrap; these
+are diagnostic Mac observations, not throughput or device measurements.

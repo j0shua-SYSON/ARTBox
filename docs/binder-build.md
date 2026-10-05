@@ -93,5 +93,9 @@ results, and requires the Bionic worker to be reaped even after a deliberate
 failure. It preserves binary/source hashes, notices and execution logs. The
 shared ABI result header lives with the platform headers so every existing
 Apple harness source archive also includes its complete compile-time inputs.
-Signed execution remains unverified until this CI step passes; the Looper
-framework alone does not establish servicemanager or physical iPhone support.
+At `480238f`, this CI step passes all 43 assertions and both negative controls
+on native ARM64 macOS through signed Bionic. Downloaded execution logs, source
+and binary hashes, both framework layouts and worker cleanup verify independently.
+The normal fixture takes 14.976 ms in that correctness run. This establishes
+signed guest Looper execution; Binder attachment and servicemanager execution
+remain ahead, and physical iPhone execution is unverified.

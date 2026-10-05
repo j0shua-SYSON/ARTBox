@@ -250,9 +250,14 @@ A five-image signed Looper profile now uses the four ART bootstrap dependencies
 plus the real Looper caller. Bionic includes its original public eventfd wrapper;
 339 units compile locally with no forbidden native instructions. The Apple
 harness checks exact shared results and cleanup of one Bionic worker in each
-fresh process, including both negative controls. Signing and actual guest
-execution are pending CI. Binder attachment and real servicemanager
-registration/ping/death acceptance remain ahead. M4 is open.
+fresh process, including both negative controls. At `480238f`, all 22 host jobs
+and iOS CI pass. Downloaded signed Mac results independently verify all 43
+assertions and both deliberate failures, with one worker reaped in every case.
+The normal fixture takes 14.976 ms; image loading/relocation takes 28.089 ms.
+Both macOS and iOS 15 Looper frameworks, their layouts, 20 notice hashes and
+107 project inputs verify. These are correctness-run measurements on Mac;
+the new framework is not yet part of the app IPA. Binder attachment and real
+servicemanager registration/ping/death acceptance remain ahead. M4 is open.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write
