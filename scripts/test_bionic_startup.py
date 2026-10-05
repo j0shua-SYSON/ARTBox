@@ -50,6 +50,11 @@ def main():
     partial = inputs / "bionic-m2-partial.o"
     if digest(partial) != report["partial_object_sha256"] or report["source_commit"] != manifest["source_commit"]:
         raise RuntimeError("Startup input differs from the verified native Bionic object")
+    allocator_config = report['allocator_config']
+    if (allocator_config['contiguous_reservation_bytes'] != 528 << 20 or
+            digest(inputs / 'scudo-config/custom_scudo_config.h') != allocator_config['configured_sha256'] or
+            digest(inputs / 'scudo-config/original_custom_scudo_config.h') != allocator_config['source_sha256']):
+        raise RuntimeError('Startup allocator configuration differs from the bounded native build')
     includes = ["-I", str(source / "libstdc++/include"), "-I", str(cutils / "libcutils/include"),
                 "-I", str(ROOT / "third_party/bionic/adapters")]
     for name, selection in libraries["components"].items():
@@ -204,7 +209,7 @@ def main():
               "source_commit": report["source_commit"], "partial_object_sha256": digest(partial),
               "bootstrap_source_sha256": digest(ROOT / "fixtures/bionic-startup/bootstrap.cpp"),
               "client_source_sha256": digest(ROOT / "fixtures/bionic-startup/check.c"), "images": {}, "tls": tls_metadata,
-              "binder_libc": binder_libc,
+              "binder_libc": binder_libc, "allocator_config": report['allocator_config'],
               "anonymous_memory": {"cases": 35, "source_sha256": digest(ROOT / "fixtures/bionic-vm/check.c"),
                                    "object_sha256": digest(vm_object)},
               "timeouts": {"cases": 18, "source_sha256": digest(ROOT / "fixtures/bionic-startup/timeouts.c"),
@@ -298,6 +303,10 @@ def main():
                 raise RuntimeError('Binder libc/regex callers or their four negative controls did not complete')
             if result[key]["cases"] != 146 or result[key]["futex_cases"] != 19:
                 raise RuntimeError("NDK allocator client did not complete")
+            if (result[key].get('allocator_pressure_cases') != 3 or
+                    result[key].get('vm_budget_bytes') != 1 << 30 or
+                    not 0 < result[key]['reserved_bytes'] <= 1 << 30):
+                raise RuntimeError('Bionic must survive primary exhaustion within a 1 GiB VM budget')
             if result[key]['futex_requeue_cases'] != 18:
                 raise RuntimeError('Private futex requeue caller did not complete')
             if result[key]["version_result"] != 46 or result[key]["linked_images"] != 4:

@@ -33,6 +33,7 @@ def prepare(evidence, output, revision):
     expected.update(cwd_cases=22)
     expected.update(futex_requeue_cases=18)
     expected.update(BINDER_LIBC_EXPECTED)
+    expected.update(allocator_pressure_cases=3, vm_budget_bytes=1 << 30)
     for mode in ('native', 'sampled_native'):
         if any(report[mode].get(k) != v for k, v in expected.items()):
             raise RuntimeError('M2 source artifact did not pass the required native suites')

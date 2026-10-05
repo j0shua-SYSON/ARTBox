@@ -63,6 +63,7 @@ static int64_t file_cases, mapping_cases, version_result;
 static int64_t vm_cases, timeout_cases;
 static int64_t proc_cases;
 static int64_t art_libc_cases;
+static int32_t allocator_pressure_cases;
 static int32_t binder_libc_cases, binder_libc_path_control, binder_libc_clock_control;
 static int32_t binder_regex_cases, binder_regex_newline_control, binder_regex_capture_control;
 static int64_t vfork_cases;
@@ -523,6 +524,8 @@ static void *run(void *context) {
     if (version_result != 46) fail("versioned dependency execution");
     fprintf(stderr, "NDK allocator client entry\n");
     result = (int32_t)artbox_call7(entry(&images[1], "artbox_startup_check"), 0, 0, 0, 0, 0, 0, 0);
+    allocator_pressure_cases = (int32_t)artbox_call7(entry(&images[1], "artbox_allocator_pressure_check"), 0, 0, 0, 0, 0, 0, 0);
+    if (allocator_pressure_cases != 3) fail("allocator region exhaustion and secondary fallback");
     art_libc_cases = (int32_t)artbox_call7(entry(&images[1], "artbox_art_bionic_check"), 0, 0, 0, 0, 0, 0, 0);
     if (art_libc_cases != 73) {
         fprintf(stderr, "ART libc caller: %" PRId64 "\n", art_libc_cases);
@@ -701,7 +704,10 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     }
     artbox_vm_ops ops = artbox_native_vm();
     artbox_system_ops system = artbox_native_system();
-    vm = artbox_vm_create(&ops, UINT64_C(32) << 30, 4096);
+    // Exercise all M2 cases within a bounded address budget on Mac as well as iOS.
+    // The previous 8.25 GiB Scudo reservation must fail this contract everywhere.
+    const uint64_t vm_budget = (art_mode ? UINT64_C(32) : UINT64_C(1)) << 30;
+    vm = artbox_vm_create(&ops, vm_budget, 4096);
     if (artbox_native_files_open(input->root, &backing_files)) fail("rooted filesystem");
     artbox_file_ops files = artbox_native_files_ops(backing_files);
     filesystem = artbox_vfs_create(&files, 256);
@@ -850,14 +856,15 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
            "\"futex_requeue_cases\":%" PRId64 ",\"cwd_cases\":%" PRId64 ",\"signal_realtime_cases\":%d,\"signal_interrupt_cases\":%d,\"signal_interrupt_mutation\":%d,\"signal_interrupt_threads\":%" PRIu64 ","
            "\"signal_fault_cases\":%d,\"signal_fault_edit_mutation\":%d,\"signal_fault_address_mutation\":%d,"
            "\"binder_libc_cases\":%d,\"binder_libc_path_control\":%d,\"binder_libc_clock_control\":%d,"
-           "\"binder_regex_cases\":%d,\"binder_regex_newline_control\":%d,\"binder_regex_capture_control\":%d,\"unsupported_syscalls\":{",
+           "\"binder_regex_cases\":%d,\"binder_regex_newline_control\":%d,\"binder_regex_capture_control\":%d,"
+           "\"vm_budget_bytes\":%" PRIu64 ",\"allocator_pressure_cases\":%d,\"unsupported_syscalls\":{",
            constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases, unlink_cases, signal_wait_cases,signal_handler_cases,signal_handler_mutation,
            signal_stack_cases,signal_stack_handler_cases,signal_stack_mutation,signal_stack_threads,
            signal_mask_cases,signal_mask_mutation,signal_mask_threads,
            futex_requeue_cases,cwd_cases,signal_realtime_cases,signal_interrupt_cases,signal_interrupt_mutation,signal_interrupt_threads,
            signal_fault_cases,signal_fault_edit_mutation,signal_fault_address_mutation,
            binder_libc_cases,binder_libc_path_control,binder_libc_clock_control,
-           binder_regex_cases,binder_regex_newline_control,binder_regex_capture_control);
+           binder_regex_cases,binder_regex_newline_control,binder_regex_capture_control,vm_budget,allocator_pressure_cases);
     if (length < 0 || (size_t)length >= sizeof(report)) fail("result formatting");
     size_t used_bytes = (size_t)length;
     unsigned printed = 0;

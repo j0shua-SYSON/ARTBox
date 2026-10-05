@@ -93,6 +93,7 @@ def main():
         reports[name] = record
     bionic, math, libdl, context = [reports[n] for n in ('bionic', 'math', 'libdl', 'context')]
     if any(bionic[mode]['art_libc_cases'] != 73 or bionic[mode]['vfork_cases'] != 30 or
+           bionic[mode].get('allocator_pressure_cases') != 3 or bionic[mode].get('vm_budget_bytes') != 1 << 30 or
            bionic[mode]['libcore_frontend_cases'] != 75 or bionic[mode]['unlink_cases'] != 29 or
            any(bionic[mode].get(k) != v for k, v in BINDER_LIBC_EXPECTED.items()) or
            bionic[mode]['signal_wait_cases'] != 33 or bionic['acceptance'][mode]['passed'] != 328 or

@@ -23,6 +23,7 @@ from bionic_syscalls import generate as generate_syscalls
 from bionic_builtins import prepare as prepare_builtins
 from bionic_vfork import prepare as prepare_vfork
 from bionic_ids import prepare as prepare_ids
+from bionic_scudo import prepare as prepare_scudo
 
 
 def digest(path):
@@ -58,6 +59,9 @@ def main():
         if selection["source_commit"] != source_pins[name]["commit"]:
             raise RuntimeError(f"Component selection differs from source pin: {name}")
         components[name] = obtain_source(name)
+    allocator_config = prepare_scudo(components['scudo'], build / 'scudo-config',
+        libraries['components']['scudo']['additional_notices']['config/custom_scudo_config.h'],
+        args.profile == 'native')
     adaptations, overlay = [], None
     if args.profile == "native":
         patch = json.loads((ROOT / "third_party/bionic/native-boundary.json").read_text(encoding="utf-8"))
@@ -101,6 +105,7 @@ def main():
     includes = ["-I", str(android_ids), "-I", str(libcore_headers / "libcutils/include"),
                 "-I", str(source / "libstdc++/include"), "-I", str(cutils / "libcutils/include")]
     includes += ["-I", str(ROOT / "third_party/bionic/adapters")]
+    includes += ["-I", str(build / 'scudo-config')]
     for name, component in components.items():
         for relative in libraries["components"][name]["includes"]:
             includes += ["-I", str(component / relative)]
@@ -273,6 +278,9 @@ def main():
             notice_data.extend(f"\n--- {name}/{relative} ---\n".encode("utf-8"))
             notice_data.extend(path.read_bytes())
         notice_path = build / (name.upper() + "-NOTICE.txt")
+        if name == 'scudo' and args.profile == 'native':
+            notice_data.extend(b'\n--- ARTBox configured Android primary: RegionSizeLog 28 -> 24 ---\n')
+            notice_data.extend((build / 'scudo-config/custom_scudo_config.h').read_bytes())
         notice_path.write_bytes(notice_data)
         component_notices[name] = {"sha256": digest(notice_path), "parts": parts}
     inline_raise = build / "bionic_inline_raise.h"
@@ -291,7 +299,8 @@ def main():
                   **{name: source_pins[name] for name in ("fs-config-generator", "bionic-libcore-headers")},
                   **{name: source_pins[name] for name in components}},
               "component_selection_sha256": digest(component_path), "component_notices": component_notices,
-              "allocator_tls": allocator_tls, "strings": strings, "binary128": binary128, "vfork": vfork,
+              "allocator_tls": allocator_tls, "allocator_config": allocator_config,
+              "strings": strings, "binary128": binary128, "vfork": vfork,
               "android_ids": android_ids_info,
               "inline_raise_sha256": digest(inline_raise), "syscall_stubs": syscall_info}
     artifacts = Path(os.environ["ARTBOX_ARTIFACTS_DIR"])

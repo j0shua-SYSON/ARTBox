@@ -42,8 +42,11 @@ framework layouts and diagnostic IPA verify independently. See
 The verified ART IPA contains 16 signed iOS 15 Mach-O images, 15 original ELF
 resources, boot/managed/hello DEX and ICU data. On the test iPhone, the `cce2bb9`
 ART build returns to the home screen before an ART result is visible, with no
-crash report found. Startup diagnostics now persist in the app's cache directory
-to investigate that failure. Binder/services, Activities, AndroidX APKs, graphics and audio remain future
+crash report found. The `930f17d` M2 and ART cache logs identify Scudo's 8.25 GiB
+contiguous reservation failing with ENOMEM before startup. A candidate reduces
+the primary reservation to 528 MiB, with a 1 GiB M2 VM-budget regression and
+allocator-exhaustion checks; signed execution and hardware retesting are pending.
+Binder/services, Activities, AndroidX APKs, graphics and audio remain future
 milestones. The runtime is a one-shot diagnostic; repeated VM creation and
 general dynamic library growth/unloading are not supported. AOT/OAT and host
 dex2oat remain future coverage under interpreter-only M3 acceptance.

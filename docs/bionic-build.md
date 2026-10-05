@@ -186,6 +186,15 @@ runtime must advertise CPU capabilities accurately. GWP-ASan retains its sampled
 guarded allocator and crash-handler implementation. The Bionic dynamic malloc,
 heapprofd and limit wrappers are compiled rather than replaced.
 
+The native build now selects 16 MiB primary regions through Scudo's custom-header
+hook, retaining 33 contiguous Android size classes and reserving 528 MiB in total.
+The upstream control keeps its 8.25 GiB reservation. The latter returns ENOMEM on
+the test iPhone before allocator startup. Only the primary region exponent changes;
+both configurations and notices remain in the artifacts. Signed M2 execution now
+has a 1 GiB reservation ceiling and additionally retains 24 MiB in one allocation
+size to exercise region exhaustion, fallback and realloc. These checks are separate
+from the fixed 328-case denominator. See ADR 0126 for the capacity/performance tradeoff.
+
 Both components use Soong's `-DANDROID` as well as the NDK's `__ANDROID__` macro.
 The initial compile probe omitted the former and selected an empty POSIX mapping
 name helper; retaining the upstream Android define fixed that error with warnings

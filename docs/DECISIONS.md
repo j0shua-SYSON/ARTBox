@@ -3486,3 +3486,35 @@ ordinary stock-device provisioning. Record the two evidence scopes separately.
 The logging cost is synchronous, unbuffered diagnostic I/O; it is not intended
 as a performance benchmark configuration. The underlying ART exit is still an
 unresolved failure, not an accepted slow path or a successful device test.
+
+## 0126: Bound Scudo's primary reservation for ordinary iOS address spaces
+
+The `930f17d` M2 IPA fails on an iPhone 6s Plus running iOS 15.8.5 when the
+original Android Scudo configuration reserves 8,858,370,048 bytes (8.25 GiB).
+The native mapping returns ENOMEM, Scudo reports an internal map failure and
+Bionic exits. This occurs before the allocator test, despite green Mac CI.
+The installed executable is byte-identical to the CI artifact. The new cache
+log provides the syscall and allocator error without attaching a debugger.
+
+Keep Scudo and its AndroidNormalConfig, changing only the ARM64 primary region
+exponent from 28 to 24. Its 33 contiguous regions then reserve 528 MiB instead
+of 8.25 GiB. Generate the configuration through Scudo's existing custom-header
+hook from the hash-verified original; retain both headers and all notices.
+The unadapted compilation control keeps exponent 28. Size classes, region
+randomization, compact pointers, shared TSDs, release policy, secondary allocator
+and GWP-ASan remain the original implementation.
+
+Alternatives were separate lazy region mappings or replacing the primary with
+Scudo's 32-bit allocator. Both change more allocator behavior. Enlarging the
+device's permitted address space through entitlements is outside the project's
+constraints. The smaller primary uses the existing larger-class/secondary
+fallback when a region fills; this can increase mappings, fragmentation and
+allocation cost under pressure. It adds no runtime code generation.
+
+Make both signed M2 processes use a 1 GiB total VM reservation budget, preserving
+all 328 existing expectations and reporting this additional contract separately.
+A retained 24 MiB single-size allocation workload must survive primary exhaustion,
+preserve every byte and support realloc. This turns the hardware failure into a
+repeatable Mac constraint. ART retains its separate VM ceiling, but uses the same
+bounded Scudo build. Full signed execution and device retesting are required
+before calling the candidate a fix; its performance cost is not yet measured.

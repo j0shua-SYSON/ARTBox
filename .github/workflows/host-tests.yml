@@ -323,6 +323,7 @@ jobs:
             artifacts/m2-acceptance.json
             build/m2/bionic-startup/
             build/m2/bionic/native/comparetf2.c.o
+            build/m2/bionic/native/scudo-config/
             build/m2/bionic/native/vfork/
             build/m2/bionic/native/android-ids/
             build/m2/bionic/upstream/android-ids/upstream-tests.log

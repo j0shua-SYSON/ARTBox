@@ -33,6 +33,32 @@ int64_t artbox_stub_syscall(uint64_t n, uint64_t a0, uint64_t a1, uint64_t a2,
 }
 int *artbox_stub___errno(void) { return &errno; }
 
+int artbox_allocator_pressure_check(void) {
+    // Retain 24 MiB in one size class: a 16 MiB primary region must exhaust
+    // safely and continue through Scudo's existing larger-class/secondary path.
+    enum { COUNT = 384, SIZE = 65536 };
+    unsigned char *blocks[COUNT] = {0};
+    int result = -1;
+    for (unsigned i = 0; i < COUNT; ++i) {
+        blocks[i] = malloc(SIZE);
+        if (!blocks[i] || (uintptr_t)blocks[i] % 16 || malloc_usable_size(blocks[i]) < SIZE) goto done;
+        memset(blocks[i], (unsigned char)(i + 1), SIZE);
+    }
+    result = -2;
+    for (unsigned i = 0; i < COUNT; ++i)
+        for (unsigned j = 0; j < SIZE; ++j)
+            if (blocks[i][j] != (unsigned char)(i + 1)) goto done;
+    result = -3;
+    unsigned char *grown = realloc(blocks[0], SIZE * 2);
+    if (!grown) goto done;
+    blocks[0] = grown;
+    for (unsigned j = 0; j < SIZE; ++j) if (grown[j] != 1) goto done;
+    result = 3;
+done:
+    for (unsigned i = 0; i < COUNT; ++i) free(blocks[i]);
+    return result;
+}
+
 int artbox_startup_check(void) {
     int cases = 0;
     CHECK(getpid() == 10000 && gettid() == 10000);

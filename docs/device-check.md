@@ -61,4 +61,7 @@ The equivalent Mac build command is
 See [M3 acceptance](acceptance/m3.md) for the required same-run inputs and
 automated evidence. On the existing jailbroken iPhone 6s Plus running iOS 15.8.5,
 the `cce2bb9` ART diagnostic exits after launch; no ART result or crash report was
-observed. This remains an unresolved physical-runtime failure.
+observed. At `930f17d`, both M2 and ART cache logs identify Scudo's 8.25 GiB
+reservation returning ENOMEM followed by Bionic process exit. Their installed
+executables match the CI bytes. The smaller-primary candidate still needs a
+passing device retest; the original failure is not ART acceptance.

@@ -325,6 +325,12 @@ carry Apache-2.0 with LLVM exceptions, with legacy permissive license texts in
 header; `GWP_ASAN-NOTICE.txt` includes the complete license file. Both are verified
 and retained beside the CI objects. The original source notices remain intact.
 
+For the native runtime, `scripts/bionic_scudo.py` generates a second configuration
+from the pinned original, changing only AndroidNormalConfig's ARM64 primary region
+exponent from 28 to 24. The generated header retains the original notices and is
+also appended to `SCUDO-NOTICE.txt`; both original and configured headers accompany
+the build artifact. This configuration remains under its upstream terms, not MIT.
+
 The project-owned `artbox_gwp_asan_tls.h` uses GWP-ASan's platform-header hook;
 it is original MIT integration code. It changes no allocator source file and
 does not relicense Scudo or GWP-ASan. The new Linux fixture includes the pinned
