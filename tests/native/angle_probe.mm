@@ -50,7 +50,7 @@ int main() {
             const EGLint attributes[] = {EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_METAL_ANGLE, EGL_NONE};
             auto getDisplay = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(eglGetProcAddress("eglGetPlatformDisplayEXT"));
             require(getDisplay != nullptr, "ANGLE platform entry");
-            EGLDisplay display = getDisplay(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, attributes);
+            EGLDisplay display = getDisplay(EGL_PLATFORM_ANGLE_ANGLE, nullptr, attributes);
             require(display != EGL_NO_DISPLAY && eglInitialize(display, nullptr, nullptr), "Metal EGL initialization");
             require(eglBindAPI(EGL_OPENGL_ES_API), "GLES API binding");
             const EGLint configAttributes[] = {EGL_SURFACE_TYPE, EGL_PBUFFER_BIT, EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
