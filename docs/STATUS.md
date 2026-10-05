@@ -210,9 +210,17 @@ both pass all 63 shared cases and nine native blocking cases; downloaded logs,
 artifact digests and binary architectures verify. Guest eventfd2/read/write
 now pass the same fixture locally, plus epoll wakeup, weak-interest lifetime,
 injected interruption after close/reuse, semaphore contention, wait admission,
-VM/copy-fault controls and 2,048 concurrent increments. Native production
-comparison and signed-runtime regression await CI. Timerfd and actual AOSP
-Looper/servicemanager execution remain ahead.
+VM/copy-fault controls and 2,048 concurrent increments. At `bea672d`, downloaded
+Linux x86_64 and ARM64 evidence verifies the 63 shared native/guest cases;
+Darwin ARM64 verifies the guest counter and real-provider wake controls.
+Binder regression and all 104 input hashes verify as well.
+
+An original timerfd reference now covers 59 shared assertions for monotonic
+expiration counts, relative/absolute deadlines, disarming, periodic gettime,
+copy-fault ordering and malformed inputs. Six native syscall-observed read/epoll
+cases add timer wakeup, signal interruption and descriptor close/reuse. Both
+units compile strictly for Android ARM64; Linux execution awaits CI. Guest
+timerfd and actual AOSP Looper/servicemanager execution remain ahead.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

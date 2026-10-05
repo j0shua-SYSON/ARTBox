@@ -3089,3 +3089,30 @@ provider failures, copy faults across a protected page, foreign VM rejection,
 descriptor exhaustion and 2,048 concurrent increments. Native Linux interruption
 and ARTBox's injected delivery remain different evidence. Anonymous-inode stat,
 fcntl/dup, general I/O readiness and signed Looper execution are still pending.
+
+## 0113: Test monotonic timerfd ordering and expiration counts before translation
+
+Real servicemanager creates a CLOCK_MONOTONIC timer, arms a relative five-second
+period and registers it with Looper. Add a shared original userspace fixture
+before implementing that virtual descriptor. Native x86_64/ARM64 tests cover
+the 32-byte itimerspec layout, unsigned syscall argument truncation, malformed
+times, new-input validation before fd/flag checks, and timer replacement before
+an old-value output fault. Disarming discards unread expirations while retaining
+the requested interval; periodic gettime advances deadlines without consuming
+the expiration count. Establish these behaviors in CI rather than assuming
+timerfd is an eventfd with an extra timeout.
+
+Use a past absolute monotonic deadline for ready-state checks and a bounded
+readiness loop instead of assuming a sleep is sufficient. Periodic reads must
+include missed intervals. Separately observe native read and epoll_pwait workers
+inside the exact syscall before rearming, interrupting or closing/reusing their
+descriptor. There is no simulated kernel or production host-proc dependency.
+
+Timerfd's read copyout differs from eventfd: a partially copied result may return
+a positive byte count before faulting. Record the observed prefix length on each
+architecture and require expiration consumption even on a complete copy fault.
+The amount a kernel copy primitive manages before a page fault is not a portable
+byte-for-byte guarantee. Do not reuse eventfd's all-or-error copy behavior without
+testing this boundary. The reference is original MIT code; Linux source is
+consulted only for behavior under its separate license. Guest timerfd remains
+unimplemented at this checkpoint.

@@ -468,6 +468,20 @@ The portable implementation now passes the shared fixture locally plus
 read/write/epoll wakeups, semaphore contention, wait/resource exhaustion,
 foreign VM rejection, copy faults, injected interruption after close/reuse and
 2,048 concurrent increments. Epoll retains only weak counter identity; an active
-read/write may keep an old interest alive until it returns. Paired Linux CI and
-signed-runtime regression for the implementation remain pending. Native Bionic
+read/write may keep an old interest alive until it returns. At `bea672d`, downloaded
+Linux x86_64 and ARM64 artifacts verify the 63 shared native/guest assertions;
+the Darwin ARM64 artifact verifies guest counter/wake behavior too. The Binder
+regression and its 104 input hashes verify. Native Bionic
 signal-handler interruption and actual signed Looper execution are not claimed.
+
+## M4: monotonic timerfd reference
+
+`timerfd_create` (85), `timerfd_settime` (86) and `timerfd_gettime` (87) remain
+unimplemented in the guest. A new 59-assertion native fixture covers creation,
+disarmed state, transfer errors, relative/absolute monotonic deadlines, periodic
+expiration counts, malformed times, copyout ordering, saturation and seek.
+Native controls add six syscall-observed read/epoll wake, interruption and
+close/reuse cases. A protected-page read records any successfully copied prefix
+and requires consumption of the pending expiration. Strict Android ARM64
+compilation passes; native execution awaits CI. Realtime, alarm and boottime
+clock behavior remain outside the proposed first monotonic implementation.

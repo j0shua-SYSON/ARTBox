@@ -26,6 +26,12 @@ no implementation is copied, vendored, linked or included in an Apple bundle.
 Native tests call the CI host's existing Linux syscalls and use its system UAPI
 headers. The Android ARM64 compile check uses the already reviewed NDK headers.
 
+The monotonic timerfd fixture and native wait tests are also original MIT code.
+Linux v6.17 [`fs/timerfd.c`](https://github.com/torvalds/linux/blob/v6.17/fs/timerfd.c)
+(GPL-2.0) is a behavior-only reference for expiration accounting, copyout and
+set/get ordering. No kernel code is imported or shipped. The oracle executes
+normal timerfd/epoll calls on existing native Linux CI hosts.
+
 The native Linux reference fixture additionally uses Ubuntu's unmodified
 `linux-modules-extra-6.17.0-1022-azure`, version `6.17.0-1022.22`, matching CI's
 running kernel. `third_party/binder/kernel-reference.json` records the official
