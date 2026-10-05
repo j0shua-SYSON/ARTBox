@@ -58,6 +58,7 @@ def main():
     graph = read(ROOT / 'third_party/binder/native-libraries.json')
     selection = read(ROOT / 'third_party/binder/native-sources.json')
     catalog = {name: selection[name] for name in ('binder-utils', 'binder-system', 'binder-build-reference')}
+    catalog['art-liblog-events'] = read(ROOT / 'third_party/art/runtime-sources.json')['art-liblog-events']
     sources = {name: obtain_files(name, spec, Path(os.environ['ARTBOX_CACHE_DIR'])) for name, spec in catalog.items()}
     common = read(ROOT / 'third_party/sources.json')
     for name in ('libbase-dex', 'liblog-dex', 'property-info'):
@@ -98,6 +99,9 @@ def main():
         for name in ('logger_name', 'logger_write', 'properties'):
             units.append(('log-' + name, sources['liblog-dex'] / 'liblog' / (name + '.cpp'),
                           ['-DLIBLOG_LOG_TAG=1006', '-DSNET_EVENT_LOG_TAG=1397638484', '-DANDROID_DEBUGGABLE=0']))
+        for name in ('log_event_list', 'log_event_write'):
+            units.append(('log-' + name, sources['art-liblog-events'] / 'liblog' / (name + '.cpp'),
+                          ['-I', str(sources['liblog-dex'] / 'liblog')]))
         units.append(('main.cpp', ROOT / 'tests/native_looper.cpp', []))
     objects, boundaries = {}, {}
     started = time.monotonic()
@@ -157,7 +161,8 @@ def main():
                'scripts/ndk.py', 'scripts/build_binder.py', 'scripts/binder_aidl.py',
                'scripts/icu_guest_link.py', 'scripts/bionic_adapt.py', 'third_party/binder/aidl-tools.json',
                'third_party/binder/native-libraries.json', 'third_party/binder/native-sources.json',
-               'third_party/bionic/builtins.json', 'third_party/sources.json', '.github/workflows/host-tests.yml']
+               'third_party/bionic/builtins.json', 'third_party/sources.json',
+               'third_party/art/runtime-sources.json', '.github/workflows/host-tests.yml']
     for name in project: files['artbox/' + name] = ROOT / name
     bundle = output / 'corresponding-source.zip'
     with zipfile.ZipFile(bundle, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
