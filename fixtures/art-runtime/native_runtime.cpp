@@ -31,12 +31,14 @@ static bool interpreter_policy() {
 // JNI varargs and C++ calls stay inside this Android-compiled signed image.
 static int run_runtime(artbox_vm* owner, size_t page, uint64_t* metrics) {
   // The 128 MiB Java maximum does not require the full 4 GiB reference range.
-  // Leave room for ART's separate spaces while fitting a 2 GiB shared VM budget.
-  constexpr uint64_t kManagedWindowBytes = UINT64_C(1) << 30;
+  // Leave room for ART's separate spaces within a 1536 MiB shared VM budget.
+  constexpr uint64_t kManagedWindowBytes = UINT64_C(512) << 20;
+  const uint64_t reserved_before = artbox_vm_reserved_bytes(owner);
   const int binding = artbox_art_heap_initialize(owner, kManagedWindowBytes, page);
   if (binding) {
-    fprintf(stderr, "ARTBox managed arena: bytes=%llu error=%d\n",
-            static_cast<unsigned long long>(kManagedWindowBytes), binding);
+    fprintf(stderr, "ARTBox managed arena: bytes=%llu reserved_before=%llu error=%d\n",
+            static_cast<unsigned long long>(kManagedWindowBytes),
+            static_cast<unsigned long long>(reserved_before), binding);
     return 76;
   }
   metrics[2] = artbox_art_heap_window().length;

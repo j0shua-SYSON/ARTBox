@@ -57,11 +57,14 @@ bytes. Startup/client observations are 139.642 and 274.555 ms, with roughly
 See [M2 device evidence](acceptance/m2.md#subsequent-physical-device-observation).
 The `31c9a4a` full ART package reaches all 38 constructors on the phone, then
 fails its preliminary 4 GiB heap binding. All 16 installed images match CI.
-A candidate uses a four-page bootstrap window, a 1 GiB managed arena and a
-2 GiB guest reservation ceiling, retaining full 4 GiB Linux reference coverage.
+A four-page bootstrap window succeeds on the phone at `bfa34db`, but the real
+VM worker's 1 GiB managed-arena reservation returns ENOMEM before JavaVM creation.
+That candidate passes all signed Mac managed checks within a 2 GiB guest ceiling.
+The follow-up reduces the arena to 512 MiB and the guest ceiling to 1536 MiB,
+retaining the 128 MiB Java maximum and full 4 GiB Linux reference coverage.
 Its signed and physical execution checks are pending; see ADR 0128.
-All 22 host jobs and iOS pass at `31c9a4a`; both integrated IPAs independently
-verify. M2 reserves 560,988,160 bytes in the normal Mac run and 562,118,656 in
+All 22 host jobs and iOS pass at `bfa34db`; its integrated ART IPA independently
+verifies. At `2f23685`, M2 reserves 560,988,160 bytes in the normal Mac run and 562,118,656 in
 the forced-sampling run, within the new 1 GiB ceiling. Both retain 328/328 and
 pass all three allocation-pressure checks. These are correctness measurements.
 Binder/services, Activities, AndroidX APKs, graphics and audio remain future

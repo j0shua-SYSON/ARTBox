@@ -17,8 +17,8 @@ def completed():
                             registered_vms=0, cleanup=True, heap_binding_verified=True,
                             runtime_started=True, dex_executed=True, startup_ns=1000,
                             managed_bytes=4096, process_peak_rss_bytes=65536, threads_reaped=8,
-                            vm_budget_bytes=2 << 30, reserved_bytes=1600 << 20,
-                            bootstrap_window_bytes=65536, managed_window_bytes=1 << 30),
+                            vm_budget_bytes=1536 << 20, reserved_bytes=1100 << 20,
+                            bootstrap_window_bytes=65536, managed_window_bytes=512 << 20),
                 managed_checks=dict(heap_checksum=6496, exceptions=3, attachments=4,
                                     gc_before=0, gc_after=1),
                 thread_state_checks=dict(threads=3, attach_cycles=4, tls_isolated=True,
@@ -66,9 +66,11 @@ class Acceptance(unittest.TestCase):
             with self.assertRaises(RuntimeError): validate_acceptance(data)
 
     def test_oversized_or_missing_memory_budget(self):
-        for key, value in (('vm_budget_bytes', 32 << 30), ('reserved_bytes', (2 << 30) + 1),
+        for key, value in (('vm_budget_bytes', 32 << 30), ('reserved_bytes', (1536 << 20) + 1),
                            ('reserved_bytes', 0), ('reserved_bytes', True),
-                           ('bootstrap_window_bytes', 4 << 30), ('managed_window_bytes', 4 << 30)):
+                           ('bootstrap_window_bytes', 4 << 30), ('managed_window_bytes', 4 << 30),
+                           ('managed_window_bytes', 1 << 30), ('vm_budget_bytes', 2 << 30),
+                           ('reserved_bytes', 1631879168)):
             with self.subTest(key=key, value=value):
                 data = completed(); data['native'][key] = value
                 with self.assertRaises(RuntimeError): validate_acceptance(data)

@@ -508,7 +508,7 @@ static void *run(void *context) {
             fprintf(stderr, "signed ART runtime acceptance entry\n");
             int status = (int32_t)artbox_call7(entry(&images[1], "artbox_native_runtime_check"),
                 (uintptr_t)vm, artbox_vm_page_size(vm), (uintptr_t)metrics, 0, 0, 0, 0);
-            if (status || !metrics[0] || !metrics[1] || metrics[2] != (UINT64_C(1) << 30)) {
+            if (status || !metrics[0] || !metrics[1] || metrics[2] != (UINT64_C(512) << 20)) {
                 fprintf(stderr, "signed ART runtime result: %d\n", status);
                 fail("ART JavaVM, DEX and lifecycle acceptance");
             }
@@ -723,8 +723,8 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     artbox_system_ops system = artbox_native_system();
     // Exercise all M2 cases within a bounded address budget on Mac as well as iOS.
     // The previous 8.25 GiB Scudo reservation must fail this contract everywhere.
-    // ART also rejects the old 4 GiB preliminary/runtime window reservations.
-    const uint64_t vm_budget = (art_mode ? UINT64_C(2) : UINT64_C(1)) << 30;
+    // ART also rejects the old 4 GiB and 1 GiB managed window reservations.
+    const uint64_t vm_budget = (art_mode ? UINT64_C(1536) : UINT64_C(1024)) << 20;
     vm = artbox_vm_create(&ops, vm_budget, 4096);
     if (artbox_native_files_open(input->root, &backing_files)) fail("rooted filesystem");
     artbox_file_ops files = artbox_native_files_ops(backing_files);

@@ -41,10 +41,10 @@ def validate_acceptance(report):
                     ('startup_ns', 'managed_bytes', 'process_peak_rss_bytes', 'threads_reaped')),
                 'ART requires measured execution and worker cleanup')
         require(type(native['reserved_bytes']) is int and
-                native['vm_budget_bytes'] == 2 << 30 and
+                native['vm_budget_bytes'] == 1536 << 20 and
                 0 < native['reserved_bytes'] <= native['vm_budget_bytes'] and
                 native['bootstrap_window_bytes'] in (16384, 65536, 262144) and
-                native['managed_window_bytes'] == 1 << 30,
+                native['managed_window_bytes'] == 512 << 20,
                 'ART requires bounded bootstrap, managed arena and total VM reservations')
         require(managed['heap_checksum'] == 6496 and managed['exceptions'] == 3 and
                 managed['attachments'] == 4 and type(managed['gc_before']) is int and

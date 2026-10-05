@@ -3554,14 +3554,14 @@ byte. The cache log establishes the failed binding, without an errno result
 from that older harness. Mac acceptance alone missed this device limitation.
 
 Use four native pages for the preliminary null-reference/binding contract and
-a 1 GiB managed arena for the signed diagnostic's 128 MiB Java heap maximum.
-The larger arena accommodates ART's separate spaces while avoiding the full
+a 512 MiB managed arena for the signed diagnostic's 128 MiB Java heap maximum.
+The arena accommodates ART's separate spaces while avoiding the full
 compressed-reference range. The encoding remains a 32-bit base-relative offset,
 validated against the actual window; it does not require every possible offset
 to be reserved. Keep the native Linux reference's full 4 GiB mapping, class
 table, card table and large-object bitmap coverage unchanged.
 
-Enforce a 2 GiB reservation ceiling in the shared signed ART harness, including
+Enforce a 1536 MiB reservation ceiling in the shared signed ART harness, including
 Bionic, guest mappings and retained windows. This is a guest-owned VM budget,
 not a process RSS or total host address-space limit. Report both window sizes,
 the ceiling and actual reserved bytes. Bootstrap, signed-runtime and device
@@ -3575,6 +3575,15 @@ reference arena grow. Early release introduces reference-lifetime concerns;
 growth complicates stable offsets and contiguous address ownership. A small
 retained preliminary window keeps the current ownership contract. Applications
 with larger heaps will need a separately validated configurable budget; a
-1 GiB arena is the diagnostic policy, not an Android compatibility guarantee.
+512 MiB arena is the diagnostic policy, not an Android compatibility guarantee.
 No executable mapping, entitlement or runtime code generator is introduced.
 Physical ART execution remains pending until the candidate passes on the phone.
+
+The first candidate (`bfa34db`) used a 1 GiB arena and 2 GiB ceiling. All 22 host
+jobs and iOS passed; signed Mac execution reserved 1,631,879,168 bytes and
+completed every managed check. On the phone, the four-page preliminary binding
+and Bionic VM worker succeeded, but the 1 GiB arena returned ENOMEM before
+JNI_CreateJavaVM. The 512 MiB follow-up keeps the same Java heap maximum and
+tests; its lower total ceiling also rejects the preceding Mac reservation
+footprint. Failed arena binding now records preexisting guest reservations
+to make budget consumption visible alongside the mapping error.

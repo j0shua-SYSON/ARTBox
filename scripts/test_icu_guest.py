@@ -157,13 +157,13 @@ def main():
         if (native['constructors'] < 35 or native['tls_modules'] < 1 or
                 native['linked_images'] != (15 if libcore else 10) or native['registered_vms'] or
                 not native['heap_binding_verified'] or not native['cleanup'] or
-                native['vm_budget_bytes'] != 2 << 30 or
-                not 0 < native['reserved_bytes'] <= 2 << 30 or
+                native['vm_budget_bytes'] != 1536 << 20 or
+                not 0 < native['reserved_bytes'] <= 1536 << 20 or
                 native['bootstrap_window_bytes'] != 4 * os.sysconf('SC_PAGE_SIZE') or
                 native['runtime_started'] != runtime or native['dex_executed'] != runtime):
             raise RuntimeError('Incomplete signed native dependency execution contract')
         if runtime:
-            if native['managed_window_bytes'] != 1 << 30:
+            if native['managed_window_bytes'] != 512 << 20:
                 raise RuntimeError('Signed ART managed arena exceeded the diagnostic budget')
             stderr = process.stderr.decode('utf-8', errors='replace')
             for message in ('ARTBox: signed ART started; switch interpreter, no JIT, no profiling cache',
