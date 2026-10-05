@@ -76,3 +76,22 @@ archive, preserving imports for the existing signed Bionic/C++/logging closure.
 Every object is checked for architecture and forbidden syscall/thread-pointer/
 reserved-register instructions. This profile does not execute the guest yet.
 It is preparation for the signed Bionic test, not servicemanager acceptance.
+
+The shared Apple harness now has a separate five-image Looper diagnostic:
+libc, libart, libm, libdl, then the Looper test library. `libart` supplies the
+already-built C++ and logging code without starting a JavaVM. The selected
+Bionic sources include the original public `eventfd()` wrapper, complementing
+the existing translated syscall entry. The fixture uses Bionic pthreads and
+TLS and reaches the portable VFS for its eventfd, epoll and timerfd operations.
+
+On an ARM64 Mac, `scripts/test_looper_guest.py` consumes verified Android
+objects and the four bootstrap dependencies from the same clean Git revision,
+links with no undefined strong symbols, audits the final instruction boundary,
+and packages ordinary signed macOS and iOS 15 frameworks. It executes each of
+the three fixture modes in a fresh process, checks the exact Linux reference
+results, and requires the Bionic worker to be reaped even after a deliberate
+failure. It preserves binary/source hashes, notices and execution logs. The
+shared ABI result header lives with the platform headers so every existing
+Apple harness source archive also includes its complete compile-time inputs.
+Signed execution remains unverified until this CI step passes; the Looper
+framework alone does not establish servicemanager or physical iPhone support.

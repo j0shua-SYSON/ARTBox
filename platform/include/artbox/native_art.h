@@ -15,6 +15,18 @@ typedef struct artbox_art_input {
  * Does not start a JavaVM or execute DEX. Unexpected failures terminate the
  * process, as in the Bionic acceptance runner. No physical-device claim. */
 int artbox_run_native_art_bootstrap(const artbox_art_input *input, const artbox_host *host);
+
+typedef struct artbox_looper_input {
+    /* The four bootstrap images above, then the real AOSP Looper test image. */
+    const char *frameworks[5], *elfs[5];
+    const char *root;
+    /* 0: acceptance; 1: retain callback; 2: omit wake (negative controls). */
+    unsigned mutation;
+} artbox_looper_input;
+/* One-shot native Looper diagnostic through Bionic and the translated VFS.
+ * Reports cleanup and the shared fixture result even for a negative control;
+ * returns one when the fixture rejects behavior. Does not start a JavaVM. */
+int artbox_run_native_looper(const artbox_looper_input *input, const artbox_host *host);
 typedef struct artbox_icu_input {
     /* libc, libart, libm, libdl, nativehelper, ICU common/i18n/shim/JNI, test. */
     const char *frameworks[10], *elfs[10];

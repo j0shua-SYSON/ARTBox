@@ -1,6 +1,7 @@
 // Signed Bionic fixture using the portable manifest-scoped load-group engine.
 #include "artbox/native_bionic.h"
 #include "artbox/native_art.h"
+#include "artbox/looper_result.h"
 #include "artbox/native_dlfcn.h"
 #include "artbox/dynamic.h"
 #include "artbox/relocation.h"
@@ -47,8 +48,12 @@ typedef struct native_input {
     const char *const *frameworks;
     const char *const *elfs;
     const char *root;
-    unsigned sampled, count;
+    unsigned sampled, count, mutation;
 } native_input;
+static struct artbox_looper_result looper_result;
+static unsigned looper_mutation;
+static int looper_status;
+static uint64_t looper_ns;
 static artbox_load_group *load_group;
 static artbox_vm *vm;
 static artbox_vfs *filesystem;
@@ -490,6 +495,17 @@ static void *run(void *context) {
             if (artbox_threads_drain(threads, 5000)) fail("ART child thread reaper");
             reaped = artbox_threads_reaped(threads);
         }
+        if (art_bootstrap == 5) {
+            uint64_t started = now();
+            looper_status = (int32_t)artbox_call7(entry(&images[4], "artbox_native_looper_check"),
+                looper_mutation, (uintptr_t)&looper_result, 0, 0, 0, 0, 0);
+            looper_ns = now() - started;
+            fprintf(stderr, "signed Looper result: %d, cases: %u, failure: %u\n",
+                looper_status, looper_result.cases, looper_result.failure);
+            if (artbox_threads_drain(threads, 5000)) fail("Looper child thread reaper");
+            reaped = artbox_threads_reaped(threads);
+            if (reaped != 1) fail("Looper worker count");
+        }
         artbox_native_dlfcn_swap(old_dl);
         artbox_guest_dl_thread_destroy(dl_thread);
         if(artbox_native_signal_thread_detach(&signal_thread)) fail("ART primary signal detach");
@@ -641,12 +657,14 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     static atomic_flag used = ATOMIC_FLAG_INIT;
     if (!input || !input->root || !host || !host->log || input->sampled > 1) return -22;
     if(console && !console->log) return -22;
-    if (art_mode > 4 || input->count != (art_mode >= 3 ? 15u : art_mode == 2 ? 10u : 4u)) return -22;
+    if (art_mode > 5 || input->count != (art_mode == 5 ? 5u : art_mode >= 3 ? 15u : art_mode == 2 ? 10u : 4u)) return -22;
+    if (input->mutation > (art_mode == 5 ? 2u : 0u)) return -22;
     for (unsigned i = 0; i < input->count; ++i)
         if (!input->frameworks[i] || !input->elfs[i]) return -22;
     if (atomic_flag_test_and_set(&used)) return -114;
     guest_console = console;
     art_bootstrap = art_mode;
+    looper_mutation = input->mutation;
     image_count = input->count;
     force_sampling = input->sampled;
     for (unsigned i = 0; i < 4; ++i) {
@@ -692,7 +710,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
         modules[i] = (artbox_link_module){images[i].dynamic.soname, &images[i].dynamic, (uintptr_t)images[i].rx, &memory[i], 1};
     }
     artbox_elf_result linked = artbox_load_group_create(modules, image_count,
-        art_bootstrap >= 3 ? "libartbox_libcore_check.so" :
+        art_bootstrap == 5 ? "libartbox_looper_check.so" : art_bootstrap >= 3 ? "libartbox_libcore_check.so" :
         art_bootstrap == 2 ? "libartbox_icu_check.so" : art_bootstrap ? "libart.so" : "libstartup_client.so",
         resolve, NULL, &load_group);
     if (linked == ARTBOX_ELF_OK) linked = artbox_load_group_tls_resolver(load_group, (uintptr_t)entry(&images[0], "artbox_tlsdesc_absolute"));
@@ -703,6 +721,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
             "libicuuc.so", "libicui18n.so", "libicu.so", "libicu_jni.so", "libexpat.so", "libandroidio.so",
             "libopenjdkjvm.so", "libjavacore.so", "libopenjdk.so", "libartbox_libcore_check.so"};
         if (art_bootstrap == 2) names[9] = "libartbox_icu_check.so";
+        if (art_bootstrap == 5) names[4] = "libartbox_looper_check.so";
         for (unsigned i = 0; i < image_count; ++i)
             if (!modules[i].name || strcmp(modules[i].name, names[i])) fail("ART bootstrap image order");
         const artbox_guest_dl_ops loader_ops = {NULL, loader_invoke, loader_tls};
@@ -753,7 +772,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     int length;
     if (art_bootstrap) {
         if (result || !constructors || artbox_bionic_get_tls()) fail("ART bootstrap completion");
-        char extra[256] = "";
+        char extra[768] = "";
         if (art_bootstrap == 2) {
             int count = snprintf(extra, sizeof(extra), "\"icu_cases\":8,\"icu_check_ns\":%" PRIu64 ",", icu_check_ns);
             if (count < 0 || (size_t)count >= sizeof(extra)) fail("ICU result formatting");
@@ -771,6 +790,16 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
                 "\"process_peak_rss_bytes\":%ld,", art_startup_ns, art_managed_bytes, reaped, usage.ru_maxrss);
             if (count < 0 || (size_t)count >= sizeof(extra)) fail("ART runtime result formatting");
         }
+        if (art_bootstrap == 5) {
+            int count = snprintf(extra, sizeof(extra),
+                "\"looper\":{\"status\":%d,\"cases\":%u,\"failure\":%u,\"wake_threads\":%u,"
+                "\"message_calls\":%u,\"fd_callbacks\":%u,\"timer_callbacks\":%u},"
+                "\"looper_check_ns\":%" PRIu64 ",\"threads_reaped\":%" PRIu64 ",",
+                looper_status, looper_result.cases, looper_result.failure, looper_result.wake_threads,
+                looper_result.message_calls, looper_result.fd_callbacks, looper_result.timer_callbacks,
+                looper_ns, reaped);
+            if (count < 0 || (size_t)count >= sizeof(extra)) fail("Looper result formatting");
+        }
         length = snprintf(report, sizeof(report),
             "{\"constructors\":%u,\"tls_modules\":%u,\"linked_images\":%u,\"registered_vms\":0,%s"
             "\"heap_binding_verified\":true,\"sigchain_cases\":22,\"sigchain_mutation\":-1005,"
@@ -782,7 +811,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
         if (length < 0 || (size_t)length >= sizeof(report)) fail("ART result formatting");
         host->log(host->context, report, (size_t)length);
         for (unsigned i = 0; i < image_count; ++i) { dlclose(images[i].handle); free(images[i].original); }
-        return 0;
+        return art_bootstrap == 5 && looper_status ? 1 : 0;
     }
     length = snprintf(report, sizeof(report), "{\"cases\":146,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
            ",\"startup_client_ns\":%" PRIu64 ",\"reserved_bytes\":%" PRIu64 ",\"gwp_enabled\":%" PRIu64
@@ -817,22 +846,22 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
 }
 int artbox_run_native_bionic(const artbox_bionic_input *input, const artbox_host *host) {
     if (!input) return -22;
-    const native_input shared = {input->frameworks, input->elfs, input->root, input->sampled, 4};
+    const native_input shared = {input->frameworks, input->elfs, input->root, input->sampled, 4, 0};
     return run_native(&shared, host, 0, NULL);
 }
 int artbox_run_native_art_bootstrap(const artbox_art_input *input, const artbox_host *host) {
     if (!input) return -22;
-    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 4};
+    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 4, 0};
     return run_native(&shared, host, 1, NULL);
 }
 int artbox_run_native_icu(const artbox_icu_input *input, const artbox_host *host) {
     if (!input) return -22;
-    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 10};
+    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 10, 0};
     return run_native(&shared, host, 2, NULL);
 }
 int artbox_run_native_libcore(const artbox_libcore_input *input, const artbox_host *host) {
     if (!input) return -22;
-    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 15};
+    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 15, 0};
     return run_native(&shared, host, 3, NULL);
 }
 int artbox_run_native_art_runtime(const artbox_libcore_input *input, const artbox_host *host) {
@@ -841,6 +870,11 @@ int artbox_run_native_art_runtime(const artbox_libcore_input *input, const artbo
 int artbox_run_native_art_runtime_logged(const artbox_libcore_input *input,
     const artbox_host *host, const artbox_host *console) {
     if (!input) return -22;
-    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 15};
+    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 15, 0};
     return run_native(&shared, host, 4, console);
+}
+int artbox_run_native_looper(const artbox_looper_input *input, const artbox_host *host) {
+    if (!input) return -22;
+    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 5, input->mutation};
+    return run_native(&shared, host, 5, NULL);
 }

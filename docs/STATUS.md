@@ -240,10 +240,19 @@ correctness-run observations, not phone performance measurements.
 The next change selects unchanged AOSP `Looper.cpp` and `Timers.cpp` and an
 original 43-assertion shared caller for wake, TLS ownership, callbacks,
 descriptor replacement, message ordering/cancellation and timer delivery.
-Two negative controls must expose retained callbacks and omitted wakeups.
-Native Linux reference execution and the Android object build are separate CI
-jobs; neither alone proves signed guest Looper execution. That attachment and
-real servicemanager registration/ping/death acceptance remain ahead. M4 is open.
+At `ce43021`, both native Linux architectures pass all 43 assertions and the
+two controls for retained callbacks and omitted wakeups. Downloaded binaries,
+17 objects, 187 upstream files and 22 project inputs verify independently on
+each architecture. The local Android caller and ten support units also pass
+instruction audits; the broader Binder build has 51 objects in three archives.
+
+A five-image signed Looper profile now uses the four ART bootstrap dependencies
+plus the real Looper caller. Bionic includes its original public eventfd wrapper;
+339 units compile locally with no forbidden native instructions. The Apple
+harness checks exact shared results and cleanup of one Bionic worker in each
+fresh process, including both negative controls. Signing and actual guest
+execution are pending CI. Binder attachment and real servicemanager
+registration/ping/death acceptance remain ahead. M4 is open.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

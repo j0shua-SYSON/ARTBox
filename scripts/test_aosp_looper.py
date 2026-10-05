@@ -157,6 +157,7 @@ def main():
     for name, path in notices.items(): files['notices/' + name] = path
     project = ['LICENSE', 'THIRD_PARTY.md', 'docs/binder-build.md', 'docs/DECISIONS.md',
                'fixtures/looper/check.h', 'fixtures/looper/check.cpp', 'tests/native_looper.cpp',
+               'platform/include/artbox/looper_result.h',
                'scripts/test_aosp_looper.py', 'scripts/environment.py', 'scripts/sources.py',
                'scripts/ndk.py', 'scripts/build_binder.py', 'scripts/binder_aidl.py',
                'scripts/icu_guest_link.py', 'scripts/bionic_adapt.py', 'third_party/binder/aidl-tools.json',

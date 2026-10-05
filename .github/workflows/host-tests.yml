@@ -125,6 +125,7 @@ jobs:
           ${{ matrix.python }} -B tests/test_binder_reference.py
           ${{ matrix.python }} -B tests/test_binder_aidl.py
           ${{ matrix.python }} -B tests/test_binder_build.py
+          ${{ matrix.python }} -B tests/test_looper_guest.py
           ${{ matrix.python }} -B tests/test_classlib_build.py
           ${{ matrix.python }} -B tests/test_jdk.py
           ${{ matrix.python }} -B tests/test_bionic_adapt.py
@@ -862,7 +863,7 @@ jobs:
 
   art-guest-link:
     name: Full ART guest link, signed frameworks and native bootstrap
-    needs: [host, art-native-guest-build, class-library]
+    needs: [host, art-native-guest-build, class-library, binder-native-build, looper-reference]
     runs-on: macos-15
     timeout-minutes: 20
     env:
@@ -947,6 +948,27 @@ jobs:
           --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
           --classlib-dir build/m3/guest-classlib-inputs/build/m3/classlib
           --managed-fixture-dir build/m3/guest-managed-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: looper-android-build
+          path: build/m4/looper-guest-inputs
+      - name: Execute real AOSP Looper and negative controls through signed Bionic
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 -B scripts/test_looper_guest.py --native-dir build/m4/looper-guest-inputs
+          --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+      - name: Preserve signed Looper code, execution evidence and corresponding source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: looper-guest
+          path: |
+            artifacts/m4-looper-guest.json
+            build/m4/looper-guest/
+            build/host/artbox_native_looper
+          if-no-files-found: error
+          retention-days: 7
       - name: Preserve signed JavaVM and DEX execution diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

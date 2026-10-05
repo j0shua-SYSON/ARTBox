@@ -86,6 +86,15 @@ Timers also carries an explicit Apache-2.0 declaration. Native Linux Looper
 tests reuse the existing Apache-2.0 AOSP host liblog sources. The shared test
 caller and its build script are original MIT code.
 
+The signed Looper diagnostic also selects Bionic's unchanged
+`libc/bionic/eventfd.cpp` from the existing `android-15.0.0_r1` source pin. It
+retains its AOSP BSD notice under the complete Bionic NOTICE already included
+with libc. The file supplies public eventfd wrappers and fd tracking; syscall
+translation stays in the original MIT VFS. The new Looper framework retains
+libutils, supporting source/header, NDK and ARTBox license notices. Its C++ and
+logging imports resolve from the existing signed ART dependency image; no
+replacement logging or C++ runtime implementation is introduced.
+
 The implementations and APEX/Soong reference files retain Apache-2.0 notices.
 Keep the complete frameworks/native NOTICE, libutils NOTICE and libcutils NOTICE.
 The small forwarding and generated graphics headers inherit their package's

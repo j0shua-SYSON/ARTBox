@@ -3186,3 +3186,42 @@ source fork solely for a build-flag difference and preserves the diagnostic.
 No ART image profile or iOS acceptance is changed by this reference checkpoint.
 Actual guest Looper execution, Binder attachment and real servicemanager remain
 required. No physical device is needed for this step.
+
+## 0116: Execute Looper through a separate five-image signed Bionic profile
+
+The unchanged AOSP Looper passes the shared 43-assertion caller and both
+negative controls on native Linux ARM64 and x86_64 at ce43021. Next run that
+same caller through Bionic and the portable eventfd/epoll/timerfd translation.
+An import audit of the verified four-image ART bootstrap closure finds that
+its C++/logging functions already cover Looper's needs. The missing public
+eventfd function is supplied by selecting Bionic's original eventfd.cpp at the
+existing Android 15 pin; its __eventfd syscall entry and fd tracking are already
+present. Retain the full BSD notice and hash the selected source.
+
+Add a fifth, image-local Looper library to that bootstrap profile. Keep the
+15-image JavaVM/libcore acceptance separate. Reusing libart for existing C++ and
+logging avoids duplicating or replacing these runtimes, at the cost of loading
+ART code even for this native-only diagnostic. It does not start a JavaVM. The
+existing pre-start JNI, shared-heap and sigchain checks still run. This is an
+integration test profile, not a production servicemanager process design.
+
+Link with all strong imports resolved and precisely the four named bootstrap
+dependencies. Keep Looper support symbols local to its image. Reject ELF TLS
+until explicitly integrated, audit the complete linked instruction stream, and
+use the established build-time wrapper for ordinary signed macOS and iOS 15
+frameworks. No runtime-generated executable memory or additional entitlements
+are introduced. The shared result is a fixed-width C ABI in a platform header,
+which also keeps existing harness corresponding-source archives complete.
+
+Run normal, retained-callback and omitted-wake cases in separate native Mac
+processes. A negative control must return its precise shared failure code,
+rather than crash or time out. Require the single Bionic worker to be reaped
+and signal/TLS/loader ownership cleaned up for every case. Preserve exact source
+and binary identities, ordinary signatures, results, timing and stderr. A
+successful Linux run, local cross-link or signed framework alone does not
+establish guest execution; the actual Mac invocation remains the acceptance.
+
+Binder is not yet attached to this profile. Real servicemanager policy,
+node-count/threadpool support, registration, ping and death acceptance remain
+M4 requirements. The diagnostic framework is not yet integrated into the app's
+M4 IPA, and no physical iPhone execution is claimed.
