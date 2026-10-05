@@ -16,8 +16,8 @@ The same interpreter and managed checks pass on native Linux ARM64 and through
 signed frameworks on macOS ARM64, with JIT disabled. General Android app
 support, Activities and graphics remain future milestones.
 Original AOSP servicemanager also passes native Binder registration, 32
-ping/pong exchanges and death notification through signed macOS frameworks.
-Its dedicated iOS diagnostic is being integrated; see [M4 evidence](docs/acceptance/m4.md).
+ping/pong exchanges and death notification on the test iPhone and through
+signed macOS frameworks. See [M4 evidence](docs/acceptance/m4.md).
 See [status](docs/STATUS.md), [architecture decisions](docs/DECISIONS.md), and the
 [ELF-to-Mach-O versus wrapper design](docs/loader-design.md).
 
@@ -58,6 +58,9 @@ GitHub Actions also produces a temporary IPA artifact. Its host workflow builds
 the integrated `ARTBox-M2-ipa` after the Bionic suite and Linux comparisons pass.
 To build that app locally, pass `--m2-evidence PATH` pointing to the startup
 artifact from the same revision. See [M2 acceptance](docs/acceptance/m2.md).
+The host workflow also produces `ARTBox-M4-ipa` after native service acceptance.
+Its local equivalent is `--m4-evidence PATH` with the same-revision
+`service-guest` artifact. This runs the dedicated Binder diagnostic.
 
 The IPA has an ad-hoc transport signature (`codesign -s -`). Installation needs
 ordinary development or Ad Hoc provisioning. See [device checks](docs/device-check.md).

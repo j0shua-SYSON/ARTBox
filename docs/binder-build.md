@@ -290,3 +290,13 @@ The app runs the same native three-role entry on a background queue and displays
 its result. The manager and its container storage remain alive for the app
 process lifetime. Device execution is a separate observation; packaging cannot
 set that flag. This diagnostic is separate from the one-shot ART app build.
+
+At `0e445da`, all 24 host jobs and the separate iOS build pass. The downloaded
+IPA verifies 19 arm64 iOS 15 code images, six ELF layouts and 186 notice hashes.
+All 19 installed code images plus six ELF resources and the manifest match on
+the test iPhone 6s Plus/iOS 15.8.5. Registration, 32 ping/pong calls and death
+pass without a debugger, including background/foreground and cold home-icon
+relaunch. The two device runs take 293.186/218.194 ms and peak at
+155,975,680/156,286,976 bytes RSS. The phone is already jailbroken; ordinary
+stock provisioning remains unverified. Exact artifact identity and scope are
+recorded in [M4 acceptance](acceptance/m4.md).

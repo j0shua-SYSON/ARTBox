@@ -8,8 +8,11 @@ optional. M0-M3 pass on an already jailbroken iPhone 6s Plus running iOS 15.8.5,
 including background/foreground and cold home-icon relaunch without a debugger.
 Ordinary stock-device provisioning remains unverified.
 M4's original servicemanager registration, 32 Binder ping/pong calls and death
-notification pass signed Mac execution at `cfa0bed`. Its dedicated device
-artifact is being added; M4 remains open until that required CI build passes.
+notification pass signed Mac execution and the test iPhone at `0e445da`.
+All 24 host jobs and the separate iOS build pass. Initial launch,
+background/foreground and cold home-icon relaunch pass without a debugger;
+19 installed code images and seven service resources match the verified IPA.
+Milestone acceptance is complete; PR/tag closure is the remaining M4 step.
 
 ## What runs
 
@@ -445,8 +448,12 @@ The three-role
 run takes 135.820 ms with 119,144,448 bytes peak process RSS. Both finite roles
 are joined and cleaned up; the original manager remains alive. Independent
 verification checks 36 signed layouts, 372 notice hashes, seven source bundles
-and all four retained process records. Device packaging and execution remain
-separate pending work; see [M4 acceptance](acceptance/m4.md).
+and all four retained process records. At `0e445da`, all 24 host jobs and iOS
+pass, including the dedicated Binder IPA. Its three-role Mac run takes
+118.735 ms with 119,144,448 bytes peak RSS. Two physical iPhone runs take
+293.186 and 218.194 ms, peaking at 155,975,680 and 156,286,976 bytes RSS.
+These are traced end-to-end observations, not steady-state transaction latency.
+See [M4 acceptance](acceptance/m4.md).
 At `4644b0c`, all 36 role frameworks sign and verify. The separate Access
 processes pass 20/-109/-107 and five VINTF checks each. Constructor validation
 then fails in the three-role process: the harness
@@ -460,8 +467,9 @@ The complete bootstrap/runtime phase is 57.948 ms and includes VM creation. Mana
 before shutdown are 636,072. These are traced correctness observations, not
 interpreter throughput or iPhone memory measurements.
 
-The next three risks are transaction-buffer ownership and bounded memory;
-reference/death-notification races; and real servicemanager's polling and
-dependency requirements. Physical ART execution and lifecycle pass on the test
-iPhone at `2970c38`; ordinary stock provisioning and sustained performance
-remain unverified. See [the M3 device record](acceptance/m3.md).
+The next three risks are Activity/framework dependency growth, graphics
+integration within signed-code and memory limits, and combining retained service
+owners with ART's process-global lifecycle. Physical ART and native service
+execution and lifecycle pass on the test iPhone; ordinary stock provisioning and
+sustained performance remain unverified. See [the M3 device record](acceptance/m3.md)
+and [the M4 device record](acceptance/m4.md).
