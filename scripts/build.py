@@ -70,6 +70,7 @@ def ios(args, build, artifacts):
     guest_info = None
     bionic_info, bionic_bundles = None, None
     art_info, art_bundles = None, None
+    service_info, service_bundles = None, None
     if args.with_guest:
         from guest_bundle import prepare
         fixture_build = build / "guest/fixture"
@@ -87,6 +88,12 @@ def ios(args, build, artifacts):
         art_bundles = Path(tempfile.mkdtemp(prefix='ios-', dir=build / 'art'))
         art_info = prepare_art(args.m3_evidence, art_bundles,
                                run('git', 'rev-parse', 'HEAD', capture=True).decode().strip())
+    if args.m4_evidence:
+        from service_bundle import prepare as prepare_service
+        (build / 'service').mkdir(parents=True, exist_ok=True)
+        service_bundles = Path(tempfile.mkdtemp(prefix='ios-', dir=build / 'service'))
+        service_info = prepare_service(args.m4_evidence, service_bundles,
+            run('git', 'rev-parse', 'HEAD', capture=True).decode().strip())
     run("cmake", "-S", ROOT, "-B", build, "-G", "Xcode",
         "-DCMAKE_SYSTEM_NAME=iOS", "-DCMAKE_OSX_SYSROOT=iphoneos",
         "-DCMAKE_OSX_ARCHITECTURES=arm64", f"-DCMAKE_OSX_DEPLOYMENT_TARGET={target}",
@@ -94,6 +101,7 @@ def ios(args, build, artifacts):
         f"-DARTBOX_GUEST_BUNDLES={bundles or ''}",
         f"-DARTBOX_BIONIC_BUNDLES={bionic_bundles or ''}",
         f"-DARTBOX_ART_BUNDLES={art_bundles or ''}",
+        f"-DARTBOX_SERVICE_BUNDLES={service_bundles or ''}",
         "-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY",
         "-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO", *args.cmake_arg)
     app = build / f"{args.config}-iphoneos/ARTBox.app"
@@ -163,6 +171,17 @@ def ios(args, build, artifacts):
             if not re.search(r'platform\s+IOS\s', commands) or not re.search(r'minos\s+15\.0\s', commands):
                 raise RuntimeError('ART framework is not built for iOS 15')
         save_json(artifacts / 'm3-bundles.json', art_info)
+    if service_info:
+        from service_bundle import verify_embedded
+        verify_embedded(app, service_info)
+        for image in service_info['images']:
+            name = image['framework']
+            embedded = app / 'Frameworks' / (name + '.framework')
+            run('codesign', '--verify', '--strict', '--verbose=2', embedded)
+            commands = run('xcrun', 'vtool', '-show-build', embedded / name, capture=True).decode()
+            if not re.search(r'platform\s+IOS\s', commands) or not re.search(r'minos\s+15\.0\s', commands):
+                raise RuntimeError('Service framework is not built for iOS 15')
+        save_json(artifacts / 'm4-bundles.json', service_info)
     reports = {
         "embedded-entitlements.plist": ("codesign", "--display", "--entitlements", ":-", app),
         "macho-build.txt": ("xcrun", "vtool", "-show-build", binary),
@@ -198,6 +217,8 @@ def ios(args, build, artifacts):
         raise RuntimeError('The shared M2 runner was not linked into the device app')
     if art_info and not re.search(r'\b_artbox_run_native_art_runtime_logged$', output['macho-symbols.txt'].decode(), re.MULTILINE):
         raise RuntimeError('The shared ART runtime and console entry was not linked into the device app')
+    if service_info and not re.search(r'\b_artbox_run_native_service$', output['macho-symbols.txt'].decode(), re.MULTILINE):
+        raise RuntimeError('The shared service runner was not linked into the device app')
     ipa = artifacts / "ARTBox.ipa"
     with tempfile.TemporaryDirectory(prefix="ipa-", dir=os.environ["ARTBOX_TEMP_DIR"]) as scratch:
         staged_ipa = Path(scratch) / ipa.name
@@ -218,6 +239,7 @@ def ios(args, build, artifacts):
         "native_hello_included": bool(guest_info),
         "bionic_suite_included": bool(bionic_info),
         "art_runtime_included": bool(art_info),
+        "service_runtime_included": bool(service_info),
     }
     save_json(artifacts / "build-info.json", provenance)
     print(json.dumps(provenance, indent=2))
@@ -238,8 +260,11 @@ def main():
     parser.add_argument("--with-guest", action="store_true", help="Include the signed M1 hello fixtures in the iOS app")
     parser.add_argument("--m2-evidence", type=Path, help="M2 startup artifact for this revision; includes the same suite in the iOS app")
     parser.add_argument('--m3-evidence', type=Path, help='Merged same-revision ART artifacts with complete signed runtime acceptance')
+    parser.add_argument('--m4-evidence', type=Path, help='Same-revision service artifact with complete signed Binder acceptance')
     parser.add_argument("--cmake-arg", action="append", default=[], help="Repeat as --cmake-arg=-DNAME=VALUE")
     args = parser.parse_args()
+    if args.m4_evidence and (args.m3_evidence or args.m2_evidence or args.with_guest):
+        parser.error('The native service acceptance uses a separate one-shot app build')
     if args.m3_evidence and (args.m2_evidence or args.with_guest):
         parser.error('The one-shot ART runtime uses a separate app build from M1/M2 diagnostics')
     for key in ("cache", "temp", "artifacts"):

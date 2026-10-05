@@ -7,6 +7,9 @@ signed arm64 **iOS 15+**, no JIT or private entitlements. Physical checks remain
 optional. M0-M3 pass on an already jailbroken iPhone 6s Plus running iOS 15.8.5,
 including background/foreground and cold home-icon relaunch without a debugger.
 Ordinary stock-device provisioning remains unverified.
+M4's original servicemanager registration, 32 Binder ping/pong calls and death
+notification pass signed Mac execution at `cfa0bed`. Its dedicated device
+artifact is being added; M4 remains open until that required CI build passes.
 
 ## What runs
 
@@ -430,17 +433,26 @@ and iOS. Independent verification checks seven objects, 449 upstream files,
 31 project inputs and its generated header; compilation takes 3.748 seconds
 on the Mac runner. Its integrated ART IPA also verifies.
 
-The next signed gate adds a native provider/client caller and independent
+The signed service gate runs a native provider/client caller and independent
 manager/provider/client contexts. Local link and wrapper checks pass with
 126,053 audited instructions and no unsafe instruction patterns. The 45
 portable contracts pass, with three native-provider tests skipped on Windows.
-Actual service execution has not yet passed; registration, 32 ping/pong calls,
-access denials and original death notification remain the M4 target.
-At `4644b0c`, all 36 role frameworks sign and verify and the first Access
-process reaches Bionic startup. Constructor validation then fails: the harness
+At `cfa0bed`, original service registration, 32 ping/pong calls, access denials,
+trusted caller identity and original death notification all pass. The three-role
+run's full CI also passes all 23 host jobs and the separate iOS build. Its
+integrated ART regression IPA independently verifies.
+The three-role
+run takes 135.820 ms with 119,144,448 bytes peak process RSS. Both finite roles
+are joined and cleaned up; the original manager remains alive. Independent
+verification checks 36 signed layouts, 372 notice hashes, seven source bundles
+and all four retained process records. Device packaging and execution remain
+separate pending work; see [M4 acceptance](acceptance/m4.md).
+At `4644b0c`, all 36 role frameworks sign and verify. The separate Access
+processes pass 20/-109/-107 and five VINTF checks each. Constructor validation
+then fails in the three-role process: the harness
 had passed stack-local relocation descriptors to a load group that borrows
 them. The descriptors now live with the role, and the group is destroyed before
-its backing VM. Signed execution must still verify this lifetime correction.
+its backing VM. The successful `cfa0bed` execution verifies this correction.
 
 One signed Mac main-branch run at `8cf6315` creates the VM in **54.157 ms**,
 loads/relocates in 32.226 ms and reaches **66,699,264 bytes peak process RSS**.

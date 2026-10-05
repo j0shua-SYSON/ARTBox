@@ -3686,8 +3686,8 @@ logs that fetch failure but its aggregate fetch returns OK while retaining the
 previous/default version. The caller contract tests this exact distinction;
 aggregate success must never be interpreted as a supported SELinux policy.
 Access contracts also require actual Bionic/IPCThreadState identity, with
-wrong-client-UID and wrong-manager-PID controls. Their execution is pending the
-isolated guest harness; compiling them is not service acceptance.
+wrong-client-UID and wrong-manager-PID controls. These pass signed execution
+at `4644b0c`; full service acceptance follows separately at `cfa0bed`.
 
 Retain the original platform ID header under the include spelling expected by
 ServiceManager, without changing its bytes. Audit every compiled instruction,
@@ -3719,5 +3719,25 @@ Run the Access contract and wrong-UID/PID controls in separate processes. Its
 identity checks construct IPCThreadState, which original main explicitly
 forbids before setting call restrictions. The real daemon therefore receives
 only the tested grant configuration before entering main. Both positive and
-negative contracts require exact observations. This new signed execution gate
-is pending; local compilation/linking does not establish M4 completion.
+negative contracts require exact observations. This signed execution gate
+passes at `cfa0bed`; it does not establish device execution or ordinary signing.
+
+## ADR 0134: Gate the service device artifact on exact native runtime evidence
+
+Build a separate diagnostic variant of ARTBox containing the same three-role
+entry as the signed Mac test. Keep its retained manager separate from the
+one-shot ART lifecycle runner: their process-global signal handlers and retained
+owners are not yet a combined application lifecycle. This is temporary milestone
+instrumentation, not the Android app launcher design.
+
+Require positive Access, wrong-UID, wrong-PID and full service results before
+staging. Retain all six ELF inputs in the service artifact and verify each against
+both executed Mac wrappers and the iOS wrappers, across all three independently
+named instances. Reject missing/changed output, identity controls, signed bytes,
+source, notices or finite-owner cleanup. The device app uses the original native
+entry; no successful UI text is substituted for a failed runtime result.
+
+The price is eighteen embedded frameworks and three independent allocator
+reservations. Measure physical RSS separately from reserved address space before
+choosing how to consolidate dependencies. A successful artifact build does not
+establish device execution or ordinary provisioning.

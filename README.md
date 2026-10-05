@@ -15,6 +15,9 @@ stock-device provisioning remains unverified.
 The same interpreter and managed checks pass on native Linux ARM64 and through
 signed frameworks on macOS ARM64, with JIT disabled. General Android app
 support, Activities and graphics remain future milestones.
+Original AOSP servicemanager also passes native Binder registration, 32
+ping/pong exchanges and death notification through signed macOS frameworks.
+Its dedicated iOS diagnostic is being integrated; see [M4 evidence](docs/acceptance/m4.md).
 See [status](docs/STATUS.md), [architecture decisions](docs/DECISIONS.md), and the
 [ELF-to-Mach-O versus wrapper design](docs/loader-design.md).
 

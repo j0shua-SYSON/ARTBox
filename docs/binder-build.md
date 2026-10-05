@@ -242,8 +242,8 @@ are denied. List permission is explicit and separate from find/add. Names and
 credentials cannot change by modifying the original configuration storage.
 The Windows contract passes malformed/duplicate configuration, name boundaries,
 identity substitution and concurrent query checks. At `84bfde3`, all 23 host
-jobs and iOS pass, and its ART IPA independently verifies. The Access adapter's
-signed execution remains pending; this is not yet a running service or an
+jobs and iOS pass, and its ART IPA independently verifies. This portable policy
+test is not a running service or an
 implementation of SELinux.
 
 `build_servicemanager.py` compiles unchanged original main/ServiceManager and
@@ -254,8 +254,11 @@ Original Access.cpp is not compiled. The adapter uses real IPCThreadState
 identity; expected contract results are 20/-109/-107 in separate processes.
 The VINTF policy-version contract expects five checks, including preservation
 of its previous value when the unsupported fetch is logged. These contracts
-are build inputs; their runtime acceptance and the three-role service test
-remain pending.
+pass signed Mac execution at `4644b0c`: 20/-109/-107, with five VINTF checks in
+each process. Positive Access execution takes 70.220 ms including image loading
+and finite-owner cleanup, with 41,746,432 bytes peak process RSS. The three-role
+service test's first run exposed borrowed relocation descriptors that expired
+before constructors. They now live with the role; `cfa0bed` passes the full test.
 
 The three-role caller in `fixtures/servicemanager/roles.cpp` uses original
 generated IServiceManager proxies, BBinder, BpBinder, Parcel, IPCThreadState
@@ -266,4 +269,24 @@ death recipient and DEAD_OBJECT on a later call. The new signed gate packages
 attempted by that gate; its original manager loop is retained for process
 lifetime, while both finite peer contexts must be joined and destroyed.
 The separate Access modes require 20/-109/-107 and the VINTF policy contract
-requires five checks. Execution results are not yet available.
+requires five checks; these separate controls pass as recorded above. At
+`cfa0bed`, all four processes pass, including the full three-role service test.
+The latter takes 135.820 ms with 119,144,448 bytes peak process RSS, including
+loading and finite-owner cleanup. These are diagnostic observations, not
+sustained throughput. All 36 wrapper layouts, 372 notices, seven source bundles
+and retained process output hashes verify independently.
+
+### Device artifact
+
+`python scripts/build.py ios --m4-evidence <service-guest-artifact>` stages a
+dedicated diagnostic build of ARTBox. It requires all four same-revision Mac
+processes to pass, including exact policy controls and cleanup observations.
+It checks retained process output, all six ELF inputs against the executed Mac
+and iOS wrappers, corresponding source and every notice. Eighteen independently
+named iOS frameworks and six shared ELF data files are embedded without changing
+their signed bytes. CI produces `ARTBox-M4-ipa` only after the service gate passes.
+
+The app runs the same native three-role entry on a background queue and displays
+its result. The manager and its container storage remain alive for the app
+process lifetime. Device execution is a separate observation; packaging cannot
+set that flag. This diagnostic is separate from the one-shot ART app build.

@@ -13,11 +13,14 @@
 #if ARTBOX_M3
 #include "artbox/native_art.h"
 #endif
+#if ARTBOX_M4
+#include "artbox/native_service.h"
+#endif
 
 @interface ConsoleViewController ()
 @property(nonatomic, strong) UITextView *console;
 - (void)appendMessage:(NSString *)message;
-#if ARTBOX_M3
+#if ARTBOX_M3 || ARTBOX_M4
 - (void)logRuntimeError:(NSString *)message detail:(NSError *)error;
 #endif
 @end
@@ -79,7 +82,7 @@ static void app_log(void *context, const char *message, size_t length) {
     if (artbox_start(&host) != ARTBOX_OK) {
         [self appendMessage:@"ARTBox startup failed"];
     }
-#if ARTBOX_M1 || ARTBOX_M2 || ARTBOX_M3
+#if ARTBOX_M1 || ARTBOX_M2 || ARTBOX_M3 || ARTBOX_M4
     dispatch_queue_t runtimeQueue = dispatch_queue_create("org.artbox.acceptance", DISPATCH_QUEUE_SERIAL);
 #endif
 #if ARTBOX_M1
@@ -139,6 +142,56 @@ static void app_log(void *context, const char *message, size_t length) {
         if (result == 0) [manager removeItemAtURL:root error:NULL];
     });
 #endif
+#if ARTBOX_M4
+    dispatch_async(runtimeQueue, ^{
+        const artbox_host guestHost = {app_log, (__bridge void *)self};
+        NSFileManager *manager = NSFileManager.defaultManager;
+        NSError *error = nil;
+        NSURL *support = [manager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask
+                                appropriateForURL:nil create:YES error:&error];
+        __attribute__((objc_precise_lifetime)) NSURL *root =
+            [support URLByAppendingPathComponent:[@"ARTBoxM4-" stringByAppendingString:NSUUID.UUID.UUIDString]
+                                              isDirectory:YES];
+        NSArray<NSString *> *elfNames = @[@"libc.so", @"libart.so", @"libm.so", @"libdl.so",
+                                         @"libdl_android.so", @"libartbox_servicemanager.so"];
+        __attribute__((objc_precise_lifetime)) NSMutableArray<NSString *> *libraries = [NSMutableArray array];
+        __attribute__((objc_precise_lifetime)) NSMutableArray<NSString *> *elfs = [NSMutableArray array];
+        __attribute__((objc_precise_lifetime)) NSMutableArray<NSURL *> *roots = [NSMutableArray array];
+        artbox_service_input input = {0};
+        input.backing_root = root.fileSystemRepresentation;
+        for (unsigned role = 0; role < 3; ++role) {
+            NSURL *roleRoot = [root URLByAppendingPathComponent:[NSString stringWithFormat:@"%u", role]
+                                                  isDirectory:YES];
+            for (NSString *directory in @[@"data", @"system"]) {
+                if (!roleRoot || ![manager createDirectoryAtURL:[roleRoot URLByAppendingPathComponent:directory]
+                                  withIntermediateDirectories:YES attributes:nil error:&error]) {
+                    [self logRuntimeError:@"Service storage setup failed" detail:error];
+                    if (root) [manager removeItemAtURL:root error:NULL];
+                    return;
+                }
+            }
+            [roots addObject:roleRoot];
+            input.roots[role] = roots[role].fileSystemRepresentation;
+            for (unsigned index = 0; index < 6; ++index) {
+                NSString *name = [NSString stringWithFormat:@"ARTBoxServiceR%uM%u", role, index];
+                NSString *library = [[NSBundle.mainBundle.privateFrameworksPath stringByAppendingPathComponent:
+                    [name stringByAppendingString:@".framework"]] stringByAppendingPathComponent:name];
+                NSString *elf = [[NSBundle.mainBundle.resourcePath stringByAppendingPathComponent:@"ARTBoxM4/ELF"]
+                                 stringByAppendingPathComponent:elfNames[index]];
+                [libraries addObject:library]; [elfs addObject:elf];
+                input.frameworks[role][index] = libraries[role * 6 + index].fileSystemRepresentation;
+                input.elfs[role][index] = elfs[role * 6 + index].fileSystemRepresentation;
+            }
+        }
+        const char *starting = "M4: starting servicemanager and Binder peers";
+        app_log((__bridge void *)self, starting, strlen(starting));
+        int result = artbox_run_native_service(&input, &guestHost);
+        NSString *message = result == 0 ? @"M4: registered; 32 ping/pong calls and death notification passed" :
+                            [NSString stringWithFormat:@"M4: failed (%d)", result];
+        app_log((__bridge void *)self, message.UTF8String, [message lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
+        // The original manager keeps running. Its storage belongs to the process.
+    });
+#endif
 #if ARTBOX_M3
     dispatch_async(runtimeQueue, ^{
         const artbox_host guestHost = {app_log, (__bridge void *)self};
@@ -194,7 +247,7 @@ static void app_log(void *context, const char *message, size_t length) {
 #endif
 }
 
-#if ARTBOX_M3
+#if ARTBOX_M3 || ARTBOX_M4
 - (void)logRuntimeError:(NSString *)message detail:(NSError *)error {
     NSString *text = error ? [NSString stringWithFormat:@"%@: %@", message, error.localizedDescription] : message;
     app_log((__bridge void *)self, text.UTF8String, [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);

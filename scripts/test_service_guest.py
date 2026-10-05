@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import shutil
 import subprocess
 import tempfile
 import zipfile
@@ -171,6 +172,9 @@ def main():
     directory=output/'pack-5'; run([sys.executable,'-B',ROOT/'tools/wrap_dynamic.py',elf,directory],'pack-5')
     packed.append(directory); module_notices.append(notices)
     elfs=[row[0] for row in modules]+[elf]
+    (output/'ELF').mkdir(exist_ok=True)
+    for source in elfs:
+        shutil.copyfile(source,output/'ELF'/source.name)
     frameworks={}; paths={}
     for target in ('macos','ios'):
         for role in range(3):
@@ -192,7 +196,7 @@ def main():
     runner=builds/'host/artbox_native_service'
     record=dict(project_commit=revision,working_tree_dirty=False,commands=commands,
         source_bundle_sha256=digest(bundle),project_sources={n:digest(ROOT/n) for n in project},
-        elf_sha256=digest(elf),needed=needed,boundary=boundary,frameworks=frameworks,
+        elf_sha256={source.name:digest(source) for source in elfs},needed=needed,boundary=boundary,frameworks=frameworks,
         input_objects={label:r['objects'] for label,r in records.items() if isinstance(r.get('objects'),dict)},
         runner_sha256=digest(runner),executions={},guest_execution_verified=False,device_execution_verified=False)
     report=artifacts/'m4-service-guest.json'

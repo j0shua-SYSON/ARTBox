@@ -198,6 +198,7 @@ jobs:
           ${{ matrix.python }} -B tests/test_icu_guest_link.py
           ${{ matrix.python }} -B tests/test_art_runtime_progress.py
           ${{ matrix.python }} -B tests/test_art_bundle.py
+          ${{ matrix.python }} -B tests/test_service_bundle.py
           ${{ matrix.python }} -B tests/test_libcore_guest_link.py
           ${{ matrix.python }} -B tests/test_m2_acceptance.py
           ${{ matrix.python }} -B scripts/build.py host
@@ -1144,6 +1145,39 @@ jobs:
             build/m3/art-guest-bootstrap/
             build/host/artbox_native_art_bootstrap
           if-no-files-found: warn
+          retention-days: 7
+
+  m4-device-build:
+    name: integrated Binder arm64 iOS 15 IPA
+    needs: [art-guest-link, linux-oracle, kernel-config-reference]
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    defaults:
+      run:
+        shell: bash --noprofile --norc -e -o pipefail {0}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: service-guest
+          path: build/m4-evidence
+      - name: Embed the verified native service roles and shared acceptance entry
+        run: python3 -B scripts/build.py ios --m4-evidence build/m4-evidence
+      - name: Upload integrated Binder IPA and provenance
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ARTBox-M4-ipa
+          path: |
+            artifacts/ARTBox.ipa
+            artifacts/build-info.json
+            artifacts/m4-bundles.json
+            artifacts/embedded-entitlements.plist
+            artifacts/macho-*.txt
+          if-no-files-found: error
           retention-days: 7
 
   m3-device-build:
