@@ -186,7 +186,7 @@ def run_native(spec, installed, build):
         mapping_cases = len(re.findall(r'\bCHECK\(', (ROOT / 'fixtures/binder-mapping/check.c').read_text())) - 1
         if result != {'protocol': 8, 'cases': expected, 'file_cases': file_cases, 'mapping_cases': mapping_cases,
                       'same_pid_rejected': True, 'threaded_ping_pong': True, 'death_cases': 3,
-                      'object_handle_lifecycle': True, 'oneway_lifecycle': True, 'wait_cases': 4,
+                      'object_handle_lifecycle': True, 'oneway_lifecycle': True, 'node_info_lifecycle': True, 'wait_cases': 4,
                       'blocking_threaded_ping_pong': True,
                       'poll_cases': 31, 'readiness_lifecycle': True, 'epoll_snapshot_cases': 31,
                       'epoll_registration_controls': True, 'epoll_death_wakeup': True,
@@ -311,7 +311,8 @@ def main():
               'native_execution_verified': False, 'artbox_driver_compared': False,
               'mapping_driver_compared': False, 'transaction_driver_compared': False, 'death_driver_compared': False,
               'object_driver_compared': False, 'oneway_driver_compared': False, 'wait_driver_compared': False,
-              'poll_driver_compared': False, 'epoll_driver_compared': False}
+              'poll_driver_compared': False, 'epoll_driver_compared': False,
+              'node_info_driver_compared': False}
     if args.run_native:
         record['native'] = run_native(spec, installed, Path(os.environ['ARTBOX_BUILD_DIR']) / 'm4/kernel-reference')
         record['native_execution_verified'] = True
@@ -356,6 +357,7 @@ def main():
                       'wait_driver_compared': record['wait_driver_compared'],
                       'poll_driver_compared': record['poll_driver_compared'],
                       'epoll_driver_compared': record['epoll_driver_compared'],
+                      'node_info_driver_compared': record['node_info_driver_compared'],
                       'native': record.get('native'), 'driver': record.get('driver')}, indent=2))
 
 

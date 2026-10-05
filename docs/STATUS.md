@@ -259,6 +259,15 @@ Both macOS and iOS 15 Looper frameworks, their layouts, 20 notice hashes and
 the new framework is not yet part of the app IPA. Binder attachment and real
 servicemanager registration/ping/death acceptance remain ahead. M4 is open.
 
+The next shared Binder fixture exercises `GET_NODE_INFO_FOR_REF`, which real
+servicemanager uses for client tracking. It checks manager-endpoint permission,
+reserved-field validation, bad input and read-only output, pending owner
+acknowledgements, duplicate acquires, retained local objects, a second importing
+endpoint, owner death and weak-only
+handles. Synchronous message barriers separate each expected count. Strict NDK
+compilation passes; execution against the Linux driver is pending. The portable
+ioctl remains unsupported until that reference is established.
+
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write
 acceptance records fix the framing without weakening the exact-line checks.

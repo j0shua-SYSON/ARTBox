@@ -3232,3 +3232,31 @@ controls, and cleanup of one Bionic worker in each process. It contains verified
 macOS and iOS 15 Looper frameworks with ordinary signatures. The normal fixture
 takes 14.976 ms, with 28.089 ms loading/relocation and 16.873 ms bootstrap; these
 are diagnostic Mac observations, not throughput or device measurements.
+
+## 0117: Establish the node-count contract before servicemanager client tracking
+
+Real ProcessState queries GET_NODE_INFO_FOR_REF for servicemanager's client
+callbacks. Returning a fixed count or treating the handle's ACQUIRE total as
+the node count would hide live clients. Add an original shared lifecycle
+fixture to the existing native Binder oracle before enabling this ioctl in
+the portable driver. Linux source remains a behavior reference only.
+
+Use explicit synchronous call/reply barriers around reference acknowledgements
+and buffer release. Hold both initial owner acknowledgements, then release the
+weak and strong holds separately. Check one manager import, duplicate ACQUIRE/RELEASE pairs,
+two object occurrences returned into their original owner's receive buffer,
+and a separate importing endpoint. Keep the first endpoint alive while that
+second import is acquired and released. Finally observe owner death before
+querying the retained dead-node reference and dropping it to weak-only/missing.
+These phases distinguish endpoint references from temporary local buffer holds
+without relying on sleeps to make the count settle.
+
+Manager authority belongs to its registered open, including when another open
+has the same native PID and UID. Test all reserved/output input fields before
+permission validation, invalid input pointers and output into the read-only
+Binder receive mapping. Preserve exact negative errno and unchanged input on
+the tested failures. The new native-result field is separate from
+node_info_driver_compared, which stays false until the same fixture executes
+through ARTBox. GET_NODE_DEBUG_INFO and other unneeded ioctls remain separately
+scoped. No guest kernel, runtime executable generation or iOS entitlement is
+introduced by this contract.

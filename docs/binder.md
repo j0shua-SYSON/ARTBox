@@ -5,8 +5,8 @@ Binder wire boundary and implements an endpoint/ioctl API. Synchronous parcels,
 strong objects, one-way ordering and death notifications pass paired Linux/ARTBox
 execution; servicemanager and M4 acceptance remain incomplete. A configured VFS
 exposes `/dev/binder` for the tested ioctl subset and configured receive mappings.
-Readiness snapshots are implemented; persistent poll/epoll registration remains
-pending. Recognizing other commands does not implement them.
+Readiness snapshots and persistent level-triggered epoll registration are
+implemented. Recognizing other commands does not implement them.
 
 ## Boundary implemented
 
@@ -415,6 +415,18 @@ attempt successfully unmounted the private context and verified normal unload
 returns EBUSY with zero remaining module references.
 
 ## References and source scope
+
+The shared node-info lifecycle fixture now targets `GET_NODE_INFO_FOR_REF`,
+used by `ProcessState::getStrongRefCountForNode` and servicemanager client
+tracking. Native execution is pending; `node_info_driver_compared` remains
+false and the portable ioctl still returns EOPNOTSUPP. The fixture separates
+manager-open permission from PID/UID, validates all five input-only zero fields,
+and checks failed input/output copying. It observes pending strong/weak owner
+acknowledgements and releases each separately. It compares duplicate acquires with a
+second importing endpoint, holds two local object occurrences in a receive
+buffer, releases them, then tests a dead node and weak-only/missing handles.
+Replies and completed acknowledgement writes provide the count barriers.
+The Linux test alone uses processes; no fork is added to the portable runtime.
 
 `binder-references` in `third_party/sources.json` pins 15 exact reference files
 from AOSP `frameworks/native`, tag `android-15.0.0_r1`, commit

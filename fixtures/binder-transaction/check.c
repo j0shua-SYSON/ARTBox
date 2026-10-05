@@ -1,4 +1,4 @@
-/* Original threaded handle-zero ping/reply fixture. SPDX-License-Identifier: MIT */
+/* Original Binder transaction/lifetime fixtures. SPDX-License-Identifier: MIT */
 #include "check.h"
 #include "artbox/binder_wire.h"
 #include <stdio.h>
@@ -757,6 +757,227 @@ int artbox_binder_oneway_check(void *context, const artbox_binder_transaction_op
     if (result || become_manager(&a)) return cleanup(&a, -1);
     int results[2] = {-1, -1};
     result = ops->parallel(context, oneway_manager_run, &a, oneway_owner_run, &b, results);
+    if (results[0] || results[1]) result = -1;
+    return cleanup(&a, result);
+}
+
+enum { node_info_code = transaction_code + 32 };
+static int node_info_query(struct endpoint *e, uint32_t handle, int error, uint32_t strong, uint32_t weak) {
+    unsigned char *data = e->scratch->write, expected[32] = {0};
+    put32(expected, handle);
+    memset(expected + 24, 0x5a, 8);
+    memcpy(data, expected, sizeof(expected));
+    int observed = call(e, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, pointer(data));
+    if (observed != error) {
+        fprintf(stderr, "Node query role %d handle %u: expected %d, got %d\n", e->tid, handle, error, observed);
+        return -1;
+    }
+    if (!error) { put32(expected + 4, strong); put32(expected + 8, weak); }
+    // Weak counts are local node holds, not this handle's BC_INCREFS count.
+    if (memcmp(data, expected, sizeof(expected))) {
+        fprintf(stderr, "Node query role %d handle %u: expected counts %u/%u, got %u/%u or changed reserved bytes\n",
+                e->tid, handle, strong, weak, get32(data + 4), get32(data + 8));
+        return -1;
+    }
+    return 0;
+}
+static int node_info_invalid(struct endpoint *e, uint32_t handle, int error) {
+    REQUIRE(call(e, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, 1) == -14);
+    for (unsigned field = 1; field < 6; ++field) {
+        unsigned char expected[24] = {0};
+        put32(expected, handle); put32(expected + field * 4, UINT32_C(0x80000000));
+        memcpy(e->scratch->write, expected, sizeof(expected));
+        REQUIRE(call(e, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, pointer(e->scratch->write)) == -22);
+        REQUIRE(!memcmp(e->scratch->write, expected, sizeof(expected)));
+    }
+    return node_info_query(e, handle, error, 0, 0);
+}
+static int node_info_ref(struct endpoint *e, uint32_t command, uint32_t handle) {
+    put32(e->scratch->write, command); put32(e->scratch->write + 4, handle);
+    return send(e, 8);
+}
+static int node_info_free(struct endpoint *e, const artbox_binder_transaction *t) {
+    free_buffer(e->scratch->write, t->data_buffer);
+    return send(e, 12);
+}
+static int node_info_ack(struct endpoint *e, uint32_t command) {
+    put32(e->scratch->write, command);
+    put64(e->scratch->write + 4, service_pointer); put64(e->scratch->write + 12, service_cookie);
+    return send(e, 20);
+}
+// Complete one outgoing call, preserving its reply buffer for explicit lifetime
+// checks. The first call deliberately defers both owner acknowledgements; later
+// calls provide barriers after the explicit weak and strong acknowledgement writes.
+static int node_info_reply(struct endpoint *e, uint32_t type, uint32_t *handle,
+                           artbox_binder_transaction *reply, unsigned acks[2], int defer_acks) {
+    unsigned replies = 0, completed = 0;
+    for (unsigned attempt = 0; attempt < 5000 && (!replies || !completed); ++attempt) {
+        size_t size = 0, cursor = 0;
+        REQUIRE(receive(e, &size) == 0);
+        while (cursor < size) {
+            artbox_binder_frame frame;
+            REQUIRE(artbox_binder_next(ARTBOX_BINDER_READ, e->scratch->read, size, &cursor, &frame) == ARTBOX_BINDER_OK);
+            if (frame.command == ARTBOX_BR_REPLY) {
+                REQUIRE(!replies++ && artbox_binder_decode_transaction(&frame, reply) == ARTBOX_BINDER_OK);
+                if (type) REQUIRE(object_payload(e, reply, type, handle) == 0);
+                else REQUIRE(payload(e, reply, pong, sizeof(pong)) == 0);
+            } else if (frame.command == ARTBOX_BR_TRANSACTION_COMPLETE) REQUIRE(!completed++);
+            else {
+                if (frame.command == ARTBOX_BR_INCREFS || frame.command == ARTBOX_BR_ACQUIRE) {
+                    REQUIRE(get64(frame.payload) == service_pointer && get64(frame.payload + 8) == service_cookie);
+                    unsigned which = frame.command == ARTBOX_BR_ACQUIRE;
+                    REQUIRE(++acks[which] == 1);
+                    if (defer_acks) continue;
+                }
+                REQUIRE(ref_command(e, &frame) == 0);
+            }
+        }
+        if (!size) e->ops->pause(e->context);
+    }
+    REQUIRE(replies == 1 && completed == 1);
+    return 0;
+}
+static int node_info_roundtrip(struct endpoint *e, unsigned stage, unsigned acks[2]) {
+    artbox_binder_transaction reply;
+    REQUIRE(send_to_handle(e, 0, node_info_code + stage) == 0);
+    REQUIRE(node_info_reply(e, 0, NULL, &reply, acks, 0) == 0);
+    return node_info_free(e, &reply);
+}
+static int node_info_importer_loop(struct endpoint *e) {
+    unsigned acks[2] = {0, 0};
+    uint32_t handle = 0;
+    artbox_binder_transaction reply;
+    REQUIRE(configure_looper(e) == 0);
+    REQUIRE(send_to_handle(e, 0, node_info_code + 6) == 0);
+    REQUIRE(node_info_reply(e, ARTBOX_BINDER_TYPE_HANDLE, &handle, &reply, acks, 0) == 0);
+    REQUIRE(node_info_invalid(e, handle, -1) == 0); // Actual imported handle, non-manager endpoint.
+    REQUIRE(node_info_ref(e, ARTBOX_BC_INCREFS, handle) == 0);
+    REQUIRE(node_info_ref(e, ARTBOX_BC_ACQUIRE, handle) == 0);
+    REQUIRE(node_info_free(e, &reply) == 0);
+    REQUIRE(node_info_roundtrip(e, 7, acks) == 0);
+    REQUIRE(node_info_ref(e, ARTBOX_BC_RELEASE, handle) == 0);
+    REQUIRE(node_info_ref(e, ARTBOX_BC_DECREFS, handle) == 0);
+    REQUIRE(node_info_roundtrip(e, 8, acks) == 0);
+    REQUIRE(!acks[0] && !acks[1]);
+    return 0;
+}
+static int node_info_owner_loop(struct endpoint *e) {
+    unsigned acks[2] = {0, 0};
+    artbox_binder_transaction reply, held;
+    uint32_t unused = 0;
+    REQUIRE(configure_looper(e) == 0);
+    REQUIRE(node_info_invalid(e, 0, -1) == 0);
+    size_t bytes = object_packet(e, ARTBOX_BC_TRANSACTION, ARTBOX_BINDER_TYPE_BINDER, 0);
+    put32(e->scratch->write + 20, node_info_code);
+    REQUIRE(send(e, bytes) == 0);
+    REQUIRE(node_info_reply(e, 0, NULL, &reply, acks, 1) == 0);
+    // The reply code communicates the manager's handle for a read-only query.
+    REQUIRE(reply.code > 0 && acks[0] == 1 && acks[1] == 1);
+    unsigned char query[24] = {0}; put32(query, reply.code);
+    REQUIRE(node_info_free(e, &reply) == 0);
+    REQUIRE(send(e, transaction(e, ARTBOX_BC_TRANSACTION, node_info_code + 1, query, sizeof(query))) == 0);
+    REQUIRE(node_info_reply(e, 0, NULL, &reply, acks, 0) == 0);
+    REQUIRE(node_info_free(e, &reply) == 0);
+    REQUIRE(node_info_ack(e, ARTBOX_BC_INCREFS_DONE) == 0);
+    REQUIRE(node_info_roundtrip(e, 2, acks) == 0);
+    REQUIRE(node_info_ack(e, ARTBOX_BC_ACQUIRE_DONE) == 0);
+    REQUIRE(send_to_handle(e, 0, node_info_code + 3) == 0);
+    REQUIRE(node_info_reply(e, ARTBOX_BINDER_TYPE_BINDER, &unused, &held, acks, 0) == 0);
+    REQUIRE(node_info_roundtrip(e, 4, acks) == 0); // Keep both local object occurrences alive.
+    REQUIRE(node_info_free(e, &held) == 0);
+    REQUIRE(node_info_roundtrip(e, 5, acks) == 0);
+    // An independent open in this same client process owns a distinct import.
+    // It reuses scratch only while the original endpoint has no outgoing call.
+    struct endpoint importer = {e->context, e->ops, e->scratch, -1, 3, 0, e->length};
+    int result = prepare(&importer);
+    if (!result) result = node_info_importer_loop(&importer);
+    REQUIRE(cleanup(&importer, result) == 0);
+    REQUIRE(node_info_roundtrip(e, 9, acks) == 0);
+    REQUIRE(acks[0] == 1 && acks[1] == 1);
+    return 0; // Caller closes the exported node's actual owner.
+}
+static int node_info_owner_run(void *opaque) {
+    struct endpoint *e = opaque;
+    int result = prepare(e);
+    if (!result) result = node_info_owner_loop(e);
+    return cleanup(e, result);
+}
+static int node_info_manager_loop(void *opaque) {
+    struct endpoint *e = opaque;
+    REQUIRE(configure_looper(e) == 0);
+    REQUIRE(node_info_invalid(e, 0, -22) == 0); // Being manager does not invent a handle-zero ref.
+    REQUIRE(node_info_query(e, UINT32_MAX, -22, 0, 0) == 0);
+    // Permission belongs to the manager's open, not merely its PID or UID.
+    struct endpoint other = *e;
+    other.fd = e->ops->open(e->context, 4); other.mapping = 0;
+    REQUIRE(other.fd >= 0);
+    int result = node_info_invalid(&other, 0, -1);
+    REQUIRE(cleanup(&other, result) == 0);
+    unsigned stage = 0, completed = 0, died = 0;
+    uint32_t handle = 0;
+    for (unsigned attempt = 0; attempt < 5000 && (stage != 10 || completed != 10 || !died); ++attempt) {
+        size_t size = 0, cursor = 0;
+        REQUIRE(receive(e, &size) == 0);
+        while (cursor < size) {
+            artbox_binder_frame frame;
+            REQUIRE(artbox_binder_next(ARTBOX_BINDER_READ, e->scratch->read, size, &cursor, &frame) == ARTBOX_BINDER_OK);
+            if (frame.command == ARTBOX_BR_TRANSACTION_COMPLETE) { REQUIRE(++completed <= 10); continue; }
+            if (frame.command == ARTBOX_BR_DEAD_BINDER) {
+                REQUIRE(stage == 10 && !died++ && get64(frame.payload) == death_cookie); continue;
+            }
+            if (frame.command != ARTBOX_BR_TRANSACTION) { REQUIRE(ref_command(e, &frame) == 0); continue; }
+            artbox_binder_transaction t;
+            REQUIRE(artbox_binder_decode_transaction(&frame, &t) == ARTBOX_BINDER_OK);
+            REQUIRE(t.code == node_info_code + stage && stage < 10);
+            REQUIRE(t.target == object_pointer && t.cookie == object_cookie);
+            REQUIRE(t.sender_pid == e->ops->pid(e->context, 2) && t.sender_euid == e->ops->uid);
+            if (!stage) {
+                REQUIRE(object_payload(e, &t, ARTBOX_BINDER_TYPE_HANDLE, &handle) == 0);
+                REQUIRE(node_info_ref(e, ARTBOX_BC_INCREFS, handle) == 0);
+                REQUIRE(node_info_ref(e, ARTBOX_BC_ACQUIRE, handle) == 0);
+            } else if (stage == 1) {
+                unsigned char query[24] = {0}; put32(query, handle);
+                REQUIRE(payload(e, &t, query, sizeof(query)) == 0);
+                REQUIRE(node_info_query(e, handle, 0, 2, 1) == 0); // Both owner acknowledgements are pending.
+                REQUIRE(call(e, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, t.data_buffer) == -14);
+                REQUIRE(payload(e, &t, query, sizeof(query)) == 0); // Receive alias stays read-only.
+                REQUIRE(node_info_ref(e, ARTBOX_BC_ACQUIRE, handle) == 0);
+                REQUIRE(node_info_query(e, handle, 0, 2, 1) == 0); // Duplicate acquire is not another endpoint.
+                REQUIRE(node_info_ref(e, ARTBOX_BC_RELEASE, handle) == 0);
+                REQUIRE(node_info_query(e, handle, 0, 2, 1) == 0);
+            } else {
+                REQUIRE(payload(e, &t, ping, sizeof(ping)) == 0);
+                const uint32_t strong = stage == 4 ? 3 : (stage == 2 || stage == 7) ? 2 : 1;
+                REQUIRE(node_info_query(e, handle, 0, strong, 0) == 0);
+            }
+            REQUIRE(node_info_free(e, &t) == 0); // Complete the release before waking the sender.
+            if (stage == 9) REQUIRE(death_command_handle(e, ARTBOX_BC_REQUEST_DEATH_NOTIFICATION, handle, death_cookie) == 0);
+            if (stage == 3 || stage == 6) REQUIRE(send_object(e, ARTBOX_BC_REPLY, ARTBOX_BINDER_TYPE_HANDLE, handle) == 0);
+            else REQUIRE(send(e, transaction(e, ARTBOX_BC_REPLY, stage ? 0 : handle, pong, sizeof(pong))) == 0);
+            ++stage;
+        }
+        if (!size) e->ops->pause(e->context);
+    }
+    REQUIRE(stage == 10 && completed == 10 && died == 1);
+    REQUIRE(node_info_query(e, handle, 0, 1, 0) == 0); // The retained ref still names a dead node.
+    REQUIRE(death_command_handle(e, ARTBOX_BC_CLEAR_DEATH_NOTIFICATION, handle, death_cookie) == 0);
+    REQUIRE(death_command(e, ARTBOX_BC_DEAD_BINDER_DONE, death_cookie) == 0);
+    REQUIRE(cookie_event(e, ARTBOX_BR_CLEAR_DEATH_NOTIFICATION_DONE) == 0);
+    REQUIRE(node_info_ref(e, ARTBOX_BC_RELEASE, handle) == 0);
+    REQUIRE(node_info_query(e, handle, -22, 0, 0) == 0); // Weak-only handles cannot query.
+    REQUIRE(node_info_ref(e, ARTBOX_BC_DECREFS, handle) == 0);
+    REQUIRE(node_info_query(e, handle, -22, 0, 0) == 0); // Nor can a removed handle.
+    return 0;
+}
+int artbox_binder_node_info_check(void *context, const artbox_binder_transaction_ops *ops,
+    artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client) {
+    struct endpoint a = {context, ops, server, -1, 1, 0, ops->page_size * 16};
+    struct endpoint b = {context, ops, client, -1, 2, 0, ops->page_size * 16};
+    int result = prepare(&a);
+    if (!result) result = node_info_invalid(&a, 0, -1);
+    if (result || become_manager(&a)) return cleanup(&a, -1);
+    int results[2] = {-1, -1};
+    result = ops->parallel(context, node_info_manager_loop, &a, node_info_owner_run, &b, results);
     if (results[0] || results[1]) result = -1;
     return cleanup(&a, result);
 }

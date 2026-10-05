@@ -196,6 +196,7 @@ int main(int argc, char **argv) {
     if (death_cases != 3) return 1;
     if (artbox_binder_object_check(&context, &transactions, &server, &client)) return 1;
     if (artbox_binder_oneway_check(&context, &transactions, &server, &client)) return 1;
+    if (artbox_binder_node_info_check(&context, &transactions, &server, &client)) return 1;
     int wait_cases = artbox_native_binder_wait_check(argv[2]);
     if (wait_cases != 4) return 1;
     context.nonblocking = 0;
@@ -212,7 +213,7 @@ int main(int argc, char **argv) {
     if (epoll_cases != 31) return 1;
     printf("{\"protocol\":8,\"cases\":%d,\"file_cases\":%d,\"mapping_cases\":%d,"
            "\"same_pid_rejected\":true,\"threaded_ping_pong\":true,\"death_cases\":%d,"
-           "\"object_handle_lifecycle\":true,\"oneway_lifecycle\":true,\"wait_cases\":%d,\"blocking_threaded_ping_pong\":true,"
+           "\"object_handle_lifecycle\":true,\"oneway_lifecycle\":true,\"node_info_lifecycle\":true,\"wait_cases\":%d,\"blocking_threaded_ping_pong\":true,"
            "\"poll_cases\":%d,\"readiness_lifecycle\":true,\"epoll_snapshot_cases\":%d,"
            "\"epoll_registration_controls\":true,\"epoll_death_wakeup\":true,\"epoll_mapped_target_lifetime\":true,"
            "\"fresh_binderfs_context\":true,\"passed\":true}\n", cases, file_cases, mapping_cases, death_cases, wait_cases, poll_cases, epoll_cases);

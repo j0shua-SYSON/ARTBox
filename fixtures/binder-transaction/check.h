@@ -57,6 +57,13 @@ int artbox_binder_object_check(void *context, const artbox_binder_transaction_op
  * Queued delivery must survive sender teardown. */
 int artbox_binder_oneway_check(void *context, const artbox_binder_transaction_ops *ops,
     artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client);
+/* Manager-only node counts across retained local parcels, duplicate acquires,
+ * a second importing endpoint, owner death and weak-only/missing handles.
+ * Also checks validation order and read-only receive-buffer copyout failure.
+ * Role 3 is another endpoint in the client owner, used sequentially on its TID;
+ * role 4 opens another endpoint in the manager owner for a permission control. */
+int artbox_binder_node_info_check(void *context, const artbox_binder_transaction_ops *ops,
+    artbox_binder_transaction_scratch *server, artbox_binder_transaction_scratch *client);
 #ifdef __cplusplus
 }
 #endif
