@@ -116,7 +116,7 @@ def ndk_notices(ndk, toolchain):
     return {'NDK-NOTICE.txt': ndk / 'NOTICE', 'NDK-TOOLCHAIN-NOTICE.txt': toolchain / 'NOTICE'}
 
 
-def bundle_sources(output, catalog, sources, aidl, notices):
+def bundle_sources(output, catalog, sources, aidl, notices, extra_project=(), extra_files=()):
     files = {}
     for name, spec in catalog.items():
         for item in spec['files']:
@@ -135,7 +135,14 @@ def bundle_sources(output, catalog, sources, aidl, notices):
                'third_party/binder/native-sources.json',
                'third_party/binder/native-libraries.json', 'third_party/binder/aidl-tools.json',
                'third_party/bionic/builtins.json', 'third_party/sources.json']
+    project.extend(extra_project)
+    if len(set(project)) != len(project):
+        raise RuntimeError('Duplicate project source in Binder bundle')
     for name in project: files['artbox/' + name] = ROOT / name
+    for name, path in extra_files:
+        if name in files or not name.startswith('generated/') or '..' in Path(name).parts:
+            raise RuntimeError('Invalid extra source bundle member')
+        files[name] = path
     archive = output / 'corresponding-source.zip'
     with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED) as target:
         for name, path in sorted(files.items()):

@@ -422,6 +422,15 @@ Launcher UI remains deferred. Historical debugging results are retained in
 
 ## Measurements and risks
 
+At `84bfde3`, all 23 host jobs and iOS pass, including immutable service-grant
+policy tests. The integrated ART IPA independently verifies 16 signed images,
+15 ELF layouts, five resources and 175 notices with empty entitlements.
+The next producer compiles original servicemanager main/ServiceManager with
+an explicit Access adapter and policy-version contract callers. All seven
+objects build locally and pass the instruction audit. These callers have not
+executed; real registration, ping/pong and death across separate guest roles
+remain the M4 target.
+
 One signed Mac main-branch run at `8cf6315` creates the VM in **54.157 ms**,
 loads/relocates in 32.226 ms and reaches **66,699,264 bytes peak process RSS**.
 The complete bootstrap/runtime phase is 57.948 ms and includes VM creation. Managed bytes
@@ -430,6 +439,6 @@ interpreter throughput or iPhone memory measurements.
 
 The next three risks are transaction-buffer ownership and bounded memory;
 reference/death-notification races; and real servicemanager's polling and
-dependency requirements. Physical ART execution remains unverified despite the
-M0/M1 hardware success; checks remain waived for every milestone. See
-[the M1 device record](acceptance/m1.md#subsequent-physical-device-observation).
+dependency requirements. Physical ART execution and lifecycle pass on the test
+iPhone at `2970c38`; ordinary stock provisioning and sustained performance
+remain unverified. See [the M3 device record](acceptance/m3.md).

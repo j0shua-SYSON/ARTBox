@@ -747,3 +747,16 @@ The existing libbase, liblog, fmt, libutils error declarations, Soong warning
 reference and NDK notices retain their previous terms. Original and generated
 sources, notices and exact build inputs accompany the VINTF archive artifact.
 ARTBox's build scripts and evidence controls remain MIT.
+
+The servicemanager selection in `third_party/binder/service-sources.json`
+contains eight original files from the existing Android 15 frameworks/native
+pin `f7274fca5e36082674740bc6c976f73c4578d009`. The unchanged main,
+ServiceManager and declarations retain Apache-2.0 headers and the complete
+frameworks/native NOTICE. Original `Access.cpp` is retained for review only;
+neither its SELinux implementation nor its permissive host branch is compiled.
+ARTBox supplies an original MIT adapter to that interface, backed by explicit
+service grants, and an unsupported kernel-policy-version response. These are
+not SELinux implementations. Contract callers are original MIT code. The ID
+header uses unchanged bytes from the already reviewed system/core pin. Source
+archives retain the original files, generated include copy, NDK notices and
+exact ARTBox inputs; build reports do not claim guest execution.

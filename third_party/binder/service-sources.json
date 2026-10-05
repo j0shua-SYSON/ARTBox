@@ -1,0 +1,59 @@
+{
+  "servicemanager": {
+    "repository": "aosp-mirror-neo/platform_frameworks_native",
+    "commit": "f7274fca5e36082674740bc6c976f73c4578d009",
+    "tag": "android-15.0.0_r1",
+    "files": [
+      {
+        "path": "NOTICE",
+        "bytes": 17680,
+        "sha256": "5f28c11f8b1b3f97b9d42c74b85371ebf4127f241b799279bcecd69f7ee542dc",
+        "git_blob": "152be2059579780efa1e1ff9f914ff17af575bfe"
+      },
+      {
+        "path": "cmds/servicemanager/Access.cpp",
+        "bytes": 4866,
+        "sha256": "78256b7806e387fa35d2b349bdab696209d203107582128fd098284e8199e7cd",
+        "git_blob": "809872417de7ed78825ae6d16270825104775974"
+      },
+      {
+        "path": "cmds/servicemanager/Access.h",
+        "bytes": 1636,
+        "sha256": "e5b0610f29394c8a8d0daddc36b0acea2cc448ce399890b939c18b58b8635da5",
+        "git_blob": "4ee9b907d7bbbf31b6d95b75f5d4401950bd9cae"
+      },
+      {
+        "path": "cmds/servicemanager/Android.bp",
+        "bytes": 2663,
+        "sha256": "f7654526f8025b437c77093040240d7474ebd6607249cab58f9b77b9cf049098",
+        "git_blob": "3897197bd552f1a97d45fb5712885ce40009fcad"
+      },
+      {
+        "path": "cmds/servicemanager/NameUtil.h",
+        "bytes": 1609,
+        "sha256": "adb3e86537174ee8124ad131b54607dd9f6bbb47a68da0676b7ee590f5d8bb60",
+        "git_blob": "b08093960ded6e107bd2f67e558a58c87d071d2c"
+      },
+      {
+        "path": "cmds/servicemanager/ServiceManager.cpp",
+        "bytes": 38353,
+        "sha256": "441284d144748110e89127f80df836c353378a9c90387c66fad4b6e4ccb0bc57",
+        "git_blob": "95a05cdcdec0e672032d4f10f801e3db9f7e8d27"
+      },
+      {
+        "path": "cmds/servicemanager/ServiceManager.h",
+        "bytes": 5280,
+        "sha256": "7b8a00d190e124aeb0a017a1e4439892f192c9bba35deda7b7879f375b3478a6",
+        "git_blob": "3b925a48cb5172f5dfb7d11cc32e7bba47e46066"
+      },
+      {
+        "path": "cmds/servicemanager/main.cpp",
+        "bytes": 5789,
+        "sha256": "d2d278fb224401554b4fd0c6f925582d05c5f7f388799d6e9111834c329b019d",
+        "git_blob": "07908ba5b30272b8e3ad796700f0f4a53970f646"
+      }
+    ],
+    "notice": "NOTICE",
+    "notice_sha256": "5f28c11f8b1b3f97b9d42c74b85371ebf4127f241b799279bcecd69f7ee542dc"
+  }
+}

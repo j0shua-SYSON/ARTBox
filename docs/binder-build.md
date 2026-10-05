@@ -241,6 +241,18 @@ root without a grant, unknown names and unknown or combined query operations
 are denied. List permission is explicit and separate from find/add. Names and
 credentials cannot change by modifying the original configuration storage.
 The Windows contract passes malformed/duplicate configuration, name boundaries,
-identity substitution and concurrent query checks. Cross-platform CI and the
-Access adapter's signed execution remain pending; this is not yet a running
-service or an implementation of SELinux.
+identity substitution and concurrent query checks. At `84bfde3`, all 23 host
+jobs and iOS pass, and its ART IPA independently verifies. The Access adapter's
+signed execution remains pending; this is not yet a running service or an
+implementation of SELinux.
+
+`build_servicemanager.py` compiles unchanged original main/ServiceManager and
+five ARTBox policy/contract units into an audited archive. The corresponding
+source includes every selected upstream byte, notice, generated AIDL input and
+the original ID header supplied at the service's expected include path.
+Original Access.cpp is not compiled. The adapter uses real IPCThreadState
+identity; expected contract results are 20/-109/-107 in separate processes.
+The VINTF policy-version contract expects five checks, including preservation
+of its previous value when the unsupported fetch is logged. These contracts
+are build inputs; their runtime acceptance and the three-role service test
+remain pending.

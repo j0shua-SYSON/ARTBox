@@ -34,6 +34,16 @@ jobs:
           path: build/m4/xsdc
       - name: Compile original VINTF and its generated APEX parser for Android ARM64
         run: python3 -B scripts/build_vintf.py --xsdc-dir build/m4/xsdc --jobs 2
+      - name: Compile original servicemanager and explicit policy contracts
+        run: python3 -B scripts/build_servicemanager.py --aidl-dir build/m4/binder-aidl/darwin-arm64 --jobs 2
+      - name: Preserve service objects, policy contracts and corresponding source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: servicemanager-native-build
+          path: build/m4/servicemanager
+          if-no-files-found: error
+          retention-days: 7
       - name: Preserve VINTF archives, generated source, imports and notices
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

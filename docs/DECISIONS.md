@@ -3667,5 +3667,30 @@ code memory sandbox. Process-state separation remains independently necessary.
 The portable contract covers explicit grants, unknown identities/services,
 root denial, operation confusion, case/prefix mismatches, embedded NUL and
 invalid names, configuration ownership, size limits and concurrent queries.
-Local tests pass. Connecting the policy to real servicemanager, signed guest
+At `84bfde3`, all 23 host jobs and iOS pass; the integrated ART IPA verifies
+independently. Connecting the policy to real servicemanager, signed guest
 execution and the complete M4 service acceptance remain separate pending work.
+
+## ADR 0132: Preserve original servicemanager and make policy adaptations explicit
+
+Compile the pinned Android 15 main and ServiceManager without source edits.
+Supply the original Access interface with an MIT adapter that queries real
+IPCThreadState calling PID/UID and the immutable explicit-grant policy. A
+trusted owner configures it once before starting service dispatch; missing
+configuration denies requests. The policy remains owned for the guest image's
+process lifetime. Original Access.cpp is reference-only, avoiding both a false
+SELinux claim and the original host branch's allow-all behavior.
+
+The separate `security_policyvers` boundary returns -1/ENOTSUP. Original VINTF
+logs that fetch failure but its aggregate fetch returns OK while retaining the
+previous/default version. The caller contract tests this exact distinction;
+aggregate success must never be interpreted as a supported SELinux policy.
+Access contracts also require actual Bionic/IPCThreadState identity, with
+wrong-client-UID and wrong-manager-PID controls. Their execution is pending the
+isolated guest harness; compiling them is not service acceptance.
+
+Retain the original platform ID header under the include spelling expected by
+ServiceManager, without changing its bytes. Audit every compiled instruction,
+archive source/notices and record unresolved imports. Each role needs separate
+signed images, Bionic cached PID/TLS, libbinder globals and VM/VFS/thread owners;
+the shared Binder device alone connects them. No JavaVM is needed for M4.
