@@ -169,7 +169,8 @@ def main():
     started = time.monotonic()
     def compile_unit(job):
         library, name, source, obj = job
-        run([cxx, *flags, *include_flags, '-c', source, '-o', obj], obj.with_suffix('.log'))
+        unit_flags = graph['libraries'][library].get('unit_flags', {}).get(name, [])
+        run([cxx, *flags, *unit_flags, *include_flags, '-c', source, '-o', obj], obj.with_suffix('.log'))
         verify_object_architecture(obj)
         print(library + ': ' + name, flush=True)
         return obj.relative_to(output).as_posix(), digest(obj)
@@ -193,6 +194,7 @@ def main():
         generated_files=generation['generated_files'], required_external_symbols=len(symbols['required_external']),
         symbols_sha256=digest(output / 'symbols.json'), compiler_version=run([cxx, '--version'], output / 'compiler.log').strip(),
         flags=[f.replace(str(ROOT), '${ARTBOX_ROOT}') for f in flags],
+        unit_flags={name: spec.get('unit_flags', {}) for name, spec in graph['libraries'].items()},
         project_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         link_verified=False, servicemanager_execution_verified=False, device_execution_verified=False,
         **bundle_sources(output, catalog, sources, aidl, notices))

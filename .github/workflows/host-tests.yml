@@ -28,12 +28,47 @@ jobs:
           path: build/m4/binder-aidl
       - name: Compile real libbinder and libutils with the Android kernel IPC profile
         run: python3 -B scripts/build_binder.py --aidl-dir build/m4/binder-aidl/darwin-arm64 --jobs 2
+      - name: Compile the shared real Looper caller and audit its Android instruction boundary
+        run: python3 -B scripts/test_aosp_looper.py --profile android
+      - name: Preserve the Looper Android caller, objects and sources
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: looper-android-build
+          path: build/m4/looper/android
+          if-no-files-found: error
+          retention-days: 7
       - name: Preserve archives, unresolved imports, sources and notices
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: binder-native-build
           path: build/m4/binder-native
+          if-no-files-found: error
+          retention-days: 7
+  looper-reference:
+    name: Real AOSP Looper reference (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Execute original Looper wake, message, descriptor and timer behavior
+        run: python3 -B scripts/test_aosp_looper.py --profile linux
+      - name: Preserve native Looper evidence and corresponding source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: looper-reference-${{ matrix.os }}
+          path: build/m4/looper/linux
           if-no-files-found: error
           retention-days: 7
   binder-kernel-reference:

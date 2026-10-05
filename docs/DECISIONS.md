@@ -3152,3 +3152,37 @@ timer waking its retained read after the descriptor number is reused. This
 avoids scheduler-dependent guesses about when a test worker has run. Shared
 VFS test adapters keep eventfd/timerfd byte encoding and wake observation
 consistent. Real AOSP Looper/servicemanager execution remains required for M4.
+
+## 0115: Establish real AOSP Looper behavior before signed service integration
+
+Use the unchanged Android 15 Looper and Timers units, with the already pinned
+RefBase/Vector support, rather than implementing a replacement event loop.
+They require the eventfd/epoll/timerfd boundary now tested against Linux. The
+full libcutils/APEX dependency graph is unnecessary for this Looper fixture;
+servicemanager's remaining dependencies still require their own integration.
+
+Run the same original MIT caller against native Linux on ARM64 and x86_64
+before using it in the signed Bionic harness. Cover actual TLS ownership,
+coalesced and cross-thread wake, auto-removal and modification of descriptor
+callbacks, stable message ordering, delayed messages, cancellation and timer
+callbacks. Require deliberate omitted-wake and retained-callback controls to
+fail at their designated assertions. Observe Looper's own isPolling publication
+for the thread handshake; do not call this syscall-observed kernel blocking.
+Use bounded polls rather than treating a sleep as evidence of readiness.
+
+Keep Linux libc/C++/AOSP host logging as the reference platform, and preserve
+Android ABI branches in the separate NDK object build. Reserve x18/x27/x28 in
+the latter and reject syscall, thread-pointer, reserved-register and unknown
+instructions before signed packaging. Android logging/C++ imports must resolve
+from the existing real signed dependencies later; do not add stand-in functions.
+The native Linux run does not prove Android ABI or signed Apple execution.
+
+Timers.cpp's clock selector comparison triggers sign-compare under the pinned
+NDK. Soong's reviewed global.go disables this diagnostic globally. Retain the
+warning and make it nonfatal only for that unchanged unit; record the exact
+per-unit flag. Keep all warnings fatal for the original caller. This avoids a
+source fork solely for a build-flag difference and preserves the diagnostic.
+
+No ART image profile or iOS acceptance is changed by this reference checkpoint.
+Actual guest Looper execution, Binder attachment and real servicemanager remain
+required. No physical device is needed for this step.

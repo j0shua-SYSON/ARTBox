@@ -73,13 +73,18 @@ AOSP NOTICE, tool source provenance and license records. A future distribution
 of these host binaries needs its own complete redistribution review.
 
 `third_party/binder/native-sources.json` additionally pins 144 libbinder source,
-header and build/notice files at the same frameworks/native revision, 58 libutils
+header and build/notice files at the same frameworks/native revision, 60 libutils
 Binder support files and 43 system headers/build/notice files from system/core
 `fc7bc8c4bfb4c6095e34ea784509dae56f25b486`, four APEX API/reference files from
 system/apex `896cdde58b67ddbf37ffdfe06f5b2567ef770f70`, and Soong's build-flag
 reference at `3fe78dc9b32f1ac3f7eb279ae9376d7037b18452`. All use the named tag
-`android-15.0.0_r1`. This selection compiles unchanged AOSP libbinder and eight
-libutils units into Android ARM64 archives; it is not embedded in the IPA yet.
+`android-15.0.0_r1`. This selection compiles unchanged AOSP libbinder, eight
+libutils Binder support units and `Looper.cpp`/`Timers.cpp` into Android ARM64
+archives; it is not embedded in the IPA yet. Looper's file header attributes the
+Android Open Source Project; the package's full Apache-2.0 NOTICE applies.
+Timers also carries an explicit Apache-2.0 declaration. Native Linux Looper
+tests reuse the existing Apache-2.0 AOSP host liblog sources. The shared test
+caller and its build script are original MIT code.
 
 The implementations and APEX/Soong reference files retain Apache-2.0 notices.
 Keep the complete frameworks/native NOTICE, libutils NOTICE and libcutils NOTICE.

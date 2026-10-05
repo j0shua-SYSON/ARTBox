@@ -56,6 +56,16 @@
         "libutils/binder/Unicode.cpp",
         "libutils/binder/VectorImpl.cpp"
       ]
+    },
+    "libutils_looper": {
+      "source": "binder-utils",
+      "units": [
+        "libutils/Looper.cpp",
+        "libutils/Timers.cpp"
+      ],
+      "unit_flags": {
+        "libutils/Timers.cpp": ["-Wno-error=sign-compare"]
+      }
     }
   },
   "includes": {

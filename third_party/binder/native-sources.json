@@ -880,28 +880,34 @@
     "upstream": "https://android.googlesource.com/platform/system/core",
     "files": [
       {
-        "path": "libutils/NOTICE",
-        "bytes": 10695,
-        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
-        "git_blob": "c5b1efa7aac764ae6d8da63476a2d5cec02a6a5d"
-      },
-      {
         "path": "libutils/Android.bp",
         "bytes": 8626,
         "sha256": "2834b03e789af42680eaee9e3e0d3f062a15a7a4d96230451d10a5f31724436d",
         "git_blob": "4877caeeebf65c3e01517dc8bd5b3ed579fda3b9"
       },
       {
+        "path": "libutils/Looper.cpp",
+        "bytes": 24188,
+        "sha256": "25f365f73c2d2aad6b59eca37541325255eeb0fc90e0e1018c0860d25f4fcd8d",
+        "git_blob": "7700c9030b91643baf78361b1e69c13bc46bf6f7"
+      },
+      {
+        "path": "libutils/NOTICE",
+        "bytes": 10695,
+        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+        "git_blob": "c5b1efa7aac764ae6d8da63476a2d5cec02a6a5d"
+      },
+      {
+        "path": "libutils/Timers.cpp",
+        "bytes": 2166,
+        "sha256": "43657a80d3cac5edc1d88a7933ed8970a0c3f6a2542cb9892cd904003704f745",
+        "git_blob": "98082c95761dfb9e36362da5122f7cd23e6a81a0"
+      },
+      {
         "path": "libutils/binder/Android.bp",
         "bytes": 3221,
         "sha256": "289e689e5d91bc6d595e23dfb70fbced35ccc80ef4835c8b51bd89f37457a066",
         "git_blob": "e3583912d8d4c9b0f8c1a33b7b59cc3da932bd4d"
-      },
-      {
-        "path": "libutils/binder/SharedBuffer.h",
-        "bytes": 4923,
-        "sha256": "996a2b4a2afbffeaa0fdfbf6d593111b0567df59d14ffd2e92be643d5707abb1",
-        "git_blob": "476c842fe034d9312c8118ccb5ebc1d175c6c8cf"
       },
       {
         "path": "libutils/binder/Errors.cpp",
@@ -920,6 +926,12 @@
         "bytes": 4011,
         "sha256": "e464121e103a4be47aa48b187c6d880b19d0909a4a59de26d646f79b689c692c",
         "git_blob": "d16bdb08670c5916ba628af99851869e4d2a162e"
+      },
+      {
+        "path": "libutils/binder/SharedBuffer.h",
+        "bytes": 4923,
+        "sha256": "996a2b4a2afbffeaa0fdfbf6d593111b0567df59d14ffd2e92be643d5707abb1",
+        "git_blob": "476c842fe034d9312c8118ccb5ebc1d175c6c8cf"
       },
       {
         "path": "libutils/binder/String16.cpp",

@@ -1,7 +1,7 @@
 # AOSP Binder build
 
-`scripts/build_binder.py` compiles Android 15's real kernel-IPC libbinder and the
-eight libutils Binder support units for `aarch64-linux-android35`. Its two static
+`scripts/build_binder.py` compiles Android 15's real kernel-IPC libbinder, the
+eight libutils Binder support units, and Looper/Timers for `aarch64-linux-android35`. Its three static
 archives are intermediate ELF objects for the signed native packaging pipeline.
 They are not executable iOS libraries. Linking, signed attachment and real
 servicemanager registration/ping/death acceptance remain required for M4.
@@ -48,3 +48,31 @@ compiler version/options, unresolved imports and a deterministic corresponding
 source ZIP. Unit controls reject changed generation settings, changed/missing/
 extra files and accidental host/shared-library objects. Native compilation is a
 required CI job, separate from Binder protocol and signed ART runtime tests.
+
+The next service dependency is the original `libutils/Looper.cpp` and
+`libutils/Timers.cpp`, pinned at the same Android 15 tag. The Binder build now
+contains 51 objects across three archives. Looper uses the already implemented
+eventfd/epoll boundary; servicemanager's periodic callback also needs timerfd.
+No replacement Looper or private event-loop API is supplied.
+
+The unchanged `Timers.cpp` compares a nonnegative clock selector with a `size_t`
+bound. The pinned Soong `global.go` disables `-Wsign-compare` globally; this build
+instead keeps the diagnostic visible and makes it nonfatal only for that unit.
+The per-unit flag is recorded in the graph and build report. The original test
+caller retains warnings-as-errors, and no runtime assertion is disabled.
+
+`scripts/test_aosp_looper.py --profile linux` builds and runs an original MIT
+caller against these unchanged AOSP sources, their real RefBase/Vector support,
+and AOSP's host logging implementation on native Linux ARM64 or x86_64. The 43
+assertions cover per-thread Looper ownership, coalesced and cross-thread wake,
+callback auto-removal, level readiness, descriptor replacement/removal, ordered
+and delayed messages, cancellation, and a timerfd callback. Negative controls
+retain a callback and omit a wake; both must fail at their specific assertions.
+The worker observes Looper's `isPolling()` publication. This checks the wake
+protocol without claiming it observes entry into the kernel's blocked syscall.
+
+`--profile android` builds the same caller and ten upstream units into an ARM64
+archive, preserving imports for the existing signed Bionic/C++/logging closure.
+Every object is checked for architecture and forbidden syscall/thread-pointer/
+reserved-register instructions. This profile does not execute the guest yet.
+It is preparation for the signed Bionic test, not servicemanager acceptance.

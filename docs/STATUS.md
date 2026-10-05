@@ -228,9 +228,22 @@ fault on x86_64 and one on ARM64, consuming the expiration in both cases.
 Portable monotonic timerfd now passes the shared fixture locally, plus real
 provider wakeups, controlled deadline/missed-period tests, retained reads after
 close/reuse, injected interruption, admission and page-bounded copyout. It uses
-the existing 5 ms wait checks, not a native timer per descriptor. Production CI
-and signed-runtime regression are pending. Actual AOSP Looper/servicemanager
-execution and signed Binder attachment remain ahead.
+the existing 5 ms wait checks, not a native timer per descriptor. At `eacb3dc`,
+all 20 host jobs and iOS CI pass. Downloaded Linux x86_64/ARM64 results verify
+the paired 59-case timer and 63-case eventfd fixtures; the Mac ARM64 guest
+contracts, Binder comparison, signed ART runtime, 49-object Binder
+build and integrated IPA also verify independently. The IPA has 16 iOS 15
+images, 15 ELF/layout pairs, 175 notices and empty entitlements. Its signed Mac
+runtime creates the VM in 62.840 ms, with 67,649,536 bytes peak RSS; these are
+correctness-run observations, not phone performance measurements.
+
+The next change selects unchanged AOSP `Looper.cpp` and `Timers.cpp` and an
+original 43-assertion shared caller for wake, TLS ownership, callbacks,
+descriptor replacement, message ordering/cancellation and timer delivery.
+Two negative controls must expose retained callbacks and omitted wakeups.
+Native Linux reference execution and the Android object build are separate CI
+jobs; neither alone proves signed guest Looper execution. That attachment and
+real servicemanager registration/ping/death acceptance remain ahead. M4 is open.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write
