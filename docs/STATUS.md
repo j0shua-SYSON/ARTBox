@@ -325,9 +325,11 @@ immutable signed group, context-specific tokens and the 48-byte Android extensio
 bridge. Portable tests pass for open/reference behavior, invalid and foreign
 tokens, unreadable guest records, pending-error preservation and concurrent calls.
 Original AOSP libdl/libdl_android and the 51-case NDK fixture now compile and
-link locally with no forbidden instructions. Signed Mac execution, its two
-precise controls and four-image iOS 15 packaging are pending CI. The integrated
-ART IPA still uses its existing 15-image group; libdl_android is only added to
+link locally with no forbidden instructions. At `a38f40f`, all 22 host jobs and
+iOS CI pass. Downloaded evidence verifies the 51 signed extension cases, both
+precise controls, 32 ordinary loader cases, six thread-error cases and the four
+ELF/eight Mac-and-iOS framework layouts. The fixture process takes 21.040 ms.
+The integrated ART IPA still uses its existing 15-image group; libdl_android is only added to
 the dedicated loader fixture. All 43 available Windows contracts pass, with the
 three existing native-backing skips; strict NDK compilation passes too. A private
 focused ProcessState/IPCThreadState/BBinder/Parcel caller now links against the
@@ -335,6 +337,23 @@ focused ProcessState/IPCThreadState/BBinder/Parcel caller now links against the
 new local loader frontends with no missing symbols. This establishes link
 closure only. Real VINTF, servicemanager access policy and signed Binder/service
 execution remain ahead.
+
+The same head's integrated ART IPA independently verifies 16 iOS 15 images,
+15 ELF/layout pairs, five resources, 175 notices and empty entitlements. Its
+signed Mac VM starts in 96.228 ms with 67,567,616 bytes peak RSS; managed,
+console, signal-chain and worker-cleanup controls pass. These measurements are
+from correctness runs, not an iPhone.
+
+The original 39-unit AOSP XSdc compiler now reproduces four APEX parser files
+locally, including deterministic generation and both malformed-input controls.
+Six evidence/output-path tests pass. The new portable VINTF build selects 27
+original VINTF/kernel-config units, three libkver units, TinyXML2 and two generated
+units. All 33 objects in four archives pass locally, with 130,989 audited
+instructions and none forbidden; compilation takes 86.086 seconds. The private
+full-servicemanager link is
+down to eight unresolved symbols: Access construction/context formatting, three
+libc++ regex helpers, regcomp/regfree and security_policyvers. CI reproduction,
+remaining runtime implementations and real signed service execution remain ahead.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

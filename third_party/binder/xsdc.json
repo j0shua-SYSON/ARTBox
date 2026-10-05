@@ -1,0 +1,321 @@
+{
+  "sources": {
+    "xsdc": {
+      "repository": "aosp-mirror-neo/platform_system_tools_xsdc",
+      "tag": "android-15.0.0_r1",
+      "commit": "2c0760cfb454309419bb71d8452dfa5a644c6e8b",
+      "upstream": "https://android.googlesource.com/platform/system/tools/xsdc",
+      "files": [
+        {
+          "path": "Android.bp",
+          "bytes": 480,
+          "sha256": "61b9eb922923c1128d7d4cf762544436fc375208da6c1849cb4347e070334700",
+          "git_blob": "8bd5a222a141b88210d23d958907d5d387e08653"
+        },
+        {
+          "path": "MANIFEST.MF",
+          "bytes": 60,
+          "sha256": "57b2a8bb301e878e21310b4c7b18fd57879e091980d4159d32ed8127d327b397",
+          "git_blob": "76391f52491bbb093a648de3a4d727dfdc967b65"
+        },
+        {
+          "path": "README.md",
+          "bytes": 3999,
+          "sha256": "38b711b85f43a43b3f044e7fe1c9e3fe0c3ed6cd43f7b943b240040136f00ff8",
+          "git_blob": "46481a74b064fef66e8d6c3232bc5d847eee4f07"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/CodeWriter.java",
+          "bytes": 2357,
+          "sha256": "8bf1b40998c17710a1ccbc773e87600c09d910401dc2a4a3cc36460903f4b22a",
+          "git_blob": "489ccdc793fc8170bc002f34f7e2faade045b804"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/FileSystem.java",
+          "bytes": 1461,
+          "sha256": "02790c13874f2efad23126a347b5e589b9a3c46ebb84a0b82f070074cd64e772",
+          "git_blob": "2d746f30be988f02486e5905458281a8d3798d8c"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/Main.java",
+          "bytes": 9931,
+          "sha256": "4baf4ee439f418b4998f277e41653a556d7c0b055ae4093935efa69e740e3fd3",
+          "git_blob": "4f0c5236cc63e67ee507a381390830231f1b526b"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/XmlSchema.java",
+          "bytes": 2450,
+          "sha256": "6be1b2c62bf2dd14f26a2d6a75490b7a2c52a32cfe22e1184883b8215d9b7610",
+          "git_blob": "4bfa3fd5ce48943448edaabee80aa08c6b081a54"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/XsdConstants.java",
+          "bytes": 756,
+          "sha256": "cdbdf016dbba0d91a532eb1ad77c3cec8db5e964bccfbfb7ff50e2fab20e5dab",
+          "git_blob": "6c79b9bc732b2bb56c177034a327b281ac440d9a"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/XsdHandler.java",
+          "bytes": 29130,
+          "sha256": "b18072cd61d11a5897237adfe318d3a1e8bc9b105e2f8c658857b8d8d0e4dc21",
+          "git_blob": "f6a9492748efb0414902c890a7db87754f562389"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/XsdParserException.java",
+          "bytes": 775,
+          "sha256": "ba1440b5aff82ee2342705a9646ad8231ee3567cdd9471eb683c2fb28e7f78b9",
+          "git_blob": "aa755d5b894c75ac8810d1b1abd7309e0938cadd"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/cpp/CppCodeGenerator.java",
+          "bytes": 63589,
+          "sha256": "befd432ce32c989c8d28c9b14534b31b5ff9f1d3064493aa6dcfc6a85b12cf1f",
+          "git_blob": "a58647d1e52f9512ba4e3f4273575e847b85d1cc"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/cpp/CppCodeGeneratorException.java",
+          "bytes": 779,
+          "sha256": "2c00aeb3beb16bc81d201ac3ae711513525cf3daba6296a8074abe079c69c08b",
+          "git_blob": "a6ccf2a377f88e9299800b023f0de6543ca0b971"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/cpp/CppComplexType.java",
+          "bytes": 1169,
+          "sha256": "45df1565cf1e2d03c9f7d742422101d6146e93db7e7c8b03fa0e4ccb2cbfcd7d",
+          "git_blob": "4a87afa6b23ff61dc3fbf47ecd9b4b6f60fc4dab"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/cpp/CppSimpleType.java",
+          "bytes": 4253,
+          "sha256": "d0ee10b9e7a127e16daff08f3a7f41d1a5ac1e358857014e22c3baa73e43b802",
+          "git_blob": "516832943ebe0c05876c0b7bec5688fc716d6663"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/cpp/CppType.java",
+          "bytes": 1067,
+          "sha256": "8d0cdab1faf96c1b0218b700acb934a516128d53dca679cab9d997ae970565cd",
+          "git_blob": "1c72d3f427325f90ea5aaca206fb7563a1ba09b2"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/cpp/Utils.java",
+          "bytes": 4584,
+          "sha256": "6316dde7c46830631bae97a9e71f4b63c75ec4b418a4620af0c846c446aec352",
+          "git_blob": "d54a9aa8153b4f13e8bf8518dc2b390d0f853cec"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/java/JavaCodeGenerator.java",
+          "bytes": 47438,
+          "sha256": "aed5c9b78ddd0d3c1c2c511f107de7265df3c96f950828dea94ba91b2f9073b6",
+          "git_blob": "0fc2b7c00a96a3a0be698f13f9428fa666dca57c"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/java/JavaCodeGeneratorException.java",
+          "bytes": 782,
+          "sha256": "20326912de5f96c4f5ac58bcf7b7c4e583e03cd5f849c3ce63781cb5c3846281",
+          "git_blob": "b37a284c44134f192df3ad19a3b67dc31a148804"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/java/JavaComplexType.java",
+          "bytes": 1335,
+          "sha256": "bd9886ada33f19936c3bda4c243a47d0d5f5a90e3ec8363dbdbcba85e1de8f1d",
+          "git_blob": "e25acd7901b3c80a73f10cedfb40a887ab2c77ee"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/java/JavaSimpleType.java",
+          "bytes": 4007,
+          "sha256": "b9ad5b409b03b3a83254cd73a100b78d1436f975ecdd44eee3dbddefd0a2666a",
+          "git_blob": "5ad905f8522b0503b4e58290ed8813b6bb6d5aaf"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/java/JavaType.java",
+          "bytes": 980,
+          "sha256": "32dcd8e984587ebf522d52d10af34c3db042978699383b0d00edcea1301e3a61",
+          "git_blob": "8605f5d5ebd5c2eddff76b7e5dac4ac9611ace1e"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/java/Utils.java",
+          "bytes": 3628,
+          "sha256": "e2cddcf88473dfb30c183c67927308ce54ecccedcecd548cd5583f508dd7831b",
+          "git_blob": "5a7a92a0445968e0c1de220bdee3a0cf1c30abb3"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/Nullability.java",
+          "bytes": 715,
+          "sha256": "ab071a661e293a9ede9bf194aef998828e1d2a8ac6520ae68990902bc67e4bde",
+          "git_blob": "9e816356c21cb91deaf68c122572e0a66715da8c"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdAll.java",
+          "bytes": 932,
+          "sha256": "43480213eaedca31b8e7e8c3d04d7021c61ae0db40f7041e3f3854e91dbd3fd9",
+          "git_blob": "39c2562e0bff7cb84af972b3f8cc65959ecd32bd"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdAttribute.java",
+          "bytes": 1436,
+          "sha256": "342304d42826bc2869d7c12aef80035bcff160c5cde72f57e130e999f220c08a",
+          "git_blob": "0c46eb03c2b83dd52d6b4794ce7b14d1b4dc55cc"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdAttributeGroup.java",
+          "bytes": 1604,
+          "sha256": "6048249ff9bf73d10b2b85d8ac5099b5ec368733fa3a02136e791d70b7f1d315",
+          "git_blob": "6c8f85368eee9341d4c80a576fd13d9d7f228f94"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdChoice.java",
+          "bytes": 938,
+          "sha256": "79b3249d6dfeabdf324bbb2dd210956d8515905827bea119c1f4b58b4e52b7ba",
+          "git_blob": "223bb447c7464eaa8d8b37115e98c4bc25fdfb2c"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdComplexContent.java",
+          "bytes": 994,
+          "sha256": "60ef9d70b2b10d56c13d3494de3842b0a9a1bbae9c718ddd98c674f1d8e1707d",
+          "git_blob": "aa9de8726859de4a238304e2bfbd99a6993a9532"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdComplexType.java",
+          "bytes": 2043,
+          "sha256": "6710f96e78388de4af05e59a183fd7f16b3d9761338be5745add9575cbd1962b",
+          "git_blob": "a7e0311bd136228f0d3f09cce966fc86d3f23e3d"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdElement.java",
+          "bytes": 1575,
+          "sha256": "0fb801860af51fcfec759cbf06be972dfb46d643c0391cc9ba9e2ceb1af1ad78",
+          "git_blob": "40a6695b7ed100936ca10ab2e01014884b9d022e"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdEnumRestriction.java",
+          "bytes": 1155,
+          "sha256": "c26f0be20844725a6f717d4bc2b913c40a9f432f5449bd60ab0912121cec3122",
+          "git_blob": "3ae7ae0f9cb417f3e1ed2a88814474bfeaeff71c"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdEnumeration.java",
+          "bytes": 891,
+          "sha256": "962671103471377b4bb8e23836ed85feaa1ac5d550a6b9782b8b02ce9fbff2ba",
+          "git_blob": "2f9fdc00841128726115dff5e0e2baecc18ef50b"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdGeneralExtension.java",
+          "bytes": 1832,
+          "sha256": "8ace8d2eae9a1b30f162bbc1e3b3bc374b66e2dedaf2c2d17fc460c5727938a3",
+          "git_blob": "24043e4810ce65dcedfeca7a5462ff069fd90c5a"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdGeneralRestriction.java",
+          "bytes": 1836,
+          "sha256": "4575f17c23099effc9de38b5d7efe263da441ca409056bf2083149897049a64b",
+          "git_blob": "65836222f10fdc71be8ea2cf6e9ecca35e1096c3"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdGroup.java",
+          "bytes": 1281,
+          "sha256": "c709820dcfc42fba0364562577ff316a5c46a515417f3e55e872eb17388aac71",
+          "git_blob": "dd8f0088ea73dc5c97857fecdf9bff3c7183683e"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdList.java",
+          "bytes": 1110,
+          "sha256": "e18498d269cd224f62ddc06c454f4cd01a3aeddd11a3e87e88f0091282b01d63",
+          "git_blob": "70023c8f767685d8e986f930b6be9f024d1a0816"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdRestriction.java",
+          "bytes": 1340,
+          "sha256": "d4c4327294e7fadb41a33542c4f41e3f12c6cc3fd0ba2cbd9242a9cadc5533d8",
+          "git_blob": "17dfdd50c5308ec16036820b66d25fe0735b44c9"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdSimpleContent.java",
+          "bytes": 879,
+          "sha256": "afa4c0210f59294007ab1904498052f5a8baf7d0325a3de65566d14d623652b1",
+          "git_blob": "cefa60e33acbe0063d8350b88375074cc04af564"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdSimpleType.java",
+          "bytes": 769,
+          "sha256": "46fde61c1ebd0c907ed18ae734b9955c84614acf5b85285ade1c2d6487085cf2",
+          "git_blob": "c7d7e37aed3bfeda5785ae95eb543f2c1b7571b5"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdTag.java",
+          "bytes": 1713,
+          "sha256": "c830785ad9507dd32f2140784072dec2c4f5ec34013c6595fbe6204c88d85e5a",
+          "git_blob": "3397267d0b0f33cad60b95be38099f4a60fd73da"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdType.java",
+          "bytes": 799,
+          "sha256": "15fb41e5483eb043a6903e3f47754bc72d2857186ac79d3e92e6efa8ac55660b",
+          "git_blob": "a7e41a0854b56377f9b9ab7d09174cc421349585"
+        },
+        {
+          "path": "src/main/java/com/android/xsdc/tag/XsdUnion.java",
+          "bytes": 1264,
+          "sha256": "7b9fc0e5b36695f2b8e6835a5e4d642d7ac277be0e1bbee31556b8e7632874d6",
+          "git_blob": "f738330f5f26f76a38ac23388a81583294f12c60"
+        }
+      ],
+      "notice": "src/main/java/com/android/xsdc/Main.java",
+      "notice_sha256": "4baf4ee439f418b4998f277e41653a556d7c0b055ae4093935efa69e740e3fd3",
+      "license": "Apache-2.0"
+    },
+    "apex-schema": {
+      "repository": "aosp-mirror-neo/platform_system_apex",
+      "tag": "android-15.0.0_r1",
+      "commit": "896cdde58b67ddbf37ffdfe06f5b2567ef770f70",
+      "upstream": "https://android.googlesource.com/platform/system/apex",
+      "files": [
+        {
+          "path": "apexd/Android.bp",
+          "bytes": 23673,
+          "sha256": "a6a870578b0d60ff8160ef673d3c5f9c243cc6de81c4ec3a608bb7ee51a0830f",
+          "git_blob": "f9927118a27d65ef4e9c93019ccaab01bd5fdb0b"
+        },
+        {
+          "path": "apexd/ApexInfoList.xsd",
+          "bytes": 1693,
+          "sha256": "b7e452d36be4e3a5a3886e2e1bebaca4b4a76570fd2a6dc950ed8eb7f3b6c0a2",
+          "git_blob": "a327fc68c7aad6c301c17079f02505c11d5ba712"
+        }
+      ],
+      "notice": "apexd/ApexInfoList.xsd",
+      "notice_sha256": "b7e452d36be4e3a5a3886e2e1bebaca4b4a76570fd2a6dc950ed8eb7f3b6c0a2",
+      "license": "Apache-2.0"
+    }
+  },
+  "commons_cli": {
+    "commons-cli-1.2.jar": {
+      "sha256": "e7cd8951956d349b568b7ccfd4f5b2529a8c113e67c32b028f52ffda371259d9",
+      "bytes": 41123,
+      "url": "https://repo.maven.apache.org/maven2/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
+    },
+    "commons-cli-1.2-sources.jar": {
+      "sha256": "b7017c4e576504decd4230f54d79d1140060d57d4d0a65fd3746c0758450a6f1",
+      "bytes": 48726,
+      "url": "https://repo.maven.apache.org/maven2/commons-cli/commons-cli/1.2/commons-cli-1.2-sources.jar"
+    }
+  },
+  "commons_cli_notices": {
+    "LICENSE.txt": "c95bae1d1ce0235ecccd3560b772ec1efb97f348a79f0fbe0a634f0c2ccefe2c",
+    "NOTICE.txt": "ef0d671115935e29fbde70011340bb8b8854bc269b551b96742b7654db03f381"
+  },
+  "compiler_options": [
+    "-c",
+    "-t",
+    "-w",
+    "-r",
+    "apex-info-list",
+    "-p",
+    "com.android.apex"
+  ],
+  "generated_files": {
+    "com_android_apex.cpp": "4676d105c5f51609950330a78717694d08e35fbdb107016900f15ad4eba971ea",
+    "com_android_apex_enums.cpp": "ea8338d74e3274e89c3ed8b8ea1d4b02cd569e021e233ba03dab6d5f9ad5bc60",
+    "include/com_android_apex.h": "49395076fa0131a5106c149cfbece6395a0ff4da4f19ef712916807e0addef07",
+    "include/com_android_apex_enums.h": "98b0429fdadd51001d157acd60ce9776a427e8c7c9090fae106aa0c703bf4b77"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "target": "aarch64-linux-android35",
+  "cpp_standard": "c++20",
+  "libraries": {
+    "libvintf": {
+      "source": "vintf",
+      "units": [
+        "parse_string.cpp",
+        "parse_xml.cpp",
+        "Apex.cpp",
+        "CompatibilityMatrix.cpp",
+        "FileSystem.cpp",
+        "FQName.cpp",
+        "FqInstance.cpp",
+        "HalManifest.cpp",
+        "HalInterface.cpp",
+        "KernelConfigTypedValue.cpp",
+        "KernelInfo.cpp",
+        "RuntimeInfo.cpp",
+        "ManifestHal.cpp",
+        "ManifestInstance.cpp",
+        "MatrixHal.cpp",
+        "MatrixInstance.cpp",
+        "MatrixKernel.cpp",
+        "PropertyFetcher.cpp",
+        "Regex.cpp",
+        "SystemSdk.cpp",
+        "TransportArch.cpp",
+        "VintfObject.cpp",
+        "XmlFile.cpp",
+        "utils.cpp",
+        "RuntimeInfo-target.cpp"
+      ],
+      "generated_xsdc": true,
+      "unit_flags": {
+        "parse_string.cpp": [
+          "-Wno-error=unused-const-variable"
+        ]
+      }
+    },
+    "libkernelconfigs": {
+      "source": "vintf",
+      "units": [
+        "KernelConfigs.cpp",
+        "KernelConfigParser.cpp"
+      ],
+      "unit_flags": {
+        "KernelConfigs.cpp": [
+          "-Wno-error=vla-cxx-extension"
+        ]
+      }
+    },
+    "libkver": {
+      "source": "kver",
+      "units": [
+        "libkver/kernel_release.cpp",
+        "libkver/kmi_version.cpp",
+        "libkver/utils.cpp"
+      ]
+    },
+    "libtinyxml2": {
+      "source": "tinyxml2",
+      "units": [
+        "tinyxml2.cpp"
+      ]
+    }
+  },
+  "includes": {
+    "vintf": [
+      "",
+      "include"
+    ],
+    "tinyxml2": [
+      ""
+    ],
+    "kver": [
+      "libkver/include"
+    ],
+    "selinux-headers": [
+      "libselinux/include"
+    ],
+    "aidl-metadata": [
+      "metadata/include"
+    ],
+    "hidl-metadata": [
+      "metadata/include"
+    ],
+    "vintf-utils-headers": [
+      "libutils/binder/include"
+    ],
+    "libbase-dex": [
+      "include"
+    ],
+    "liblog-dex": [
+      "liblog/include"
+    ],
+    "fmtlib-references": [
+      "include"
+    ]
+  }
+}

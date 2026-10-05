@@ -3405,3 +3405,35 @@ No writable executable memory or new runtime code is introduced. The costs are a
 copied namespace name, integer-token validation and the existing guest-memory
 snapshot/open lock; execution overhead is not yet measured. This is a declared
 single-group namespace model, not Android's full linkerconfig isolation policy.
+
+## 0123: Build original VINTF and generate its APEX parser on the host
+
+The full Android servicemanager link reaches VINTF, kernel-version parsing and
+APEX XML dependencies. Keep the real Android VINTF target implementation and
+build its 27 original VINTF/kernel-config units, GKI's three libkver units and
+TinyXML2. Do not remove Android branches or return placeholder manifests to
+avoid those dependencies. SELinux header declarations are required to compile;
+they do not supply the policy-version query or an access-control implementation.
+
+Generate the APEX parser using the original 39-unit AOSP XSdc Java compiler and
+the original schema, with the same tinyxml, writer, root and package options as
+Soong. Pin its Apache Commons CLI 1.2 binary, corresponding source and notices.
+Building the original compiler is preferable to a handwritten generated-header
+facsimile or a new parser with subtly different field/optional-value behavior.
+The existing portable JDK runs only on the host. Preserve raw output, normalize
+CRLF to LF for shared golden hashes and reject any other output difference.
+Generate twice from fresh directories and require malformed-schema/unknown-root
+controls. Cross-platform CI must reproduce the reviewed four-file output.
+
+Use a separate VINTF build entry point with an optional verified XSdc artifact.
+It reuses the tested ARM64 object audit and retains all unresolved symbols. Use
+quote-only private-header search to avoid case-insensitive Regex.h collisions.
+Follow the pinned Soong diagnostic policy narrowly and keep the warnings visible;
+the original stack VLA and unused constants do not justify editing upstream code.
+Artifacts carry original/generator sources, exact flags, notices and object hashes.
+
+All generated C++ is compiled ahead of time for the future signed framework.
+No device-side compiler, executable-memory transition or new entitlement is
+introduced. The costs are a host JDK/generator step and additional signed code;
+final linked size and runtime overhead remain unmeasured. Successful archive
+compilation establishes neither service execution nor full XML schema validation.

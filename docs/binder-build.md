@@ -135,3 +135,48 @@ and binary hashes, both framework layouts and worker cleanup verify independentl
 The normal fixture takes 14.976 ms in that correctness run. This establishes
 signed guest Looper execution; Binder attachment and servicemanager execution
 remain ahead, and physical iPhone execution is unverified.
+
+## VINTF and original APEX parser generation
+
+The real Android servicemanager depends on VINTF and the APEX XML API. Build
+these dependencies separately so the focused Binder/Looper build remains usable:
+
+```sh
+python3 -B scripts/xsdc.py --build-dir build/m4/xsdc
+python3 -B scripts/build_vintf.py --xsdc-dir build/m4/xsdc --jobs 2
+```
+
+XSdc is compiled from its 39 unchanged Java units using a pinned portable JDK
+and the pinned original Commons CLI 1.2 dependency. `--java-home` can select an
+existing JDK 17 or newer. The original Android APEX schema and Soong options
+produce two C++ files and two headers. Each build generates twice in fresh
+directories, verifies exact reviewed hashes, rejects malformed schema and an
+unknown root, and retains original and LF-normalized output. Line-ending
+normalization accounts for Java's platform-specific `println`; no parser logic
+is edited. All three host platforms must reproduce the same four canonical
+files in CI. Unit controls reject substituted, missing and extra output, changed
+options, incomplete generation evidence and redirected output paths.
+
+`build_vintf.py` keeps `LIBVINTF_TARGET` and the Android source branches. Its four
+archives contain 25 original VINTF units plus the two generated units, two
+libkernelconfigs units, three libkver units and one TinyXML2 unit: 33 objects.
+It reuses Binder's ARM64 executable-section/instruction audit, reserves x18/x27/x28,
+checks deterministic archive membership and reports all unresolved imports.
+Its source artifact includes the schema/compiler source archive and all compile
+inputs and notices. Pass `--ndk-root`, `--build-dir` and `--jobs` to configure the
+build; omit `--xsdc-dir` to generate the parser locally first.
+
+Use quote-only lookup for VINTF's private headers so `Regex.h` cannot shadow
+the NDK's `<regex.h>` on case-insensitive filesystems. Original deprecated,
+inconsistent-override and sign-comparison diagnostics remain visible and
+nonfatal, consistent with the pinned Soong warning policy. Only the original
+KernelConfigs stack VLA and parse_string's unused constants receive their
+respective additional nonfatal diagnostic flags. No source workaround, host-only
+runtime profile or replacement kernel implementation is introduced.
+
+These are compile and code-generation checks. They do not demonstrate parser
+execution, complete XSD validation, VINTF access to a device, SELinux behavior,
+or signed servicemanager registration. A private full-service link currently
+exposes eight unresolved symbols: two Access methods, three libc++ regex helpers,
+Bionic regcomp/regfree and security_policyvers. The remaining implementations
+and real Binder/service execution still require their own acceptance tests.

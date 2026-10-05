@@ -28,6 +28,20 @@ jobs:
           path: build/m4/binder-aidl
       - name: Compile real libbinder and libutils with the Android kernel IPC profile
         run: python3 -B scripts/build_binder.py --aidl-dir build/m4/binder-aidl/darwin-arm64 --jobs 2
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: apex-xsdc-macos-15
+          path: build/m4/xsdc
+      - name: Compile original VINTF and its generated APEX parser for Android ARM64
+        run: python3 -B scripts/build_vintf.py --xsdc-dir build/m4/xsdc --jobs 2
+      - name: Preserve VINTF archives, generated source, imports and notices
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: vintf-native-build
+          path: build/m4/vintf-native
+          if-no-files-found: error
+          retention-days: 7
       - name: Compile the shared real Looper caller and audit its Android instruction boundary
         run: python3 -B scripts/test_aosp_looper.py --profile android
       - name: Preserve the Looper Android caller, objects and sources
@@ -143,6 +157,20 @@ jobs:
           ${{ matrix.python }} -B scripts/build.py host
       - name: Check ART's native low-address heap requirement
         run: ${{ matrix.python }} -B scripts/test_low_address.py
+      - name: Reject substituted APEX parser sources and incomplete generator evidence
+        run: ${{ matrix.python }} -B tests/test_xsdc.py
+      - name: Build original AOSP XSdc and reproduce the pinned APEX parser
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ${{ matrix.python }} -B scripts/xsdc.py
+      - name: Preserve schema compiler, original sources and generation controls
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: apex-xsdc-${{ matrix.os }}
+          path: build/m4/xsdc
+          if-no-files-found: error
+          retention-days: 7
       - name: Record native Binder reference availability
         run: ${{ matrix.python }} -B scripts/probe_binder.py
       - name: Generate real AOSP servicemanager interfaces with the native host compiler

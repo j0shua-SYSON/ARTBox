@@ -1,0 +1,666 @@
+{
+  "vintf": {
+    "repository": "aosp-mirror-neo/platform_system_libvintf",
+    "commit": "0748000fca71d7ecea7184883fed4c23997f91b6",
+    "tag": "android-15.0.0_r1",
+    "files": [
+      {
+        "path": "Android.bp",
+        "bytes": 6090,
+        "sha256": "b89f945452d03b188b2d70312faec6c2b30f9827612a2d6f2b89804b3bdd9d5f",
+        "git_blob": "def212e733d005e3554d2c29e7f75c92fe2c5042"
+      },
+      {
+        "path": "Apex.cpp",
+        "bytes": 4383,
+        "sha256": "ed23289963b0f89b42c6bd115d0cda0bc58ffd184c9057b48e7841cb58741e6d",
+        "git_blob": "96fb15553a6451287ab4724bd8757ec50c5d3962"
+      },
+      {
+        "path": "CompatibilityMatrix.cpp",
+        "bytes": 18874,
+        "sha256": "a6ebe91f1af293818b51c3320a59887d6d66f2e4f313286b8935ad732b98428f",
+        "git_blob": "b6c8e45563e253e6c62d701e6f323710f6f64920"
+      },
+      {
+        "path": "FQName.cpp",
+        "bytes": 8788,
+        "sha256": "8a0422a8e0154a56914d3c9bbc4d6227e8e9a4bfee14044a319b414ed23063d2",
+        "git_blob": "5285a48443b989016389dcf302af38b5c2b2e1cf"
+      },
+      {
+        "path": "FileSystem.cpp",
+        "bytes": 5882,
+        "sha256": "465779f7674b475143cba6564f7109ceafd8cc353d99c5ed03b28a8d7642a55b",
+        "git_blob": "382dc86a39b98b5b4bd5cbc45621d138e29cedf6"
+      },
+      {
+        "path": "FqInstance.cpp",
+        "bytes": 3771,
+        "sha256": "a659a98a6fc457020355475a196c2e0135113c924d7ed966df455974055655a2",
+        "git_blob": "26fa5688f31064e15c8050d59e4bc12c96f25d69"
+      },
+      {
+        "path": "HalInterface.cpp",
+        "bytes": 2102,
+        "sha256": "502fbd1d9c764008a6b1f9bf92bc30eb51c8eecbeba234e1ecfe1f1c1ad70f61",
+        "git_blob": "b5cbd6b0541c890159c1912d818de3110c28dd38"
+      },
+      {
+        "path": "HalManifest.cpp",
+        "bytes": 31847,
+        "sha256": "519e34e004a2b10cff854e4862ecf7ac88cd03a48648e09ebabe0d4cb4a1f032",
+        "git_blob": "61d2c322c454ecf2f0fec9f4cf776c568c084b2c"
+      },
+      {
+        "path": "KernelConfigParser.cpp",
+        "bytes": 4632,
+        "sha256": "610b126c55ac8ab6cabdc11870dd36a514d92148f95c59cf742589740a81a40a",
+        "git_blob": "c85171602cebd6b8d208b496b39ee6f26fe6283a"
+      },
+      {
+        "path": "KernelConfigTypedValue.cpp",
+        "bytes": 2765,
+        "sha256": "e28df84977e61d02cf7e881be70973ba09747e1d3fae59320771ca306c7d89d5",
+        "git_blob": "9d31834f7bfe7d4391aee9b7aab8233834362d7a"
+      },
+      {
+        "path": "KernelConfigs.cpp",
+        "bytes": 1669,
+        "sha256": "eb3a395e148e27bd8f85184f76a1cfeec44454490142e1897e4cfcefa6a51d34",
+        "git_blob": "3de65ea5bced85ceae9747ad4f5b32d4207589e7"
+      },
+      {
+        "path": "KernelInfo.cpp",
+        "bytes": 11489,
+        "sha256": "29be0458d9cb8a772ed946e90279a98f7d4adf7981bddebb29c7b22fcd662143",
+        "git_blob": "5a403b22375b215a0b3a92c4b9cd469077ba2f7c"
+      },
+      {
+        "path": "ManifestHal.cpp",
+        "bytes": 6368,
+        "sha256": "d9ff49ec2997f8f928de4031d0797d750f3666bf254ebc7afbd7b4f704131e72",
+        "git_blob": "0952e4fa681d1362022287334a0662c5d3552fa2"
+      },
+      {
+        "path": "ManifestInstance.cpp",
+        "bytes": 5599,
+        "sha256": "f2d29edae5ce5684c3a0156f19fd307a5c0d5500374a5a9ff240382ac205b75d",
+        "git_blob": "60bd146db38427c0dfc97d815dc060fdda2855df"
+      },
+      {
+        "path": "MatrixHal.cpp",
+        "bytes": 7397,
+        "sha256": "bf4021d885876b80b8024fd07f798969d5ba9700e3cd4c18fadfed11ea37f6c9",
+        "git_blob": "5b5a5af69189484a3db99b1dbd3d17f4e05ccf1c"
+      },
+      {
+        "path": "MatrixInstance.cpp",
+        "bytes": 4158,
+        "sha256": "25244d5fa922fc70c9315f38f53b5c55a2996ac4b01719604493d0fed38208b7",
+        "git_blob": "0c6354dbfb314cfea569d96261c18502f39fe674"
+      },
+      {
+        "path": "MatrixKernel.cpp",
+        "bytes": 1105,
+        "sha256": "7f96aed0d4b47bb97c4b282a92d401283bd7d660192b1f3106e5bb5fc9cd761f",
+        "git_blob": "30953d68f270b341d154285c79546cbe91755108"
+      },
+      {
+        "path": "NOTICE",
+        "bytes": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "git_blob": "d645695673349e3947e8e5ae42332d0ac3164cd7"
+      },
+      {
+        "path": "PropertyFetcher.cpp",
+        "bytes": 1925,
+        "sha256": "febf9faea580b85681386061bde1cdad8f7661edf190fd5d12c963e36c4d9234",
+        "git_blob": "d40626200cbe02ad2c36269a0a6d416a6241bf2d"
+      },
+      {
+        "path": "Regex.cpp",
+        "bytes": 1443,
+        "sha256": "e4b33eae5834e3466727e0c92854acd8885a50fe7295e64647fa61a40060ce6e",
+        "git_blob": "c3433985956de7184cafbc1f24bd02f1b61deea9"
+      },
+      {
+        "path": "RuntimeInfo-target.cpp",
+        "bytes": 5887,
+        "sha256": "992f55413ea575ff1159060b96da5055b168f8a21e6a806f3a79dbe94a534810",
+        "git_blob": "453be56c83d1ff9d073b8aec7923464767a469df"
+      },
+      {
+        "path": "RuntimeInfo.cpp",
+        "bytes": 7735,
+        "sha256": "9137a96dd52a083e5874422561b21baea4fb7a1f45a84d467f6a57a420ace091",
+        "git_blob": "9496ccf3281504ebfde72f4826a34cf33be603c3"
+      },
+      {
+        "path": "SystemSdk.cpp",
+        "bytes": 1299,
+        "sha256": "f4e55d77480f2895e51d7e30f087c37d0af59dbdf5e6aea4b946396051cb8661",
+        "git_blob": "1dfd463c39698eef54785841e9abea18368b555a"
+      },
+      {
+        "path": "TransportArch.cpp",
+        "bytes": 2150,
+        "sha256": "e3274942a6797f97a5a11fdfcfb7a6a893fbf110fc9d8b68f88e9a16a7e8b07a",
+        "git_blob": "83aeb948c6fcb2e90141a849d7ad9bf97c9325b3"
+      },
+      {
+        "path": "VintfObject.cpp",
+        "bytes": 57657,
+        "sha256": "f90b53ce8788b877026cf8612c4f697a3f66ee136fd598c0d9fa1402eb7b913c",
+        "git_blob": "cb123b3f9bb74fcc2d67bb2c023bbddd605070ef"
+      },
+      {
+        "path": "VintfObjectUtils.h",
+        "bytes": 2496,
+        "sha256": "de02357a54bfba7c8881d446e75731bc00596dd0b8e43abfcc8122435a7479a0",
+        "git_blob": "7be9b5b9602b30a242c2a7c1789fe0ba4cde4511"
+      },
+      {
+        "path": "XmlFile.cpp",
+        "bytes": 1205,
+        "sha256": "8d8796dc0a720151433682cb562d0c39ce8020955ae22f6f3f6cbb9ca1aeec14",
+        "git_blob": "695b3d47691a2e6bbb973dd4b241aa71b9a26c10"
+      },
+      {
+        "path": "constants-private.h",
+        "bytes": 3980,
+        "sha256": "adacbc32086d61199ddc61bf7c40e521c9b20351c87e404f73f51114361b7ab4",
+        "git_blob": "a493e7d9ff09d18db00319d97f50500a68b8f51c"
+      },
+      {
+        "path": "include/vintf/Apex.h",
+        "bytes": 1255,
+        "sha256": "b8b3c9841ee9dba1032d396b240f33c4beddbad29d747c4fa1ccb1d5f4f7f5eb",
+        "git_blob": "175ae965a5d4a88012e210b54086195a19e3d655"
+      },
+      {
+        "path": "include/vintf/Arch.h",
+        "bytes": 2814,
+        "sha256": "2d68131820f7cd1725732fcb3791b591ef3d1d1bbba6dcda9e050569fa9132b0",
+        "git_blob": "4f4ae6afda3828ce8da1447a4d01f165b617ff7f"
+      },
+      {
+        "path": "include/vintf/CheckFlags.h",
+        "bytes": 2385,
+        "sha256": "36b7f1f705c25cf6d58882627d6e29c6ba376c6d11ff1042ed27d4d760366bf9",
+        "git_blob": "52d35a7ce3622d93e983fc580bb87950c923f033"
+      },
+      {
+        "path": "include/vintf/CompatibilityMatrix.h",
+        "bytes": 7971,
+        "sha256": "72ded70e62ac4dbffb50f98d651e3521e1f3eb575ffceefe277397d86684d870",
+        "git_blob": "bb776eccc90140010bbeee983f4659aa410ee9be"
+      },
+      {
+        "path": "include/vintf/FQName.h",
+        "bytes": 4649,
+        "sha256": "9b4b3b38e0601a9e139eee22070c75c6c291053a0454ffc22f2ea459a9739600",
+        "git_blob": "b933d593e9c4bfa3df30234a3f69ef183e96db2f"
+      },
+      {
+        "path": "include/vintf/FileSystem.h",
+        "bytes": 4925,
+        "sha256": "7e1cbf9185ad76c3b11c5b181c31154fa6e6c93523d2e63739bbe9bac1b5bf10",
+        "git_blob": "de16d500402200cbaf3ecf6e649e35e944e35352"
+      },
+      {
+        "path": "include/vintf/FqInstance.h",
+        "bytes": 3839,
+        "sha256": "5bb79b0ebcf30c7c8ab648315e658121f9f40b2c25e6d1f215118fceafa734f7",
+        "git_blob": "037920d3b6f9788a10825fccb7280c8796f6045e"
+      },
+      {
+        "path": "include/vintf/HalFormat.h",
+        "bytes": 1088,
+        "sha256": "1a13308bd151421ccb8ac1862b4799e525c983301ae17d4a4063b2e60deaf45e",
+        "git_blob": "3774098c765ecaed85c5646b4bbdb354ffa9f976"
+      },
+      {
+        "path": "include/vintf/HalGroup.h",
+        "bytes": 8853,
+        "sha256": "903807c57e9620b074186810118d9d4cabc9430e7eee8d138102fec16fd4ce78",
+        "git_blob": "4971181c0e7e8432dd84ab56dc77ce9373722eb5"
+      },
+      {
+        "path": "include/vintf/HalInterface.h",
+        "bytes": 2052,
+        "sha256": "de0c03fe9850b5b6eb103778aebcafc81c29b9bc8a19152610674065c895e0a8",
+        "git_blob": "acbb93e0ea5e8f2340cc4b2a8cfe8739ab742a4f"
+      },
+      {
+        "path": "include/vintf/HalManifest.h",
+        "bytes": 11640,
+        "sha256": "d30c381c0dbde9bb67279d944d6987c471b611a55c758da9aa5adfd74ef5a988",
+        "git_blob": "34133592bae3a8b1f5419da337c126a43179d1ed"
+      },
+      {
+        "path": "include/vintf/KernelConfigParser.h",
+        "bytes": 1621,
+        "sha256": "bc492067d3e2a8916e35784a33b4ef00d4b800205b332783de3e9d6cb41c739e",
+        "git_blob": "9d5a8feae66053873c609f0ddd194aa04bbb4f25"
+      },
+      {
+        "path": "include/vintf/KernelConfigType.h",
+        "bytes": 1144,
+        "sha256": "8ce4d9df979c184ff7c33d4705df93608a24b2240ca9bbcea741037e4bd548ad",
+        "git_blob": "ffb203e7cd577a33dea5c5ddefef14f74dc4389f"
+      },
+      {
+        "path": "include/vintf/KernelConfigTypedValue.h",
+        "bytes": 2028,
+        "sha256": "17e7971c0f85074a25d689a38f80dbfa88ee9710759094420a32bbdd6ee9246e",
+        "git_blob": "23b1c1191055dcbcb05318d98739c0c0d35cbed9"
+      },
+      {
+        "path": "include/vintf/KernelConfigs.h",
+        "bytes": 871,
+        "sha256": "ed3ec3dad540e549b9b38ed0cade9ec3ea53de9f55fd562a3089f383825c10a4",
+        "git_blob": "6324d9cb91b3a3d1ca4096c3021c750fadcee871"
+      },
+      {
+        "path": "include/vintf/KernelInfo.h",
+        "bytes": 2898,
+        "sha256": "9a7c5683a71e0be58e58e729a489f315ece8d70c6ea16b4e7836a2ef9c08d37e",
+        "git_blob": "9bec375560af7b0dcb7b691dcaeabd630f6566bd"
+      },
+      {
+        "path": "include/vintf/Level.h",
+        "bytes": 2216,
+        "sha256": "40e2dcde22da9e57846d79c6ecef58172eb4ab893720664c25293871adab555e",
+        "git_blob": "d638394810fb7d966a3717ad415a6a8bb79e4149"
+      },
+      {
+        "path": "include/vintf/ManifestHal.h",
+        "bytes": 4231,
+        "sha256": "145a121b0d75964fd9879450dc5fb31b6aa58fdf7694040ea4712838d4bd9047",
+        "git_blob": "0b309d83585ec979a4f17668ed527b557f015a13"
+      },
+      {
+        "path": "include/vintf/ManifestInstance.h",
+        "bytes": 3151,
+        "sha256": "e466a1065760992f137dfcbf3f1129248d3c5ea822797e37255a7b9eab938e13",
+        "git_blob": "4ae66e150e4c25f78372d1420aac05acc317631b"
+      },
+      {
+        "path": "include/vintf/MapValueIterator.h",
+        "bytes": 5169,
+        "sha256": "9aeab1428098ac5867bf7adf36b3356dc33349a5bc32e35d8d8de4f7a9dee0a2",
+        "git_blob": "b44c661c07043bc250125ea8038161bbd373cdee"
+      },
+      {
+        "path": "include/vintf/MatrixHal.h",
+        "bytes": 3541,
+        "sha256": "444315f4978dcbdb02fc6383e7655914a92890a402ea0c64fa35998a6f344848",
+        "git_blob": "25ff113bd1e2622f44b935a5d8d1370dd1bef11a"
+      },
+      {
+        "path": "include/vintf/MatrixInstance.h",
+        "bytes": 3050,
+        "sha256": "833c8e29943e59de71a27b820a7524dde1ac5d5a4cec09d5d633af71acda8809",
+        "git_blob": "f7489d3b40b9bb2ae3e079a7566f385cc5c1ac9f"
+      },
+      {
+        "path": "include/vintf/MatrixKernel.h",
+        "bytes": 2804,
+        "sha256": "6072076f1d7fa941c22a8a6096915153c5071be72c27fa62181a1d46ef3ddc28",
+        "git_blob": "baf447312ec03f954a32bcbb297961f7b1e66e25"
+      },
+      {
+        "path": "include/vintf/ObjectFactory.h",
+        "bytes": 904,
+        "sha256": "391c1650179d9d16a552ac7342a15513321f1c4bbbd2dbceb53db136b6b3e8d8",
+        "git_blob": "f71088bdb002df55f3f95c76fb6aae02bf3fa824"
+      },
+      {
+        "path": "include/vintf/PropertyFetcher.h",
+        "bytes": 1192,
+        "sha256": "ca04d1aeb3c3074df7d5615e1e56206b29ad98ce5b3504145e1e29e920e181d1",
+        "git_blob": "1082a81551992a41bf5cb013ff3c543261782121"
+      },
+      {
+        "path": "include/vintf/Regex.h",
+        "bytes": 1602,
+        "sha256": "826ec5736d04c8113340d0768167171ed47d260d473c1cee7fdd85695765df05",
+        "git_blob": "86c66f27d424b9cdf43769e26abc66ffab56d61c"
+      },
+      {
+        "path": "include/vintf/RuntimeInfo.h",
+        "bytes": 4862,
+        "sha256": "54f6b898f6602dda118b893befd28284741f67830cab6e080dd4314d31cdc115",
+        "git_blob": "f181dd42765fe10fa2ff4c66d55b06568359a61c"
+      },
+      {
+        "path": "include/vintf/SchemaType.h",
+        "bytes": 1068,
+        "sha256": "f37396fe8066591addcabb641dc3085fbe3e0892e6ca4558feaaedaa678244d1",
+        "git_blob": "8a681505c94feafb8afaf13002e0ac1b03009deb"
+      },
+      {
+        "path": "include/vintf/Sepolicy.h",
+        "bytes": 2017,
+        "sha256": "c503910a8a43b893a40dec626617ab9959310d9b9dafbfb273bc3de666a6e1bf",
+        "git_blob": "fbfca8c71a1176ccaeba779679e63fafbc76cf22"
+      },
+      {
+        "path": "include/vintf/SerializeFlags.h",
+        "bytes": 3507,
+        "sha256": "812047161c26e507908b393be1a5d10b4989939a4fbc0cd73ab824d2089c5f4e",
+        "git_blob": "909a331537664098a6f193abb7c9ab1cf398b2c4"
+      },
+      {
+        "path": "include/vintf/SystemSdk.h",
+        "bytes": 1627,
+        "sha256": "a066d43fffbc6fd5b12d2b6f9b92e3919fec91d97656f9e921a271ed8588ef91",
+        "git_blob": "703c1e0bdfc106dff929ba78d346a7bdbaa80244"
+      },
+      {
+        "path": "include/vintf/Transport.h",
+        "bytes": 1086,
+        "sha256": "36e57f78aa8be71dfe9f7753eb1b2021173a07309b73f30d5a2ea9bdd86ea0c1",
+        "git_blob": "e1a5c803abf2f40a33e34b6216fdcf7cf023423c"
+      },
+      {
+        "path": "include/vintf/TransportArch.h",
+        "bytes": 2165,
+        "sha256": "892d53128d2635eec327a181efd63fa0f5c7bf9f2c12f15f175b04f6ed0924af",
+        "git_blob": "cb3030c8e40f8b916b56935616c3d1999e0a1796"
+      },
+      {
+        "path": "include/vintf/Tristate.h",
+        "bytes": 1050,
+        "sha256": "b81eccc251384c93c9d6591583b30b515adc4a3b1b1e67d2e7377c0ba4571163",
+        "git_blob": "5417b233d2fd0febbd0f5c925a192b6289b08820"
+      },
+      {
+        "path": "include/vintf/VendorNdk.h",
+        "bytes": 1650,
+        "sha256": "ca6a668922acbddbc0adbf440cf013d22fa2ab81a40f746aeab5089b0d859550",
+        "git_blob": "3d86570e76fcce0a2a94e58513155182e794357d"
+      },
+      {
+        "path": "include/vintf/Version.h",
+        "bytes": 4461,
+        "sha256": "e9874615b8652d6a516be6a7e6f9e9415f6fa8ac7572101faa5e1e1060ad86ba",
+        "git_blob": "456546b82d7ee01703887f49263e9db939cdf945"
+      },
+      {
+        "path": "include/vintf/VersionRange.h",
+        "bytes": 3779,
+        "sha256": "756bcee3b7ff4ceed974d8048c70c649c4870f53397e88fc03f90eda774c6c58",
+        "git_blob": "d5c7c562dcf33bc574f439a48b5481940c72e810"
+      },
+      {
+        "path": "include/vintf/VintfObject.h",
+        "bytes": 17140,
+        "sha256": "a73c0adc60fc88cc9dd2385ea495f5bd475699d84c1ed15b4e6b2b26cfc1707a",
+        "git_blob": "67cfdcba8db7e604447e4857a1da25625db90d2b"
+      },
+      {
+        "path": "include/vintf/VintfObjectRecovery.h",
+        "bytes": 2566,
+        "sha256": "6d1f6b50e37805f3255959b0a60a913efd47820e53cb83d0a03f65d788853a77",
+        "git_blob": "64be749cb4afbb8abdb8c8484f4d51005dcc1520"
+      },
+      {
+        "path": "include/vintf/Vndk.h",
+        "bytes": 2416,
+        "sha256": "9315c5bcfe0eecc3afab1aea2a3e8503ddf66f488a4f51ffe84d6c6c649d2b92",
+        "git_blob": "605eb230404f846f0bfba74412f484859279cda2"
+      },
+      {
+        "path": "include/vintf/WithFileName.h",
+        "bytes": 1500,
+        "sha256": "8995d079a364ab6167d51507a2b8aa403dba9a9867f1ab7fd4adb33f0001e876",
+        "git_blob": "beed3e2f53ebe5af5122536e8481299731dc1033"
+      },
+      {
+        "path": "include/vintf/XmlFile.h",
+        "bytes": 1994,
+        "sha256": "59ae2c14870bcd82d016f6e2898c8a4a3e740f86d6b19045e5de070ceb51701b",
+        "git_blob": "1ad57bb444ddd5b1d5b806750f2a9eea012aa3d2"
+      },
+      {
+        "path": "include/vintf/XmlFileGroup.h",
+        "bytes": 2448,
+        "sha256": "bd94ac484d27e6e1dd1c46782a6fdf371005d6c8cec3c308460a600e873ad90d",
+        "git_blob": "b67de8682e1c34b757bbac5754c7253f630c6382"
+      },
+      {
+        "path": "include/vintf/XmlSchemaFormat.h",
+        "bytes": 1013,
+        "sha256": "b1eeeb898853e05b450c6ac97e245754b080971f21a7d73f87dad1f8a2760304",
+        "git_blob": "e75771ed798af191a7b55b793f7dbb9b28acee79"
+      },
+      {
+        "path": "include/vintf/constants.h",
+        "bytes": 1305,
+        "sha256": "e9eb59026b03e4fbe9caa2c63c7acd8a69b3bce67bba7de3d0135f19d2428cd4",
+        "git_blob": "423cea0c47d810b3ca49cc4ae5ecc765d4b60bcb"
+      },
+      {
+        "path": "include/vintf/parse_string.h",
+        "bytes": 5852,
+        "sha256": "15dad85e5f4c1064e9c61506c6da99b1d149bccc571d2ef36606fd4bd195afb9",
+        "git_blob": "52defff052b35afb9dda3944909d827e80014aa0"
+      },
+      {
+        "path": "include/vintf/parse_xml.h",
+        "bytes": 1351,
+        "sha256": "6d2e9b876d5950ba6208f224f54e4ac9bf5b192cebafab2915677a566c98e8b5",
+        "git_blob": "bf961d238fde95080a97a3f3bf5890da084dfa16"
+      },
+      {
+        "path": "parse_string.cpp",
+        "bytes": 17445,
+        "sha256": "d84ffe44c33c08eaeb86ad32ef68f390c4c5c121969675c940db0dae6cfcee4e",
+        "git_blob": "caf58d97d35eec30e3c01c08b910ba59e94ba537"
+      },
+      {
+        "path": "parse_xml.cpp",
+        "bytes": 69034,
+        "sha256": "9a303ff8c3823e5c3e981644b776f365d491c343f594b282232ff62f66b98a1a",
+        "git_blob": "f5410e755fd5373effdc54380b13e2b16f740d4e"
+      },
+      {
+        "path": "parse_xml_for_test.h",
+        "bytes": 1812,
+        "sha256": "d385294b87fd0dfa3fb23c5d8f587698b665fce9e668f0271dfbbd97af10f432",
+        "git_blob": "64f39e22d2584431b5574e5fa6acfef656aaefe3"
+      },
+      {
+        "path": "parse_xml_internal.h",
+        "bytes": 916,
+        "sha256": "732dd532f5977382ea67f9f63559bdd6e1d17968612961935cae43c45b5d7c52",
+        "git_blob": "d327b78a027e014b3f3f1222cef03f9f0b68936e"
+      },
+      {
+        "path": "utils.cpp",
+        "bytes": 3747,
+        "sha256": "1f3d89c6d478777b5f69e5d4fe11ed3d3a39816c58616d9cc6e1ba3e2219f63d",
+        "git_blob": "117e838b9584936b2f06c9ae6555be5b2220c685"
+      },
+      {
+        "path": "utils.h",
+        "bytes": 4057,
+        "sha256": "c0c0751b32fc2a868b60cd8845d1447c7f5e6dbaca56ed20d366bb8d46f1fba0",
+        "git_blob": "40abf2d57658accc22611b705c0ad61ea89f7766"
+      }
+    ],
+    "notice": "NOTICE",
+    "license": "Apache-2.0",
+    "notice_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  "tinyxml2": {
+    "repository": "aosp-mirror-neo/platform_external_tinyxml2",
+    "commit": "d3f5ba7b82e0f97c06dc8eca7048cd5098323c2f",
+    "tag": "android-15.0.0_r1",
+    "files": [
+      {
+        "path": "Android.bp",
+        "bytes": 2289,
+        "sha256": "42cdd08e0811d8eb828aad6f4a4cf51857b558288f8f20734a0578f796a639e2",
+        "git_blob": "fa52dec74fe72bf2395bcc8d78885e001c865eee"
+      },
+      {
+        "path": "LICENSE.txt",
+        "bytes": 808,
+        "sha256": "9332252e9b9e46db8285d4a3f0bf25f139bf1dca6781b956d57f2302efca6432",
+        "git_blob": "85a6a36f0ddf7cda552b7a031a9682f2c062d722"
+      },
+      {
+        "path": "tinyxml2.cpp",
+        "bytes": 79026,
+        "sha256": "d5a7fd2ad255d716c4d2a64d5686f90c7e27a8285c49c59a5d105cb400bdf703",
+        "git_blob": "c5c4870105905ce0aafceaba1f4c676806d7a1f8"
+      },
+      {
+        "path": "tinyxml2.h",
+        "bytes": 74509,
+        "sha256": "02f2389feb67fbb3efe42aaa6942034bc7d54695f357c5aac3cbd2f78a06ca4a",
+        "git_blob": "7586f7b8d0532555369f8a61a357bc81ecb51066"
+      }
+    ],
+    "notice": "LICENSE.txt",
+    "license": "Zlib",
+    "notice_sha256": "9332252e9b9e46db8285d4a3f0bf25f139bf1dca6781b956d57f2302efca6432"
+  },
+  "kver": {
+    "repository": "aosp-mirror-neo/platform_packages_modules_Gki",
+    "commit": "7c062c2c20eabeeb72a64c8d29e6ff8d1a56f2ea",
+    "tag": "android-15.0.0_r1",
+    "files": [
+      {
+        "path": "libkver/Android.bp",
+        "bytes": 1994,
+        "sha256": "1e4ca861de1255b6e9e149521139addb76877fc85d47c6d130533dde97c5ea64",
+        "git_blob": "476ea4eb109821cdc00d92e8d4239da89a1a2aeb"
+      },
+      {
+        "path": "libkver/include/kver/kernel_release.h",
+        "bytes": 2188,
+        "sha256": "eee5f37751aa18953e12e1b15c88b7421f9fd0c10678c4c9cba416cdaedb5cba",
+        "git_blob": "63e9d74dc7bd3bc855035aec53b80a6877aaa1db"
+      },
+      {
+        "path": "libkver/include/kver/kmi_version.h",
+        "bytes": 1957,
+        "sha256": "9de6b958af4be3453d16a5b3e03a6c19eedd10ba983b8de3e16416c8c323ebc1",
+        "git_blob": "7066f1000a7c81f271683c9c94e88a49e6fb34f3"
+      },
+      {
+        "path": "libkver/include/kver/utils.h",
+        "bytes": 1399,
+        "sha256": "8922d03b1135233f5b388af6136e98561a50bb751d4c06e80a06f9c53d5f5158",
+        "git_blob": "26e0707e98ca5bb3597a229b8e92f7cd4f37b3bf"
+      },
+      {
+        "path": "libkver/kernel_release.cpp",
+        "bytes": 2075,
+        "sha256": "3d490c048fe84820b088b3eee257b56a85f274c71ea878a78094bfc25a5aa26e",
+        "git_blob": "39c0b7e9386ade3d3e9cf3d8159fb1443dca5003"
+      },
+      {
+        "path": "libkver/kmi_version.cpp",
+        "bytes": 1880,
+        "sha256": "df12981320d6f86655588e43f9c1764d72b61c5824691ef306a89f9a369f65ac",
+        "git_blob": "48314815f023514c9c49c854b70214b0eac68464"
+      },
+      {
+        "path": "libkver/utils.cpp",
+        "bytes": 3407,
+        "sha256": "fd4881ac1baeb5da560bfe8d27f8f77f712e548c7139b7ac3b1f6af8ab71b46c",
+        "git_blob": "a1d2c13d4d94e174eaabfb3990ed43720e21c9e2"
+      }
+    ],
+    "notice": "libkver/Android.bp",
+    "license": "Apache-2.0",
+    "notice_sha256": "1e4ca861de1255b6e9e149521139addb76877fc85d47c6d130533dde97c5ea64"
+  },
+  "selinux-headers": {
+    "repository": "aosp-mirror-neo/platform_external_selinux",
+    "commit": "8d5c7f06d074449dbb3dad7fcb531ec02ff0c0d1",
+    "tag": "android-15.0.0_r1",
+    "files": [
+      {
+        "path": "LICENSE",
+        "bytes": 289,
+        "sha256": "44bdcd6907872cfa80e0fbcc9851d6bec707c91beb1de0b7347f131f5542f300",
+        "git_blob": "91a16c91205d2a0ba0acdf879eab4f5538f91861"
+      },
+      {
+        "path": "libselinux/LICENSE",
+        "bytes": 1034,
+        "sha256": "86657b4c0fe868d7cbd977cb04c63b6c667e08fa51595a7bc846ad4bed8fc364",
+        "git_blob": "d386268911921b3f9467d22c73fe1cb07fcb6ace"
+      },
+      {
+        "path": "libselinux/include/selinux/selinux.h",
+        "bytes": 29155,
+        "sha256": "42f7313a4072edcb453c3045904516adf8cc0546c47067b0b37760843954010d",
+        "git_blob": "a0948853fd985094fef11d2d9646408e19807d3d"
+      }
+    ],
+    "notice": "libselinux/LICENSE",
+    "license": "Public-Domain",
+    "notice_sha256": "86657b4c0fe868d7cbd977cb04c63b6c667e08fa51595a7bc846ad4bed8fc364"
+  },
+  "aidl-metadata": {
+    "repository": "aosp-mirror-neo/platform_system_tools_aidl",
+    "commit": "d1304733b74b69f26dbe2d3c40c797aaac22f163",
+    "tag": "android-15.0.0_r1",
+    "files": [
+      {
+        "path": "metadata/include/aidl/metadata.h",
+        "bytes": 1359,
+        "sha256": "458fe36c5a4dcc0da56d1d2250f540a05c147055db0e00a84c4ec0a4c48a74cd",
+        "git_blob": "fe602c4b2d2b0f49523d267edc47545d8f2a568f"
+      }
+    ],
+    "notice": "metadata/include/aidl/metadata.h",
+    "license": "Apache-2.0",
+    "notice_sha256": "458fe36c5a4dcc0da56d1d2250f540a05c147055db0e00a84c4ec0a4c48a74cd"
+  },
+  "hidl-metadata": {
+    "repository": "aosp-mirror-neo/platform_system_tools_hidl",
+    "commit": "a61c3e7eafd1c3ac523c105392a88c0165237394",
+    "tag": "android-15.0.0_r1",
+    "files": [
+      {
+        "path": "metadata/include/hidl/metadata.h",
+        "bytes": 1005,
+        "sha256": "0d35c81e55a77448221fb6ffd1ce7179f12cf62b4191eddd43835047f5dce98b",
+        "git_blob": "fbacfd79c16348aad0d0cea07d24d21014215193"
+      }
+    ],
+    "notice": "metadata/include/hidl/metadata.h",
+    "license": "Apache-2.0",
+    "notice_sha256": "0d35c81e55a77448221fb6ffd1ce7179f12cf62b4191eddd43835047f5dce98b"
+  },
+  "vintf-utils-headers": {
+    "repository": "aosp-mirror/platform_system_core",
+    "tag": "android-15.0.0_r1",
+    "commit": "fc7bc8c4bfb4c6095e34ea784509dae56f25b486",
+    "upstream": "https://android.googlesource.com/platform/system/core",
+    "files": [
+      {
+        "path": "libutils/NOTICE",
+        "bytes": 10695,
+        "sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a",
+        "git_blob": "c5b1efa7aac764ae6d8da63476a2d5cec02a6a5d"
+      },
+      {
+        "path": "libutils/binder/include/utils/Errors.h",
+        "bytes": 2389,
+        "sha256": "001f9c16788f4dbe3a6d70f2a8e9b55d6928f91e086de498d86ad327d869ff19",
+        "git_blob": "22fb36d2500ee482e27d7c19fc0021dd50449abd"
+      }
+    ],
+    "notice": "libutils/NOTICE",
+    "notice_sha256": "38751245389e1e23f73e6f5384b5cbe7fa972cc4410c5adc9c04b082a0b9561a"
+  }
+}

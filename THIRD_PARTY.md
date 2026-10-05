@@ -680,3 +680,40 @@ original header and the complete ART NOTICE remain in corresponding-source
 archives and signed frameworks. This selects upstream Android platform
 initialization; no third-party implementation is copied into the original
 MIT JNI invocation fixture.
+
+## AOSP VINTF and the APEX schema compiler
+
+`third_party/binder/xsdc.json` pins the 39 original Java compiler units and build
+metadata from Android 15 XSdc at `2c0760cfb454309419bb71d8452dfa5a644c6e8b`,
+plus the original APEX schema/build metadata at
+`896cdde58b67ddbf37ffdfe06f5b2567ef770f70`. Both use Apache-2.0; their source
+headers remain intact. XSdc runs on the build host using the already reviewed
+portable JDK. Apache Commons CLI 1.2 is its original declared dependency: exact
+binary and source JARs from Apache's Maven Central coordinates are pinned with
+their complete Apache-2.0 LICENSE and ASF NOTICE. The corresponding-source ZIP
+retains both JARs, notices, compiler sources, schema and generated output.
+Generated line endings are explicitly normalized to LF; no Java implementation
+or generated C++ logic is rewritten. No Java host tool is shipped to iOS.
+
+`third_party/binder/vintf-sources.json` additionally selects original Android 15
+libvintf at `0748000fca71d7ecea7184883fed4c23997f91b6` and GKI's libkver at
+`7c062c2c20eabeeb72a64c8d29e6ff8d1a56f2ea`, both Apache-2.0. It preserves the
+complete VINTF NOTICE and each libkver source header/build license declaration.
+The required AIDL/HIDL metadata declarations retain Apache-2.0 headers at
+`d1304733b74b69f26dbe2d3c40c797aaac22f163` and
+`a61c3e7eafd1c3ac523c105392a88c0165237394`. They supply declarations only.
+
+The two TinyXML2 implementation/header files and their LICENSE.txt come from
+`d3f5ba7b82e0f97c06dc8eca7048cd5098323c2f` under the **zlib license**. Its
+documentation, JavaScript and tests are excluded; the aggregate Android.bp
+license list is not a claim that those unselected components are linked.
+The SELinux selection at `8d5c7f06d074449dbb3dad7fcb531ec02ff0c0d1` contains
+only `libselinux/include/selinux/selinux.h`, the repository's license-routing
+statement and **libselinux's public-domain LICENSE**. It includes no SELinux
+implementation or other repository components. Header selection does not supply
+a policy engine or make the unresolved policy-version query succeed.
+
+The existing libbase, liblog, fmt, libutils error declarations, Soong warning
+reference and NDK notices retain their previous terms. Original and generated
+sources, notices and exact build inputs accompany the VINTF archive artifact.
+ARTBox's build scripts and evidence controls remain MIT.
