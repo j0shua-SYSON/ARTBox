@@ -298,6 +298,21 @@ Android loader APIs. Original servicemanager main and ServiceManager translation
 units compile in a private dependency probe; full VINTF linkage, access policy,
 signed service registration and ping/death acceptance are still required.
 
+At `c46c855`, all 22 host jobs and iOS CI pass for the expanded Binder archives.
+Downloaded evidence verifies 60 objects, six archives, 349 upstream files and
+100,295 instructions, including byte-identical TLS reassembly. The integrated
+IPA verifies 16 iOS 15 images, 15 ELF/layout pairs, five resources and 175 notices
+with empty entitlements; its signed Mac ART/console controls pass.
+The next shared libc contract covers 50 pattern/time expectations and two
+deliberate failure controls. Its caller first failed to link against the prior
+Bionic image with the expected missing fnmatch/timespec_get imports. The original
+upstream units are now selected, with their BSD/ISC notices. The native Linux
+oracle and both signed Bionic profiles must pass before artifact staging; these
+new execution results are pending. All 341 selected Bionic units compile locally
+with 117,840 audited instructions and none forbidden; the caller now links into
+the Bionic startup image and its native Linux reference. The Android namespace APIs, real VINTF,
+servicemanager access policy and signed Binder/service execution remain ahead.
+
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write
 acceptance records fix the framing without weakening the exact-line checks.

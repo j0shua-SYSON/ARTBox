@@ -31,6 +31,7 @@ def prepare(evidence, output, revision):
     expected.update(signal_realtime_cases=26, signal_interrupt_cases=4, signal_interrupt_mutation=-1008, signal_interrupt_threads=1)
     expected.update(cwd_cases=22)
     expected.update(futex_requeue_cases=18)
+    expected.update(binder_libc_cases=50, binder_libc_path_control=-108, binder_libc_clock_control=-211)
     for mode in ('native', 'sampled_native'):
         if any(report[mode].get(k) != v for k, v in expected.items()):
             raise RuntimeError('M2 source artifact did not pass the required native suites')

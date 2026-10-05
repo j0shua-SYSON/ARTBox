@@ -1100,7 +1100,9 @@
     "libc/upstream-openbsd/lib/libc/string/strlcat.c",
     "libc/upstream-openbsd/lib/libc/string/strpbrk.c",
     "libc/upstream-netbsd/lib/libc/inet/nsap_addr.c",
-    "libc/upstream-openbsd/lib/libc/crypt/arc4random_uniform.c"
+    "libc/upstream-openbsd/lib/libc/crypt/arc4random_uniform.c",
+    "libc/bionic/time.cpp",
+    "libc/upstream-openbsd/lib/libc/gen/fnmatch.c"
   ],
   "generated_sources": [
     "generated/syscalls-arm64.S"
@@ -1236,6 +1238,8 @@
     "libc/upstream-openbsd/lib/libc/string/strpbrk.c": "df568d7be057e278746b2bd552df766fac113bc0e874bea586b5f686141f359b",
     "libc/upstream-netbsd/lib/libc/inet/nsap_addr.c": "54689a5e278f1fe91965de73f63a3737e1b6253da79dc5265e9cc94c557210e5",
     "libc/upstream-openbsd/lib/libc/crypt/arc4random_uniform.c": "e11f507266269de440b875e68f978f11efc3ed365b5745c2c5cbc4957e78be08",
-    "libc/bionic/eventfd.cpp": "bdcc58056c8346a36b9ba4d5f1ea1088f5b3c8750512aaea9055a8278817d1c2"
+    "libc/bionic/eventfd.cpp": "bdcc58056c8346a36b9ba4d5f1ea1088f5b3c8750512aaea9055a8278817d1c2",
+    "libc/bionic/time.cpp": "dfb25e531df382799d60cf620250c59b227cb9ee34e1319a86459d0ea30ed3e7",
+    "libc/upstream-openbsd/lib/libc/gen/fnmatch.c": "2d1a9dba8b52dccbb44b5f962f868654eed1e49f1aa0b8ded0dd349366e99e4f"
   }
 }

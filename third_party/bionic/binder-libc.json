@@ -1,0 +1,8 @@
+{
+  "bionic_commit": "361ba86734fb2821a6adcfdf775db8abd04e0de0",
+  "files": {
+    "libc/bionic/time.cpp": "dfb25e531df382799d60cf620250c59b227cb9ee34e1319a86459d0ea30ed3e7",
+    "libc/upstream-openbsd/lib/libc/gen/fnmatch.c": "2d1a9dba8b52dccbb44b5f962f868654eed1e49f1aa0b8ded0dd349366e99e4f",
+    "libc/NOTICE": "75b5d593f1f741cd94dc88d18ba39d7c33d6b716e6985d7cabe308539f46b264"
+  }
+}

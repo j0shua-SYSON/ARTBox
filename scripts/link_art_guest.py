@@ -93,6 +93,9 @@ def main():
     bionic, math, libdl, context = [reports[n] for n in ('bionic', 'math', 'libdl', 'context')]
     if any(bionic[mode]['art_libc_cases'] != 73 or bionic[mode]['vfork_cases'] != 30 or
            bionic[mode]['libcore_frontend_cases'] != 75 or bionic[mode]['unlink_cases'] != 29 or
+           bionic[mode].get('binder_libc_cases') != 50 or
+           bionic[mode].get('binder_libc_path_control') != -108 or
+           bionic[mode].get('binder_libc_clock_control') != -211 or
            bionic[mode]['signal_wait_cases'] != 33 or bionic['acceptance'][mode]['passed'] != 328 or
            not bionic['acceptance'][mode]['success'] for mode in ('native', 'sampled_native')):
         raise RuntimeError('Bionic runtime acceptance is incomplete')

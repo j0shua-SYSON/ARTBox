@@ -2,6 +2,7 @@
 #include "artbox/native_bionic.h"
 #include "artbox/native_art.h"
 #include "artbox/looper_result.h"
+#include "artbox/binder_libc_result.h"
 #include "artbox/native_dlfcn.h"
 #include "artbox/dynamic.h"
 #include "artbox/relocation.h"
@@ -62,6 +63,7 @@ static int64_t file_cases, mapping_cases, version_result;
 static int64_t vm_cases, timeout_cases;
 static int64_t proc_cases;
 static int64_t art_libc_cases;
+static int32_t binder_libc_cases, binder_libc_path_control, binder_libc_clock_control;
 static int64_t vfork_cases;
 static int64_t libcore_frontend_cases;
 static int64_t unlink_cases;
@@ -525,6 +527,17 @@ static void *run(void *context) {
         fprintf(stderr, "ART libc caller: %" PRId64 "\n", art_libc_cases);
         fail("ART libc dependency acceptance");
     }
+    const void *binder_libc = entry(&images[1], "artbox_binder_libc_check");
+    binder_libc_cases = (int32_t)artbox_call7(binder_libc, 0, 0, 0, 0, 0, 0, 0);
+    binder_libc_path_control = (int32_t)artbox_call7(binder_libc, 1, 0, 0, 0, 0, 0, 0);
+    binder_libc_clock_control = (int32_t)artbox_call7(binder_libc, 2, 0, 0, 0, 0, 0, 0);
+    if (binder_libc_cases != ARTBOX_BINDER_LIBC_CASES ||
+        binder_libc_path_control != ARTBOX_BINDER_LIBC_PATH_CONTROL ||
+        binder_libc_clock_control != ARTBOX_BINDER_LIBC_CLOCK_CONTROL) {
+        fprintf(stderr, "Binder libc caller: %d, controls %d/%d\n", binder_libc_cases,
+                binder_libc_path_control, binder_libc_clock_control);
+        fail("Binder libc dependency acceptance");
+    }
     vfork_cases = (int32_t)artbox_call7(entry(&images[1], "artbox_vfork_check"), 0, 0, 0, 0, 0, 0, 0);
     if (vfork_cases != 28) {
         fprintf(stderr, "vfork capture caller: %" PRId64 "\n", vfork_cases);
@@ -823,12 +836,14 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
            "\"signal_stack_cases\":%d,\"signal_stack_handler_cases\":%d,\"signal_stack_mutation\":%d,\"signal_stack_threads\":%" PRIu64 ","
            "\"signal_mask_cases\":%d,\"signal_mask_mutation\":%d,\"signal_mask_threads\":%" PRIu64 ","
            "\"futex_requeue_cases\":%" PRId64 ",\"cwd_cases\":%" PRId64 ",\"signal_realtime_cases\":%d,\"signal_interrupt_cases\":%d,\"signal_interrupt_mutation\":%d,\"signal_interrupt_threads\":%" PRIu64 ","
-           "\"signal_fault_cases\":%d,\"signal_fault_edit_mutation\":%d,\"signal_fault_address_mutation\":%d,\"unsupported_syscalls\":{",
+           "\"signal_fault_cases\":%d,\"signal_fault_edit_mutation\":%d,\"signal_fault_address_mutation\":%d,"
+           "\"binder_libc_cases\":%d,\"binder_libc_path_control\":%d,\"binder_libc_clock_control\":%d,\"unsupported_syscalls\":{",
            constructors, absent_netd, calls, loaded-start, finished-loaded, reserved, gwp_enabled, guarded_samples, futex_cases, pthread_result, reaped, pthread_ns, thread_guarded_samples, usage.ru_maxrss, tls_queries, version_result, mapping_cases, file_cases, file_ns, vm_cases, timeout_cases, proc_cases, art_libc_cases, vfork_cases, libcore_frontend_cases, unlink_cases, signal_wait_cases,signal_handler_cases,signal_handler_mutation,
            signal_stack_cases,signal_stack_handler_cases,signal_stack_mutation,signal_stack_threads,
            signal_mask_cases,signal_mask_mutation,signal_mask_threads,
            futex_requeue_cases,cwd_cases,signal_realtime_cases,signal_interrupt_cases,signal_interrupt_mutation,signal_interrupt_threads,
-           signal_fault_cases,signal_fault_edit_mutation,signal_fault_address_mutation);
+           signal_fault_cases,signal_fault_edit_mutation,signal_fault_address_mutation,
+           binder_libc_cases,binder_libc_path_control,binder_libc_clock_control);
     if (length < 0 || (size_t)length >= sizeof(report)) fail("result formatting");
     size_t used_bytes = (size_t)length;
     unsigned printed = 0;

@@ -103,6 +103,18 @@ compile into three additional support archives, not an executing Android service
 Compiler-profile differences and unimplemented runtime dependencies are recorded
 in [the Binder build description](docs/binder-build.md) and ADR 0120.
 
+The Binder libc dependency selection adds Bionic's unchanged `libc/bionic/time.cpp`
+and `libc/upstream-openbsd/lib/libc/gen/fnmatch.c`, at the existing Bionic commit
+`361ba86734fb2821a6adcfdf775db8abd04e0de0` (`android-15.0.0_r1`). The former has
+Bionic's BSD-style notice; the latter retains VMware's BSD-3-Clause and the
+OpenBSD authors' ISC notices. Their exact source hashes and full `libc/NOTICE`
+are pinned in `third_party/bionic/binder-libc.json` and retained in the native
+reference source archive. The signed Bionic framework already carries this
+complete libc notice. The independent Linux reference additionally links the
+pinned NDK's static libc and retains both NDK distribution and toolchain notices.
+That Linux executable is test-only and is not an iOS bundle input. The shared
+caller, negative controls and build scripts are original MIT code.
+
 The signed Looper diagnostic also selects Bionic's unchanged
 `libc/bionic/eventfd.cpp` from the existing `android-15.0.0_r1` source pin. It
 retains its AOSP BSD notice under the complete Bionic NOTICE already included

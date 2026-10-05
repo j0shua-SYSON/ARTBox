@@ -3337,3 +3337,32 @@ does not establish any of those behaviors. Subsequent tests must cover real
 thread lifecycle and TLS destructors before attaching Binder to signed images.
 The cost is additional signed code and dependencies; final linked size and
 execution overhead remain unmeasured. No runtime code generation is introduced.
+
+## 0121: Test Binder's libc imports through original Bionic on both kernels
+
+The real Binder/platform link requires timespec_get and fnmatch. Before adding
+their source selection, an original shared NDK caller fails to link against the
+existing libc image with exactly those missing symbols. Select Bionic's original
+time.cpp and OpenBSD-derived fnmatch.c; do not rewrite the wrappers or pattern
+matcher. Keep their BSD/ISC notices and exact hashes.
+
+Run the same caller object in the signed Bionic startup harness and a static
+native Linux ARM64 executable. The oracle links the two original source units
+explicitly before the NDK runtime, keeping Android's time-base and pattern
+semantics rather than relying on another libc's extensions. Build it on the
+existing NDK producer and execute it only on a native Linux ARM64 runner. Retain
+its executable/object/source hashes, link map, source archive and NDK notices;
+never copy this Linux executable into an Apple bundle.
+
+The 50 expectations cover 36 C-locale pattern cases and 14 realtime/monotonic,
+errno, output-boundary and invalid-base checks. Two controls clear FNM_PATHNAME
+and substitute the realtime base for a monotonic request; each must fail at its
+specific assertion in all three execution profiles. Require the new results
+before staging Bionic or linking ART. Preserve the original fixed M2 denominator;
+this is an additional mandatory M4 dependency contract.
+
+The upstream time unit also defines timespec_getres. Its clock_getres syscall
+remains unsupported and is not counted as implemented by this selection. CPU
+clock bases and non-C-locale pattern semantics likewise remain outside this
+contract. No executable-memory transition or runtime code generation is added;
+the signed wrappers use the existing clock translation and precompiled code.

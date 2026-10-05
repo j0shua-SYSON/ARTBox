@@ -370,6 +370,8 @@ jobs:
             build/m2/bionic-startup/art-libc-check.o
             build/m2/bionic-startup/libcore-common.o
             build/m2/bionic-startup/libcore-accounts.o
+            build/m2/bionic-startup/binder-libc-check.o
+            build/m2/bionic-startup/binder-libc-reference/
             build/m2/dynamic-wrapper/libartbox_bionic_slice.so
             build/m2/dynamic-wrapper/vm-check.o
             build/m2/dynamic-wrapper/system-check.o
@@ -732,6 +734,8 @@ jobs:
         run: python3 -B scripts/test_art_bionic.py --evidence-root build/oracle
       - name: Compare numeric resolver and bounded string calls with native Linux
         run: python3 -B scripts/test_libcore_frontends.py --evidence-root build/oracle
+      - name: Compare Binder libc calls and both controls with original Bionic on Linux
+        run: python3 -B scripts/test_binder_libc.py --evidence-root build/oracle
       - name: Compare original AOSP reference types with the signed adaptation
         run: python3 -B scripts/test_art_references.py --evidence-root build/oracle
       - name: Compare original ART forwarding and JNI storage with signed high-address code
@@ -761,6 +765,8 @@ jobs:
             artifacts/m3-vfork-linux.json
             build/m3/vfork-oracle/*.log
             artifacts/m3-libcore-frontends-linux.json
+            artifacts/m4-binder-libc-linux.json
+            build/m4/binder-libc-reference/
             build/m3/libcore-frontends/*.log
             build/m3/signal-wait-oracle/
             build/m3/signal-handler-oracle/

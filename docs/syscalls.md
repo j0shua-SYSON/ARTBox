@@ -500,3 +500,17 @@ implementation cover the shared fixture, native-provider wakeups, controlled
 clock boundaries/missed periods, close/reuse, injected interruption, copyout,
 provider errors and resource/VM ownership. Local tests and strict Android ARM64
 compilation pass; production CI and signed-runtime regression are pending.
+
+## M4: libc helpers used by Binder
+
+The selected original Bionic `timespec_get` uses the existing `clock_gettime`
+(113) translation for realtime and monotonic bases. `fnmatch` is upstream
+userspace code, with no new kernel entry. The shared 50-expectation caller covers
+C-locale pattern flags, escaped and malformed patterns, clock results, preserved
+errno, write bounds and invalid bases. Both negative controls must fail at their
+specified checks. Signed Bionic and native Linux execution are required in CI.
+
+This source selection does not implement `clock_getres` (114): the accompanying
+`timespec_getres` wrapper reaches the existing unsupported syscall path. CPU-time
+bases and non-C-locale matching are not verified by this contract. Android
+namespace loading is still separate, unsupported work.

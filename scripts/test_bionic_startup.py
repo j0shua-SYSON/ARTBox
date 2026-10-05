@@ -22,6 +22,7 @@ from bionic_adapt import inventory
 from dynamic_bundle import prepare
 from tls_adapt import adapt as adapt_tls
 from m2_acceptance import evaluate as evaluate_acceptance
+from binder_libc import prepare_reference as prepare_binder_libc_reference, SIGNED_EXPECTED as BINDER_LIBC_EXPECTED
 
 sys.path.insert(0, str(ROOT / "tools"))
 from wrap_dynamic import pack_layout
@@ -108,6 +109,7 @@ def main():
     art_libc_object = build / "art-libc-check.o"
     vfork_native_object = build / "vfork-rejection.o"
     libcore_common, libcore_accounts = build / "libcore-common.o", build / "libcore-accounts.o"
+    binder_libc_object = build / "binder-libc-check.o"
     vfork_object = inputs / "vfork/native-test.o"
     if report["vfork"]["cases"] != 28 or digest(vfork_object) != report["vfork"]["native"]["object_sha256"]:
         raise RuntimeError("Vfork caller differs from the verified production-object oracle")
@@ -124,10 +126,12 @@ def main():
                                 ("fixtures/kernel-signals/realtime.c", realtime_object),
                                 ("fixtures/kernel-signals/interrupt.c", interrupt_object),
                                 ("fixtures/bionic-vfork/native.c", vfork_native_object),
-                                ("fixtures/bionic-libcore/common.c", libcore_common), ("fixtures/bionic-libcore/accounts.c", libcore_accounts)):
+                                ("fixtures/bionic-libcore/common.c", libcore_common), ("fixtures/bionic-libcore/accounts.c", libcore_accounts),
+                                ("fixtures/binder-libc/check.c", binder_libc_object)):
         command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
                 "-mbranch-protection=none", "-mno-outline-atomics", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
-                "-c", ROOT / source_name, "-o", target)
+                "-I", ROOT / "platform/include", "-c", ROOT / source_name, "-o", target)
+    binder_libc = prepare_binder_libc_reference(build / 'binder-libc-reference', source, tools, ndk, binder_libc_object)
     for source_name, target in (("versions.c", version_object), ("version_client.c", version_client_object)):
         command("clang", "--target=aarch64-linux-android35", "-std=c11", "-O2", "-fPIC", "-fno-builtin", "-fno-stack-protector",
                 "-mbranch-protection=none", "-ffixed-x18", "-ffixed-x27", "-ffixed-x28", "-Wall", "-Wextra", "-Werror",
@@ -190,13 +194,14 @@ def main():
             version_client_object, tls_access, tls_abi, vm_object, timeout_object, proc_object, art_libc_object, comparison,
             vfork_object, vfork_native_object,
             libcore_common, libcore_accounts, unlink_object, signal_object, handler_object, stack_object, stack_handler_object, mask_handler_object, fault_object,
-            realtime_object, interrupt_object, cwd_object, requeue_object,
+            realtime_object, interrupt_object, cwd_object, requeue_object, binder_libc_object,
             "--no-as-needed", libc, versions, tls_library, "-o", app)
     result = {"scope": "Real Bionic TLS/constructors/allocator through a manifest load group; not full M2",
               "project_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
               "source_commit": report["source_commit"], "partial_object_sha256": digest(partial),
               "bootstrap_source_sha256": digest(ROOT / "fixtures/bionic-startup/bootstrap.cpp"),
               "client_source_sha256": digest(ROOT / "fixtures/bionic-startup/check.c"), "images": {}, "tls": tls_metadata,
+              "binder_libc": binder_libc,
               "anonymous_memory": {"cases": 35, "source_sha256": digest(ROOT / "fixtures/bionic-vm/check.c"),
                                    "object_sha256": digest(vm_object)},
               "timeouts": {"cases": 18, "source_sha256": digest(ROOT / "fixtures/bionic-startup/timeouts.c"),
@@ -286,6 +291,8 @@ def main():
                 print(process.stderr.decode("utf-8", errors="replace"), file=sys.stderr)
             process.check_returncode()
             result[key] = json.loads(process.stdout)
+            if any(result[key].get(name) != expected for name, expected in BINDER_LIBC_EXPECTED.items()):
+                raise RuntimeError('Binder libc caller or its two negative controls did not complete')
             if result[key]["cases"] != 146 or result[key]["futex_cases"] != 19:
                 raise RuntimeError("NDK allocator client did not complete")
             if result[key]['futex_requeue_cases'] != 18:
