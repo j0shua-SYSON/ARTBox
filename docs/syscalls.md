@@ -430,7 +430,7 @@ operation observes it.
 | Syscall (AArch64 number) | Implemented subset | Deliberate differences / missing behavior |
 | --- | --- | --- |
 | `epoll_create1` (20) | Independent virtual open, zero/CLOEXEC flags, descriptor admission | Requires an explicitly configured wake provider. No host descriptor is exposed. |
-| `epoll_ctl` (21) | ADD/MOD/DEL for Binder and eventfd, opaque 64-bit data, duplicate/missing registration errors | Identity includes fd number and the original target. Interest cap is configured per epoll. Other targets, edge/oneshot/exclusive modes and nesting remain unsupported. |
+| `epoll_ctl` (21) | ADD/MOD/DEL for Binder, eventfd and monotonic timerfd; opaque 64-bit data; duplicate/missing registration errors | Identity includes fd number and the original target. Interest cap is configured per epoll. Other targets, edge/oneshot/exclusive modes and nesting remain unsupported. |
 | `epoll_pwait` (22) | ARM64 16-byte events, level readiness and error bits, rotating scans, zero/finite/infinite waits, partial output faults, concurrent waiters and interruption | Non-null signal-mask substitution returns EOPNOTSUPP (wrong sigset size returns EINVAL). Waiter cap is configured per VFS. Passive unmap and delivered signal epochs are checked at 5 ms intervals. |
 
 The same 31-case native Binder readiness fixture now runs locally through these
@@ -447,7 +447,7 @@ Each active sleeping call owns a separate native wake object, retains its epoll
 open across descriptor close/reuse, and drops descriptor/device locks before
 waiting. Interests do not retain target Binder endpoints. A receive mapping may
 keep an old token alive after its fd number is reused, until final unmap. The
-implementation does not add timerfd or general I/O readiness. Eventfd is described below.
+implementation does not add general I/O readiness. Eventfd/timerfd are described below.
 Epoll read/write return EINVAL; metadata and seek remain explicitly unsupported.
 
 ## M4: guest eventfd
@@ -474,14 +474,28 @@ the Darwin ARM64 artifact verifies guest counter/wake behavior too. The Binder
 regression and its 104 input hashes verify. Native Bionic
 signal-handler interruption and actual signed Looper execution are not claimed.
 
-## M4: monotonic timerfd reference
+## M4: monotonic timerfd
 
-`timerfd_create` (85), `timerfd_settime` (86) and `timerfd_gettime` (87) remain
-unimplemented in the guest. A new 59-assertion native fixture covers creation,
+The 59-assertion native fixture covers creation,
 disarmed state, transfer errors, relative/absolute monotonic deadlines, periodic
 expiration counts, malformed times, copyout ordering, saturation and seek.
 Native controls add six syscall-observed read/epoll wake, interruption and
 close/reuse cases. A protected-page read records any successfully copied prefix
-and requires consumption of the pending expiration. Strict Android ARM64
-compilation passes; native execution awaits CI. Realtime, alarm and boottime
-clock behavior remain outside the proposed first monotonic implementation.
+and requires consumption of the pending expiration. At `fb53373`, native Linux
+x86_64 and ARM64 both pass, with downloaded logs/digests/binary identities
+verified. The partial copy was four bytes on x86_64 and one on ARM64.
+
+| Syscall | Implemented subset | Deliberate differences / missing behavior |
+| --- | --- | --- |
+| `timerfd_create` (85) | CLOCK_MONOTONIC, NONBLOCK/CLOEXEC flags, independent bounded virtual descriptor | Other valid clock families return EOPNOTSUPP. |
+| `timerfd_settime` (86) | 32-byte itimerspec, relative/absolute deadlines, periodic interval, disarm, validation and old-output ordering | CANCEL_ON_SET is inert on monotonic timers, matching Linux. Time conversion/deadline arithmetic saturates. |
+| `timerfd_gettime` (87) | Remaining time and interval; periodic advancement preserves unread expirations | Uses the host monotonic clock; no host timer object is exposed. |
+| `read` (63), `write` (64), `lseek` (62), `close` (57) | Eight-byte expiration count, blocking/nonblocking reads, no-op valid seek, retained in-flight read on close | Write returns EINVAL; fstat, fcntl/dup and generic vectored I/O remain unsupported. Copyout is page-bounded and can return a different partial prefix from native ARM64 on EFAULT. |
+
+Readiness is level-triggered EPOLLIN. Waiting reads and epoll check expiry at
+5 ms intervals; observation can lag by that interval plus host scheduling.
+No thread/native timer is created per timer descriptor. Tests before the
+implementation cover the shared fixture, native-provider wakeups, controlled
+clock boundaries/missed periods, close/reuse, injected interruption, copyout,
+provider errors and resource/VM ownership. Local tests and strict Android ARM64
+compilation pass; production CI and signed-runtime regression are pending.

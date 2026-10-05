@@ -50,18 +50,22 @@ int artbox_vfs_set_binder(artbox_vfs *fs, artbox_binder_device *device, uint32_t
  * before guest execution. The copied provider/context outlives the table and
  * every call. Binder may be attached before or after this configuration.
  * The process VM must outlive its epoll opens and calls. Interest limits are
- * 1..4096; wait limits are 1..1024 and shared by epoll and blocking eventfd I/O.
- * Level-triggered Binder/eventfd interests are supported;
+ * 1..4096; wait limits are 1..1024 and shared by epoll and blocking eventfd/timerfd I/O.
+ * Level-triggered Binder/eventfd/monotonic timerfd interests are supported;
  * edge/oneshot/exclusive/nested epoll and signal-mask substitution return
  * EOPNOTSUPP. Other target types return EPERM until their readiness is supported.
  * Waits use ordinary-context 5 ms checks for passive unmap and signal epochs.
  * This also enables eventfd2 counters with ordinary/semaphore reads and
  * blocking/nonblocking transfers. Anonymous-inode stat and fcntl/dup remain
- * unsupported. Active transfers pin the open; epoll interests do not. */
+ * unsupported. Monotonic timerfd supports relative/absolute deadlines,
+ * periodic expiration accounting and blocking/nonblocking reads. Other valid
+ * clock families return EOPNOTSUPP. Timer readiness is checked at most every
+ * 5 ms while waiting; no background thread or native timer is allocated per
+ * descriptor. Active transfers pin the open; epoll interests do not. */
 int artbox_vfs_set_epoll(artbox_vfs *fs, const artbox_wake_ops *wake,
     size_t interest_limit, size_t waiter_limit);
 /* Pin the open description and observe Linux readiness bits without consuming
- * work. Supports configured Binder/eventfd descriptors; other types
+ * work. Supports configured Binder/eventfd/timerfd descriptors; other types
  * return EOPNOTSUPP, missing descriptors EBADF and foreign VMs EOPNOTSUPP.
  * This helper does not enable a guest poll/epoll syscall or register a waiter. */
 int artbox_vfs_events(artbox_vfs *fs, artbox_kernel_thread *thread, int fd);
@@ -70,7 +74,7 @@ int artbox_vfs_events(artbox_vfs *fs, artbox_kernel_thread *thread, int fd);
 int artbox_vfs_set_commandline(artbox_vfs *fs, const void *bytes, size_t length);
 /* Stop guest access before destroy. All descriptors close, even on an error. */
 int artbox_vfs_destroy(artbox_vfs *fs);
-/* Legacy file dispatch. Poll families require the six-argument entry below. */
+/* Legacy file dispatch. Poll/timer families use the full entry below. */
 int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread, uint64_t number,
                         uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3);
 /* Six-argument dispatch preserves epoll_pwait's signal-mask arguments. */

@@ -40,11 +40,19 @@ struct EventfdOpen {
     uint32_t flags;
     EventfdOpen(artbox_vm *v, uint32_t initial, uint32_t f) : vm(v), count(initial), flags(f) {}
 };
+struct TimerfdOpen {
+    artbox_vm *vm;
+    uint32_t flags;
+    int64_t interval = 0, deadline = 0;
+    uint64_t ticks = 0;
+    TimerfdOpen(artbox_vm *v, uint32_t f) : vm(v), flags(f) {}
+};
 struct EpollInterest {
     int32_t fd;
     uint32_t events;
     uint64_t token, data;
     std::weak_ptr<EventfdOpen> eventfd;
+    std::weak_ptr<TimerfdOpen> timerfd;
 };
 struct EpollOpen {
     artbox_vm *vm;
@@ -61,6 +69,7 @@ struct descriptor {
     std::shared_ptr<BinderOpen> binder;
     std::shared_ptr<EpollOpen> epoll;
     std::shared_ptr<EventfdOpen> eventfd;
+    std::shared_ptr<TimerfdOpen> timerfd;
 };
 struct artbox_vfs {
     std::mutex lock;
@@ -124,9 +133,13 @@ extern "C" int artbox_vfs_set_epoll(artbox_vfs *fs, const artbox_wake_ops *wake,
 }
 static int64_t epoll_dispatch(artbox_vfs *, artbox_kernel_thread *, uint64_t,
     uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+static int64_t timerfd_dispatch(artbox_vfs *, artbox_kernel_thread *, uint64_t,
+    uint64_t, uint64_t, uint64_t, uint64_t);
+static int timerfd_events(TimerfdOpen &, artbox_kernel_thread *);
 extern "C" int64_t artbox_vfs_syscall(artbox_vfs *fs, artbox_kernel_thread *thread, uint64_t number,
     uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5) {
     if (number >= 20 && number <= 22) return epoll_dispatch(fs, thread, number, a0, a1, a2, a3, a4, a5);
+    if (number >= 85 && number <= 87) return timerfd_dispatch(fs, thread, number, a0, a1, a2, a3);
     return artbox_vfs_call(fs, thread, number, a0, a1, a2, a3);
 }
 extern "C" int artbox_vfs_destroy(artbox_vfs *fs) {
@@ -160,6 +173,7 @@ extern "C" int artbox_vfs_events(artbox_vfs *fs, artbox_kernel_thread *thread, i
         descriptor *d = get(fs, fd);
         if (!d) return -9;
         if (d->eventfd) return d->eventfd->vm == thread->vm ? eventfd_events(*d->eventfd) : -95;
+        if (d->timerfd) return timerfd_events(*d->timerfd, thread);
         if (!d->binder) return -95;
         binder = d->binder;
     }
@@ -257,8 +271,9 @@ static int64_t eventfd_transfer(artbox_vfs *fs, artbox_kernel_thread *thread,
 static int interest_events(artbox_vfs *fs, const EpollInterest &interest, artbox_kernel_thread *thread) {
     if (interest.token) return artbox_binder_device_events(fs->binder, interest.token, thread->tid);
     auto event = interest.eventfd.lock();
-    if (!event) return -9;
-    return event->vm == thread->vm ? eventfd_events(*event) : -95;
+    if (event) return event->vm == thread->vm ? eventfd_events(*event) : -95;
+    auto timer = interest.timerfd.lock();
+    return timer ? timerfd_events(*timer, thread) : -9;
 }
 static int monotonic_ns(artbox_kernel_thread *thread, int64_t &value) {
     if (!thread->system.clock) return -95;
@@ -269,6 +284,124 @@ static int monotonic_ns(artbox_kernel_thread *thread, int64_t &value) {
         time.seconds > (INT64_MAX - time.nanoseconds) / 1000000000) return -75;
     value = time.seconds * 1000000000 + time.nanoseconds;
     return 0;
+}
+// Account lazily: no native timer or worker is needed for each descriptor.
+// Every read/gettime/ready scan uses the same monotonic deadline and keeps
+// unread expirations even when a periodic timer's next deadline advances.
+static void timerfd_refresh(TimerfdOpen &timer, int64_t now) {
+    if (!timer.deadline || timer.deadline > now) return;
+    const uint64_t count = timer.interval ? 1 + static_cast<uint64_t>((now - timer.deadline) / timer.interval) : 1;
+    timer.ticks = count > UINT64_MAX - timer.ticks ? UINT64_MAX : timer.ticks + count;
+    if (!timer.interval || now == INT64_MAX) timer.deadline = 0;
+    else if (count > static_cast<uint64_t>((INT64_MAX - timer.deadline) / timer.interval)) timer.deadline = INT64_MAX;
+    else timer.deadline += static_cast<int64_t>(count) * timer.interval;
+}
+static int timerfd_events(TimerfdOpen &timer, artbox_kernel_thread *thread) {
+    if (timer.vm != thread->vm) return -95;
+    int64_t now = 0; int error = monotonic_ns(thread, now);
+    if (error) return error;
+    timerfd_refresh(timer, now);
+    return timer.ticks ? 1 : 0;
+}
+static void timerfd_spec(unsigned char *bytes, const TimerfdOpen &timer, int64_t now) {
+    const int64_t remaining = timer.deadline > now ? timer.deadline - now : 0;
+    put(bytes, static_cast<uint64_t>(timer.interval / 1000000000), 8);
+    put(bytes + 8, static_cast<uint64_t>(timer.interval % 1000000000), 8);
+    put(bytes + 16, static_cast<uint64_t>(remaining / 1000000000), 8);
+    put(bytes + 24, static_cast<uint64_t>(remaining % 1000000000), 8);
+}
+static int timerfd_duration(const unsigned char *bytes, int64_t &value) {
+    const int64_t seconds = static_cast<int64_t>(epoll_word(bytes, 8));
+    const int64_t nanos = static_cast<int64_t>(epoll_word(bytes + 8, 8));
+    if (seconds < 0 || nanos < 0 || nanos >= 1000000000) return -22;
+    value = seconds > (INT64_MAX - nanos) / 1000000000 ? INT64_MAX : seconds * 1000000000 + nanos;
+    return 0;
+}
+static int64_t timerfd_dispatch(artbox_vfs *fs, artbox_kernel_thread *thread, uint64_t number,
+    uint64_t a0, uint64_t a1, uint64_t a2, uint64_t a3) {
+    if (!fs || !thread || !thread->vm) return -22;
+    try {
+        std::unique_lock<std::mutex> guard(fs->lock);
+        if (!fs->poll) return -38;
+        if (number == 85) {
+            const uint32_t clock = static_cast<uint32_t>(a0), flags = static_cast<uint32_t>(a1);
+            if (flags & ~UINT32_C(0x80800)) return -22;
+            if (clock != 1) return clock == 0 || clock == 7 || clock == 8 || clock == 9 ? -95 : -22;
+            size_t slot = 0;
+            while (slot < fs->descriptors.size() && fs->descriptors[slot].kind) ++slot;
+            if (slot == fs->descriptors.size()) return -24;
+            descriptor d; d.kind = 12; d.flags = flags | 2;
+            d.timerfd = std::make_shared<TimerfdOpen>(thread->vm, flags);
+            fs->descriptors[slot] = std::move(d);
+            return static_cast<int64_t>(slot + 3);
+        }
+        unsigned char bytes[32]{};
+        int64_t interval = 0, value = 0;
+        const uint32_t flags = static_cast<uint32_t>(a1);
+        if (number == 86) {
+            // Linux copies and validates the new spec before fd/type checks.
+            int error = artbox_vm_read(thread->vm, a2, bytes, sizeof(bytes));
+            if (error) return error;
+            if ((flags & ~3u) || timerfd_duration(bytes, interval) || timerfd_duration(bytes + 16, value)) return -22;
+        }
+        descriptor *d = get(fs, static_cast<int32_t>(a0));
+        if (!d) return -9;
+        if (!d->timerfd) return -22;
+        const auto timer = d->timerfd;
+        if (timer->vm != thread->vm) return -95;
+        int64_t now = 0; int error = monotonic_ns(thread, now);
+        if (error) return error;
+        timerfd_refresh(*timer, now);
+        timerfd_spec(bytes, *timer, now);
+        if (number == 86) {
+            timer->interval = interval; timer->ticks = 0;
+            timer->deadline = !value || (flags & 1) ? value : value > INT64_MAX - now ? INT64_MAX : now + value;
+            poll_notify(fs->poll.get());
+        }
+        guard.unlock();
+        // A failing old-value output never restores the previous timer.
+        if (number == 86 && !a3) return 0;
+        return artbox_vm_write(thread->vm, number == 86 ? a3 : a1, bytes, sizeof(bytes));
+    } catch (const std::exception &) { return -12; }
+}
+static int64_t timerfd_read(artbox_vfs *fs, artbox_kernel_thread *thread,
+    std::shared_ptr<TimerfdOpen> timer, std::unique_lock<std::mutex> &guard, uint64_t address, uint64_t count) {
+    if (timer->vm != thread->vm) return -95;
+    if (address > static_cast<uint64_t>(INT64_MAX) || count > static_cast<uint64_t>(INT64_MAX) - address) return -14;
+    if (count < 8) return -22;
+    const bool interruptible = artbox_signals_interrupt_number(thread) != 0;
+    const uint64_t epoch = artbox_signals_interrupt_epoch(thread);
+    PollRegistration registration(fs->poll.get());
+    for (;;) {
+        int events = timerfd_events(*timer, thread);
+        if (events < 0) return events;
+        if (events) {
+            unsigned char bytes[8]; put(bytes, timer->ticks, sizeof(bytes)); timer->ticks = 0;
+            guard.unlock();
+            // Copy page by page so a later fault reports the successful prefix.
+            // Expirations are consumed before even the first output attempt.
+            size_t done = 0, page = artbox_vm_page_size(thread->vm);
+            while (done < sizeof(bytes)) {
+                size_t chunk = std::min(sizeof(bytes) - done, page - static_cast<size_t>((address + done) % page));
+                int error = artbox_vm_write(thread->vm, address + done, bytes + done, chunk);
+                if (error) return done ? static_cast<int64_t>(done) : error;
+                done += chunk;
+            }
+            return 8;
+        }
+        if (timer->flags & 0x800) return -11;
+        guard.unlock();
+        if (interruptible && artbox_signals_interrupt_epoch(thread) != epoch) return -4;
+        if (!registration.registered) {
+            int error = registration.attach(); if (error) return error;
+            guard.lock(); continue;
+        }
+        int error = registration.error(); if (error) return error;
+        int result = fs->poll->wake.wait(registration.waiter.owner, 5);
+        if (result < 0) return result;
+        if (result > 1) return -5;
+        guard.lock();
+    }
 }
 // Descriptor mutex held. Interests do not retain targets: Binder has a token
 // and passive mapping watch; eventfd has a weak open-description reference.
@@ -328,15 +461,17 @@ static int64_t epoll_dispatch(artbox_vfs *fs, artbox_kernel_thread *thread, uint
             descriptor *target = get(fs, fd);
             if (!target) return -9;
             if (target->epoll) return -95; // Nested epoll needs its own cycle/lifetime contract.
-            if (!target->binder && !target->eventfd) return -1;
+            if (!target->binder && !target->eventfd && !target->timerfd) return -1;
             if ((target->binder && target->binder->vm != thread->vm) ||
-                (target->eventfd && target->eventfd->vm != thread->vm)) return -95;
+                (target->eventfd && target->eventfd->vm != thread->vm) ||
+                (target->timerfd && target->timerfd->vm != thread->vm)) return -95;
             unsigned char bytes[16]{};
             if (operation != 2 && artbox_vm_read(thread->vm, a3, bytes, sizeof(bytes))) return -14;
             const uint32_t events = static_cast<uint32_t>(epoll_word(bytes, 4));
             if (events & ~UINT32_C(0x201f)) return -95; // Only tested level-triggered interests.
             const uint64_t token = target->binder ? target->binder->token : 0;
             const auto event = target->eventfd;
+            const auto timer = target->timerfd;
             // Reap dead interests before enforcing this epoll's configured cap.
             for (size_t i = 0; i < ep->interests.size();) {
                 if (interest_events(fs, ep->interests[i], thread) == -9)
@@ -344,13 +479,14 @@ static int64_t epoll_dispatch(artbox_vfs *fs, artbox_kernel_thread *thread, uint
                 else ++i;
             }
             auto found = std::find_if(ep->interests.begin(), ep->interests.end(),
-                [fd, token, event](const EpollInterest &interest) {
-                    return interest.fd == fd && interest.token == token && (token || interest.eventfd.lock() == event);
+                [fd, token, event, timer](const EpollInterest &interest) {
+                    return interest.fd == fd && interest.token == token &&
+                        (token || (event ? interest.eventfd.lock() == event : interest.timerfd.lock() == timer));
                 });
             if (operation == 1) {
                 if (found != ep->interests.end()) return -17;
                 if (ep->interests.size() == fs->poll->interests) return -28;
-                EpollInterest interest{fd, events, token, epoll_word(bytes + 8, 8), event};
+                EpollInterest interest{fd, events, token, epoll_word(bytes + 8, 8), event, timer};
                 int ready = interest_events(fs, interest, thread);
                 if (ready < 0) return ready;
                 ep->interests.push_back(interest);
@@ -660,12 +796,18 @@ extern "C" int64_t artbox_vfs_call(artbox_vfs *fs, artbox_kernel_thread *thread,
         if (!d) return -9;
         if (number == 57) {
             int error = d->kind == 5 ? fs->files.close(d->handle) : 0;
-            const bool notify = bool(d->eventfd);
+            const bool notify = bool(d->eventfd) || bool(d->timerfd);
             *d = descriptor{};
             if (notify) poll_notify(fs->poll.get());
             return error;
         }
         if (d->epoll) return number == 63 || number == 64 ? -22 : -95;
+        if (d->timerfd) {
+            if (d->timerfd->vm != thread->vm) return -95;
+            if (number == 63) return timerfd_read(fs, thread, d->timerfd, guard, a1, a2);
+            if (number == 64) return -22;
+            if (number != 62) return -95;
+        }
         if (d->eventfd) {
             if (d->eventfd->vm != thread->vm) return -95;
             if (number == 63 || number == 64)

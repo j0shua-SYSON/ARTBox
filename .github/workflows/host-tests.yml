@@ -277,6 +277,8 @@ jobs:
             build/host/test_binder_wire
             build/host/test_eventfd_reference
             build/host/test_timerfd_reference
+            build/host/test_timerfd
+            build/host/Release/test_timerfd.exe
             build/host/test_eventfd
             build/host/Release/test_eventfd.exe
             build/host/Release/test_binder_wire.exe
@@ -625,6 +627,7 @@ jobs:
             build/host/test_signal_context_linux
             build/host/test_eventfd_reference
             build/host/test_timerfd_reference
+            build/host/test_timerfd
             build/host/test_eventfd
             build/host/signal-faults/
             build/host/test_signal_faults

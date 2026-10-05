@@ -3116,3 +3116,39 @@ byte-for-byte guarantee. Do not reuse eventfd's all-or-error copy behavior witho
 testing this boundary. The reference is original MIT code; Linux source is
 consulted only for behavior under its separate license. Guest timerfd remains
 unimplemented at this checkpoint.
+
+## 0114: Account monotonic timer expirations without one host timer per descriptor
+
+After `fb53373` passes the 59 shared assertions and six native wait cases on
+Linux x86_64 and ARM64, add portable monotonic timerfd state to VFS. Store its
+next deadline, interval and unread ticks under the descriptor mutex. Refresh
+from the host monotonic clock at read, gettime and readiness scans. Periodic
+refresh advances the deadline by whole missed intervals while retaining unread
+ticks. Zero initial value disarms; replacing a timer discards the previous
+unread count even if copying the old value subsequently fails. Saturate valid
+timespec conversion and relative-deadline addition instead of overflowing.
+
+Use the existing bounded wait hub and its ordinary-context checks at 5 ms
+intervals. This costs idle wakeups and can add up to a check interval plus host
+scheduling delay to timer observation. It allocates neither a native timer nor
+a helper thread per guest descriptor. Keep this explicit performance limitation
+until service execution and measurements justify a separately tested wake
+deadline optimization. Realtime, boottime and alarm clocks return EOPNOTSUPP;
+there is no invented suspend or wall-clock cancellation behavior.
+
+Active reads retain their original timer through close/reuse; epoll interests
+hold weak identity. Read consumes ticks before copying page by page, returning
+the successful byte count if a later page faults. The native protected-page
+reference returned four bytes on x86_64 and one on ARM64. ARTBox returns the
+page-bounded prefix (four in that fixture), a documented difference in fault
+granularity, not a claim of identical kernel copy instructions. Normal eight-byte
+transfers and expiration consumption are shared contracts.
+
+Tests run before implementation and add real-provider read/epoll wakeups,
+injected interruption after close/reuse, partial-copy consumption, provider
+failures, fd/VM admission and weak-interest removal. A controlled monotonic
+clock verifies nanosecond boundaries, missed periods, clock errors and an old
+timer waking its retained read after the descriptor number is reused. This
+avoids scheduler-dependent guesses about when a test worker has run. Shared
+VFS test adapters keep eventfd/timerfd byte encoding and wake observation
+consistent. Real AOSP Looper/servicemanager execution remains required for M4.

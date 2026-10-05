@@ -214,13 +214,23 @@ VM/copy-fault controls and 2,048 concurrent increments. At `bea672d`, downloaded
 Linux x86_64 and ARM64 evidence verifies the 63 shared native/guest cases;
 Darwin ARM64 verifies the guest counter and real-provider wake controls.
 Binder regression and all 104 input hashes verify as well.
+All 20 host jobs and the iOS build pass at that head. The downloaded signed
+Mac ART runtime, Binder archives and integrated IPA verify independently;
+the IPA retains 16 iOS 15 images, 175 notices and empty entitlements.
 
 An original timerfd reference now covers 59 shared assertions for monotonic
 expiration counts, relative/absolute deadlines, disarming, periodic gettime,
 copy-fault ordering and malformed inputs. Six native syscall-observed read/epoll
 cases add timer wakeup, signal interruption and descriptor close/reuse. Both
-units compile strictly for Android ARM64; Linux execution awaits CI. Guest
-timerfd and actual AOSP Looper/servicemanager execution remain ahead.
+units compile strictly for Android ARM64. At `fb53373`, both Linux architectures
+pass and downloaded artifacts verify. Copyout transferred four bytes before
+fault on x86_64 and one on ARM64, consuming the expiration in both cases.
+Portable monotonic timerfd now passes the shared fixture locally, plus real
+provider wakeups, controlled deadline/missed-period tests, retained reads after
+close/reuse, injected interruption, admission and page-bounded copyout. It uses
+the existing 5 ms wait checks, not a native timer per descriptor. Production CI
+and signed-runtime regression are pending. Actual AOSP Looper/servicemanager
+execution and signed Binder attachment remain ahead.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write
