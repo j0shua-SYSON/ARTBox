@@ -2959,3 +2959,36 @@ The test runs in required host CI and the backend builds for iOS 15 from day one
 No JIT, executable mapping or entitlement is involved. Each active waiter costs
 one native wait object and bounded host memory; event-loop resource limits and
 guest epoll semantics remain separate work.
+
+## 0109: Observe Binder file identity without retaining it through epoll
+
+The native reference at `0cb0def` proves that a Binder receive mapping retains
+an epoll interest after descriptor close. A new open reusing that descriptor
+number has a distinct interest, and final unmap removes the original. A weak
+reference to the VFS descriptor alone would discard the interest too early;
+a strong epoll-owned open would keep the endpoint alive too long.
+
+Use Binder's monotonic token to observe its existing file lifetime. Readiness
+may observe a closed token while its passive receive watch remains live. It
+must not dereference the old VM or reopen the file. Final unmap lets the existing
+ordinary-context reaper remove the token; later observations return EBADF.
+VFS still validates descriptors, and ioctl/nonblocking configuration still
+reject closed tokens. The forthcoming epoll table must retain both the original
+descriptor number and token so reuse cannot alias an existing registration.
+
+Add at most 64 ordinary-context listeners per Binder device. This is a host
+resource bound, not a Linux driver quota. Each listener has a monotonic
+subscription ID, borrows its callback context and owns no endpoint. Mutations
+and observed reaping publish hints under the device mutex; removing a listener
+under the same mutex makes callback teardown synchronous. Listeners may signal
+the native wake primitive, but cannot acquire VFS/VM locks, reenter Binder or
+wait for guest work. A later VFS wait hub must preserve that lock order.
+
+One shared change hint avoids callbacks retaining endpoint or thread addresses
+that can move or expire. The cost is bounded broadcast and spurious rechecks;
+measure it with the actual service loop before introducing targeted queues.
+Signal handlers and VM teardown remain passive and need ordinary-context
+polling. Tests cover mapped-token lifetime, callback fanout, exhaustion, stale
+subscription reuse, unsubscribe during ongoing ioctls, and notifications after
+ordinary-context final-unmap detection. This adds no executable memory or
+entitlement and does not itself implement guest epoll.

@@ -163,15 +163,25 @@ At `0cb0def`, the native control verifies that a Binder receive mapping retains
 the original epoll interest after descriptor close. Reusing that descriptor
 number creates a distinct interest; partial unmap retains the original, and
 final unmap removes it. The downloaded kernel artifact and 100 input hashes
-verify. Full regression for that checkpoint remains in progress.
+verify. Its full regression was superseded by `cf15426`, where all 20 host jobs
+and iOS pass, including the same lifetime control.
 
 A private native wake provider now uses Darwin kqueue, Linux eventfd and Windows
 events. Its contract passes locally: 256 cross-thread handshakes, 16,000 concurrent
 signals, retained/coalesced wakeups, object isolation and timeouts. All 41 Windows
-host contracts pass; three native-backing cases remain skipped there. Android
-ARM64 compilation passes; Mac/Linux execution and native interruption checks
-are pending CI. The provider does not yet enable guest epoll, real servicemanager
-execution or signed Binder attachment.
+host contracts pass; three native-backing cases remain skipped there. At
+`cf15426`, downloaded Mac/Linux test logs independently verify kqueue/eventfd
+execution and native EINTR. A requested 30 ms timeout takes 34 ms on Mac and
+30 ms on Linux in those contract runs; these are not throughput measurements.
+The kernel reference, signed ART runtime, Binder archives and integrated IPA
+also verify independently at that head, including empty iOS entitlements.
+
+Binder now exposes bounded wake subscriptions and keeps mapped, closed tokens
+observable until final unmap. Local tests cover 64-listener exhaustion, independent
+wake objects, unsubscribe during ongoing ioctls, stale subscription identities
+and passive unmap detection outside VM locks. All 41 Windows host contracts and
+strict Android ARM64 compilation pass; the new bridge awaits CI. It does not yet
+enable guest epoll, real servicemanager execution or signed Binder attachment.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

@@ -3,6 +3,7 @@
 #include "artbox/native_files.h"
 #include "artbox/native_system.h"
 #include "artbox/native_vm.h"
+#include "artbox/native_wake.h"
 #include "artbox/signals.h"
 #include "../fixtures/binder-mapping/check.h"
 #include "../fixtures/binder-poll/check.h"
@@ -105,6 +106,97 @@ static int unmap_device(void *opaque, uint64_t address, uint64_t length) {
     return artbox_vm_munmap(static_cast<Context *>(opaque)->thread.vm, address, length);
 }
 static void interrupt_notice(void *opaque) { static_cast<std::atomic<unsigned> *>(opaque)->fetch_add(1); }
+struct ReadinessNotice {
+    artbox_wake_ops ops = artbox_native_wake();
+    void *wake = nullptr;
+    std::atomic<unsigned> calls{0}, errors{0};
+};
+static void readiness_notice(void *opaque) {
+    auto *notice = static_cast<ReadinessNotice *>(opaque);
+    ++notice->calls;
+    if (notice->ops.signal(notice->wake)) ++notice->errors;
+}
+static void readiness_observers(Context &c, artbox_binder_device *device) {
+    ReadinessNotice first, second;
+    CHECK(first.ops.create(first.ops.context, &first.wake) == 0);
+    CHECK(second.ops.create(second.ops.context, &second.wake) == 0);
+    uint64_t subscriptions[64] = {}, failed = 99;
+    CHECK(artbox_binder_device_observe(device, readiness_notice, &first, &subscriptions[0]) == 0);
+    CHECK(subscriptions[0] && artbox_binder_device_destroy(device) == -16);
+    CHECK(artbox_binder_device_observe(nullptr, readiness_notice, &first, &failed) == -22 && failed == 0);
+    CHECK(artbox_binder_device_observe(device, nullptr, &first, &failed) == -22 && failed == 0);
+    CHECK(artbox_binder_device_observe(device, readiness_notice, &first, nullptr) == -22);
+    CHECK(artbox_binder_device_unobserve(nullptr, 1) == -22);
+    CHECK(artbox_binder_device_unobserve(device, 0) == -22);
+    for (unsigned i = 1; i < 64; ++i) {
+        CHECK(artbox_binder_device_observe(device, readiness_notice, &second, &subscriptions[i]) == 0);
+        CHECK(subscriptions[i] > subscriptions[i - 1]);
+    }
+    CHECK(artbox_binder_device_observe(device, readiness_notice, &first, &failed) == -28 && failed == 0);
+    const int fd = open_device(&c); CHECK(fd >= 3);
+    CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_VERSION, c.path + 768) == 0);
+    CHECK(first.calls > 0 && second.calls > 0 && !first.errors && !second.errors);
+    CHECK(first.ops.wait(first.wake, 0) == 1 && first.ops.wait(first.wake, 0) == 0);
+    CHECK(second.ops.wait(second.wake, 0) == 1 && second.ops.wait(second.wake, 0) == 0);
+    for (unsigned i = 1; i < 64; ++i) CHECK(artbox_binder_device_unobserve(device, subscriptions[i]) == 0);
+    // Slot reuse must not make a stale subscription address a new listener.
+    CHECK(artbox_binder_device_observe(device, readiness_notice, &second, &failed) == 0 && failed > subscriptions[63]);
+    CHECK(artbox_binder_device_unobserve(device, subscriptions[1]) == -2);
+    CHECK(artbox_binder_device_unobserve(device, failed) == 0);
+    const unsigned second_calls = second.calls;
+    std::atomic<unsigned> writes{0};
+    std::atomic<bool> stop{false};
+    std::thread writer([&] {
+        while (!stop.load()) {
+            CHECK(ioctl_device(&c, fd, ARTBOX_BINDER_VERSION, c.path + 768) == 0);
+            ++writes;
+        }
+    });
+    auto await_writes = [&](unsigned goal) {
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+        while (writes.load() < goal) { CHECK(std::chrono::steady_clock::now() < deadline); std::this_thread::yield(); }
+    };
+    await_writes(10);
+    CHECK(artbox_binder_device_unobserve(device, subscriptions[0]) == 0);
+    const unsigned first_calls = first.calls;
+    await_writes(writes.load() + 10);
+    stop = true;
+    writer.join();
+    CHECK(first.calls == first_calls && second.calls == second_calls && !first.errors && !second.errors);
+    CHECK(artbox_binder_device_unobserve(device, subscriptions[0]) == -2);
+    CHECK(close_device(&c, fd) == 0);
+    CHECK(first.ops.close(first.wake) == 0 && second.ops.close(second.wake) == 0);
+}
+static void mapped_readiness(Context &c, artbox_binder_device *device, size_t page) {
+    ReadinessNotice notice;
+    CHECK(notice.ops.create(notice.ops.context, &notice.wake) == 0);
+    uint64_t subscription = 0;
+    CHECK(artbox_binder_device_observe(device, readiness_notice, &notice, &subscription) == 0);
+    uint64_t original = 0, replacement = 0;
+    CHECK(artbox_binder_device_open(device, c.thread.vm, c.thread.pid, 10000, &original) == 0);
+    CHECK(artbox_binder_device_events(device, original, c.thread.tid) == 1);
+    int64_t mapped = artbox_binder_device_mmap(device, original, 0, page * 2, 1, 2, 0);
+    CHECK(mapped > 0 && artbox_binder_device_close(device, original) == 0);
+    CHECK(notice.ops.wait(notice.wake, 0) == 1 && notice.ops.wait(notice.wake, 0) == 0);
+    CHECK(artbox_binder_device_set_nonblocking(device, original, 1) == -9);
+    CHECK(artbox_binder_device_ioctl(device, original, c.thread.tid, ARTBOX_BINDER_VERSION, c.path + 768) == -9);
+    // The retained token observes the mapped file, independently of VFS close.
+    CHECK(artbox_binder_device_events(device, original, c.thread.tid) == 1);
+    CHECK(artbox_binder_device_open(device, c.thread.vm, c.thread.pid, 10000, &replacement) == 0);
+    CHECK(replacement != original && artbox_binder_device_events(device, replacement, c.thread.tid) == 1);
+    CHECK(artbox_binder_device_events(device, original, c.thread.tid) == 1);
+    CHECK(artbox_binder_device_close(device, replacement) == 0);
+    CHECK(notice.ops.wait(notice.wake, 0) == 1 && notice.ops.wait(notice.wake, 0) == 0);
+    CHECK(artbox_vm_munmap(c.thread.vm, static_cast<uint64_t>(mapped), page) == 0);
+    CHECK(artbox_binder_device_events(device, original, c.thread.tid) == 1);
+    CHECK(notice.ops.wait(notice.wake, 0) == 0);
+    CHECK(artbox_vm_munmap(c.thread.vm, static_cast<uint64_t>(mapped) + page, page) == 0);
+    CHECK(notice.ops.wait(notice.wake, 0) == 0); // No callback from under VM's lock.
+    CHECK(artbox_binder_device_events(device, original, c.thread.tid) == -9);
+    CHECK(notice.ops.wait(notice.wake, 0) == 1 && notice.ops.wait(notice.wake, 0) == 0);
+    CHECK(!notice.errors && artbox_binder_device_unobserve(device, subscription) == 0);
+    CHECK(notice.ops.close(notice.wake) == 0);
+}
 static void interrupted_reads(Context &c, artbox_binder_device *device) {
     auto *signals = artbox_signals_create(c.thread.vm, c.thread.pid, 10000, 1);
     CHECK(signals && artbox_signals_enable_interrupt(signals, 34, 4) == 0);
@@ -226,6 +318,8 @@ int main(int argc, char **argv) {
     const artbox_binder_device_ops ioctls = {open_device, close_device, ioctl_device, pause_device};
     auto *poll_scratch = reinterpret_cast<artbox_binder_poll_scratch *>(c.path + 128);
     CHECK(artbox_binder_poll_check(&c, &ioctls, poll_device, poll_scratch) == 31);
+    readiness_observers(c, device);
+    mapped_readiness(c, device, page);
     // Readiness admits threads into the same bounded pool as ioctl. Exhaustion
     // reports POLLERR without discarding another thread or its initial return.
     {
@@ -586,6 +680,6 @@ int main(int argc, char **argv) {
     CHECK(artbox_vm_destroy(vm) == 0);
     CHECK(artbox_binder_device_destroy(device) == 0 && provider.live == 0);
     if (provider.native) CHECK(artbox_native_files_close(provider.native) == 0);
-    std::printf("{\"shared_mapping_cases\":35,\"shared_poll_cases\":31,\"native_alias_verified\":%s,\"ownership_controls\":true,\"wait_contract_cases\":4,\"interrupt_epoch_injected\":true,\"passive_unmap_wakeup\":true,\"passed\":true}\n",
+    std::printf("{\"shared_mapping_cases\":35,\"shared_poll_cases\":31,\"native_alias_verified\":%s,\"ownership_controls\":true,\"wait_contract_cases\":4,\"interrupt_epoch_injected\":true,\"passive_unmap_wakeup\":true,\"mapped_poll_lifetime\":true,\"wake_observers\":true,\"passed\":true}\n",
         argc == 2 ? "true" : "false");
 }

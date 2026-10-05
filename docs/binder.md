@@ -337,8 +337,10 @@ semantic oracle or an iPhone execution claim.
    At `0cb0def`, the mapped-file control also passes: the mapping retains its
    original interest across close and descriptor reuse until final unmap.
    Partial unmap keeps it alive. This control never reads unpopulated Binder
-   receive pages. A private native wait/wake provider now exists, but is not
-   attached to guest epoll or Binder notifications yet.
+   receive pages. At `cf15426`, the native wait/wake provider passes on all three
+   host platforms, with native interruption verified on Mac/Linux. Binder now
+   supplies bounded ordinary-context wake subscriptions; guest epoll attachment
+   remains ahead.
 2. Threadpool behavior and additional protocol requests actually needed by
    servicemanager, including node client-count observations.
 3. Complete the remaining dependencies and link the pinned real AOSP

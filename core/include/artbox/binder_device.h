@@ -83,8 +83,26 @@ size_t artbox_binder_device_waiter_count(artbox_binder_device *device);
  * trusted arguments. May admit a new TID without clearing its initial return.
  * Thread admission exhaustion reports POLLERR. Requires configured receive
  * backing. Process readiness does not imply or require ENTER_LOOPER. No wait
- * registration is created; no work, buffer or initial return is consumed. */
+ * registration is created; no work, buffer or initial return is consumed.
+ * A token retained by a receive mapping remains observable after close, until
+ * final unmap. This neither retains the endpoint nor dereferences its old VM.
+ * VFS still rejects closed descriptors before reaching this observation. */
 int artbox_binder_device_events(artbox_binder_device *device, uint64_t token, int32_t tid);
+/* Subscribe a trusted ordinary-context wake hint. At most 64 listeners exist
+ * per device; subscriptions have monotonic identities. Register before the
+ * final readiness check to cover changes racing with sleep. Notifications may
+ * coalesce and may be spurious; recheck events after waking.
+ *
+ * The callback runs under the device mutex. It may only publish a wake hint:
+ * never reenter Binder, VFS, VM or block on guest work. It must not throw.
+ * Unobserve waits for any callback to finish; after it returns, context can
+ * be destroyed. No callback originates in a signal handler or passive VM
+ * watch. Final-unmap detection still needs ordinary-context polling.
+ * Destroy rejects a device with live listeners. Unknown subscriptions return
+ * ENOENT; exhaustion returns ENOSPC. No subscription owns an endpoint. */
+int artbox_binder_device_observe(artbox_binder_device *device,
+    void (*notify)(void *), void *context, uint64_t *subscription);
+int artbox_binder_device_unobserve(artbox_binder_device *device, uint64_t subscription);
 #ifdef __cplusplus
 }
 #endif

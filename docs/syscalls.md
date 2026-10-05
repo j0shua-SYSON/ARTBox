@@ -419,3 +419,8 @@ through a mapped receive area after close, descriptor-number reuse and final
 unmap removal. Both downloaded kernel artifacts and their source hashes verify.
 The native wake provider is a private host interface for the forthcoming guest
 event loop; its Linux eventfd is not a guest eventfd syscall implementation.
+Mapped closed Binder tokens now remain observable until final unmap, without
+reopening a descriptor or permitting ioctl on it. Up to 64 trusted listeners
+per device can receive ordinary-context change hints. Unsubscribe serializes
+with callbacks; passive unmap only publishes a hint when an ordinary device
+operation observes it. Guest epoll dispatch is still pending.

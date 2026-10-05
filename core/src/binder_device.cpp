@@ -3,6 +3,7 @@
 #include "artbox/binder_arena.h"
 #include "artbox/signals.h"
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <condition_variable>
 #include <cstring>
@@ -71,6 +72,11 @@ struct Death {
     int32_t tid;
     DeathState state;
     bool clearing;
+};
+struct Observer {
+    uint64_t subscription = 0;
+    void (*notify)(void *) = nullptr;
+    void *context = nullptr;
 };
 uint32_t read32(const unsigned char *p) {
     return uint32_t(p[0]) | (uint32_t(p[1]) << 8) | (uint32_t(p[2]) << 16) | (uint32_t(p[3]) << 24);
@@ -164,6 +170,8 @@ struct artbox_binder_device {
     std::mutex lock;
     std::condition_variable changed;
     size_t waiters = 0;
+    std::array<Observer, 64> observers{};
+    uint64_t next_subscription = 1;
     std::vector<Endpoint> endpoints;
     size_t thread_limit;
     uint64_t next_token = 1, manager = 0;
@@ -182,10 +190,42 @@ struct artbox_binder_device {
     std::vector<Claim> claims;
 };
 
+// The device mutex is held. Listeners may only publish an ordinary-context
+// hint; none can acquire VFS/VM locks or reenter this device.
+static void notify_changed(artbox_binder_device *device) {
+    device->changed.notify_all();
+    for (const auto &observer : device->observers) {
+        if (observer.subscription) observer.notify(observer.context);
+    }
+}
+
 extern "C" size_t artbox_binder_device_waiter_count(artbox_binder_device *device) {
     if (!device) return 0;
     std::lock_guard<std::mutex> guard(device->lock);
     return device->waiters;
+}
+extern "C" int artbox_binder_device_observe(artbox_binder_device *device,
+    void (*notify)(void *), void *context, uint64_t *subscription) {
+    if (subscription) *subscription = 0;
+    if (!device || !notify || !subscription) return -22;
+    std::lock_guard<std::mutex> guard(device->lock);
+    if (!device->next_subscription) return -24;
+    for (auto &observer : device->observers) if (!observer.subscription) {
+        observer.subscription = device->next_subscription++;
+        observer.context = context; observer.notify = notify;
+        *subscription = observer.subscription;
+        return 0;
+    }
+    return -28;
+}
+extern "C" int artbox_binder_device_unobserve(artbox_binder_device *device, uint64_t subscription) {
+    if (!device || !subscription) return -22;
+    std::lock_guard<std::mutex> guard(device->lock);
+    for (auto &observer : device->observers) if (observer.subscription == subscription) {
+        observer = Observer{};
+        return 0;
+    }
+    return -2;
 }
 
 namespace {
@@ -737,12 +777,15 @@ static int release_endpoint(artbox_binder_device *device, Endpoint &endpoint) {
 }
 static int reap_closed(artbox_binder_device *device) {
     int result = 0;
+    bool changed = false;
     for (auto &endpoint : device->endpoints) {
         if (!endpoint.token || endpoint.opened ||
             (artbox_vm_mapping_watch_state(endpoint.receive_watch) & ARTBOX_VM_MAPPING_LIVE)) continue;
         int error = release_endpoint(device, endpoint);
+        changed = true;
         if (!result) result = error;
     }
+    if (changed) notify_changed(device);
     return result;
 }
 
@@ -754,7 +797,7 @@ int read_wait(artbox_binder_device *device, Endpoint &endpoint, int32_t tid, uns
     int result = read_work(device, endpoint, *thread, header);
     if (result != -11 || endpoint.nonblocking) return result;
     // Publish effects of the write half before sleeping for the read half.
-    device->changed.notify_all();
+    notify_changed(device);
     struct Waiter {
         artbox_binder_device *device;
         explicit Waiter(artbox_binder_device *d) : device(d) { ++device->waiters; }
@@ -817,6 +860,7 @@ extern "C" int artbox_binder_device_destroy(artbox_binder_device *device) {
         std::lock_guard<std::mutex> guard(device->lock);
         int result = reap_closed(device);
         if (result) return result;
+        for (const auto &observer : device->observers) if (observer.subscription) return -16;
         for (const auto &endpoint : device->endpoints) if (endpoint.token) return -16;
     }
     delete device;
@@ -850,7 +894,7 @@ extern "C" int artbox_binder_device_close(artbox_binder_device *device, uint64_t
         if (endpoint.active_calls) return -16;
         endpoint.opened = false;
         endpoint.vm = nullptr;
-        device->changed.notify_all();
+        notify_changed(device);
         return reap_closed(device);
     }
     return -9;
@@ -912,7 +956,7 @@ extern "C" int artbox_binder_device_events(artbox_binder_device *device, uint64_
     int error = reap_closed(device);
     if (error) return error;
     Endpoint *endpoint = endpoint_for(device, token);
-    if (!endpoint || !endpoint->opened) return -9;
+    if (!endpoint) return -9;
     if (!device->receive_limit) return -95;
     Thread *thread = admit_thread(device, *endpoint, tid);
     if (!thread) return 8; // POLLERR, matching Binder's failed thread admission.
@@ -989,7 +1033,7 @@ static int64_t binder_ioctl(artbox_binder_device *device, uint64_t token,
         if (current) { current->initial_return = false; current->active = false; }
     }
     --endpoint.active_calls;
-    device->changed.notify_all();
+    notify_changed(device);
     return result;
 }
 

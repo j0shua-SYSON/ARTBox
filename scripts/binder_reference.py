@@ -266,7 +266,9 @@ def compare_driver(build, reference):
     receive_result = json.loads(receive_run.stdout)
     if receive_result != dict(shared_mapping_cases=reference['mapping_cases'], shared_poll_cases=reference['poll_cases'], native_alias_verified=True,
                               ownership_controls=True, wait_contract_cases=reference['wait_cases'],
-                              interrupt_epoch_injected=True, passive_unmap_wakeup=True, passed=True):
+                              interrupt_epoch_injected=True, passive_unmap_wakeup=True,
+                              mapped_poll_lifetime=reference['epoll_mapped_target_lifetime'],
+                              wake_observers=True, passed=True):
         raise RuntimeError('Binder receive mapping did not pass the exact native lifetime fixture')
     transaction_result = json.loads(transaction_run.stdout)
     if transaction_result != dict(same_pid_rejected=reference['same_pid_rejected'],
