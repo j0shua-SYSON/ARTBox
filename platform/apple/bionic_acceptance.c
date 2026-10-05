@@ -150,6 +150,14 @@ static void deliver_fault(int number,siginfo_t *info,void *context) {
         at=fault_text(at," address="); at=fault_hex(at,(uintptr_t)info->si_addr);
         at=fault_text(at," far="); at=fault_hex(at,state.fault_address);
         at=fault_text(at," esr="); at=fault_hex(at,state.esr);
+        for (unsigned i = 0; i < image_count; ++i) {
+            if (state.pc >= signal_code[i].address &&
+                    state.pc - signal_code[i].address < signal_code[i].size) {
+                at=fault_text(at," image="); at=fault_hex(at,i);
+                at=fault_text(at," offset="); at=fault_hex(at,state.pc-signal_code[i].address);
+                break;
+            }
+        }
         *at++='\n';
         (void)write(2,message,(size_t)(at-message));
         fault(number);

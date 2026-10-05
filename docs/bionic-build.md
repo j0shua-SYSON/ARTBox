@@ -180,7 +180,10 @@ startup still need integration. The extra call and host TLS lookup are untimed.
 `third_party/bionic/components.json` selects the real Scudo and GWP-ASan source
 groups from their matching AOSP tag. It records compiler flags and notice hashes.
 Scudo retains Android's custom size classes, shared TSD registry and Bionic
-wrappers, `-O3`, CRC support and its upstream stack-protector exception. Both
+wrappers, `-O3`, CRC support and its upstream stack-protector exception. Native
+Scudo enables `-mcrc` only for the original `crc32_hw.cpp`; every other Scudo
+object is audited to reject optional CRC instructions. With the current
+conservative HWCAP=0, its original dispatcher uses the software checksum. Both
 profiles disable TBI/MTE through Scudo's existing configuration switches; the
 runtime must advertise CPU capabilities accurately. GWP-ASan retains its sampled
 guarded allocator and crash-handler implementation. The Bionic dynamic malloc,

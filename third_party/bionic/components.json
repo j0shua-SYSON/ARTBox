@@ -115,12 +115,13 @@
     }
   },
   "profile_symbol_differences": {
-    "reason": "GWP platform TLS replaces one initial-exec variable; added TLS calls change Scudo weak template outlining at O3. All other global definitions must match.",
+    "reason": "GWP platform TLS replaces one initial-exec variable; added TLS calls change Scudo weak template outlining at O3. Baseline ARMv8-A additionally outlines the original software-dispatched computeChecksum. All other global definitions must match.",
     "upstream_only": [
       "_ZN5scudo9AllocatorINS_19AndroidNormalConfigEXadL_Z21scudo_malloc_postinitEEE9setOptionENS_6OptionEl",
       "_ZZN8gwp_asan15getThreadLocalsEvE6Locals"
     ],
     "native_only": [
+      "_ZN5scudo15computeChecksumEjmPmm",
       "_ZN5scudo18TSDRegistrySharedTINS_9AllocatorINS_19AndroidNormalConfigEXadL_Z21scudo_malloc_postinitEEEELj8ELj2EE9setOptionENS_6OptionEl",
       "_ZN5scudo9AllocatorINS_19AndroidNormalConfigEXadL_Z21scudo_malloc_postinitEEE11releaseToOSENS_11ReleaseToOSE",
       "_ZN5scudo9AllocatorINS_19AndroidNormalConfigEXadL_Z21scudo_malloc_postinitEEE13canReturnNullEv"

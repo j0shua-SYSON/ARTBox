@@ -2,6 +2,17 @@
 # SPDX-License-Identifier: MIT
 import hashlib
 from pathlib import Path
+import re
+
+
+def check_crc_code(source, assembly):
+    """Optional ARM64 CRC instructions may occur only in the gated helper unit."""
+    count = len(re.findall(r'\bcrc32c?[bhwx]\b', assembly))
+    if source != 'scudo/standalone/crc32_hw.cpp' and count:
+        raise RuntimeError('Unconditional optional CRC instructions in ' + source)
+    if source == 'scudo/standalone/crc32_hw.cpp' and count != 1:
+        raise RuntimeError('The dedicated Scudo hardware CRC helper changed')
+    return count
 
 
 def prepare(source, output, expected, native):

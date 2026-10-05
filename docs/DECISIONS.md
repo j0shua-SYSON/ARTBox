@@ -3518,3 +3518,27 @@ preserve every byte and support realloc. This turns the hardware failure into a
 repeatable Mac constraint. ART retains its separate VM ceiling, but uses the same
 bounded Scudo build. Full signed execution and device retesting are required
 before calling the candidate a fix; its performance cost is not yet measured.
+
+## 0127: Keep optional ARM64 CRC instructions behind Scudo's feature dispatch
+
+The smaller primary maps successfully on the test iPhone at `2f23685`, then
+Scudo faults with SIGILL at a `crc32cx` in Allocator::allocate. Mapping the
+recorded PC through the pinned ELF and `__libc_globals` address identifies the
+instruction. Android's global `-mcrc` enables Scudo's unconditional inline CRC
+path, bypassing its AT_HWCAP check even though ARTBox advertises HWCAP=0.
+
+Compile native Scudo for the existing ARMv8-A baseline, enabling `-mcrc` only
+for its original `crc32_hw.cpp`. The untouched dispatcher then selects its
+software checksum with the current conservative auxiliary vector. Retain the
+Android upstream compilation control. Audit every native Scudo object: CRC
+instructions are rejected outside that one helper, which must contain exactly
+one. The audit rejects the preceding allocator object before changing flags.
+The resulting build additionally outlines the original `scudo::computeChecksum`
+as a weak definition; record that exact source-backed symbol in the existing
+profile-difference policy. All other symbol and instruction checks remain required.
+
+This retains Scudo's original checksum implementations and introduces neither
+CPU emulation nor runtime code generation. Software checksums cost additional
+instructions; throughput is unmeasured. A future optimized profile must report
+host-verified capabilities before enabling the optional path. No CPU feature
+is inferred from the fact that the app uses arm64 or targets iOS 15.

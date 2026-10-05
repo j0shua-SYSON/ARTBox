@@ -65,3 +65,7 @@ observed. At `930f17d`, both M2 and ART cache logs identify Scudo's 8.25 GiB
 reservation returning ENOMEM followed by Bionic process exit. Their installed
 executables match the CI bytes. The smaller-primary candidate still needs a
 passing device retest; the original failure is not ART acceptance.
+At `2f23685`, the M2 reservation succeeds, followed by SIGILL at Scudo's
+unconditionally emitted `crc32cx`. The next candidate keeps optional CRC
+instructions in its feature-gated helper and uses the software checksum on
+the current baseline. It still needs a successful complete device run.

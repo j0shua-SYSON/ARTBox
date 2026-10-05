@@ -23,7 +23,7 @@ from bionic_syscalls import generate as generate_syscalls
 from bionic_builtins import prepare as prepare_builtins
 from bionic_vfork import prepare as prepare_vfork
 from bionic_ids import prepare as prepare_ids
-from bionic_scudo import prepare as prepare_scudo
+from bionic_scudo import prepare as prepare_scudo, check_crc_code
 
 
 def digest(path):
@@ -144,6 +144,10 @@ def main():
             output = build / "objects" / name / (relative + ".o")
             output.parent.mkdir(parents=True, exist_ok=True)
             applied = assembly_flags + selection["flags"] if path.suffix == ".S" else component_flags
+            if args.profile == 'native' and name == 'scudo' and relative != 'standalone/crc32_hw.cpp':
+                # The Android build's global -mcrc bypasses Scudo's HWCAP dispatch.
+                # Older arm64 iPhones need the original software checksum path.
+                applied = [flag for flag in applied if flag != '-mcrc']
             entries.append((name + "/" + relative, path, output, applied))
 
     def compile_one(entry):
@@ -158,8 +162,13 @@ def main():
         output.with_suffix(".log").write_bytes(result.stdout + result.stderr)
         if result.returncode:
             return {"source": relative, "exit": result.returncode, "source_sha256": digest(path)}
-        return {"source": relative, "exit": 0, "source_sha256": digest(path), "object_sha256": digest(output),
-                "source_flags": source_flags, "language_flags": language_flags[path.suffix], "flags": applied_flags}
+        record = {"source": relative, "exit": 0, "source_sha256": digest(path), "object_sha256": digest(output),
+                  "source_flags": source_flags, "language_flags": language_flags[path.suffix], "flags": applied_flags}
+        if args.profile == 'native' and relative.startswith('scudo/'):
+            assembly = subprocess.check_output([str(tools / f'llvm-objdump{suffix}'), '-d',
+                                               '--no-show-raw-insn', str(output)]).decode('utf-8')
+            record['optional_crc_instructions'] = check_crc_code(relative, assembly)
+        return record
 
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         compiled = list(pool.map(compile_one, entries))

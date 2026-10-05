@@ -45,7 +45,14 @@ ART build returns to the home screen before an ART result is visible, with no
 crash report found. The `930f17d` M2 and ART cache logs identify Scudo's 8.25 GiB
 contiguous reservation failing with ENOMEM before startup. A candidate reduces
 the primary reservation to 528 MiB, with a 1 GiB M2 VM-budget regression and
-allocator-exhaustion checks; signed execution and hardware retesting are pending.
+allocator-exhaustion checks. Those checks pass on Mac at `2f23685`, and the
+reservation succeeds on the phone. The next hardware fault is Scudo's
+unconditional CRC instruction; a follow-up restricts CRC compilation to its
+existing feature-gated helper. Full physical Bionic/ART acceptance remains pending.
+All 22 host jobs and iOS pass at `2f23685`; both integrated IPAs independently
+verify. M2 reserves 560,988,160 bytes in the normal Mac run and 562,118,656 in
+the forced-sampling run, within the new 1 GiB ceiling. Both retain 328/328 and
+pass all three allocation-pressure checks. These are correctness measurements.
 Binder/services, Activities, AndroidX APKs, graphics and audio remain future
 milestones. The runtime is a one-shot diagnostic; repeated VM creation and
 general dynamic library growth/unloading are not supported. AOT/OAT and host
