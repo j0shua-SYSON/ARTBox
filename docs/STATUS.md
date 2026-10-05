@@ -425,11 +425,17 @@ Launcher UI remains deferred. Historical debugging results are retained in
 At `84bfde3`, all 23 host jobs and iOS pass, including immutable service-grant
 policy tests. The integrated ART IPA independently verifies 16 signed images,
 15 ELF layouts, five resources and 175 notices with empty entitlements.
-The next producer compiles original servicemanager main/ServiceManager with
-an explicit Access adapter and policy-version contract callers. All seven
-objects build locally and pass the instruction audit. These callers have not
-executed; real registration, ping/pong and death across separate guest roles
-remain the M4 target.
+At `5d2d3e9`, the original servicemanager producer also passes all 23 host jobs
+and iOS. Independent verification checks seven objects, 449 upstream files,
+31 project inputs and its generated header; compilation takes 3.748 seconds
+on the Mac runner. Its integrated ART IPA also verifies.
+
+The next signed gate adds a native provider/client caller and independent
+manager/provider/client contexts. Local link and wrapper checks pass with
+126,053 audited instructions and no unsafe instruction patterns. The 45
+portable contracts pass, with three native-provider tests skipped on Windows.
+Actual service execution has not yet passed; registration, 32 ping/pong calls,
+access denials and original death notification remain the M4 target.
 
 One signed Mac main-branch run at `8cf6315` creates the VM in **54.157 ms**,
 loads/relocates in 32.226 ms and reaches **66,699,264 bytes peak process RSS**.

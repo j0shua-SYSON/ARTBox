@@ -3,6 +3,16 @@
 #include "Access.h"
 #include <unistd.h>
 #define CHECK(n, condition) do { if (!(condition)) return -(100+(n)); ++cases; } while (0)
+extern "C" int artbox_service_access_prepare(unsigned mutation) {
+    if (mutation>2) return -1;
+    artbox_service_rule rules[]={
+        {mutation==2 ? 99 : 100,1000,ARTBOX_SERVICE_ADD|ARTBOX_SERVICE_FIND,"manager",7},
+        {101,1001,ARTBOX_SERVICE_ADD,"artbox.ping",11},
+        {102,mutation==1 ? 10001u : 10000u,ARTBOX_SERVICE_FIND,"artbox.ping",11},
+        {102,10000,ARTBOX_SERVICE_FIND,"manager",7},
+        {102,10000,ARTBOX_SERVICE_LIST,nullptr,0}};
+    return artbox_service_access_configure(rules,5);
+}
 extern "C" int artbox_service_access_check(unsigned mutation) {
     if (mutation>2) return -1;
     int cases=0;
@@ -13,14 +23,8 @@ extern "C" int artbox_service_access_check(unsigned mutation) {
     CHECK(2,!access.canFind(manager,"manager"));
     CHECK(3,!access.canList(manager));
     CHECK(4,!access.canAdd(root,"manager"));
-    artbox_service_rule rules[]={
-        {mutation==2 ? 99 : 100,1000,ARTBOX_SERVICE_ADD|ARTBOX_SERVICE_FIND,"manager",7},
-        {101,1001,ARTBOX_SERVICE_ADD,"artbox.ping",11},
-        {102,mutation==1 ? 10001u : 10000u,ARTBOX_SERVICE_FIND,"artbox.ping",11},
-        {102,10000,ARTBOX_SERVICE_FIND,"manager",7},
-        {102,10000,ARTBOX_SERVICE_LIST,nullptr,0}};
-    CHECK(5,artbox_service_access_configure(rules,5)==0);
-    CHECK(6,artbox_service_access_configure(rules,5)==-114);
+    CHECK(5,artbox_service_access_prepare(mutation)==0);
+    CHECK(6,artbox_service_access_prepare(mutation)==-114);
     CHECK(7,access.canAdd(manager,"manager"));
     CHECK(8,access.canAdd(provider,"artbox.ping"));
     CHECK(9,access.canFind(client,"artbox.ping"));

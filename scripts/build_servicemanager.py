@@ -68,6 +68,7 @@ def main():
     units={'main.cpp':service/'main.cpp','ServiceManager.cpp':service/'ServiceManager.cpp',
            'artbox-access.cpp':ROOT/'fixtures/servicemanager/access.cpp',
            'access-check.cpp':ROOT/'fixtures/servicemanager/access_check.cpp',
+           'roles.cpp':ROOT/'fixtures/servicemanager/roles.cpp',
            'kernel-policy.c':ROOT/'fixtures/servicemanager/kernel_policy.c',
            'kernel-policy-check.cpp':ROOT/'fixtures/servicemanager/kernel_policy_check.cpp',
            'service-policy.c':ROOT/'core/src/service_policy.c'}

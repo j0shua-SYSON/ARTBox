@@ -256,3 +256,14 @@ The VINTF policy-version contract expects five checks, including preservation
 of its previous value when the unsupported fetch is logged. These contracts
 are build inputs; their runtime acceptance and the three-role service test
 remain pending.
+
+The three-role caller in `fixtures/servicemanager/roles.cpp` uses original
+generated IServiceManager proxies, BBinder, BpBinder, Parcel, IPCThreadState
+and Looper. It expects 32 ordered ping/pong exchanges, real endpoint identity
+despite forged identity words in the payload, explicit access denials, one
+death recipient and DEAD_OBJECT on a later call. The new signed gate packages
+18 distinct framework instances for both Apple targets. Only Mac execution is
+attempted by that gate; its original manager loop is retained for process
+lifetime, while both finite peer contexts must be joined and destroyed.
+The separate Access modes require 20/-109/-107 and the VINTF policy contract
+requires five checks. Execution results are not yet available.

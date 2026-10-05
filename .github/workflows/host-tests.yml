@@ -1077,6 +1077,37 @@ jobs:
             build/host/artbox_native_kernel_config
           if-no-files-found: error
           retention-days: 7
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: servicemanager-native-build
+          path: build/m4/service-guest-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: binder-native-build
+          path: build/m4/service-binder-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: vintf-native-build
+          path: build/m4/service-vintf-inputs
+      - name: Execute original servicemanager and independent native Binder peers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 -B scripts/test_service_guest.py --native-dir build/m4/service-guest-inputs
+          --binder-dir build/m4/service-binder-inputs --vintf-dir build/m4/service-vintf-inputs
+          --parser-dir build/m4/kernel-config-guest-inputs --guest-dir build/m3/art-guest-link
+          --dependency-dir build/m3/guest-dependency-inputs
+      - name: Preserve service code, policy controls, native role evidence and sources
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: service-guest
+          path: |
+            artifacts/m4-service-guest.json
+            build/m4/service-guest/
+            build/host/artbox_native_service
+          if-no-files-found: error
+          retention-days: 7
       - name: Preserve signed JavaVM and DEX execution diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

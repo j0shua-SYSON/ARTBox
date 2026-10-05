@@ -3694,3 +3694,30 @@ ServiceManager, without changing its bytes. Audit every compiled instruction,
 archive source/notices and record unresolved imports. Each role needs separate
 signed images, Bionic cached PID/TLS, libbinder globals and VM/VFS/thread owners;
 the shared Binder device alone connects them. No JavaVM is needed for M4.
+
+## ADR 0133: Test three independent Bionic roles around the original service loop
+
+Use distinct signed framework install names for manager PID/UID 100/1000,
+provider 101/1001 and app client 102/10000. Each role receives its own load
+group, Bionic TCB, libbinder globals, VM, descriptor table, futex and signal
+owners. They share one portable Binder device with trusted endpoint identity.
+The host verifies that dyld did not reuse code/data addresses across roles.
+Six images per role reuse the established native C++ dependencies without
+starting Java or reserving its managed arena. This costs three Scudo primaries
+and duplicates signed images; measurements must determine the device impact.
+
+The manager executes unchanged AOSP main indefinitely. Observe successful
+context-manager registration before starting its peers. Retain its context,
+images, worker and backing owner for the host process lifetime; never report
+complete daemon cleanup. Provider/client calls are finite, run on independent
+native threads and are joined before descriptor close and VM unmap. That
+teardown must cause the original BpBinder death recipient, with no synthesized
+callback. The fixture also checks 32 sequenced payloads, caller credentials,
+denied registration/listing and original app-UID rejection.
+
+Run the Access contract and wrong-UID/PID controls in separate processes. Its
+identity checks construct IPCThreadState, which original main explicitly
+forbids before setting call restrictions. The real daemon therefore receives
+only the tested grant configuration before entering main. Both positive and
+negative contracts require exact observations. This new signed execution gate
+is pending; local compilation/linking does not establish M4 completion.
