@@ -22,6 +22,7 @@ def main():
         result.check_returncode()
         if json.loads(result.stdout) != dict(same_pid_rejected=True, shared_threaded_ping_pong=True,
                                             death_cases=3, object_handle_lifecycle=True, oneway_lifecycle=True,
+                                            node_info_lifecycle=True,
                                             blocking_threaded_ping_pong=True, readiness_lifecycle=True,
                                             native_aliases=True, cleanup=True, passed=True):
             raise RuntimeError('Guest Binder transaction acceptance was incomplete')

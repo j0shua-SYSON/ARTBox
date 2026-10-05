@@ -1016,7 +1016,33 @@ static int64_t binder_ioctl(artbox_binder_device *device, uint64_t token,
             return 0;
         case ARTBOX_BINDER_WRITE_READ:
             return write_read(device, endpoint, *thread, argument, guard, owner, epoch);
-        case ARTBOX_BINDER_GET_NODE_DEBUG_INFO: case ARTBOX_BINDER_GET_NODE_INFO_FOR_REF:
+        case ARTBOX_BINDER_GET_NODE_INFO_FOR_REF: {
+            if (artbox_vm_read(endpoint.vm, argument, value, sizeof(value))) return -14;
+            for (size_t offset = 4; offset < sizeof(value); offset += 4)
+                if (read32(value + offset)) return -22;
+            if (device->manager != token) return -1;
+            const Reference *ref = reference_for(device, token, read32(value));
+            if (!ref || (!ref->strong && !ref->temporary_strong)) return -22;
+            const Node *node = node_for(device, ref->node);
+            if (!node) return -22;
+            // One contribution per importing endpoint, regardless of duplicate
+            // ACQUIRE commands or repeated remote objects in receive buffers.
+            // Owner acknowledgements and local buffer holds contribute separately.
+            // Fixed admission limits bound the sum to fewer than 2^32 references.
+            uint32_t strong = 0, weak = 0;
+            for (const auto &imported : device->references)
+                if (imported.endpoint && imported.node == node->id &&
+                        (imported.strong || imported.temporary_strong)) ++strong;
+            if (!node->dead) {
+                strong += static_cast<uint32_t>(node->manager) + static_cast<uint32_t>(node->pending_strong);
+                weak = static_cast<uint32_t>(node->manager) + static_cast<uint32_t>(node->pending_weak);
+                for (const auto &claim : device->claims)
+                    if (claim.endpoint && claim.node == node->id && !claim.remote) ++strong;
+            }
+            write32(value + 4, strong); write32(value + 8, weak);
+            return artbox_vm_write(endpoint.vm, argument, value, sizeof(value)) ? -14 : 0;
+        }
+        case ARTBOX_BINDER_GET_NODE_DEBUG_INFO:
         case ARTBOX_BINDER_FREEZE: case ARTBOX_BINDER_GET_FROZEN_INFO:
         case ARTBOX_BINDER_ENABLE_ONEWAY_SPAM_DETECTION: case ARTBOX_BINDER_GET_EXTENDED_ERROR:
             return -95;

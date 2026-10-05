@@ -276,6 +276,7 @@ def compare_driver(build, reference):
                                  shared_threaded_ping_pong=reference['threaded_ping_pong'],
                                  death_cases=reference['death_cases'], object_handle_lifecycle=reference['object_handle_lifecycle'],
                                  oneway_lifecycle=reference['oneway_lifecycle'],
+                                 node_info_lifecycle=reference['node_info_lifecycle'],
                                  blocking_threaded_ping_pong=reference['blocking_threaded_ping_pong'],
                                  readiness_lifecycle=reference['readiness_lifecycle'],
                                  native_aliases=True, cleanup=True, passed=True):
@@ -284,7 +285,7 @@ def compare_driver(build, reference):
             'vfs': vfs_result, 'vfs_runner_sha256': digest(vfs_runner),
             'receive': receive_result, 'receive_runner_sha256': digest(receive_runner),
             'transactions': transaction_result, 'transaction_runner_sha256': digest(transaction_runner),
-            'scope': 'Paired ioctl, descriptor, mapping, parcels, object, one-way, death, wait and level-triggered Binder epoll readiness/lifetime contracts; ARTBox signal epochs injected; no eventfd/timerfd, edge/oneshot/nested epoll or signal-mask substitution'}
+            'scope': 'Paired ioctl, descriptor, mapping, parcels, object, node-info, one-way, death, wait and level-triggered Binder epoll readiness/lifetime contracts; ARTBox signal epochs injected; no eventfd/timerfd, edge/oneshot/nested epoll or signal-mask substitution'}
 
 
 def main():
@@ -327,6 +328,7 @@ def main():
             record['wait_driver_compared'] = True
             record['poll_driver_compared'] = True
             record['epoll_driver_compared'] = True
+            record['node_info_driver_compared'] = True
     record['project_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     sources = [
         ROOT / 'fixtures/binder-device/check.c', ROOT / 'fixtures/binder-device/check.h',

@@ -12,7 +12,7 @@
 #define CHECK(x) do { if (!(x)) { std::fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #x); std::exit(1); } } while (0)
 struct Context { artbox_vfs *fs; artbox_kernel_thread thread; uint64_t path; bool same_pid = true, nonblocking = true; };
 static int32_t pid_for(void *opaque, int32_t role) {
-    return role == 2 && !static_cast<Context *>(opaque)->same_pid ? 101 : 100;
+    return (role == 2 || role == 3) && !static_cast<Context *>(opaque)->same_pid ? 101 : 100;
 }
 static int open_device(void *opaque, int32_t role) {
     auto *c = static_cast<Context *>(opaque);
@@ -83,6 +83,7 @@ int main(int argc, char **argv) {
     CHECK(artbox_binder_death_check(&context, &ops, server, client) == 3);
     CHECK(artbox_binder_object_check(&context, &ops, server, client) == 0);
     CHECK(artbox_binder_oneway_check(&context, &ops, server, client) == 0);
+    CHECK(artbox_binder_node_info_check(&context, &ops, server, client) == 0);
     context.nonblocking = false;
     CHECK(artbox_binder_transaction_check(&context, &ops, server, client) == 0);
     context.nonblocking = true; ops.events = poll_device;
@@ -90,7 +91,8 @@ int main(int argc, char **argv) {
     CHECK(artbox_binder_death_check(&context, &ops, server, client) == 3);
     CHECK(artbox_binder_object_check(&context, &ops, server, client) == 0);
     CHECK(artbox_binder_oneway_check(&context, &ops, server, client) == 0);
+    CHECK(artbox_binder_node_info_check(&context, &ops, server, client) == 0);
     CHECK(artbox_vfs_destroy(context.fs) == 0 && artbox_binder_device_destroy(device) == 0);
     CHECK(artbox_vm_destroy(vm) == 0 && artbox_native_files_close(native) == 0);
-    std::puts("{\"same_pid_rejected\":true,\"shared_threaded_ping_pong\":true,\"death_cases\":3,\"object_handle_lifecycle\":true,\"oneway_lifecycle\":true,\"blocking_threaded_ping_pong\":true,\"readiness_lifecycle\":true,\"native_aliases\":true,\"cleanup\":true,\"passed\":true}");
+    std::puts("{\"same_pid_rejected\":true,\"shared_threaded_ping_pong\":true,\"death_cases\":3,\"object_handle_lifecycle\":true,\"oneway_lifecycle\":true,\"node_info_lifecycle\":true,\"blocking_threaded_ping_pong\":true,\"readiness_lifecycle\":true,\"native_aliases\":true,\"cleanup\":true,\"passed\":true}");
 }

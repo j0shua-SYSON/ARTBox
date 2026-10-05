@@ -48,6 +48,15 @@ failure takes precedence. Full ioctl/command words are matched. Thread-exit
 reclaims the calling TID, which a later ioctl recreates. Unknown words fail with
 EINVAL; recognized work outside the implemented subset fails with EOPNOTSUPP.
 
+GET_NODE_INFO_FOR_REF is enabled for the registered manager endpoint and an
+owned strong handle. All five remaining input words must be zero, checked before
+manager permission. Counts are a locked snapshot of importing endpoints, pending
+owner acknowledgements and local receive-buffer holds; duplicate ACQUIRE commands
+do not create another importing endpoint. Dead nodes retain remote counts while
+local holds disappear. Weak-only and missing handles return EINVAL. Input/output
+copy faults return EFAULT. The implementation adds no independent counters or
+allocations; its scans use the existing fixed reference and claim capacities.
+
 Host limits reserve metadata for at most 1,024 endpoints and 1,024 threads per
 endpoint. These are explicit admission bounds, independent of MAX_THREADS's
 Linux threadpool setting. Endpoint exhaustion returns EMFILE, thread exhaustion
@@ -418,8 +427,10 @@ returns EBUSY with zero remaining module references.
 
 The shared node-info lifecycle fixture now targets `GET_NODE_INFO_FOR_REF`,
 used by `ProcessState::getStrongRefCountForNode` and servicemanager client
-tracking. Native execution is pending; `node_info_driver_compared` remains
-false and the portable ioctl still returns EOPNOTSUPP. The fixture separates
+tracking. At `fb0232b`, the native driver passes all ten synchronized phases,
+with downloaded provenance and input hashes verified. The portable implementation
+now runs this same fixture in its native-backed transaction test; that comparison
+is pending CI. The fixture separates
 manager-open permission from PID/UID, validates all five input-only zero fields,
 and checks failed input/output copying. It observes pending strong/weak owner
 acknowledgements and releases each separately. It compares duplicate acquires with a

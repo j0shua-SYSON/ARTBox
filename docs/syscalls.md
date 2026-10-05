@@ -377,6 +377,7 @@ The signed ART startup has not attached this context yet.
 | --- | --- | --- |
 | openat 56, close 57 | Independent endpoint per open, owned close, `/dev` relative lookup, descriptor reuse | Shared 32-case ioctl fixture through VFS; local failed-open and table-cleanup controls |
 | ioctl 29 | VERSION, MAX_THREADS, CONTEXT_MGR/EXT, THREAD_EXIT, WRITE_READ looper commands | Linux/direct endpoint pass 32 cases at 517ad1c; VFS passes the same cases at ba255d2 |
+| ioctl 29, GET_NODE_INFO_FOR_REF | Manager-endpoint permission, strong-handle validation and a snapshot of remote/local node holds | Ten native Linux lifecycle phases pass at fb0232b. Local VM/admission tests pass; shared portable lifecycle comparison is pending CI. Invalid input fields precede permission checks; copy faults return EFAULT. |
 | fstat 80, newfstatat 79 | Virtual character-device metadata | Host device identities are not exposed |
 | read 63, write 64, lseek 62 | Unsupported Binder transfers and non-seekability, with descriptor access checks | Separate 22-case Linux/VFS comparison passes at ba255d2; no parcel transfer through read/write |
 | mmap 222, mprotect 226, munmap 215 | Configured read-only receive aliases, write ceilings and mapped endpoint retention after FD close | Linux and ARTBox pass 35 shared cases at db73182, including native alias coherence. Local rollback/close controls pass. No fixed, executable or nonzero-offset maps; unused pages differ from Linux's demand population |

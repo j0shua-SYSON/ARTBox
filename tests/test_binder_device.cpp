@@ -50,11 +50,35 @@ int main() {
     auto call = [&](uint64_t token, int tid, uint32_t request, uint64_t argument) {
         return artbox_binder_device_ioctl(c.device, token, tid, request, argument);
     };
+    auto *info = reinterpret_cast<uint32_t *>(address);
+    std::memset(info, 0, 24);
+    CHECK(call(a, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, address) == -1);
     CHECK(call(a, 100, ARTBOX_BINDER_SET_CONTEXT_MGR, 1) == 0);
+    CHECK(call(a, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, address) == -22);
+    CHECK(call(b, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, address) == -1);
+    for (unsigned field = 1; field < 6; ++field) {
+        info[field] = UINT32_C(0x80000000);
+        CHECK(call(a, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, address) == -22);
+        CHECK(call(b, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, address) == -22);
+        CHECK(info[field] == UINT32_C(0x80000000));
+        info[field] = 0;
+    }
+    CHECK(call(a, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, 1) == -14);
+    CHECK(call(a, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, UINT64_MAX - 15) == -14);
+    CHECK(call(a, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, address + memory.page_size * 2 - 23) == -14);
+    CHECK(call(a, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF ^ UINT32_C(0x10000), address) == -22);
+    CHECK(artbox_vm_mprotect(c.vm, address, memory.page_size, 0) == 0);
+    CHECK(call(a, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, address) == -14);
+    CHECK(call(b, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, address) == -14);
+    CHECK(artbox_vm_mprotect(c.vm, address, memory.page_size, 1) == 0);
+    CHECK(call(a, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, address) == -22);
+    CHECK(call(b, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, address) == -1);
+    CHECK(artbox_vm_mprotect(c.vm, address, memory.page_size, 3) == 0);
     CHECK(call(b, 100, ARTBOX_BINDER_SET_CONTEXT_MGR, 0) == -16); // Busy precedes UID.
     CHECK(artbox_binder_device_close(c.device, a) == 0);
     CHECK(call(b, 100, ARTBOX_BINDER_SET_CONTEXT_MGR, 0) == -1); // UID persists after close.
     CHECK(call(a, 100, ARTBOX_BINDER_VERSION, address) == -9);
+    CHECK(call(a, 100, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, 1) == -9);
     CHECK(artbox_binder_device_close(c.device, a) == -9);
     CHECK(artbox_binder_device_open(c.device, c.vm, 100, 1000, &output) == 0 && output > b);
     a = output;
@@ -65,6 +89,7 @@ int main() {
     CHECK(call(a, 100, ARTBOX_BINDER_SET_MAX_THREADS, address) == 0);
     CHECK(call(a, 101, ARTBOX_BINDER_VERSION, address) == 0);
     CHECK(call(a, 102, ARTBOX_BINDER_VERSION, address) == -12);
+    CHECK(call(a, 102, ARTBOX_BINDER_GET_NODE_INFO_FOR_REF, 1) == -12);
     CHECK(call(a, 101, ARTBOX_BINDER_THREAD_EXIT, 0) == 0);
     CHECK(call(a, 102, ARTBOX_BINDER_VERSION, address) == 0);
     CHECK(call(a, 102, ARTBOX_BINDER_THREAD_EXIT, 0) == 0);

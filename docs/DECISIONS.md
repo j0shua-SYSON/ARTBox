@@ -3260,3 +3260,28 @@ node_info_driver_compared, which stays false until the same fixture executes
 through ARTBox. GET_NODE_DEBUG_INFO and other unneeded ioctls remain separately
 scoped. No guest kernel, runtime executable generation or iOS entitlement is
 introduced by this contract.
+
+## 0118: Derive Binder node counts from existing ownership under the context lock
+
+At fb0232b the actual Linux driver passes the node-info fixture, including
+pending acknowledgements, retained local objects, a second importer and owner
+death. Artifact provenance and all 105 input hashes verify. Enable the portable
+ioctl with that same fixture in the native-backed guest transaction test.
+
+Count one contribution for each importing endpoint with a strong or temporary
+strong reference, independent of its ACQUIRE total. Add pending owner strong
+acknowledgement and each local buffer claim; pending weak acknowledgement is
+reported separately. Existing manager holds count while alive. A dead node has
+only remote contributions. Deriving this snapshot under the existing context
+mutex avoids adding counters to every transfer, rollback, acknowledgement and
+teardown path. The cost is scanning up to 1,024 reference and 4,096 claim slots
+per query, with no allocation. These admission bounds also prevent count overflow.
+
+Copy the 24-byte input before validating its reserved/output fields, then check
+the registered manager token and its strong handle. Use existing VM copies for
+the output so its read-only fault cannot mutate Binder ownership. Keep generic
+descriptor, TID admission and VM-owner checks ahead of the ioctl body. The local
+test failed before implementation and now covers validation order, unreadable,
+wrapped and truncated input, full ioctl-word matching and admission precedence.
+Windows cannot run the native receive-backed lifecycle fixture; Mac/Linux CI must
+establish that comparison. No physical-device execution is inferred.

@@ -264,9 +264,13 @@ servicemanager uses for client tracking. It checks manager-endpoint permission,
 reserved-field validation, bad input and read-only output, pending owner
 acknowledgements, duplicate acquires, retained local objects, a second importing
 endpoint, owner death and weak-only
-handles. Synchronous message barriers separate each expected count. Strict NDK
-compilation passes; execution against the Linux driver is pending. The portable
-ioctl remains unsupported until that reference is established.
+handles. Synchronous message barriers separate each expected count. At `fb0232b`,
+the real Linux driver passes all ten phases; downloaded provenance and 105 input
+hashes verify. The portable ioctl now derives counts from existing endpoint
+references, owner acknowledgements and local buffer claims under the Binder
+mutex. Its VM/error/admission tests and all 43 available local host contracts
+pass; three native-backing contracts remain Windows skips. The same lifecycle
+fixture is enabled for the Mac/Linux driver comparison, pending CI.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write
