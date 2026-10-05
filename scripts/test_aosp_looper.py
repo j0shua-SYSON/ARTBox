@@ -60,11 +60,12 @@ def main():
     catalog = {name: selection[name] for name in ('binder-utils', 'binder-system', 'binder-build-reference')}
     sources = {name: obtain_files(name, spec, Path(os.environ['ARTBOX_CACHE_DIR'])) for name, spec in catalog.items()}
     common = read(ROOT / 'third_party/sources.json')
-    for name in ('libbase-dex', 'liblog-dex'):
+    for name in ('libbase-dex', 'liblog-dex', 'property-info'):
         catalog[name] = common[name]
         sources[name] = obtain(name)
     include_flags = [item for name in sources for path in graph['includes'].get(name, [])
                      for item in ('-I', str(sources[name] / path))]
+    include_flags += ['-I', str(sources['property-info'] / 'libcutils/include')]
     flags = ['-std=c++20', '-O1', '-DNDEBUG', '-fPIC', '-fno-exceptions', '-fno-rtti',
              '-DANDROID_UTILS_CALLSTACK_ENABLED=0', '-DANDROID_UTILS_REF_BASE_DISABLE_IMPLICIT_CONSTRUCTION',
              '-DANDROID_BASE_UNIQUE_FD_DISABLE_IMPLICIT_CONVERSION',
