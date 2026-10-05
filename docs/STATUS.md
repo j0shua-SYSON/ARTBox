@@ -4,9 +4,9 @@ M0-M3 are merged and tagged. **Real AOSP ART executes hello DEX on macOS
 ARM64 through signed frameworks**, with collection, exceptions, native-thread
 attachment and shutdown verified. M3's shared console and integrated ART IPA
 also pass automated acceptance. Target: ordinary signed arm64 **iOS 15+**, no JIT or private
-entitlements. Physical checks are waived. M0/M1 now pass on a jailbroken iPhone
-6s Plus running iOS 15.8.5; the full ART diagnostic exits during startup on that
-phone. Ordinary provisioning and physical ART execution remain unverified.
+entitlements. Physical checks are waived. M0-M2 now pass on a jailbroken iPhone
+6s Plus running iOS 15.8.5, including background/foreground and cold home-icon
+relaunch. Ordinary provisioning and physical ART execution remain unverified.
 
 ## What runs
 
@@ -17,7 +17,9 @@ phone. Ordinary provisioning and physical ART execution remain unverified.
 - M2: pinned AOSP Bionic, Scudo and GWP-ASan pass **328/328** expectations in
   both normal and forced-sampling processes. Six Bionic pthreads exercise
   allocation, rooted files, mappings, synchronization, TLS, errno and cleanup.
-  The integrated diagnostic IPA includes the same four signed libraries.
+  The integrated diagnostic IPA includes the same four signed libraries. The
+  normal profile also passes all 328 checks and three allocator-pressure checks
+  on the test iPhone at `31c9a4a`, within a 1 GiB VM reservation budget.
 - M3 Linux references: both original and high-heap AOSP profiles execute hello,
   explicit GC, exceptions, attachment cycles and VM shutdown with JIT disabled.
 - M3 signed Mac runtime at `68400fe`: 15 native images, 38 constructors, actual
@@ -47,8 +49,13 @@ contiguous reservation failing with ENOMEM before startup. A candidate reduces
 the primary reservation to 528 MiB, with a 1 GiB M2 VM-budget regression and
 allocator-exhaustion checks. Those checks pass on Mac at `2f23685`, and the
 reservation succeeds on the phone. The next hardware fault is Scudo's
-unconditional CRC instruction; a follow-up restricts CRC compilation to its
-existing feature-gated helper. Full physical Bionic/ART acceptance remains pending.
+unconditional CRC instruction; `31c9a4a` restricts CRC compilation to its
+existing feature-gated helper. Both fixes pass on the phone: the full Bionic
+suite succeeds, including a cold home-icon relaunch, with 560,988,160 reserved
+bytes. Startup/client observations are 139.642 and 274.555 ms, with roughly
+69-70 MiB peak RSS; these are traced correctness runs, not performance estimates.
+See [M2 device evidence](acceptance/m2.md#subsequent-physical-device-observation).
+The updated full ART device package is pending retest.
 All 22 host jobs and iOS pass at `2f23685`; both integrated IPAs independently
 verify. M2 reserves 560,988,160 bytes in the normal Mac run and 562,118,656 in
 the forced-sampling run, within the new 1 GiB ceiling. Both retain 328/328 and
