@@ -35,6 +35,10 @@ def validate_profile(catalog, profile):
     units = profile['common'] + sum(profile['platforms'].values(), [])
     if len(units) != len(set(units)) or not set(units) <= allowed:
         raise RuntimeError('Duplicate or unpinned ANGLE compilation unit')
+    grouped_units = {name for group in profile['original_groups'].values() for name in group
+                     if Path(name).suffix in ('.c', '.cc', '.cpp', '.mm')}
+    if grouped_units != set(profile['common']):
+        raise RuntimeError('ANGLE compilation differs from its reviewed upstream groups')
     forbidden = ('/vulkan/', '/d3d/', '/wgpu/', '/renderer/gl/', '/renderer/null/',
                  '/renderer/cl/', '/tests/', '/samples/', '/SwiftShader/')
     if any(any(part in name for part in forbidden) for name in units):

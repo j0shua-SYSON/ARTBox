@@ -3922,6 +3922,12 @@
         "git_blob": "3f65ef5b6a323f615236576e21650f021b552036"
       },
       {
+        "path": "src/libANGLE/context_private_call_gl_autogen.h",
+        "bytes": 17098,
+        "sha256": "afd64dc92fc304c5b3ffba42a44c2f9e12b88b71f820088e472961c0bc2413ee",
+        "git_blob": "f1d1b9a9e2031b3bec6c320d24713da10066896e"
+      },
+      {
         "path": "src/libANGLE/context_private_call_gles.cpp",
         "bytes": 55217,
         "sha256": "a15561e026e41f68b420ae5630c9dc46fbfc35adbe8f5a8caac224789f993c85",
@@ -3932,6 +3938,12 @@
         "bytes": 34557,
         "sha256": "04b986f25dbba03c19250a3cc25da50cd391eea12d2f839feceb79b5a4a731e6",
         "git_blob": "df348914f5c8b10f0ccd758b1521386e39c24a10"
+      },
+      {
+        "path": "src/libANGLE/entry_points_utils.cpp",
+        "bytes": 734,
+        "sha256": "aa7459aaa64682d6ff43a5c3017a72e829c1032ae6ab65a6df4965aec2bce2d1",
+        "git_blob": "6cde6922b44e31fbc7370ac5cfc26ca3154b6dc9"
       },
       {
         "path": "src/libANGLE/entry_points_utils.h",
@@ -4214,6 +4226,12 @@
         "bytes": 1646,
         "sha256": "474faa2c4fac0d46108453ec102b56c04752c45a88f950032a7aa7b193dcefae",
         "git_blob": "8e5e351418132470e5ef5a0dbdfaf578a357385c"
+      },
+      {
+        "path": "src/libANGLE/renderer/RenderTargetCache.h",
+        "bytes": 7098,
+        "sha256": "bce6c88fa560e101db75fad2dca30fd4454e67f1b7e07b48d16f4c6f7c3afb5b",
+        "git_blob": "6e7f87d257229b83ba786f6c6757820a08c46e3b"
       },
       {
         "path": "src/libANGLE/renderer/RenderbufferImpl.cpp",
@@ -5258,6 +5276,30 @@
         "bytes": 152746,
         "sha256": "033f07fdec0a0727dbd8fec1108986ca2757d2cbad762706b5e842869b15a4c5",
         "git_blob": "d0706887055a6a5a0ff9e9d6456c6c9870093c78"
+      },
+      {
+        "path": "src/libANGLE/validationGL1_autogen.h",
+        "bytes": 59162,
+        "sha256": "69d92eae53aa0b8660fe3b0e2534518262200e90b1c6b77e8e3e1c35f7d3f406",
+        "git_blob": "e2bf6c5eaba1317ff534c5e947d1f7b2e2c15ced"
+      },
+      {
+        "path": "src/libANGLE/validationGL2_autogen.h",
+        "bytes": 8600,
+        "sha256": "f5d99245c2dcca16c169fb6cdfc265b1413ff755aee27424730e8dae481962e4",
+        "git_blob": "2cffbafe78ba799f03b5e322298a2f5fb0c9d286"
+      },
+      {
+        "path": "src/libANGLE/validationGL3_autogen.h",
+        "bytes": 19400,
+        "sha256": "fbbf91f33dbef7567e63b13cd13a6f4eac7719943c2105c98601ccf87a90ce0d",
+        "git_blob": "fb7887f7cf6187bc17398e6c6ee3ec7844575bd3"
+      },
+      {
+        "path": "src/libANGLE/validationGL4_autogen.h",
+        "bytes": 76558,
+        "sha256": "b7e49598cdea90fe210010adea9f57d8f4ff7d0398cb1bad5bb198264f65977a",
+        "git_blob": "4b5dd2da50c7540ae89c5c0081d0ef2dcda8e472"
       },
       {
         "path": "src/libEGL/egl_loader_autogen.h",

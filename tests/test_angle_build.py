@@ -21,6 +21,15 @@ class ANGLEBoundary(unittest.TestCase):
     def test_pinned_scope(self):
         validate_profile(self.catalog, self.profile)
 
+    def test_header_named_upstream_group_can_contain_implementation(self):
+        # Upstream deliberately puts this .cpp in libangle_headers. GN compiles
+        # it; omitting it leaves every affected GLES validation entry unresolved.
+        name = 'src/libANGLE/entry_points_utils.cpp'
+        self.assertIn(name, self.profile['original_groups']['libangle_headers'])
+        self.assertIn(name, self.profile['common'])
+        broken = copy.deepcopy(self.profile); broken['common'].remove(name)
+        with self.assertRaises(RuntimeError): validate_profile(self.catalog, broken)
+
     def test_unreviewed_or_duplicate_unit(self):
         for name in ('src/unknown.cpp', self.profile['common'][0], 'src/libANGLE/renderer/vulkan/DisplayVk.cpp'):
             profile = copy.deepcopy(self.profile)
