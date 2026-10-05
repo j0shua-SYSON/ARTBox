@@ -135,6 +135,19 @@ libutils, supporting source/header, NDK and ARTBox license notices. Its C++ and
 logging imports resolve from the existing signed ART dependency image; no
 replacement logging or C++ runtime implementation is introduced.
 
+The VINTF parser diagnostic selects the unchanged `KernelConfigParser.cpp`
+and its headers from the existing Android 15 VINTF pin. They retain the full
+Apache-2.0 VINTF NOTICE, alongside the libutils header notice. Its three missing
+C++ regex helpers come from the original `regex.cpp.o` member of NDK r28c's
+ARM64 `libc++_static.a`. `third_party/binder/regex-runtime.json` pins the exact
+member and toolchain NOTICE hashes. LLVM's Apache-2.0 license with LLVM
+exceptions applies; retain the complete toolchain and NDK distribution notices,
+not an ARTBox MIT attribution. Both signed frameworks carry those notices.
+The native Linux test executable additionally links the original NDK libc/STL
+and retains the same notices; it is not an iOS bundle input. The shared caller,
+negative controls and packaging scripts are original MIT code. The signed
+parser uses heap data for regex state and introduces no runtime code generator.
+
 The implementations and APEX/Soong reference files retain Apache-2.0 notices.
 Keep the complete frameworks/native NOTICE, libutils NOTICE and libcutils NOTICE.
 The small forwarding and generated graphics headers inherit their package's

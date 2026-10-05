@@ -27,6 +27,14 @@ typedef struct artbox_looper_input {
  * Reports cleanup and the shared fixture result even for a negative control;
  * returns one when the fixture rejects behavior. Does not start a JavaVM. */
 int artbox_run_native_looper(const artbox_looper_input *input, const artbox_host *host);
+typedef struct artbox_kernel_config_input {
+    /* Four bootstrap images, then the unchanged AOSP parser and shared caller. */
+    const char *frameworks[5], *elfs[5];
+    const char *root;
+} artbox_kernel_config_input;
+/* Run the positive parser contract and both controls, report cleanup and return
+ * zero only for their exact expected results. Does not start a JavaVM. */
+int artbox_run_native_kernel_config(const artbox_kernel_config_input *input, const artbox_host *host);
 typedef struct artbox_icu_input {
     /* libc, libart, libm, libdl, nativehelper, ICU common/i18n/shim/JNI, test. */
     const char *frameworks[10], *elfs[10];

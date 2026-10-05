@@ -1,0 +1,9 @@
+{
+  "description": "Original libc++ helpers required by AOSP KernelConfigParser's std::regex",
+  "ndk_revision": "28.2.13676358",
+  "archive": "sysroot/usr/lib/aarch64-linux-android/libc++_static.a",
+  "member": "regex.cpp.o",
+  "member_sha256": "5825d72752923dfae0355dce0e8626d4a09d198a8f8d553a2483294083e787f4",
+  "notice": "NOTICE",
+  "notice_sha256": "f96f763beb66a7ba7a667647fc64c0226ace875e590c831fdd9579ec1c1d91e1"
+}

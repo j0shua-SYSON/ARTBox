@@ -60,6 +60,41 @@ jobs:
           path: build/m4/binder-native
           if-no-files-found: error
           retention-days: 7
+      - name: Build the shared VINTF parser caller and pinned libc++ regex member
+        run: python3 -B scripts/build_kernel_config_check.py
+      - name: Preserve the identical parser objects and native Linux executable
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: kernel-config-build
+          path: build/m4/kernel-config
+          if-no-files-found: error
+          retention-days: 7
+  kernel-config-reference:
+    name: Original VINTF parser (native Linux ARM64)
+    needs: binder-native-build
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 5
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: kernel-config-build
+          path: build/m4/kernel-config
+      - name: Execute the shared Android objects with original NDK libc and STL
+        run: python3 -B scripts/test_kernel_config_reference.py --native-dir build/m4/kernel-config
+      - name: Preserve native reference results and both controls
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: kernel-config-reference
+          path: build/m4/kernel-config-reference
+          if-no-files-found: error
+          retention-days: 7
   looper-reference:
     name: Real AOSP Looper reference (${{ matrix.os }})
     strategy:
@@ -140,6 +175,7 @@ jobs:
           ${{ matrix.python }} -B tests/test_binder_aidl.py
           ${{ matrix.python }} -B tests/test_binder_build.py
           ${{ matrix.python }} -B tests/test_looper_guest.py
+          ${{ matrix.python }} -B tests/test_kernel_config_guest.py
           ${{ matrix.python }} -B tests/test_classlib_build.py
           ${{ matrix.python }} -B tests/test_jdk.py
           ${{ matrix.python }} -B tests/test_bionic_adapt.py
@@ -899,7 +935,7 @@ jobs:
 
   art-guest-link:
     name: Full ART guest link, signed frameworks and native bootstrap
-    needs: [host, art-native-guest-build, class-library, binder-native-build, looper-reference]
+    needs: [host, art-native-guest-build, class-library, binder-native-build, looper-reference, kernel-config-reference]
     runs-on: macos-15
     timeout-minutes: 20
     env:
@@ -1003,6 +1039,32 @@ jobs:
             artifacts/m4-looper-guest.json
             build/m4/looper-guest/
             build/host/artbox_native_looper
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: kernel-config-build
+          path: build/m4/kernel-config-guest-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: kernel-config-reference
+          path: build/m4/kernel-config-reference
+      - name: Execute the original VINTF parser and libc++ regex through signed Bionic
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 -B scripts/test_kernel_config_guest.py --native-dir build/m4/kernel-config-guest-inputs
+          --reference-dir build/m4/kernel-config-reference --guest-dir build/m3/art-guest-link
+          --dependency-dir build/m3/guest-dependency-inputs
+      - name: Preserve signed parser code, Linux comparison and corresponding source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: kernel-config-guest
+          path: |
+            artifacts/m4-kernel-config-guest.json
+            build/m4/kernel-config-guest/
+            build/host/artbox_native_kernel_config
           if-no-files-found: error
           retention-days: 7
       - name: Preserve signed JavaVM and DEX execution diagnostics

@@ -55,6 +55,8 @@ static struct artbox_looper_result looper_result;
 static unsigned looper_mutation;
 static int looper_status;
 static uint64_t looper_ns;
+static int kernel_config_cases, kernel_config_comments, kernel_config_relaxed;
+static uint64_t kernel_config_ns;
 static artbox_load_group *load_group;
 static artbox_vm *vm;
 static artbox_vfs *filesystem;
@@ -527,6 +529,19 @@ static void *run(void *context) {
             reaped = artbox_threads_reaped(threads);
             if (reaped != 1) fail("Looper worker count");
         }
+        if (art_bootstrap == 6) {
+            uint64_t started = now();
+            const void *check = entry(&images[4], "artbox_kernel_config_check");
+            kernel_config_cases = (int32_t)artbox_call7(check, 0, 0, 0, 0, 0, 0, 0);
+            kernel_config_comments = (int32_t)artbox_call7(check, 1, 0, 0, 0, 0, 0, 0);
+            kernel_config_relaxed = (int32_t)artbox_call7(check, 2, 0, 0, 0, 0, 0, 0);
+            kernel_config_ns = now() - started;
+            fprintf(stderr, "signed kernel-config: %d, controls %d/%d\n",
+                kernel_config_cases, kernel_config_comments, kernel_config_relaxed);
+            if (artbox_threads_drain(threads, 5000)) fail("kernel-config child thread reaper");
+            reaped = artbox_threads_reaped(threads);
+            if (reaped != 0) fail("unexpected kernel-config worker");
+        }
         artbox_native_dlfcn_swap(old_dl);
         artbox_guest_dl_thread_destroy(dl_thread);
         if(artbox_native_signal_thread_detach(&signal_thread)) fail("ART primary signal detach");
@@ -702,7 +717,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     static atomic_flag used = ATOMIC_FLAG_INIT;
     if (!input || !input->root || !host || !host->log || input->sampled > 1) return -22;
     if(console && !console->log) return -22;
-    if (art_mode > 5 || input->count != (art_mode == 5 ? 5u : art_mode >= 3 ? 15u : art_mode == 2 ? 10u : 4u)) return -22;
+    if (art_mode > 6 || input->count != (art_mode >= 5 ? 5u : art_mode >= 3 ? 15u : art_mode == 2 ? 10u : 4u)) return -22;
     if (input->mutation > (art_mode == 5 ? 2u : 0u)) return -22;
     for (unsigned i = 0; i < input->count; ++i)
         if (!input->frameworks[i] || !input->elfs[i]) return -22;
@@ -759,6 +774,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
         modules[i] = (artbox_link_module){images[i].dynamic.soname, &images[i].dynamic, (uintptr_t)images[i].rx, &memory[i], 1};
     }
     artbox_elf_result linked = artbox_load_group_create(modules, image_count,
+        art_bootstrap == 6 ? "libartbox_kernel_config_check.so" :
         art_bootstrap == 5 ? "libartbox_looper_check.so" : art_bootstrap >= 3 ? "libartbox_libcore_check.so" :
         art_bootstrap == 2 ? "libartbox_icu_check.so" : art_bootstrap ? "libart.so" : "libstartup_client.so",
         resolve, NULL, &load_group);
@@ -771,6 +787,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
             "libopenjdkjvm.so", "libjavacore.so", "libopenjdk.so", "libartbox_libcore_check.so"};
         if (art_bootstrap == 2) names[9] = "libartbox_icu_check.so";
         if (art_bootstrap == 5) names[4] = "libartbox_looper_check.so";
+        if (art_bootstrap == 6) names[4] = "libartbox_kernel_config_check.so";
         for (unsigned i = 0; i < image_count; ++i)
             if (!modules[i].name || strcmp(modules[i].name, names[i])) fail("ART bootstrap image order");
         const artbox_guest_dl_ops loader_ops = {NULL, loader_invoke, loader_tls};
@@ -850,6 +867,13 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
                 looper_ns, reaped);
             if (count < 0 || (size_t)count >= sizeof(extra)) fail("Looper result formatting");
         }
+        if (art_bootstrap == 6) {
+            int count = snprintf(extra, sizeof(extra),
+                "\"kernel_config\":{\"cases\":%d,\"comments_control\":%d,\"relaxed_control\":%d},"
+                "\"kernel_config_check_ns\":%" PRIu64 ",\"threads_reaped\":%" PRIu64 ",",
+                kernel_config_cases, kernel_config_comments, kernel_config_relaxed, kernel_config_ns, reaped);
+            if (count < 0 || (size_t)count >= sizeof(extra)) fail("kernel-config result formatting");
+        }
         length = snprintf(report, sizeof(report),
             "{\"constructors\":%u,\"tls_modules\":%u,\"linked_images\":%u,\"registered_vms\":0,%s"
             "\"vm_budget_bytes\":%" PRIu64 ",\"reserved_bytes\":%" PRIu64 ",\"bootstrap_window_bytes\":%" PRIu64 ","
@@ -862,6 +886,8 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
         if (length < 0 || (size_t)length >= sizeof(report)) fail("ART result formatting");
         host->log(host->context, report, (size_t)length);
         for (unsigned i = 0; i < image_count; ++i) { dlclose(images[i].handle); free(images[i].original); }
+        if (art_bootstrap == 6)
+            return kernel_config_cases == 89 && kernel_config_comments == -104 && kernel_config_relaxed == -105 ? 0 : 1;
         return art_bootstrap == 5 && looper_status ? 1 : 0;
     }
     length = snprintf(report, sizeof(report), "{\"cases\":146,\"constructors\":%u,\"absent_netd\":%u,\"syscalls\":%u,\"load_relocate_ns\":%" PRIu64
@@ -933,4 +959,9 @@ int artbox_run_native_looper(const artbox_looper_input *input, const artbox_host
     if (!input) return -22;
     const native_input shared = {input->frameworks, input->elfs, input->root, 0, 5, input->mutation};
     return run_native(&shared, host, 5, NULL);
+}
+int artbox_run_native_kernel_config(const artbox_kernel_config_input *input, const artbox_host *host) {
+    if (!input) return -22;
+    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 5, 0};
+    return run_native(&shared, host, 6, NULL);
 }

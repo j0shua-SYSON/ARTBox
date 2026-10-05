@@ -3594,3 +3594,28 @@ debugger. Both phone runs reserve 1,095,008,256 guest bytes, within the 1536 MiB
 ceiling. All 16 installed code images match CI. This validates the chosen
 diagnostic budget on that device; larger heaps and ordinary provisioning remain
 separate work. See [M3 device evidence](acceptance/m3.md#successful-physical-device-execution).
+
+## ADR 0129: Run the original VINTF parser against one shared Android caller
+
+The full servicemanager link needs three libc++ regex helpers. Select the
+original NDK r28c `regex.cpp.o` archive member, pin its bytes and license, and
+audit its executable sections like compiled Binder objects. Reimplementing
+these helpers or disabling VINTF would replace Android behavior before it has
+been measured. The existing source pin already includes KernelConfigParser;
+this step adds no further AOSP checkout.
+
+Compile its unchanged implementation and the MIT contract caller once. Link
+those exact objects into an original-NDK Linux reference and a fifth signed
+framework using the four ART bootstrap dependencies. Require native Linux
+execution and matching object/source identities before signed Mac acceptance.
+The shared caller returns 89 assertions and exact -104/-105 controls for omitted
+comment and relaxed-format behavior. Pre-start heap/sigchain checks and owner
+cleanup remain part of the Apple diagnostic; no JavaVM or Binder service is
+started by this fixture.
+
+Regex state is ordinary heap data. All executable bytes are wrapped and signed
+at build time, with empty entitlements and iOS 15 deployment targets. Both
+frameworks retain VINTF, header, NDK/LLVM and ARTBox notices. This dependency
+contract leaves SELinux policy replacement, trusted endpoint identity and
+isolated servicemanager/client globals for separate tested changes. Local
+compilation passes; Linux and signed Apple runtime evidence is pending CI.

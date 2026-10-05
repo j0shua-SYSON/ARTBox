@@ -191,5 +191,35 @@ semantics or truncating the capture count must fail at the specified checks.
 builds a static Linux ARM64 reference from the same original Bionic sources.
 `test_binder_libc.py` verifies its source/object identity and compares native
 execution with both signed reports. The existing 50 libc checks and their two
-controls remain separate. Regex runtime acceptance is pending CI; actual VINTF
-and Binder/service execution still require their own acceptance tests.
+controls remain separate. Both signed Mac profiles and the Linux reference
+pass; the normal profile's 120 regex checks also pass on the test iPhone at
+`31c9a4a`. Binder/service execution still requires its own acceptance tests.
+
+### Shared kernel-config parser diagnostic
+
+`build_kernel_config_check.py` compiles the original `KernelConfigParser.cpp`
+and one MIT caller, then extracts the hash-pinned NDK `regex.cpp.o` member.
+All selected objects pass the Android executable boundary audit. The same
+caller/parser objects link into a static Linux ARM64 reference and the signed
+Apple test image. Linux uses the original NDK libc/STL; Apple resolves the
+remaining C++ imports from the existing signed ART bootstrap dependency.
+
+The fixture checks byte-at-a-time input, whitespace and trailing comments,
+unset keys, duplicate rejection with retained values, recovery after a bad
+line and final input without a newline. It reports 89 successful assertions.
+Disabling unset-comment processing must return -104; disabling relaxed parsing
+must return -105. Neither nominal success nor a different failure is accepted.
+
+`test_kernel_config_reference.py` executes the exact producer binary on native
+Linux ARM64. `test_kernel_config_guest.py` requires that reference's matching
+revision, object, binary and source hashes before packaging the fifth signed
+image after libc, libart, libm and libdl. The host runner checks all three
+results, pre-start ART/sigchain behavior and complete cleanup without creating
+a JavaVM. Frameworks target macOS ARM64 and iOS 15 with empty entitlements;
+only Mac execution is part of this gate. Build, reference and guest artifacts
+retain notices, command logs, corresponding source and separate execution flags.
+
+Local object builds and strict harness compilation pass. Native Linux and
+signed Apple execution of this new fixture are pending CI. This focused check
+does not establish general VINTF device/kernel metadata support or execute
+servicemanager; its remaining policy and process-isolation work stays open.
