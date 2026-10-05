@@ -5,14 +5,16 @@ C/C++ core. Android ARM64 code is prepared ahead of time and packaged as signed
 native code; ART's bytecode interpreter provides the initial DEX execution path.
 No CPU emulation, guest kernel, JIT, private entitlements, or jailbreak dependency.
 
-**Real AOSP Bionic and a dynamically linked NDK suite run natively on macOS,
-passing 328/328 M2 expectations. CI builds an iOS 15 app with the same suite and
-signed libraries; physical iPhone execution is unverified. Original AOSP ART now
-executes a hello DEX and passes collection, exceptions, native-thread attachment
-and shutdown on native Linux ARM64 and through signed frameworks on macOS ARM64,
-with JIT disabled. CI also builds and verifies an iOS app containing ART and the
-same DEX suite. Physical execution and general Android app support remain
-unverified.**
+**Original AOSP ART executes hello DEX on an iPhone 6s Plus running iOS 15.8.5**,
+with collection, exceptions, native-thread attachment and shutdown verified.
+Bionic also passes all 328 M2 expectations on that phone. Background/foreground
+and cold home-screen relaunch pass without a debugger. The test phone is already
+jailbroken; all installed code images match the CI artifacts, but ordinary
+stock-device provisioning remains unverified.
+
+The same interpreter and managed checks pass on native Linux ARM64 and through
+signed frameworks on macOS ARM64, with JIT disabled. General Android app
+support, Activities and graphics remain future milestones.
 See [status](docs/STATUS.md), [architecture decisions](docs/DECISIONS.md), and the
 [ELF-to-Mach-O versus wrapper design](docs/loader-design.md).
 

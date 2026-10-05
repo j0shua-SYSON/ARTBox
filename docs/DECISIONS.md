@@ -3577,7 +3577,6 @@ retained preliminary window keeps the current ownership contract. Applications
 with larger heaps will need a separately validated configurable budget; a
 512 MiB arena is the diagnostic policy, not an Android compatibility guarantee.
 No executable mapping, entitlement or runtime code generator is introduced.
-Physical ART execution remains pending until the candidate passes on the phone.
 
 The first candidate (`bfa34db`) used a 1 GiB arena and 2 GiB ceiling. All 22 host
 jobs and iOS passed; signed Mac execution reserved 1,631,879,168 bytes and
@@ -3587,3 +3586,11 @@ JNI_CreateJavaVM. The 512 MiB follow-up keeps the same Java heap maximum and
 tests; its lower total ceiling also rejects the preceding Mac reservation
 footprint. Failed arena binding now records preexisting guest reservations
 to make budget consumption visible alongside the mapping error.
+
+At `2970c38`, all 22 host jobs and iOS pass, and the 512 MiB arena completes
+real ART execution on the iPhone. Hello DEX, collection, exceptions, attachment,
+shutdown, background/foreground and cold home-icon relaunch pass without a
+debugger. Both phone runs reserve 1,095,008,256 guest bytes, within the 1536 MiB
+ceiling. All 16 installed code images match CI. This validates the chosen
+diagnostic budget on that device; larger heaps and ordinary provisioning remain
+separate work. See [M3 device evidence](acceptance/m3.md#successful-physical-device-execution).

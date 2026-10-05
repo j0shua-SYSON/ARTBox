@@ -45,6 +45,8 @@ The earlier worker-stack, signal-34 and virtual cwd prerequisites remain tested.
 
 The verified IPA at this checkpoint contains M1/M2 diagnostics. The subsequent
 [M3 acceptance at c7807da](acceptance/m3.md) verifies the actual stdout callback,
-its dropped-output control and the integrated ART IPA. Physical-device execution
-is waived and unverified; successful Mac execution or signed packaging does not
-establish iPhone behavior.
+its dropped-output control and the integrated ART IPA. Physical checks were
+waived at those revisions. The later [device execution at
+2970c38](acceptance/m3.md#successful-physical-device-execution) now verifies hello,
+managed checks and lifecycle on the test iPhone; ordinary provisioning remains
+unverified. The measurements here remain observations of the original Mac run.

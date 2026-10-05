@@ -1,12 +1,12 @@
 # ARTBox status
 
-M0-M3 are merged and tagged. **Real AOSP ART executes hello DEX on macOS
-ARM64 through signed frameworks**, with collection, exceptions, native-thread
-attachment and shutdown verified. M3's shared console and integrated ART IPA
-also pass automated acceptance. Target: ordinary signed arm64 **iOS 15+**, no JIT or private
-entitlements. Physical checks are waived. M0-M2 now pass on a jailbroken iPhone
-6s Plus running iOS 15.8.5, including background/foreground and cold home-icon
-relaunch. Ordinary provisioning and physical ART execution remain unverified.
+M0-M3 are merged and tagged. **Real AOSP ART executes hello DEX on the test
+iPhone and through signed frameworks on macOS ARM64**, with collection,
+exceptions, native-thread attachment and shutdown verified. Target: ordinary
+signed arm64 **iOS 15+**, no JIT or private entitlements. Physical checks remain
+optional. M0-M3 pass on an already jailbroken iPhone 6s Plus running iOS 15.8.5,
+including background/foreground and cold home-icon relaunch without a debugger.
+Ordinary stock-device provisioning remains unverified.
 
 ## What runs
 
@@ -26,6 +26,10 @@ relaunch. Ordinary provisioning and physical ART execution remain unverified.
   JavaVM creation, exact hello output, a managed graph surviving collection,
   three exceptions, four attachment cycles, thread-state isolation, shutdown
   and eight reaped threads. A missing-hello process fails class lookup as required.
+- M3 iPhone runtime at `2970c38`: the same hello and managed checks pass on the
+  device. JavaVM creation takes 198.664 and 247.610 ms in two traced correctness
+  runs, with about 101 MiB peak RSS and 1,095,008,256 reserved guest bytes. All
+  16 installed code images match the independently verified CI IPA.
 - Kernel extensions: virtual getcwd and queued signal-34 interruption pass
   signed Bionic and native Linux. Private futex requeue moves actual waiters,
   preserving masks, deadlines and signal ownership. Its 18-case identical NDK
@@ -41,32 +45,16 @@ framework layouts and diagnostic IPA verify independently. See
 
 ## What does not run
 
-The verified ART IPA contains 16 signed iOS 15 Mach-O images, 15 original ELF
-resources, boot/managed/hello DEX and ICU data. On the test iPhone, the `cce2bb9`
-ART build returns to the home screen before an ART result is visible, with no
-crash report found. The `930f17d` M2 and ART cache logs identify Scudo's 8.25 GiB
-contiguous reservation failing with ENOMEM before startup. A candidate reduces
-the primary reservation to 528 MiB, with a 1 GiB M2 VM-budget regression and
-allocator-exhaustion checks. Those checks pass on Mac at `2f23685`, and the
-reservation succeeds on the phone. The next hardware fault is Scudo's
-unconditional CRC instruction; `31c9a4a` restricts CRC compilation to its
-existing feature-gated helper. Both fixes pass on the phone: the full Bionic
-suite succeeds, including a cold home-icon relaunch, with 560,988,160 reserved
-bytes. Startup/client observations are 139.642 and 274.555 ms, with roughly
-69-70 MiB peak RSS; these are traced correctness runs, not performance estimates.
-See [M2 device evidence](acceptance/m2.md#subsequent-physical-device-observation).
-The `31c9a4a` full ART package reaches all 38 constructors on the phone, then
-fails its preliminary 4 GiB heap binding. All 16 installed images match CI.
-A four-page bootstrap window succeeds on the phone at `bfa34db`, but the real
-VM worker's 1 GiB managed-arena reservation returns ENOMEM before JavaVM creation.
-That candidate passes all signed Mac managed checks within a 2 GiB guest ceiling.
-The follow-up reduces the arena to 512 MiB and the guest ceiling to 1536 MiB,
-retaining the 128 MiB Java maximum and full 4 GiB Linux reference coverage.
-Its signed and physical execution checks are pending; see ADR 0128.
-All 22 host jobs and iOS pass at `bfa34db`; its integrated ART IPA independently
-verifies. At `2f23685`, M2 reserves 560,988,160 bytes in the normal Mac run and 562,118,656 in
-the forced-sampling run, within the new 1 GiB ceiling. Both retain 328/328 and
-pass all three allocation-pressure checks. These are correctness measurements.
+Hardware bring-up exposed oversized Scudo/ART reservations and an optional CRC
+instruction emitted without feature dispatch. The bounded Scudo primary,
+software-checksum path and 512 MiB managed arena resolve these failures on the
+test phone without changing the 128 MiB Java maximum or managed acceptance.
+ADRs 0126-0128 and the [M2](acceptance/m2.md) / [M3](acceptance/m3.md) evidence
+retain the failed candidates, successful runs and measurements. All 22 host jobs
+and iOS pass at `2970c38`; its integrated ART IPA independently verifies 16
+Mach-O images, 15 ELF layouts, five resources, 175 notices and empty entitlements.
+Ordinary provisioning, larger app heaps and sustained interpreter performance
+remain unverified.
 Binder/services, Activities, AndroidX APKs, graphics and audio remain future
 milestones. The runtime is a one-shot diagnostic; repeated VM creation and
 general dynamic library growth/unloading are not supported. AOT/OAT and host

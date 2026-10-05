@@ -4,8 +4,9 @@ CI produces a Release arm64 iOS 15+ app with an empty entitlement dictionary
 and an ad-hoc transport signature. Physical-device checks are recorded separately.
 The project owner waived physical-device checks for all milestones. This
 optional procedure remains available to contributors; it does not block
-milestone completion. The M0/M1 check on an existing jailbroken iPhone is recorded
-in [M1 acceptance](acceptance/m1.md); ordinary provisioning remains unverified.
+milestone completion. M0-M3 now pass on an existing jailbroken iPhone; see
+[M1](acceptance/m1.md), [M2](acceptance/m2.md) and [M3](acceptance/m3.md)
+acceptance. Ordinary stock-device provisioning remains unverified.
 
 1. Obtain `ARTBox.ipa` and `build-info.json` from a passing `ios-build` run.
    Record the source commit and IPA SHA-256 before re-signing.
@@ -60,12 +61,7 @@ The equivalent Mac build command is
 `python3 scripts/build.py ios --m3-evidence PATH_TO_MERGED_ART_ARTIFACTS`.
 See [M3 acceptance](acceptance/m3.md) for the required same-run inputs and
 automated evidence. On the existing jailbroken iPhone 6s Plus running iOS 15.8.5,
-the `cce2bb9` ART diagnostic exits after launch; no ART result or crash report was
-observed. At `930f17d`, both M2 and ART cache logs identify Scudo's 8.25 GiB
-reservation returning ENOMEM followed by Bionic process exit. Their installed
-executables match the CI bytes. The smaller-primary candidate still needs a
-passing device retest; the original failure is not ART acceptance.
-At `2f23685`, the M2 reservation succeeds, followed by SIGILL at Scudo's
-unconditionally emitted `crc32cx`. The next candidate keeps optional CRC
-instructions in its feature-gated helper and uses the software checksum on
-the current baseline. It still needs a successful complete device run.
+M2 passes at `31c9a4a` and ART passes at `2970c38`, including visible hello,
+managed checks, shutdown, background/foreground and cold home-icon relaunch.
+No debugger is attached; all installed code images match CI. The acceptance
+records retain the earlier reservation and CRC failures and their fixes.
