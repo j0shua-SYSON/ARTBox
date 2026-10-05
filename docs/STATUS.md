@@ -1,6 +1,6 @@
 # ARTBox status
 
-M0-M3 are merged and tagged. **Real AOSP ART executes hello DEX on the test
+M0-M4 are merged and tagged. **Real AOSP ART executes hello DEX on the test
 iPhone and through signed frameworks on macOS ARM64**, with collection,
 exceptions, native-thread attachment and shutdown verified. Target: ordinary
 signed arm64 **iOS 15+**, no JIT or private entitlements. Physical checks remain
@@ -12,7 +12,8 @@ notification pass signed Mac execution and the test iPhone at `0e445da`.
 All 24 host jobs and the separate iOS build pass. Initial launch,
 background/foreground and cold home-icon relaunch pass without a debugger;
 19 installed code images and seven service resources match the verified IPA.
-Milestone acceptance is complete; PR/tag closure is the remaining M4 step.
+M4 is merged and tagged at `9e7cf7d`; PR and main pass all 24 host jobs and iOS.
+The main NDK archive integrity failure passed on retry with the pin unchanged.
 
 ## What runs
 
@@ -61,8 +62,9 @@ and iOS pass at `2970c38`; its integrated ART IPA independently verifies 16
 Mach-O images, 15 ELF layouts, five resources, 175 notices and empty entitlements.
 Ordinary provisioning, larger app heaps and sustained interpreter performance
 remain unverified.
-Binder/services, Activities, AndroidX APKs, graphics and audio remain future
-milestones. The runtime is a one-shot diagnostic; repeated VM creation and
+Activities, AndroidX APKs, graphics and audio remain future milestones. The
+native M4 service diagnostic is separate from the one-shot ART runner;
+repeated VM creation and
 general dynamic library growth/unloading are not supported. AOT/OAT and host
 dex2oat remain future coverage under interpreter-only M3 acceptance.
 
@@ -72,6 +74,14 @@ native file provider is absent; portable VFS tests inject a provider there.
 Unsupported operations retain explicit errors. See the individual contracts.
 
 ## Current work
+
+M5: prepare a bounded, pinned ANGLE Metal profile for native Apple compilation
+and a shader/pixel-readback probe. Original Activity construction and framework
+dependencies, ART/service lifecycle integration, composition and touch dispatch
+remain ahead. See [graphics bring-up](graphics.md). No M5 runtime success is
+claimed until the corresponding execution evidence is verified.
+
+## M4 bring-up record (historical checkpoints)
 
 At `136a087`, the original VINTF kernel-config parser passes 89 assertions and
 both precise failure controls on native Linux ARM64 and through signed Apple

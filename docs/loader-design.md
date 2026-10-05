@@ -12,7 +12,9 @@ entry. Keep full ELF-to-Mach-O conversion as the generalization candidate.
 That initial recommendation is now accepted for M2. Both prototypes execute
 on the ARM64 Apple host and produce signed iOS 15 frameworks. The wrapper is
 smaller for this fixture and has no observed invocation penalty. Physical-device
-checks were waived for all milestones; iPhone execution remains unverified.
+checks remain optional. Both prototypes now also pass physical execution,
+background/foreground and cold home-icon launch on the test iPhone; ordinary
+stock-device provisioning remains unverified. See the updated M1 acceptance.
 
 | | Build-time ELF-to-Mach-O conversion | Build-time signed wrapper |
 | --- | --- | --- |

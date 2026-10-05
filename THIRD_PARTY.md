@@ -760,3 +760,23 @@ not SELinux implementations. Contract callers are original MIT code. The ID
 header uses unchanged bytes from the already reviewed system/core pin. Source
 archives retain the original files, generated include copy, NDK notices and
 exact ARTBox inputs; build reports do not claim guest execution.
+
+## ANGLE Metal profile
+
+`third_party/angle/sources.json` pins unchanged ANGLE at AOSP tag
+`android-15.0.0_r1`, commit `ba7c7168f85732bc9fe478b730505ef2265a666e`.
+The selected Metal, EGL/GLES, shader translator and support sources retain the
+complete **BSD-3-Clause** ANGLE LICENSE and original per-file notices, including
+Chromium-derived support files and permissively licensed Khronos declarations.
+Bundled xxHash retains its separate **BSD-2-Clause** LICENSE. Other rendering
+backends, tests, samples, capture implementation and external toolchains are
+not compiled. Source headers describe any embedded permissive components.
+
+The original Chromium `compression_utils_portable` source/header and build
+reference come from ANGLE DEPS' Chromium revision
+`972874fcbdf2c07ca1e9680e6f23ad950bd80868`, retaining Chromium's **BSD-3-Clause**
+LICENSE. Because the helper adapts zlib routines, its original **zlib license**
+is also retained. It links Apple's public system zlib; no separate zlib binary
+is embedded. All four license texts accompany the corresponding-source archive
+and both native frameworks. ARTBox's recipe, generated metadata and probes are
+MIT. This source build does not establish Activity or APK compatibility.

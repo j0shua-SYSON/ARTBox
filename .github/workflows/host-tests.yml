@@ -10,6 +10,36 @@ concurrency:
   group: host-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  angle-metal:
+    name: ANGLE native Apple Metal boundary
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Compile pinned ANGLE for Mac and iOS 15 and execute shader/render contracts
+        run: python3 -B scripts/build_angle.py --jobs 2
+      - name: Preserve graphics frameworks, source, build and execution evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: angle-metal
+          path: |
+            build/m5/angle/build.json
+            build/m5/angle/corresponding-source.zip
+            build/m5/angle/generated
+            build/m5/angle/compiler.log
+            build/m5/angle/*/*.log
+            build/m5/angle/*/CMakeLists.txt
+            build/m5/angle/*/build/compile_commands.json
+            build/m5/angle/*/build/ARTBoxANGLE.framework
+            build/m5/angle/macos/build/angle_probe
+          if-no-files-found: error
+          retention-days: 7
   binder-native-build:
     name: AOSP Binder Android ARM64 build
     needs: host
@@ -199,6 +229,7 @@ jobs:
           ${{ matrix.python }} -B tests/test_art_runtime_progress.py
           ${{ matrix.python }} -B tests/test_art_bundle.py
           ${{ matrix.python }} -B tests/test_service_bundle.py
+          ${{ matrix.python }} -B tests/test_angle_build.py
           ${{ matrix.python }} -B tests/test_libcore_guest_link.py
           ${{ matrix.python }} -B tests/test_m2_acceptance.py
           ${{ matrix.python }} -B scripts/build.py host
