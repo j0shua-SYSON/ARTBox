@@ -3285,3 +3285,29 @@ test failed before implementation and now covers validation order, unreadable,
 wrapped and truncated input, full ioctl-word matching and admission precedence.
 Windows cannot run the native receive-backed lifecycle fixture; Mac/Linux CI must
 establish that comparison. No physical-device execution is inferred.
+
+## 0119: Audit Binder objects and retain their real compiler TLS
+
+Before linking libbinder into the signed runtime, reserve x27/x28 as well as
+Apple's x18 across all selected and generated units. Keep separate function/data
+sections for later link-time collection. Audit every executable section against
+the disassembly and reject syscall, thread-pointer, reserved-register and unknown
+instructions. An empty disassembly is acceptable only with zero executable bytes;
+AOSP's file.cpp is intentionally empty when libbase supplies its functions.
+
+This check exposes BufferedTextOutput.cpp's actual TPIDR_EL0 read. Retain its
+nontrivial thread_local state and initialization guard, instead of making them
+global or disabling buffered logging. Reuse the existing global-dynamic TLS
+adapter, pinned to the original source hash, both compiler TLS symbols, four
+descriptor calls and one thread-pointer read. Reassemble the original compiler
+output and require byte identity before assembling the adapted copy. The change
+replaces the host thread-pointer base with zero for ARTBox's absolute TLSDESC
+resolver; it does not alter the source, allocate executable memory or patch code
+at runtime. The remaining instruction count must match the executable bytes.
+
+The eventual link must disable TLS relaxation and register the additional TLS
+module. Real C++ destructor registration remains an unresolved dependency until
+its implementation and thread-exit behavior are verified. Costs include reserved
+register pressure and descriptor-based guest TLS lookup; neither has a Binder
+runtime measurement yet. The archive build alone cannot establish service
+registration, polling, logging isolation or teardown correctness.

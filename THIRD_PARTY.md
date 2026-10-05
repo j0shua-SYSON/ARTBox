@@ -78,13 +78,20 @@ Binder support files and 43 system headers/build/notice files from system/core
 `fc7bc8c4bfb4c6095e34ea784509dae56f25b486`, four APEX API/reference files from
 system/apex `896cdde58b67ddbf37ffdfe06f5b2567ef770f70`, and Soong's build-flag
 reference at `3fe78dc9b32f1ac3f7eb279ae9376d7037b18452`. All use the named tag
-`android-15.0.0_r1`. This selection compiles unchanged AOSP libbinder, eight
+`android-15.0.0_r1`. This selection compiles AOSP libbinder, eight
 libutils Binder support units and `Looper.cpp`/`Timers.cpp` into Android ARM64
 archives; it is not embedded in the IPA yet. Looper's file header attributes the
 Android Open Source Project; the package's full Apache-2.0 NOTICE applies.
 Timers also carries an explicit Apache-2.0 declaration. Native Linux Looper
 tests reuse the existing Apache-2.0 AOSP host liblog sources. The shared test
 caller and its build script are original MIT code.
+
+For the signed runtime, ARTBox adapts compiler-generated TLS assembly from the
+Apache-2.0 `libs/binder/BufferedTextOutput.cpp`: one host thread-pointer read uses
+the existing absolute-TLSDESC convention. The original C++ source remains intact.
+The Binder build graph pins the source hash and TLS access inventory; artifacts
+retain the original/adapted assembly and objects, build recipe and complete
+frameworks/native NOTICE. This build-time modification is described in ADR 0119.
 
 The signed Looper diagnostic also selects Bionic's unchanged
 `libc/bionic/eventfd.cpp` from the existing `android-15.0.0_r1` source pin. It

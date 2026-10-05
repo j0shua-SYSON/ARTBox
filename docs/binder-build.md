@@ -34,8 +34,8 @@ API; this build supplies no dummy APEX implementation. Soong's original
 `cc/config/global.go` is pinned as the reference for warning settings, including
 the still-visible unused-but-set-variable warning in `IServiceManager.cpp`.
 
-The compiler reserves Apple's x18 register, uses baseline ARMv8 without outlined
-atomics, and disables exceptions/RTTI as in the AOSP C++ profile. RefBase callstack
+The compiler reserves Apple's x18 and ARTBox's x27/x28 registers, uses baseline
+ARMv8 without outlined atomics, and disables exceptions/RTTI as in the AOSP C++ profile. RefBase callstack
 diagnostics use AOSP's `ANDROID_UTILS_CALLSTACK_ENABLED=0` option, avoiding an
 unwinder dependency in this support library; reference counting is retained.
 Android API 35 describes the guest declarations, independently of iOS 15's
@@ -43,11 +43,29 @@ deployment target. No generated code is executed during this cross-build.
 
 The build checks the generator's pinned compiler/source identity, exact generated
 file inventory and hashes, each object's ELF64 little-endian ARM64 relocatable
-header, and exact archive membership. Artifacts retain source and object hashes,
+header, executable-section size against disassembly, forbidden instructions, and
+exact archive membership. Empty conditional units are accepted only when their
+ELF executable sections also contain zero bytes. Artifacts retain source and object hashes,
 compiler version/options, unresolved imports and a deterministic corresponding
 source ZIP. Unit controls reject changed generation settings, changed/missing/
 extra files and accidental host/shared-library objects. Native compilation is a
 required CI job, separate from Binder protocol and signed ART runtime tests.
+
+`BufferedTextOutput.cpp` has a nontrivial C++ `thread_local` object and its
+initialization guard. Its original ARM64 object reads `TPIDR_EL0`; it cannot
+execute unchanged alongside Darwin TLS. The build applies the existing ART
+global-dynamic TLS adapter to this exact source hash and the two declared TLS
+symbols, preserving four descriptor calls while replacing the one thread-pointer
+read with the absolute-descriptor zero base. It verifies that compiler assembly
+reproduces the original object, retains both objects and assemblies, and rejects
+changed access counts or any remaining forbidden instruction. No upstream C++
+source, initialization guard or destructor registration is removed. The eventual
+link must use `--no-relax`, and the runtime must register this additional ELF TLS
+module. Buffered logging and its thread-exit destructors still require signed
+execution acceptance; this archive build does not establish that behavior.
+
+Function/data sections permit the eventual link to discard unused routines,
+while `symbols.json` continues to describe every archive member's imports.
 
 The next service dependency is the original `libutils/Looper.cpp` and
 `libutils/Timers.cpp`, pinned at the same Android 15 tag. The Binder build now

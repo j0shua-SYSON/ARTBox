@@ -42,7 +42,21 @@
         "libs/binder/ParcelableHolder.cpp",
         "libs/binder/PersistableBundle.cpp"
       ],
-      "generated_aidl": true
+      "generated_aidl": true,
+      "unit_flags": {
+        "libs/binder/BufferedTextOutput.cpp": ["-fno-emulated-tls", "-ftls-model=global-dynamic"]
+      },
+      "compiler_tls": {
+        "libs/binder/BufferedTextOutput.cpp": {
+          "source_sha256": "5e5686ccdc94c69f3b3de079c7f035d7bef375e0496a2427ca5c51043e08d094",
+          "tls_symbols": [
+            "_ZGVZNK7android18BufferedTextOutput9getBufferEvE2ts",
+            "_ZZNK7android18BufferedTextOutput9getBufferEvE2ts"
+          ],
+          "tlsdesc_calls": 4,
+          "tp_reads_replaced": 1
+        }
+      }
     },
     "libutils_binder": {
       "source": "binder-utils",

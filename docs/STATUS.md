@@ -270,7 +270,20 @@ hashes verify. The portable ioctl now derives counts from existing endpoint
 references, owner acknowledgements and local buffer claims under the Binder
 mutex. Its VM/error/admission tests and all 43 available local host contracts
 pass; three native-backing contracts remain Windows skips. The same lifecycle
-fixture is enabled for the Mac/Linux driver comparison, pending CI.
+fixture passes the actual Linux and portable-driver comparison at `8b8c42c`;
+downloaded artifact provenance and 105 input hashes verify. All 22 host jobs and
+the iOS build pass. The integrated IPA independently verifies 16 iOS 15 images,
+15 ELF/layout pairs, five runtime resources and 175 notices with empty
+entitlements. Its signed Mac run creates the VM in 72.326 ms and completes the
+managed/console controls; physical execution remains unverified.
+
+The Binder archive build now reserves x27/x28 in addition to x18 and checks each
+object's executable byte count and instruction boundary. This exposed an actual
+host-thread-pointer read in BufferedTextOutput's compiler TLS. The existing
+build-time absolute-TLSDESC adapter is now selected for that pinned source, its
+per-thread object and initialization guard. Source, symbol and access-count
+checks retain the original object for comparison. Linking and signed execution
+of libbinder, including its thread-exit destructors, remain ahead.
 
 At `4d3a124`, 18 of 19 host jobs pass. Integrated ART IPA staging rejects
 an interleaved startup log line in the missing-class control. Bounded single-write

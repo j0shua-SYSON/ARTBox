@@ -15,7 +15,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from environment import ROOT, environment
 from binder_aidl import COMPILER_OPTIONS, INTERFACES, PARCELABLES, generated_files
-from build_binder import verify_aidl, verify_object_architecture, symbol_inventory, ndk_notices
+from build_binder import verify_aidl, verify_object_architecture, verify_object_code, symbol_inventory, ndk_notices
 
 
 class BinderBuild(unittest.TestCase):
@@ -91,6 +91,48 @@ class BinderBuild(unittest.TestCase):
         self.assertEqual(inventory['required_external'], ['external'])
         self.assertEqual(inventory['optional_external'], ['optional'])
         self.assertEqual(inventory['defined'], ['needed', 'provided'])
+
+    def code_object(self, instructions=b'\xc0\x03\x5f\xd6'):
+        # Minimal ELF64 relocatable containing a null section and executable text.
+        data = bytearray(64 + 128) + instructions
+        data[:7] = b'\x7fELF\x02\x01\x01'
+        struct.pack_into('<HHI', data, 16, 1, 183, 1)
+        struct.pack_into('<Q', data, 40, 64)
+        struct.pack_into('<HHH', data, 52, 64, 0, 0)
+        struct.pack_into('<HH', data, 58, 64, 2)
+        struct.pack_into('<IIQQQQIIQQ', data, 128, 0, 1, 6, 0, 192, len(instructions), 0, 0, 4, 0)
+        path = self.root / 'code.o'; path.write_bytes(data)
+        return path
+
+    def test_code_audit_matches_executable_bytes_and_allows_truly_empty_units(self):
+        obj = self.code_object()
+        result = verify_object_code(obj, '0000 <x18_in_a_label>:\n  0: ret\n')
+        self.assertEqual(result['instruction_count'], 1)
+        self.assertEqual(result['executable_bytes'], 4)
+        with self.assertRaises(RuntimeError): verify_object_code(obj, 'empty disassembly\n')
+        with self.assertRaises(RuntimeError): verify_object_code(obj, '  0: ret\n  4: ret\n')
+        obj = self.code_object(b'')
+        self.assertEqual(verify_object_code(obj, 'empty conditional unit\n')['executable_bytes'], 0)
+        with self.assertRaises(RuntimeError): verify_object_code(obj, '  0: ret\n')
+
+    def test_code_audit_rejects_guest_kernel_tls_and_reserved_register_instructions(self):
+        obj = self.code_object()
+        for instruction in ('svc #0', 'mrs x0, TPIDR_EL0', 'msr TPIDR_EL0, x0',
+                            'mov x0, x18', 'mov w27, w0', 'str x28, [sp]', '<unknown>'):
+            with self.subTest(instruction=instruction), self.assertRaises(RuntimeError):
+                verify_object_code(obj, '  0: ' + instruction + '\n')
+
+    def test_code_audit_rejects_truncated_and_malformed_executable_sections(self):
+        obj = self.code_object(); original = obj.read_bytes()
+        changes = ((40, '<Q', 4096), (58, '<H', 8), (60, '<H', 0),
+                   (132, '<I', 8), (152, '<Q', 4096), (160, '<Q', 3))
+        for offset, fmt, value in changes:
+            data = bytearray(original); struct.pack_into(fmt, data, offset, value)
+            obj.write_bytes(data)
+            with self.subTest(offset=offset), self.assertRaises(RuntimeError):
+                verify_object_code(obj, '  0: ret\n')
+        obj.write_bytes(original[:-1])
+        with self.assertRaises(RuntimeError): verify_object_code(obj, '  0: ret\n')
 
     def test_distinct_ndk_root_and_toolchain_notices_are_retained(self):
         toolchain = self.root / 'toolchain'; toolchain.mkdir()

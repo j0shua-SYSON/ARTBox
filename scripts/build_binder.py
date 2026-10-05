@@ -18,6 +18,8 @@ import time
 import zipfile
 
 from binder_aidl import COMPILER_OPTIONS, generated_files
+from art_native_tls import compile_adaptation
+from bionic_adapt import inventory
 from environment import ROOT, environment
 from ndk import obtain as obtain_ndk
 from sources import obtain, obtain_files
@@ -63,6 +65,29 @@ def verify_object_architecture(path):
         raise RuntimeError('Expected a little-endian ARM64 ELF relocatable object: ' + path.name)
 
 
+def verify_object_code(path, disassembly):
+    verify_object_architecture(path)
+    data = path.read_bytes()
+    offset = struct.unpack_from('<Q', data, 40)[0]
+    stride, count = struct.unpack_from('<HH', data, 58)
+    if offset < 64 or stride != 64 or not count or offset + stride * count > len(data):
+        raise RuntimeError('Invalid Binder object section table: ' + path.name)
+    executable_bytes = 0
+    for index in range(count):
+        _, kind, flags, _, start, size, _, _, _, _ = struct.unpack_from('<IIQQQQIIQQ', data, offset + index * stride)
+        if flags & 4:  # SHF_EXECINSTR; all selected ARM64 code is fixed-width.
+            if kind != 1 or size % 4 or start + size > len(data):
+                raise RuntimeError('Invalid Binder executable section: ' + path.name)
+            executable_bytes += size
+    boundary = inventory(disassembly)
+    if (boundary['instruction_count'] * 4 != executable_bytes or
+            any(value for key, value in boundary.items() if key != 'instruction_count')):
+        raise RuntimeError('Binder object violates the native instruction boundary: ' + path.name)
+    # file.cpp is empty when libbase is enabled. Accept zero instructions only
+    # when the ELF executable sections also contain zero bytes.
+    return dict(executable_bytes=executable_bytes, **boundary)
+
+
 def symbol_inventory(text):
     defined, required, optional = set(), set(), set()
     for line in text.splitlines():
@@ -104,8 +129,10 @@ def bundle_sources(output, catalog, sources, aidl, notices):
         files['aidl/generated/' + name] = aidl / 'generated' / name
     for name, path in notices.items(): files['notices/' + name] = path
     project = ['LICENSE', 'THIRD_PARTY.md', 'docs/binder-build.md', 'scripts/build_binder.py',
-               'scripts/binder_aidl.py', 'scripts/sources.py', 'scripts/environment.py', 'scripts/ndk.py',
-               'tests/test_binder_build.py', 'third_party/binder/native-sources.json',
+               'scripts/binder_aidl.py', 'scripts/bionic_adapt.py', 'scripts/art_native_tls.py', 'scripts/tls_adapt.py',
+               'scripts/sources.py', 'scripts/environment.py', 'scripts/ndk.py',
+               'tests/test_binder_build.py', 'tests/test_art_native_tls.py', 'tests/test_tls_adapt.py',
+               'third_party/binder/native-sources.json',
                'third_party/binder/native-libraries.json', 'third_party/binder/aidl-tools.json',
                'third_party/bionic/builtins.json', 'third_party/sources.json']
     for name in project: files['artbox/' + name] = ROOT / name
@@ -146,9 +173,10 @@ def main():
     tools = ndk / 'toolchains/llvm/prebuilt' / host / 'bin'
     notices = ndk_notices(ndk, tools.parent)
     suffix = '.exe' if sys.platform == 'win32' else ''
-    cxx, ar, nm = [tools / (n + suffix) for n in ('clang++', 'llvm-ar', 'llvm-nm')]
+    cxx, ar, nm, objdump = [tools / (n + suffix) for n in ('clang++', 'llvm-ar', 'llvm-nm', 'llvm-objdump')]
     flags = ['--target=' + graph['target'], '-std=' + graph['cpp_standard'], '-O1', '-DNDEBUG', '-fPIC',
-        '-fno-exceptions', '-fno-rtti', '-ffixed-x18', '-march=armv8-a', '-mno-outline-atomics',
+        '-fno-exceptions', '-fno-rtti', '-ffixed-x18', '-ffixed-x27', '-ffixed-x28',
+        '-ffunction-sections', '-fdata-sections', '-march=armv8-a', '-mno-outline-atomics',
         '-ffile-prefix-map=' + str(ROOT) + '=.', '-fdebug-prefix-map=' + str(ROOT) + '=.',
         '-DANDROID_UTILS_CALLSTACK_ENABLED=0', '-DANDROID_UTILS_REF_BASE_DISABLE_IMPLICIT_CONSTRUCTION',
         '-DANDROID_BASE_UNIQUE_FD_DISABLE_IMPLICIT_CONVERSION', '-DBINDER_WITH_KERNEL_IPC',
@@ -170,12 +198,22 @@ def main():
     def compile_unit(job):
         library, name, source, obj = job
         unit_flags = graph['libraries'][library].get('unit_flags', {}).get(name, [])
-        run([cxx, *flags, *unit_flags, *include_flags, '-c', source, '-o', obj], obj.with_suffix('.log'))
-        verify_object_architecture(obj)
+        command = [cxx, *flags, *unit_flags, *include_flags, '-c', source, '-o', obj]
+        run(command, obj.with_suffix('.log'))
+        rule = graph['libraries'][library].get('compiler_tls', {}).get(name)
+        tls = None
+        if rule is not None:
+            tls = compile_adaptation(list(map(str, command)), source, obj, output / 'compiler-tls',
+                                     name.replace('/', '__'), rule)
+        boundary = verify_object_code(obj, run([objdump, '-d', '--disassemble-zeroes', '--no-show-raw-insn', obj],
+                                               obj.with_suffix('.asm')))
         print(library + ': ' + name, flush=True)
-        return obj.relative_to(output).as_posix(), digest(obj)
+        return obj.relative_to(output).as_posix(), digest(obj), boundary, tls
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-        objects = dict(pool.map(compile_unit, jobs))
+        compiled = list(pool.map(compile_unit, jobs))
+    objects = {name:sha for name,sha,_,_ in compiled}
+    boundaries = {name:boundary for name,_,boundary,_ in compiled}
+    compiler_tls = {name:tls for name,_,_,tls in compiled if tls is not None}
     archives = {}
     for library in graph['libraries']:
         path = output / (library + '.a')
@@ -190,6 +228,8 @@ def main():
     symbols = symbol_inventory(run([nm, '--format=posix', '--extern-only', *[output / n for n in archives]], output / 'symbols.log'))
     (output / 'symbols.json').write_text(json.dumps(symbols, indent=2) + '\n', encoding='utf-8')
     record = dict(target=graph['target'], compiled_units=len(objects), objects=objects, archives=archives,
+        instruction_boundaries=boundaries,
+        compiler_tls=compiler_tls,
         compile_seconds=time.monotonic() - started, generation_sha256=digest(aidl / 'generation.json'),
         generated_files=generation['generated_files'], required_external_symbols=len(symbols['required_external']),
         symbols_sha256=digest(output / 'symbols.json'), compiler_version=run([cxx, '--version'], output / 'compiler.log').strip(),
