@@ -86,10 +86,19 @@ The native window test requires Metal and an AppKit window server. It checks
 7,296 pixels across seven frames in two windows, ordinary and scaled resize,
 retained texture bytes after suspend/resume, six worker-thread rejections, and
 display recreation after final teardown. Its signed executable and both native
-surface static libraries accompany the ANGLE artifact. This test is being
-validated in CI; it is neither a screenshot nor an Android Activity test.
+surface static libraries accompany the ANGLE artifact. At `94523db`, this
+test passes on the Apple Paravirtual Metal device, and the iOS 15 adapter
+compiles. Independent artifact checks verify 926 source inputs, 13 project
+inputs, both surface libraries, four signed Mach-O images and 18 notices.
+The window contract takes 298.853 ms, after a separate 6,762.175 ms shader and
+pbuffer probe. This includes UI/context setup and teardown and benefits from
+the preceding graphics work; it is not a frame-rate measurement. Neither test
+is a screenshot or an Android Activity test.
 Probe processes have a 120-second timeout: the pinned upstream drawable
 acquisition can otherwise retry without a timeout when no drawable is available.
+The initial window candidate compiled its platform adapter but failed compiling
+the probe because `CATransaction` was not imported. Adding the explicit public
+header resolved that failure; no upstream source or check was disabled.
 
 At `01e6e05`, the native Apple job passes and its artifact independently verifies
 924 source inputs, ten project files, both signed framework images and the

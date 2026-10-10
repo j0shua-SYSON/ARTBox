@@ -86,11 +86,15 @@ dependencies, ART/service lifecycle integration, composition and touch dispatch
 remain ahead. See [graphics bring-up](graphics.md). This is a native graphics
 boundary, not completed Activity or APK acceptance.
 
-The next candidate adds native `CAMetalLayer` ownership, with shared-display
-lifetime and suspend/resume behind a C API. Eight local build/evidence tests
-pass. A new signed Mac window test covers concurrent surfaces, resize, context
-resource preservation, wrong-thread calls and recreation after teardown; its
-native CI execution is pending. Both macOS and iOS compile the same adapter.
+At `94523db`, native `CAMetalLayer` ownership passes signed Mac execution:
+seven presented frames, 7,296 exact pixels, scaled resize, texture preservation
+across suspension, six worker-thread rejections, independent window destruction
+and display recreation. Eight local build/evidence tests pass, and both macOS
+and iOS 15 compile the same adapter. The window contract takes 298.853 ms after
+the separate shader/pbuffer probe; this is not frame throughput. The artifact
+independently verifies source, notices, libraries and four signed images.
+All 25 host jobs and the separate iOS build pass at this checkpoint. Actual Activity,
+managed touch, screenshots and physical graphics remain unverified.
 
 ## M4 bring-up record (historical checkpoints)
 
