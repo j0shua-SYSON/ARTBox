@@ -1,5 +1,27 @@
 # Third-party provenance
 
+## M5 framework queue inputs
+
+`third_party/framework/sources.json` pins eight original frameworks/base files
+at AOSP `android-15.0.0_r1`, commit `4e43ad12e1b211f15152e9c5b16b0fe88e6b93f3`:
+MessageQueue Java/JNI, four JNI headers, OS flag declarations and root NOTICE.
+The implementation headers carry Apache-2.0; preserve them and the full upstream
+NOTICE. The native unit reuses the already reviewed nativehelper, libutils,
+system, libbase and liblog headers. Original implementation bytes are unchanged.
+
+The matching AP3A read-only tail-tracking value comes from build/release commit
+`e1dfb3dc783166aadcf150d67d3d53d68001883a`. Its configuration tuple and exact
+source hash are retained as release metadata. ARTBox generates annotation
+names and the one constant runtime accessor from those pinned inputs.
+
+The pinned `org.robolectric:android-all:15-robolectric-12468137` JAR is a
+compile-only reference, with Apache-2.0 declared in its Maven POM. The JAR is
+neither shipped nor executed; the POM is retained with the corresponding source
+and the reference hash is recorded. The runtime payload accepts only the six
+classes compiled by ARTBox from its selected source/generated accessor.
+This compilation does not establish ART execution or framework resource parity.
+Existing JDK, NDK and R8 provenance still applies to the compiler toolchain.
+
 ## M4 Binder references and UAPI boundary
 
 `binder-references` in `third_party/sources.json` selects 15 reference files from
@@ -760,3 +782,34 @@ not SELinux implementations. Contract callers are original MIT code. The ID
 header uses unchanged bytes from the already reviewed system/core pin. Source
 archives retain the original files, generated include copy, NDK notices and
 exact ARTBox inputs; build reports do not claim guest execution.
+
+## ANGLE Metal profile
+
+`third_party/angle/sources.json` pins unchanged ANGLE at AOSP tag
+`android-15.0.0_r1`, commit `ba7c7168f85732bc9fe478b730505ef2265a666e`.
+The selected Metal, EGL/GLES, shader translator and support sources retain the
+complete **BSD-3-Clause** ANGLE LICENSE and original per-file notices, including
+Chromium-derived support files and permissively licensed Khronos declarations.
+Bundled xxHash retains its separate **BSD-2-Clause** LICENSE. Other rendering
+backends, tests, samples, capture implementation and external toolchains are
+not compiled. Source headers describe any embedded permissive components.
+
+The original Chromium `compression_utils_portable` source/header and build
+reference come from ANGLE DEPS' Chromium revision
+`972874fcbdf2c07ca1e9680e6f23ad950bd80868`, retaining Chromium's **BSD-3-Clause**
+LICENSE. Because the helper adapts zlib routines, its original **zlib license**
+is also retained. It links Apple's public system zlib; no separate zlib binary
+is embedded. The two generated Bison parsers contain **GPL-3.0-or-later WITH
+Bison-exception-2.2** notices. Preserve both generated files verbatim, including
+their output exception, together with the complete GPL-3.0 text from the same
+ANGLE checkout. No Bison parser generator is built or embedded. The exception
+permits the larger shader compiler work to retain its other license terms;
+see [GNU's output conditions](https://www.gnu.org/s/bison/manual/html_node/Conditions.html).
+
+Khronos declaration headers retain their Apache-2.0 and MIT notices. Include the
+complete Apache-2.0 text from the checkout's SPIR-V headers license file (license
+text only; no SPIR-V backend), and the complete Khronos platform declaration
+header with its MIT terms. Nine notice inputs, including the original parser
+files, accompany the corresponding-source archive and both native frameworks.
+ARTBox's recipe, generated metadata and probes are MIT. This source build does
+not establish Activity or APK compatibility.

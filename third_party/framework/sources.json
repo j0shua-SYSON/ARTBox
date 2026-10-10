@@ -1,0 +1,59 @@
+{
+  "framework-queue": {
+    "repository": "aosp-mirror/platform_frameworks_base",
+    "tag": "android-15.0.0_r1",
+    "commit": "4e43ad12e1b211f15152e9c5b16b0fe88e6b93f3",
+    "notice": "NOTICE",
+    "notice_sha256": "cf4dd7cea5b6bcd2622ddd3529b3c74d16ba2b4db444575bc6f5c33f8a960530",
+    "files": [
+      {
+        "path": "NOTICE",
+        "bytes": 18182,
+        "sha256": "cf4dd7cea5b6bcd2622ddd3529b3c74d16ba2b4db444575bc6f5c33f8a960530",
+        "git_blob": "4e699635e0418df49ba5b11631d001ad6a641ca6"
+      },
+      {
+        "path": "core/java/android/os/MessageQueue.java",
+        "bytes": 43701,
+        "sha256": "d4cd24d94c8d64e788937c49ee2b86427bd38d004066d2a0abd4993df65af62d",
+        "git_blob": "5b711c9d840191bee01feed2fa8ecb2eb8df66ec"
+      },
+      {
+        "path": "core/java/android/os/flags.aconfig",
+        "bytes": 5253,
+        "sha256": "99b38a05e488b0bdd2e2019b454639636b86cc608a144884992f5bed6c6ade91",
+        "git_blob": "e82c4b064bf252308b24e643a3410d3024826f82"
+      },
+      {
+        "path": "core/jni/android_os_MessageQueue.cpp",
+        "bytes": 8977,
+        "sha256": "674cf31cc260d17a1d1ee302f1817dad7cd98211cac3d8608546d498da0ff092",
+        "git_blob": "30d9ea19be3909831fe2700efe5ca871f17f163f"
+      },
+      {
+        "path": "core/jni/android_os_MessageQueue.h",
+        "bytes": 2397,
+        "sha256": "64d3ba4847e7ea6b82bacd6d626e3e920e540c1026bcae6da10858f1efb89ce1",
+        "git_blob": "1e49b5f3b079b21df2034fad88debdf250af8fb3"
+      },
+      {
+        "path": "core/jni/core_jni_helpers.h",
+        "bytes": 3245,
+        "sha256": "434429b82ba1aa40153adb964e941a5a1ac394bca52437d4bf6d619749a3d98b",
+        "git_blob": "769fa723c96e8bb3111aecc48651ace2f2e8d219"
+      },
+      {
+        "path": "core/jni/jni_wrappers.h",
+        "bytes": 3198,
+        "sha256": "d5bde485332cec5df45d31d86917b3edeb4af6195f4c0ed6cf229b873cdb4002",
+        "git_blob": "3b29e305e41006e2cacab7eda226c05b626b2d44"
+      },
+      {
+        "path": "core/jni/include/android_runtime/AndroidRuntime.h",
+        "bytes": 5077,
+        "sha256": "6d518a63b8a6918f5428b02e7b2e05e252b89e55d3660a32d86813a7f462f714",
+        "git_blob": "bf2ba772c39dc1f7c3470a7d9ead2f58fd22dc7a"
+      }
+    ]
+  }
+}

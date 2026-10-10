@@ -61,6 +61,17 @@ int artbox_run_native_art_runtime(const artbox_libcore_input *input, const artbo
  * threads and must be thread-safe. Its storage must live until return. */
 int artbox_run_native_art_runtime_logged(const artbox_libcore_input *input,
     const artbox_host *host, const artbox_host *console);
+typedef struct artbox_framework_input {
+    /* The fifteen ART/libcore images, then the original framework queue JNI
+     * and its real Looper support. The root also supplies framework-queue.dex. */
+    const char *frameworks[16], *elfs[16];
+    const char *root;
+} artbox_framework_input;
+/* M3 lifecycle plus original MessageQueue JNI wake, descriptor removal and
+ * disposal, including a wake-omission control inside the same attached VM.
+ * One-shot diagnostic; Activity and managed message dispatch are not included. */
+int artbox_run_native_framework_queue(const artbox_framework_input *input,
+    const artbox_host *host, const artbox_host *console);
 #ifdef __cplusplus
 }
 #endif

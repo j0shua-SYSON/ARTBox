@@ -23,14 +23,23 @@ static void result(void *context, const char *text, size_t length) {
     fwrite(text, 1, length, stdout); putchar('\n');
 }
 int main(int argc, char **argv) {
-    if (argc != 32) return 2;
-    artbox_libcore_input input = {{0}, {0}, argv[31]};
-    for (unsigned i = 0; i < 15; ++i) {
-        input.frameworks[i] = argv[1 + 2*i]; input.elfs[i] = argv[2 + 2*i];
-    }
+    if (argc != 32 && argc != 34) return 2;
     const artbox_host host = {result, NULL};
     const artbox_host console = {capture, getenv("ARTBOX_TEST_DROP_CONSOLE")};
-    int status=artbox_run_native_art_runtime_logged(&input, &host, &console);
+    int status;
+    if (argc == 34) {
+        artbox_framework_input input = {{0}, {0}, argv[33]};
+        for (unsigned i = 0; i < 16; ++i) {
+            input.frameworks[i] = argv[1 + 2*i]; input.elfs[i] = argv[2 + 2*i];
+        }
+        status=artbox_run_native_framework_queue(&input, &host, &console);
+    } else {
+        artbox_libcore_input input = {{0}, {0}, argv[31]};
+        for (unsigned i = 0; i < 15; ++i) {
+            input.frameworks[i] = argv[1 + 2*i]; input.elfs[i] = argv[2 + 2*i];
+        }
+        status=artbox_run_native_art_runtime_logged(&input, &host, &console);
+    }
     if(status) return status;
     if(console_overflow || !strstr(console_text,"hello from ARTBox ART\n") ||
        !strstr(console_text,"ARTBox: signed ART lifecycle checks passed\n")) {

@@ -1,6 +1,6 @@
 # ARTBox status
 
-M0-M3 are merged and tagged. **Real AOSP ART executes hello DEX on the test
+M0-M4 are merged and tagged. **Real AOSP ART executes hello DEX on the test
 iPhone and through signed frameworks on macOS ARM64**, with collection,
 exceptions, native-thread attachment and shutdown verified. Target: ordinary
 signed arm64 **iOS 15+**, no JIT or private entitlements. Physical checks remain
@@ -12,7 +12,8 @@ notification pass signed Mac execution and the test iPhone at `0e445da`.
 All 24 host jobs and the separate iOS build pass. Initial launch,
 background/foreground and cold home-icon relaunch pass without a debugger;
 19 installed code images and seven service resources match the verified IPA.
-Milestone acceptance is complete; PR/tag closure is the remaining M4 step.
+M4 is merged and tagged at `9e7cf7d`; PR and main pass all 24 host jobs and iOS.
+The main NDK archive integrity failure passed on retry with the pin unchanged.
 
 ## What runs
 
@@ -61,8 +62,9 @@ and iOS pass at `2970c38`; its integrated ART IPA independently verifies 16
 Mach-O images, 15 ELF layouts, five resources, 175 notices and empty entitlements.
 Ordinary provisioning, larger app heaps and sustained interpreter performance
 remain unverified.
-Binder/services, Activities, AndroidX APKs, graphics and audio remain future
-milestones. The runtime is a one-shot diagnostic; repeated VM creation and
+Activities, AndroidX APKs, graphics and audio remain future milestones. The
+native M4 service diagnostic is separate from the one-shot ART runner;
+repeated VM creation and
 general dynamic library growth/unloading are not supported. AOT/OAT and host
 dex2oat remain future coverage under interpreter-only M3 acceptance.
 
@@ -72,6 +74,41 @@ native file provider is absent; portable VFS tests inject a provider there.
 Unsupported operations retain explicit errors. See the individual contracts.
 
 ## Current work
+
+M5: at `01e6e05`, pinned ANGLE builds as signed native Mac and iOS 15 frameworks.
+On CI's Apple Paravirtual Metal device, both shader translations, malformed
+shader rejection, 2,048 exact color-readback pixels and context/surface cleanup
+pass. The independently verified device framework is 7,760,016 bytes with no
+entitlements or writable executable segments. The cold probe takes 5,641.618 ms,
+including initialization; physical graphics and frame throughput are unmeasured.
+Original Activity construction and framework
+dependencies, ART/service lifecycle integration, composition and touch dispatch
+remain ahead. See [graphics bring-up](graphics.md). This is a native graphics
+boundary, not completed Activity or APK acceptance.
+
+At `94523db`, native `CAMetalLayer` ownership passes signed Mac execution:
+seven presented frames, 7,296 exact pixels, scaled resize, texture preservation
+across suspension, six worker-thread rejections, independent window destruction
+and display recreation. Eight local build/evidence tests pass, and both macOS
+and iOS 15 compile the same adapter. The window contract takes 298.853 ms after
+the separate shader/pbuffer probe; this is not frame throughput. The artifact
+independently verifies source, notices, libraries and four signed images.
+All 25 host jobs and the separate iOS build pass at this checkpoint. Actual Activity,
+managed touch, screenshots and physical graphics remain unverified.
+
+At `9efc0fb`, original MessageQueue Java/JNI and both callers compile and pass
+their instruction audits on Windows and Mac. The six-class, 14,956-byte DEX is
+identical across hosts; 27 project inputs, 222 upstream files and 11 notices
+verify independently. Mac/iOS signing succeeds. The first runtime attempt fails
+before VM startup at the incomplete image-order manifest. The correction adds
+the sixteenth name and selects the queue as the load root, retaining M3's full
+boot/JNI dependency closure. Queue execution remains pending; omitted-wake,
+missing-framework-DEX and existing M3 output/hello controls remain required.
+See [framework bring-up](framework.md). The local class-library rebuild passed
+after reducing JVM memory use; its initial native-memory exhaustion is retained
+as a build failure, not a runtime result. This is not Activity acceptance.
+
+## M4 bring-up record (historical checkpoints)
 
 At `136a087`, the original VINTF kernel-config parser passes 89 assertions and
 both precise failure controls on native Linux ARM64 and through signed Apple

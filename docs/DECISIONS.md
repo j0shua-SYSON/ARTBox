@@ -3741,3 +3741,70 @@ The price is eighteen embedded frameworks and three independent allocator
 reservations. Measure physical RSS separately from reserved address space before
 choosing how to consolidate dependencies. A successful artifact build does not
 establish device execution or ordinary provisioning.
+
+## ADR 0135: Build a bounded native ANGLE Metal profile before framework graphics
+
+Compile the pinned AOSP Android 15 ANGLE Metal, EGL/GLES and GLSL-to-MSL source
+selection with Xcode as an Apple framework. Keep it on the native platform side;
+future guest entry points require explicit C ABI adapters. This avoids adapting
+ANGLE's Objective-C/Metal implementation into Bionic and keeps Apple resource
+ownership in the platform layer. Original upstream implementations stay intact.
+
+Use a reviewed Python/CMake recipe derived from the retained GN lists, with
+exact source hashes, notices and corresponding source. The alternative is the
+full Chromium build/depot_tools dependency graph. The bounded recipe reduces
+downloads and build tools but costs manual source-profile review on upgrades.
+Shader cache identity covers the full selected source and recipe. No SwiftShader,
+Vulkan, private Metal ownership identity or runtime CPU code generator is enabled.
+Public Metal GPU shader compilation remains necessary and its first-use cost
+must be measured; accepting this latency preserves the no-CPU-JIT constraint.
+
+Test shader acceptance and rejection before a graphics compatibility adapter.
+When a real Metal device exists, require exact red/green pixel readback and
+resource cleanup; otherwise report GPU unavailability explicitly. A headless
+runner's shader tests cannot replace the final Activity screenshot and touch
+test. Keep Activity construction and managed input as independent required M5
+work; neither a native color view nor Android SDK stub classes establish it.
+
+## ADR 0136: Own native window surfaces separately from guest rendering calls
+
+Keep the initial `CAMetalLayer`/EGL lifetime adapter in the Apple platform layer
+behind an opaque C owner. Compile it as a static library for both macOS arm64
+and iOS 15; link the same unchanged native ANGLE framework. Do not expose native
+C++ or Objective-C ownership to Bionic. A later EGL/JNI adapter must translate
+guest handles and arguments deliberately.
+
+Use one main-thread-owned display with independent surface/context owners.
+Terminating EGL for each window would invalidate other windows on that display.
+Suspend releases the window surface while keeping GL resources in the context;
+resume recreates the surface. Reject a second owner for the same layer. For now,
+all operations require the main thread, matching UI geometry/lifetime ownership.
+This costs render scheduling flexibility; add explicit transfer only with tests
+for ownership races and the Android rendering thread model.
+
+Before connecting managed code, require actual Metal window readback, resize,
+resource preservation across suspension, wrong-thread rejection, independent
+window teardown and complete display recreation. Keep these results separate
+from Activity, touch and screenshot acceptance. Bound probe execution because
+the pinned ANGLE window backend can wait indefinitely after drawable timeout.
+
+## ADR 0137: Bring up original framework event loops in a bounded payload
+
+Start framework execution with the unchanged Android 15 Java MessageQueue and
+its original JNI unit. Reuse the real AOSP Looper/RefBase and the existing ART
+interpreter, Bionic threads, epoll and eventfd contracts. This boundary precedes
+Activity construction and managed input; a native window alone cannot satisfy
+their acceptance.
+
+Compile against the source-built AOSP core library and a pinned Android
+implementation reference JAR. Include exactly the five source-built queue
+classes and generated Flags class in the DEX; exclude the reference JAR from
+runtime and output artifacts. This saves bootstrapping unrelated framework
+dependencies now, but does not establish resource or constant parity with the
+reference publication. Review those explicitly before expanding to Activity.
+
+Generate the queue's read-only flag accessor from the matching AP3A release
+metadata, retaining exact source and release hashes. Do not guess a runtime
+flag value. Preserve separate compile, verifier and runtime evidence: original
+JNI must still register and execute in the real ART VM, with positive wake,
+descriptor removal, disposal and a control that omits the wake.
