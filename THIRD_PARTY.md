@@ -1,5 +1,27 @@
 # Third-party provenance
 
+## M5 framework queue inputs
+
+`third_party/framework/sources.json` pins eight original frameworks/base files
+at AOSP `android-15.0.0_r1`, commit `4e43ad12e1b211f15152e9c5b16b0fe88e6b93f3`:
+MessageQueue Java/JNI, four JNI headers, OS flag declarations and root NOTICE.
+The implementation headers carry Apache-2.0; preserve them and the full upstream
+NOTICE. The native unit reuses the already reviewed nativehelper, libutils,
+system, libbase and liblog headers. Original implementation bytes are unchanged.
+
+The matching AP3A read-only tail-tracking value comes from build/release commit
+`e1dfb3dc783166aadcf150d67d3d53d68001883a`. Its configuration tuple and exact
+source hash are retained as release metadata. ARTBox generates annotation
+names and the one constant runtime accessor from those pinned inputs.
+
+The pinned `org.robolectric:android-all:15-robolectric-12468137` JAR is a
+compile-only reference, with Apache-2.0 declared in its Maven POM. The JAR is
+neither shipped nor executed; the POM is retained with the corresponding source
+and the reference hash is recorded. The runtime payload accepts only the six
+classes compiled by ARTBox from its selected source/generated accessor.
+This compilation does not establish ART execution or framework resource parity.
+Existing JDK, NDK and R8 provenance still applies to the compiler toolchain.
+
 ## M4 Binder references and UAPI boundary
 
 `binder-references` in `third_party/sources.json` selects 15 reference files from

@@ -86,7 +86,7 @@ def preserve_sources(output, sources, generated, toolchain=None):
       'third_party/art/adapters/no_jit.cpp','third_party/art/adapters/artbox_host_stack.h',
       'third_party/art/host-build-boundary.json','third_party/bionic/builtins.json',
       'fixtures/art-runtime/linux_reference.cpp','fixtures/art-runtime/managed_checks.cpp',
-      'fixtures/art-runtime/native_runtime.cpp',
+      'fixtures/art-runtime/native_runtime.cpp','fixtures/art-runtime/extension.h',
       'fixtures/art-runtime/record.h','fixtures/art-runtime/record_guest.h',
       'fixtures/art-runtime/thread_state.cpp','fixtures/art-runtime/thread_state.h',
       'fixtures/art-runtime/sigchain_check.cpp','fixtures/art-runtime/sigchain_linux.cpp',

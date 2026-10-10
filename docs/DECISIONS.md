@@ -3787,3 +3787,24 @@ resource preservation across suspension, wrong-thread rejection, independent
 window teardown and complete display recreation. Keep these results separate
 from Activity, touch and screenshot acceptance. Bound probe execution because
 the pinned ANGLE window backend can wait indefinitely after drawable timeout.
+
+## ADR 0137: Bring up original framework event loops in a bounded payload
+
+Start framework execution with the unchanged Android 15 Java MessageQueue and
+its original JNI unit. Reuse the real AOSP Looper/RefBase and the existing ART
+interpreter, Bionic threads, epoll and eventfd contracts. This boundary precedes
+Activity construction and managed input; a native window alone cannot satisfy
+their acceptance.
+
+Compile against the source-built AOSP core library and a pinned Android
+implementation reference JAR. Include exactly the five source-built queue
+classes and generated Flags class in the DEX; exclude the reference JAR from
+runtime and output artifacts. This saves bootstrapping unrelated framework
+dependencies now, but does not establish resource or constant parity with the
+reference publication. Review those explicitly before expanding to Activity.
+
+Generate the queue's read-only flag accessor from the matching AP3A release
+metadata, retaining exact source and release hashes. Do not guess a runtime
+flag value. Preserve separate compile, verifier and runtime evidence: original
+JNI must still register and execute in the real ART VM, with positive wake,
+descriptor removal, disposal and a control that omits the wake.

@@ -38,23 +38,27 @@ def main():
     parser.add_argument('--libcore-dir', type=Path, help='Also execute the signed native class-library checks')
     parser.add_argument('--classlib-dir', type=Path, help='Start ART using this verified implementation DEX bundle')
     parser.add_argument('--managed-fixture-dir', type=Path)
+    parser.add_argument('--framework-dir', type=Path, help='Also execute original MessageQueue JNI in the checked ART lifecycle')
     args = parser.parse_args()
     runtime = args.classlib_dir is not None
     if runtime != (args.managed_fixture_dir is not None) or (runtime and not args.libcore_dir):
         parser.error('Runtime execution requires libcore, classlib and managed-fixture directories together')
+    if args.framework_dir and not runtime: parser.error('Framework execution requires the complete ART runtime inputs')
     if sys.platform != 'darwin': parser.error('Signed native ARM64 execution requires macOS')
     os.environ.update(environment())
     builds, artifacts = [Path(os.environ[name]) for name in ('ARTBOX_BUILD_DIR', 'ARTBOX_ARTIFACTS_DIR')]
-    label = 'art-runtime' if runtime else 'libcore' if args.libcore_dir else 'icu'
-    output = builds / ('m3/' + label + '-guest')
+    label = 'framework-queue' if args.framework_dir else 'art-runtime' if runtime else 'libcore' if args.libcore_dir else 'icu'
+    milestone = 'm5' if args.framework_dir else 'm3'
+    output = builds / (milestone+'/' + label + '-guest')
     output.mkdir(parents=True, exist_ok=True)
     read = lambda p: json.loads(p.read_text(encoding='utf-8'))
     icu, guest, deps = args.icu_dir, args.guest_dir, args.dependency_dir
     linked = read(artifacts / 'm3-icu-guest-link.json')
     art = read(artifacts / 'm3-art-guest-link.json')
     libcore = read(artifacts / 'm3-libcore-guest-link.json') if args.libcore_dir else None
+    framework = read(artifacts / 'm5-framework-queue-link.json') if args.framework_dir else None
     revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
-    for report in [linked, art, *([libcore] if libcore else [])]:
+    for report in [linked, art, *([libcore] if libcore else []), *([framework] if framework else [])]:
         if report['project_commit'] != revision or report['input_revision'] != revision or report['working_tree_dirty']:
             raise RuntimeError('Require ICU and ART from the current clean producer revision')
     bionic = read(deps / 'artifacts/m2-bionic-startup.json')
@@ -79,8 +83,8 @@ def main():
     if not libcore: order.append('libartbox_icu_check.so')
     for name in order:
         details = linked['libraries'][name]
-        framework = details['framework_name']
-        modules.append((icu / 'macos' / (framework + '.framework') / framework,
+        framework_name = details['framework_name']
+        modules.append((icu / 'macos' / (framework_name + '.framework') / framework_name,
                         icu / name, details['elf_sha256'], details['frameworks']['macos']))
     if libcore:
         for _, elf, expected, _ in modules:
@@ -89,13 +93,21 @@ def main():
         if set(libcore['libraries']) != set(order): raise RuntimeError('Unexpected libcore library set')
         for name in order:
             details = libcore['libraries'][name]
-            framework = details['framework_name']
-            modules.append((args.libcore_dir / 'macos' / (framework + '.framework') / framework,
+            framework_name = details['framework_name']
+            modules.append((args.libcore_dir / 'macos' / (framework_name + '.framework') / framework_name,
                             args.libcore_dir / name, details['elf_sha256'], details['frameworks']['macos']))
-    for binary, elf, expected, framework in modules:
-        if digest(elf) != expected or digest(binary) != framework['layout']['macho_sha256']:
+    if framework:
+        bases = {elf.name:expected for _,elf,expected,_ in modules}
+        if any(bases.get(name) != expected for name,expected in framework['base_inputs'].items()):
+            raise RuntimeError('Framework JNI uses different runtime dependencies')
+        name = framework['framework_name']
+        modules.append((args.framework_dir/'macos'/(name+'.framework')/name,
+                        args.framework_dir/'libartbox_framework_queue.so', framework['elf_sha256'],
+                        framework['frameworks']['macos']))
+    for binary, elf, expected, signed in modules:
+        if digest(elf) != expected or digest(binary) != signed['layout']['macho_sha256']:
             raise RuntimeError('ICU executable input changed: ' + str(elf))
-        if not framework['signature_verified'] or framework['entitlements']:
+        if not signed['signature_verified'] or signed['entitlements']:
             raise RuntimeError('ICU requires verified ordinary signed frameworks')
     data = icu / 'i18n/etc/icu/icudt75l.dat'
     if digest(data) != linked['data']['sha256']: raise RuntimeError('ICU data changed')
@@ -120,13 +132,22 @@ def main():
         hello.write_bytes(make_hello()[0])
         dex_inputs = {'boot_dex': boot_report['dex_files'], 'managed_fixture': managed_report,
                       'hello_sha256': digest(hello)}
-    runner = builds / ('host/artbox_native_' + label.replace('-', '_'))
+        if framework:
+            source = args.framework_dir/'framework-queue.dex'
+            if (digest(source) != framework['dex']['sha256'] or
+                    boot_report['artifacts']['implementation-classes.jar']['sha256'] != framework['core_classes_sha256']):
+                raise RuntimeError('Queue compile-time core library differs from the executing boot library')
+            shutil.copyfile(source, root/'data/framework-queue.dex')
+            dex_inputs['framework_dex'] = framework['dex']
+    runner = builds / ('host/artbox_native_' + ('art_runtime' if framework else label.replace('-', '_')))
     command = [str(runner), *[str(p.resolve()) for row in modules for p in row[:2]], str(root.resolve())]
     paths = subprocess.check_output(['git', 'ls-files', 'core', 'platform', 'CMakeLists.txt',
         'scripts/test_icu_guest.py', 'tests/native_icu.c', 'fixtures/art-runtime/native_icu.cpp',
         'tests/native_libcore.c', 'fixtures/art-runtime/native_libcore.cpp', 'fixtures/libcore-integer128/check.c',
         'tests/native_art_runtime.c', 'fixtures/art-runtime/native_runtime.cpp', 'fixtures/art-runtime/managed_checks.cpp',
         'fixtures/art-runtime/record.h', 'fixtures/art-runtime/record_guest.h',
+        'fixtures/art-runtime/extension.h', 'fixtures/framework-queue', 'scripts/framework_queue.py',
+        'tests/test_framework_queue_runtime.py',
         'scripts/test_art_startup.py', 'scripts/build_art_managed_fixture.py', 'scripts/dex_fixture.py', 'LICENSE'],
         text=True).splitlines()
     bundle = output / 'corresponding-source.zip'
@@ -155,7 +176,7 @@ def main():
         native = json.loads(process.stdout)
         result['native'] = native
         if (native['constructors'] < 35 or native['tls_modules'] < 1 or
-                native['linked_images'] != (15 if libcore else 10) or native['registered_vms'] or
+                native['linked_images'] != (16 if framework else 15 if libcore else 10) or native['registered_vms'] or
                 not native['heap_binding_verified'] or not native['cleanup'] or
                 native['vm_budget_bytes'] != 1536 << 20 or
                 not 0 < native['reserved_bytes'] <= 1536 << 20 or
@@ -195,6 +216,10 @@ def main():
             result.update(runtime_started=True, dex_executed=True, managed_checks=managed,
                           thread_state_checks=threads, vm_worker=worker, lifecycle_verified=True,
                           console_verified=True)
+            if framework:
+                from framework_queue import verify_records
+                result['framework_queue'] = verify_records(stderr)
+                result['scope'] = 'Original MessageQueue Java/JNI wake, descriptor removal and disposal in signed ART'
             process_label = 'missing-console'
             dropped = subprocess.run(command, capture_output=True, timeout=60,
                                      env={**os.environ, 'ARTBOX_TEST_DROP_CONSOLE': '1'})
@@ -206,6 +231,23 @@ def main():
                     b'ARTBox console: missing guest output\n' not in dropped.stderr):
                 raise RuntimeError('Missing guest console output was not detected after successful execution')
             result.update(console_drop_exit=dropped.returncode, console_drop_detected=True)
+            if framework:
+                queue_dex = root/'data/framework-queue.dex'
+                queue_dex.unlink()
+                process_label = 'missing-queue'
+                missing = subprocess.run(command, capture_output=True, timeout=60)
+                (output/'missing-queue.stdout').write_bytes(missing.stdout)
+                (output/'missing-queue.stderr').write_bytes(missing.stderr)
+                lines = missing.stderr.decode('utf-8', errors='replace').splitlines()
+                records = [json.loads(line[len('ARTBox framework queue: '):]) for line in lines
+                           if line.startswith('ARTBox framework queue: ')]
+                if (missing.returncode != 1 or missing.stdout or len(records) != 1 or
+                        records[0].get('failure') != 101 or records[0].get('status') != -101 or
+                        'signed ART runtime result: -302' not in lines or
+                        not runtime_progress(missing.stderr)['lifecycle_verified']):
+                    raise RuntimeError('Missing original framework DEX was not rejected after checked VM shutdown')
+                result['missing_queue_detected'] = True
+                shutil.copyfile(args.framework_dir/'framework-queue.dex', queue_dex)
             # A second process must reach the real VM and fail its missing-class lookup.
             hello.unlink()
             process_label = 'missing-hello'
@@ -240,8 +282,10 @@ def main():
         result['timeout_process'] = process_label
         raise
     finally:
-        (artifacts / ('m3-' + label + '-guest.json')).write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
-    if runtime:
+        (artifacts / (milestone+'-' + label + '-guest.json')).write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
+    if framework:
+        print('Original MessageQueue runs in signed ART; wake, removal, disposal and omitted-wake/missing-DEX controls pass')
+    elif runtime:
         print('Signed ART JavaVM, hello DEX, managed checks and shutdown pass; missing hello is detected')
     else:
         print(('17 libcore groups and 228 integer vectors' if libcore else 'Eight native ICU groups') +

@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "source_tag": "android-15.0.0_r1",
+  "release_flag": {
+    "repository": "msft-mirror-aosp/platform.build.release",
+    "tag": "android-15.0.0_r1",
+    "path": "aconfig/ap3a/android.os/message_queue_tail_tracking_flag_values.textproto",
+    "commit": "e1dfb3dc783166aadcf150d67d3d53d68001883a",
+    "git_blob": "74ba36df1e0cca6919350979fe78a8b93c0c94e6",
+    "bytes": 118,
+    "sha256": "45d00ab1da1e60e24e069a27e4f96c4f43c95e2cb3fc2af8f26cfedb273a54dd"
+  },
+  "compile_reference": {
+    "url": "https://repo.maven.apache.org/maven2/org/robolectric/android-all/15-robolectric-12468137/android-all-15-robolectric-12468137.jar",
+    "sha256": "6b36a8f9a5f58a2b54a067252ab12e551431d5062a39f26dfaaac5b054d3e91c",
+    "bytes": 185821968
+  },
+  "reference_pom": {
+    "url": "https://repo.maven.apache.org/maven2/org/robolectric/android-all/15-robolectric-12468137/android-all-15-robolectric-12468137.pom",
+    "bytes": 1635,
+    "sha256": "d0a991df28fc72f628b20368bbd3dc6982f665870f2ccde88400cd0ef47223ca"
+  },
+  "java_classes": [
+    "android/os/Flags.class",
+    "android/os/MessageQueue.class",
+    "android/os/MessageQueue$FileDescriptorRecord.class",
+    "android/os/MessageQueue$IdleHandler.class",
+    "android/os/MessageQueue$OnFileDescriptorEventListener.class",
+    "android/os/MessageQueue$OnFileDescriptorEventListener$Events.class"
+  ],
+  "java_language_level": 8,
+  "android_min_api": 31,
+  "jdk_major": 17,
+  "scope": "Original framework queue Java/JNI inputs; compile reference is excluded from runtime payload"
+}

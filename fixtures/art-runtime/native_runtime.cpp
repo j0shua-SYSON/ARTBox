@@ -12,6 +12,7 @@
 #include "gc/heap.h"
 #include "artbox_art_heap.h"
 #include "record_guest.h"
+#include "extension.h"
 
 bool artbox_run_managed_checks(JavaVM*, JNIEnv*);
 
@@ -29,7 +30,8 @@ static bool interpreter_policy() {
 }
 
 // JNI varargs and C++ calls stay inside this Android-compiled signed image.
-static int run_runtime(artbox_vm* owner, size_t page, uint64_t* metrics) {
+static int run_runtime(artbox_vm* owner, size_t page, uint64_t* metrics,
+                       const artbox_runtime_extension* extension) {
   // The 128 MiB Java maximum does not require the full 4 GiB reference range.
   // Leave room for ART's separate spaces within a 1536 MiB shared VM budget.
   constexpr uint64_t kManagedWindowBytes = UINT64_C(512) << 20;
@@ -46,7 +48,7 @@ static int run_runtime(artbox_vm* owner, size_t page, uint64_t* metrics) {
   const char* values[] = {"-Xint", "-Xusejit:false", "-Xuseprofiledjit:false",
       "-Xnoimage-dex2oat", "-Ximage:/system/art/artbox-boot.art", "-Xms16m", "-Xmx128m",
       "-Xbootclasspath:/system/framework/classes.dex:/system/framework/classes2.dex",
-      "-Djava.class.path=/data/hello.dex:/data/runtime-checks.dex",
+      extension ? extension->class_path : "-Djava.class.path=/data/hello.dex:/data/runtime-checks.dex",
       "-Djava.io.tmpdir=/data/scratch", "-Duser.home=/data/scratch"};
   JavaVMOption options[sizeof(values) / sizeof(values[0])]{};
   for (size_t i = 0; i < sizeof(values) / sizeof(values[0]); ++i)
@@ -83,6 +85,13 @@ static int run_runtime(artbox_vm* owner, size_t page, uint64_t* metrics) {
   if (!matched) return 7;
   if (!printed || !ARTBOX_RUNTIME_RECORD("ARTBox: signed ART method returned the expected string")) return 79;
   if (!artbox_run_managed_checks(vm, env)) return 71;
+  int extension_result = extension ? extension->run(vm, env, extension->context) : 0;
+  // Extension failures still take the checked shutdown path. The callback
+  // owns its JNI references and must return with no pending exception.
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe(); env->ExceptionClear();
+    if (!extension_result) extension_result = 80;
+  }
   if (!interpreter_policy()) return 68;
   metrics[1] = art::Runtime::Current()->GetHeap()->GetBytesAllocated();
   if (!metrics[1]) return 75;
@@ -96,7 +105,7 @@ static int run_runtime(artbox_vm* owner, size_t page, uint64_t* metrics) {
   if (JNI_GetCreatedJavaVMs(&registered, 1, &count) != JNI_OK || count != 0) return 74;
   artbox_art_heap_unbind();
   if (!ARTBOX_RUNTIME_RECORD("ARTBox: signed ART lifecycle checks passed")) return 79;
-  return 0;
+  return extension_result;
 }
 
 namespace {
@@ -105,6 +114,7 @@ struct RuntimeWorker {
   artbox_vm* owner;
   size_t page;
   uint64_t* metrics;
+  const artbox_runtime_extension* extension;
   int result = 77;
 };
 
@@ -127,17 +137,18 @@ void* runtime_worker(void* opaque) {
   if (!ARTBOX_RUNTIME_RECORD("ARTBox VM worker: {\"primordial\":false,\"requested_stack_bytes\":%zu,"
          "\"reported_stack_bytes\":%zu,\"guard_bytes\":%zu,\"current_in_stack\":true}",
          kVmStackBytes, size, guard)) { worker->result = 79; return nullptr; }
-  worker->result = run_runtime(worker->owner, worker->page, worker->metrics);
+  worker->result = run_runtime(worker->owner, worker->page, worker->metrics, worker->extension);
   return nullptr;
 }
 }  // namespace
 
 // Output words are startup nanoseconds, managed bytes and arena reservation.
-extern "C" int artbox_native_runtime_check(artbox_vm* owner, size_t page, uint64_t* metrics) {
+static int start_runtime(artbox_vm* owner, size_t page, uint64_t* metrics,
+                         const artbox_runtime_extension* extension) {
   if (!owner || !metrics) return -22;
   metrics[0] = metrics[1] = metrics[2] = 0;
   setvbuf(stdout, nullptr, _IONBF, 0);
-  RuntimeWorker worker{owner, page, metrics};
+  RuntimeWorker worker{owner, page, metrics, extension};
   pthread_attr_t attr;
   if (pthread_attr_init(&attr)) return 78;
   size_t requested = 0;
@@ -150,4 +161,15 @@ extern "C" int artbox_native_runtime_check(artbox_vm* owner, size_t page, uint64
   // Never release the worker's arguments or heap owner while it can still run.
   if (pthread_join(thread, nullptr)) abort();
   return destroyed ? 79 : worker.result;
+}
+
+extern "C" int artbox_native_runtime_check(artbox_vm* owner, size_t page, uint64_t* metrics) {
+  return start_runtime(owner, page, metrics, nullptr);
+}
+
+extern "C" int artbox_native_runtime_with_extension(artbox_vm* owner, size_t page,
+    uint64_t* metrics, const artbox_runtime_extension* extension) {
+  if (!extension || !extension->run || !extension->class_path ||
+      strncmp(extension->class_path, "-Djava.class.path=", 17)) return -22;
+  return start_runtime(owner, page, metrics, extension);
 }

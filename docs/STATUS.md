@@ -96,6 +96,15 @@ independently verifies source, notices, libraries and four signed images.
 All 25 host jobs and the separate iOS build pass at this checkpoint. Actual Activity,
 managed touch, screenshots and physical graphics remain unverified.
 
+The original framework queue now has pinned Java/JNI inputs, a six-class DEX
+allowlist and a required macOS producer. A separate signed image and Android-only
+extension to the checked ART lifecycle are wired for queue creation, cross-thread
+wake, descriptor removal and disposal. Omitted-wake, missing-framework-DEX and
+existing M3 output/hello controls must pass before this establishes managed
+framework execution. Runtime evidence is pending; this is not Activity acceptance.
+See [framework bring-up](framework.md). The local class-library rebuild first
+failed from JVM native-memory exhaustion; the reduced-memory retry is pending.
+
 ## M4 bring-up record (historical checkpoints)
 
 At `136a087`, the original VINTF kernel-config parser passes 89 assertions and

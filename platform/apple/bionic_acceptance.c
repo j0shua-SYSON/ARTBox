@@ -41,7 +41,7 @@ typedef struct module {
     artbox_dynamic dynamic;
     artbox_relocation_stats relocations;
 } module;
-enum { IMAGE_CAPACITY = 15 };
+enum { IMAGE_CAPACITY = 16 };
 static module images[IMAGE_CAPACITY];
 static unsigned image_count;
 static const artbox_host *guest_console;
@@ -443,7 +443,7 @@ static void *run(void *context) {
         args[cursor++] = (uintptr_t)android_i18n;
         args[cursor++] = (uintptr_t)android_tzdata;
     }
-    if (art_bootstrap == 4) {
+    if (art_bootstrap == 4 || art_bootstrap == 7) {
         args[cursor++] = (uintptr_t)android_root;
         args[cursor++] = (uintptr_t)android_art;
         args[cursor++] = (uintptr_t)system_ext;
@@ -505,10 +505,12 @@ static void *run(void *context) {
             reaped = artbox_threads_reaped(threads);
             if (reaped != 1) fail("libcore monitor worker count");
         }
-        if (art_bootstrap == 4) {
+        if (art_bootstrap == 4 || art_bootstrap == 7) {
             uint64_t metrics[3] = {0, 0, 0};
             fprintf(stderr, "signed ART runtime acceptance entry\n");
-            int status = (int32_t)artbox_call7(entry(&images[1], "artbox_native_runtime_check"),
+            const void *runtime_entry = art_bootstrap == 7 ? entry(&images[15], "artbox_framework_runtime_check")
+                : entry(&images[1], "artbox_native_runtime_check");
+            int status = (int32_t)artbox_call7(runtime_entry,
                 (uintptr_t)vm, artbox_vm_page_size(vm), (uintptr_t)metrics, 0, 0, 0, 0);
             if (status || !metrics[0] || !metrics[1] || metrics[2] != (UINT64_C(512) << 20)) {
                 fprintf(stderr, "signed ART runtime result: %d\n", status);
@@ -717,7 +719,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     static atomic_flag used = ATOMIC_FLAG_INIT;
     if (!input || !input->root || !host || !host->log || input->sampled > 1) return -22;
     if(console && !console->log) return -22;
-    if (art_mode > 6 || input->count != (art_mode >= 5 ? 5u : art_mode >= 3 ? 15u : art_mode == 2 ? 10u : 4u)) return -22;
+    if (art_mode > 7 || input->count != (art_mode == 7 ? 16u : art_mode >= 5 ? 5u : art_mode >= 3 ? 15u : art_mode == 2 ? 10u : 4u)) return -22;
     if (input->mutation > (art_mode == 5 ? 2u : 0u)) return -22;
     for (unsigned i = 0; i < input->count; ++i)
         if (!input->frameworks[i] || !input->elfs[i]) return -22;
@@ -850,7 +852,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
                 libcore_check_ns, integer128_check_ns, reaped);
             if (count < 0 || (size_t)count >= sizeof(extra)) fail("libcore result formatting");
         }
-        if (art_bootstrap == 4) {
+        if (art_bootstrap == 4 || art_bootstrap == 7) {
             int count = snprintf(extra, sizeof(extra),
                 "\"startup_ns\":%" PRIu64 ",\"managed_bytes\":%" PRIu64 ",\"threads_reaped\":%" PRIu64 ","
                 "\"process_peak_rss_bytes\":%ld,\"managed_window_bytes\":%" PRIu64 ",",
@@ -881,7 +883,8 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
             "\"runtime_started\":%s,\"dex_executed\":%s,"
             "\"load_relocate_ns\":%" PRIu64 ",\"bootstrap_ns\":%" PRIu64 ",\"cleanup\":true}",
             constructors, tls_count, image_count, extra, vm_budget, reserved, art_bootstrap_window_bytes,
-            art_bootstrap == 4 ? "true" : "false", art_bootstrap == 4 ? "true" : "false",
+            art_bootstrap == 4 || art_bootstrap == 7 ? "true" : "false",
+            art_bootstrap == 4 || art_bootstrap == 7 ? "true" : "false",
             loaded-start, finished-loaded);
         if (length < 0 || (size_t)length >= sizeof(report)) fail("ART result formatting");
         host->log(host->context, report, (size_t)length);
@@ -959,6 +962,12 @@ int artbox_run_native_looper(const artbox_looper_input *input, const artbox_host
     if (!input) return -22;
     const native_input shared = {input->frameworks, input->elfs, input->root, 0, 5, input->mutation};
     return run_native(&shared, host, 5, NULL);
+}
+int artbox_run_native_framework_queue(const artbox_framework_input *input,
+    const artbox_host *host, const artbox_host *console) {
+    if (!input) return -22;
+    const native_input shared = {input->frameworks, input->elfs, input->root, 0, 16, 0};
+    return run_native(&shared, host, 7, console);
 }
 int artbox_run_native_kernel_config(const artbox_kernel_config_input *input, const artbox_host *host) {
     if (!input) return -22;

@@ -232,6 +232,8 @@ jobs:
           ${{ matrix.python }} -B tests/test_art_bundle.py
           ${{ matrix.python }} -B tests/test_service_bundle.py
           ${{ matrix.python }} -B tests/test_angle_build.py
+          ${{ matrix.python }} -B tests/test_framework_queue.py
+          ${{ matrix.python }} -B tests/test_framework_queue_runtime.py
           ${{ matrix.python }} -B tests/test_libcore_guest_link.py
           ${{ matrix.python }} -B tests/test_m2_acceptance.py
           ${{ matrix.python }} -B scripts/build.py host
@@ -680,6 +682,7 @@ jobs:
             build/m3/classlib/result.json
             build/m3/classlib/attempt-*/*.log
             build/m3/classlib/attempt-*/*.args
+            build/m3/classlib/attempt-*/implementation-classes.jar
             build/m3/dex-loader/
             artifacts/m3-classlib-verifier.json
             artifacts/m3-dex-loader.json
@@ -691,6 +694,32 @@ jobs:
         with:
           name: art-managed-fixture-${{ matrix.os }}
           path: build/m3/managed-fixture/
+          if-no-files-found: error
+          retention-days: 7
+  framework-queue-build:
+    name: Original Android framework queue inputs
+    needs: class-library
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      ARTBOX_ISOLATE_HOME: '1'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: class-library-macos-15
+          path: build/m5/classlib-inputs
+      - name: Compile original MessageQueue Java and Android JNI with pinned inputs
+        run: python3 -B scripts/build_framework_queue.py --classlib-dir build/m5/classlib-inputs/build/m3/classlib --fetch-jdk
+      - name: Preserve queue classes, native object, source and compiler diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: framework-queue-build
+          path: build/m5/framework-queue
           if-no-files-found: error
           retention-days: 7
   runtime-policy:
@@ -979,7 +1008,7 @@ jobs:
 
   art-guest-link:
     name: Full ART guest link, signed frameworks and native bootstrap
-    needs: [host, art-native-guest-build, class-library, binder-native-build, looper-reference, kernel-config-reference]
+    needs: [host, art-native-guest-build, class-library, binder-native-build, looper-reference, kernel-config-reference, framework-queue-build]
     runs-on: macos-15
     timeout-minutes: 20
     env:
@@ -1074,6 +1103,39 @@ jobs:
         run: >-
           python3 -B scripts/test_looper_guest.py --native-dir build/m4/looper-guest-inputs
           --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: framework-queue-build
+          path: build/m5/framework-queue-inputs
+      - name: Sign original framework queue JNI and real libutils for Mac and iOS 15
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 -B scripts/link_framework_queue.py
+          --queue-dir build/m5/framework-queue-inputs --looper-dir build/m4/looper-guest-inputs
+          --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+          --icu-dir build/m3/icu-guest-link
+      - name: Execute original MessageQueue in ART and verify wake, removal and disposal controls
+        run: >-
+          python3 -B scripts/test_icu_guest.py
+          --framework-dir build/m5/framework-queue-link
+          --libcore-dir build/m3/libcore-guest-link --icu-dir build/m3/icu-guest-link
+          --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
+          --classlib-dir build/m3/guest-classlib-inputs/build/m3/classlib
+          --managed-fixture-dir build/m3/guest-managed-inputs
+      - name: Preserve signed framework queue and actual ART observations
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: framework-queue-guest
+          path: |
+            artifacts/m5-framework-queue-link.json
+            artifacts/m5-framework-queue-guest.json
+            build/m5/framework-queue-link/
+            build/m5/framework-queue-guest/
+            build/host/artbox_native_art_runtime
+          if-no-files-found: error
+          retention-days: 7
       - name: Preserve signed Looper code, execution evidence and corresponding source
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
