@@ -39,6 +39,10 @@ existing ten original libutils/Looper objects. Its Android-only callback runs
 after M3's managed checks and before the same interpreter-policy and VM-shutdown
 checks. The existing M3 entry retains its original classpath and acceptance.
 An extension failure still shuts down the VM before reporting failure.
+The queue is the load-group root and retains the original libcore diagnostic
+root as a dependency, so all sixteen preloaded images are reachable. The ordered
+manifest has a compile-time capacity check. This is still a bounded diagnostic
+closure; a persistent Activity runtime needs shared ART/service ownership.
 
 The test registers the original six JNI methods in the actual ART VM, constructs
 the original Java queue, observes polling and wake across attached threads,

@@ -19,7 +19,7 @@ from ndk import obtain as obtain_ndk
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ('queue', 'looper', 'guest', 'dependency', 'icu'):
+    for name in ('queue', 'looper', 'guest', 'dependency', 'icu', 'libcore'):
         parser.add_argument('--'+name+'-dir', required=True, type=Path)
     parser.add_argument('--build-dir', type=Path)
     parser.add_argument('--ndk-root', type=Path)
@@ -56,12 +56,13 @@ def main():
     looper = read(args.looper_dir/'result.json')
     art = read(artifacts/'m3-art-guest-link.json')
     icu = read(artifacts/'m3-icu-guest-link.json')
-    for record in (build, looper, art, icu):
+    libcore = read(artifacts/'m3-libcore-guest-link.json')
+    for record in (build, looper, art, icu, libcore):
         if record['project_commit'] != revision or record['working_tree_dirty']:
             raise RuntimeError('Require the same clean revision for all framework inputs')
         for name, expected in record['project_sources'].items(): verify(ROOT/name, expected)
     if (build['runtime_executed'] or build['compile_reference_packaged'] or looper['profile'] != 'android' or
-            art['input_revision'] != revision or icu['input_revision'] != revision or
+            art['input_revision'] != revision or icu['input_revision'] != revision or libcore['input_revision'] != revision or
             build['profile_sha256'] != digest(ROOT/'third_party/framework/queue.json') or
             build['sources'] != read(ROOT/'third_party/framework/sources.json')):
         raise RuntimeError('Framework input profile changed')
@@ -80,9 +81,13 @@ def main():
         'libart.so':args.guest_dir/'libart.so',
         'libm.so':deps/'build/m3/art-math/libm.so',
         'libdl.so':deps/'build/m3/guest-loader/libdl.so',
-        'libnativehelper.so':args.icu_dir/'libnativehelper.so'}
+        'libnativehelper.so':args.icu_dir/'libnativehelper.so',
+        # Retain M3's complete boot/JNI closure as a dependency of the new root.
+        # Otherwise the queue's five direct imports leave ten images unreachable.
+        'libartbox_libcore_check.so':args.libcore_dir/'libartbox_libcore_check.so'}
     expected = {**art['dependencies'], 'libart.so':art['elf_sha256'],
-                'libnativehelper.so':icu['libraries']['libnativehelper.so']['elf_sha256']}
+                'libnativehelper.so':icu['libraries']['libnativehelper.so']['elf_sha256'],
+                'libartbox_libcore_check.so':libcore['libraries']['libartbox_libcore_check.so']['elf_sha256']}
     for name,path in base.items(): verify(path, expected[name])
     dex = verify(queue/'framework-queue.dex', build['dex']['sha256'])
     if build['dex']['classes'] != 6 or build['dex']['version'] != '039':
@@ -141,7 +146,7 @@ def main():
     source_bundle = output/'corresponding-source.zip'
     with zipfile.ZipFile(source_bundle, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
         for name,path in source_inputs.items(): archive.write(path, 'inputs/'+name+'-source.zip')
-        for name,record in [('queue',build),('looper',looper),('art',art),('icu',icu)]:
+        for name,record in [('queue',build),('looper',looper),('art',art),('icu',icu),('libcore',libcore)]:
             archive.writestr('inputs/'+name+'.json', json.dumps(record, indent=2))
         for name in project: archive.write(ROOT/name, 'artbox/'+name)
         archive.write(linker, 'generated/image.ld'); archive.write(exports, 'generated/exports.map')

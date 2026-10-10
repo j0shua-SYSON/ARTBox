@@ -96,14 +96,17 @@ independently verifies source, notices, libraries and four signed images.
 All 25 host jobs and the separate iOS build pass at this checkpoint. Actual Activity,
 managed touch, screenshots and physical graphics remain unverified.
 
-The original framework queue now has pinned Java/JNI inputs, a six-class DEX
-allowlist and a required macOS producer. A separate signed image and Android-only
-extension to the checked ART lifecycle are wired for queue creation, cross-thread
-wake, descriptor removal and disposal. Omitted-wake, missing-framework-DEX and
-existing M3 output/hello controls must pass before this establishes managed
-framework execution. Runtime evidence is pending; this is not Activity acceptance.
-See [framework bring-up](framework.md). The local class-library rebuild first
-failed from JVM native-memory exhaustion; the reduced-memory retry is pending.
+At `9efc0fb`, original MessageQueue Java/JNI and both callers compile and pass
+their instruction audits on Windows and Mac. The six-class, 14,956-byte DEX is
+identical across hosts; 27 project inputs, 222 upstream files and 11 notices
+verify independently. Mac/iOS signing succeeds. The first runtime attempt fails
+before VM startup at the incomplete image-order manifest. The correction adds
+the sixteenth name and selects the queue as the load root, retaining M3's full
+boot/JNI dependency closure. Queue execution remains pending; omitted-wake,
+missing-framework-DEX and existing M3 output/hello controls remain required.
+See [framework bring-up](framework.md). The local class-library rebuild passed
+after reducing JVM memory use; its initial native-memory exhaustion is retained
+as a build failure, not a runtime result. This is not Activity acceptance.
 
 ## M4 bring-up record (historical checkpoints)
 

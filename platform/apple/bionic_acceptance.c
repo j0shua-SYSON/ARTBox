@@ -776,6 +776,7 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
         modules[i] = (artbox_link_module){images[i].dynamic.soname, &images[i].dynamic, (uintptr_t)images[i].rx, &memory[i], 1};
     }
     artbox_elf_result linked = artbox_load_group_create(modules, image_count,
+        art_bootstrap == 7 ? "libartbox_framework_queue.so" :
         art_bootstrap == 6 ? "libartbox_kernel_config_check.so" :
         art_bootstrap == 5 ? "libartbox_looper_check.so" : art_bootstrap >= 3 ? "libartbox_libcore_check.so" :
         art_bootstrap == 2 ? "libartbox_icu_check.so" : art_bootstrap ? "libart.so" : "libstartup_client.so",
@@ -786,7 +787,9 @@ static int run_native(const native_input *input, const artbox_host *host, unsign
     if (art_bootstrap) {
         const char *names[] = {"libc.so", "libart.so", "libm.so", "libdl.so", "libnativehelper.so",
             "libicuuc.so", "libicui18n.so", "libicu.so", "libicu_jni.so", "libexpat.so", "libandroidio.so",
-            "libopenjdkjvm.so", "libjavacore.so", "libopenjdk.so", "libartbox_libcore_check.so"};
+            "libopenjdkjvm.so", "libjavacore.so", "libopenjdk.so", "libartbox_libcore_check.so",
+            "libartbox_framework_queue.so"};
+        _Static_assert(sizeof(names)/sizeof(names[0]) == IMAGE_CAPACITY, "Complete signed image-name manifest");
         if (art_bootstrap == 2) names[9] = "libartbox_icu_check.so";
         if (art_bootstrap == 5) names[4] = "libartbox_looper_check.so";
         if (art_bootstrap == 6) names[4] = "libartbox_kernel_config_check.so";

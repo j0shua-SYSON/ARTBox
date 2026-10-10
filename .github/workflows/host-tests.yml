@@ -1114,7 +1114,7 @@ jobs:
           python3 -B scripts/link_framework_queue.py
           --queue-dir build/m5/framework-queue-inputs --looper-dir build/m4/looper-guest-inputs
           --guest-dir build/m3/art-guest-link --dependency-dir build/m3/guest-dependency-inputs
-          --icu-dir build/m3/icu-guest-link
+          --icu-dir build/m3/icu-guest-link --libcore-dir build/m3/libcore-guest-link
       - name: Execute original MessageQueue in ART and verify wake, removal and disposal controls
         run: >-
           python3 -B scripts/test_icu_guest.py
