@@ -56,9 +56,9 @@ def validate_profile(catalog, profile):
             raise RuntimeError('Unpinned ANGLE license')
 
 
-def run(command, log, cwd=ROOT):
+def run(command, log, cwd=ROOT, timeout=None):
     with log.open('wb') as target:
-        result = subprocess.run(list(map(str, command)), cwd=cwd, stdout=target, stderr=subprocess.STDOUT)
+        result = subprocess.run(list(map(str, command)), cwd=cwd, stdout=target, stderr=subprocess.STDOUT, timeout=timeout)
     if result.returncode:
         raise RuntimeError(f'ANGLE command failed ({result.returncode}); see {log}')
     return log.read_text(encoding='utf-8')
@@ -101,12 +101,23 @@ def cmake_project(source, generated, profile, platform):
             'target_compile_definitions(ARTBoxANGLE PRIVATE ' + ' '.join(map(quote, profile['defines'])) + ')\n'
             'target_compile_options(ARTBoxANGLE PRIVATE "$<$<COMPILE_LANGUAGE:OBJCXX>:-fno-objc-arc>")\n'
             'target_link_libraries(ARTBoxANGLE PRIVATE z ' +
-            ' '.join(quote('-framework ' + f) for f in frameworks) + ')\n')
+            ' '.join(quote('-framework ' + f) for f in frameworks) + ')\n'
+            'add_library(artbox_native_surface STATIC ' + quote(ROOT / 'platform/apple/native_surface.mm') + ')\n'
+            'target_include_directories(artbox_native_surface PUBLIC ' + quote(ROOT / 'platform/include') +
+            ' PRIVATE ' + quote(angle / 'include') + ')\n'
+            'target_compile_options(artbox_native_surface PRIVATE -Wall -Wextra -Werror -fno-objc-arc '
+            '-Werror=unguarded-availability-new)\n'
+            'target_link_libraries(artbox_native_surface PRIVATE ARTBoxANGLE "-framework Foundation" "-framework QuartzCore")\n')
     if platform == 'macos':
         text += ('add_executable(angle_probe ' + quote(ROOT / 'tests/native/angle_probe.mm') + ')\n'
             'target_include_directories(angle_probe PRIVATE ' + quote(angle / 'include') + ')\n'
             'target_compile_options(angle_probe PRIVATE -Wall -Wextra -Werror -fno-objc-arc)\n'
             'target_link_libraries(angle_probe PRIVATE ARTBoxANGLE "-framework Foundation" "-framework Metal")\n')
+        text += ('add_executable(window_surface_probe ' + quote(ROOT / 'tests/native/window_surface_probe.mm') + ')\n'
+            'target_include_directories(window_surface_probe PRIVATE ' + quote(angle / 'include') + ')\n'
+            'target_compile_options(window_surface_probe PRIVATE -Wall -Wextra -Werror -fno-objc-arc)\n'
+            'target_link_libraries(window_surface_probe PRIVATE artbox_native_surface ARTBoxANGLE '
+            '"-framework Cocoa" "-framework Metal" "-framework QuartzCore")\n')
     return text
 
 
@@ -121,6 +132,16 @@ def validate_probe(record):
             raise RuntimeError('ANGLE pixel/lifetime contract did not pass')
     elif record.get('verified_pixels') != 0:
         raise RuntimeError('ANGLE reported pixels without a Metal device')
+
+
+def validate_window_probe(record):
+    expected = dict(schema=1, backend='metal', metal_available=True, verified_pixels=7296,
+                    verified_texture_bytes=4, frames_presented=7, surfaces_created=3,
+                    surfaces_destroyed=3, thread_rejections=6, suspend_resume_passed=True,
+                    shared_display_passed=True)
+    for key, value in expected.items():
+        if type(record.get(key)) is not type(value) or record[key] != value:
+            raise RuntimeError('ANGLE window render/lifetime contract failed: ' + key)
 
 
 def main():
@@ -142,7 +163,9 @@ def main():
     headers = generated_headers(generated, catalog, profile)
     project = ['LICENSE', 'THIRD_PARTY.md', 'docs/graphics.md', 'scripts/build_angle.py', 'scripts/sources.py',
         'scripts/environment.py', 'tests/test_angle_build.py', 'tests/native/angle_probe.mm',
-        'third_party/angle/sources.json', 'third_party/angle/metal-build.json']
+        'third_party/angle/sources.json', 'third_party/angle/metal-build.json',
+        'platform/include/artbox/native_surface.h', 'platform/apple/native_surface.mm',
+        'tests/native/window_surface_probe.mm']
     entries = {'upstream/' + n + '/' + e['path']: sources[n] / e['path'] for n, s in catalog.items() for e in s['files']}
     entries.update({'artbox/' + n: ROOT / n for n in project})
     entries.update({'generated/' + n: generated / n for n in headers})
@@ -181,16 +204,26 @@ def main():
             run(['xcrun', 'nm', '-u', code], directory/'imports.log')
             record['platforms'][platform] = dict(binary_sha256=digest(code), bytes=code.stat().st_size,
                 compile_seconds=elapsed, translation_units=len(profile['common'])+len(profile['platforms'][platform])+1,
-                minimum=minimum, notices={p.name: digest(p) for p in notices.iterdir()})
+                minimum=minimum, notices={p.name: digest(p) for p in notices.iterdir()},
+                surface_library_sha256=digest(binary/'libartbox_native_surface.a'))
             if platform == 'macos':
                 probe = binary/'angle_probe'
                 run(['codesign', '--force', '--sign', '-', '--timestamp=none', probe], directory/'probe-sign.log')
-                run([probe], directory/'probe.log')
+                run([probe], directory/'probe.log', timeout=120)
                 rows = [line for line in (directory/'probe.log').read_text(encoding='utf-8').splitlines() if line.startswith('{')]
                 if len(rows) != 1: raise RuntimeError('ANGLE probe must emit exactly one JSON record')
                 record['probe'] = json.loads(rows[0]); validate_probe(record['probe'])
                 record['probe_binary_sha256'] = digest(probe)
                 record['probe_output_sha256'] = digest(directory/'probe.log')
+                window_probe = binary/'window_surface_probe'
+                run(['codesign', '--force', '--sign', '-', '--timestamp=none', window_probe], directory/'window-sign.log')
+                run(['codesign', '--verify', '--strict', '--verbose=2', window_probe], directory/'window-verify.log')
+                run([window_probe], directory/'window.log', timeout=120)
+                rows = [line for line in (directory/'window.log').read_text(encoding='utf-8').splitlines() if line.startswith('{')]
+                if len(rows) != 1: raise RuntimeError('Window probe must emit exactly one JSON record')
+                record['window_probe'] = json.loads(rows[0]); validate_window_probe(record['window_probe'])
+                record['window_probe_binary_sha256'] = digest(window_probe)
+                record['window_probe_output_sha256'] = digest(directory/'window.log')
             save(report_path, record)
     save(report_path, record)
     print('ANGLE sources prepared' if args.prepare else 'ANGLE Mac/iOS build and native probe passed')
@@ -199,5 +232,5 @@ def main():
 
 if __name__ == '__main__':
     try: main()
-    except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
+    except (OSError, RuntimeError, subprocess.SubprocessError) as error:
         print('ARTBox ANGLE: ' + str(error), file=sys.stderr); sys.exit(1)

@@ -86,6 +86,12 @@ dependencies, ART/service lifecycle integration, composition and touch dispatch
 remain ahead. See [graphics bring-up](graphics.md). This is a native graphics
 boundary, not completed Activity or APK acceptance.
 
+The next candidate adds native `CAMetalLayer` ownership, with shared-display
+lifetime and suspend/resume behind a C API. Eight local build/evidence tests
+pass. A new signed Mac window test covers concurrent surfaces, resize, context
+resource preservation, wrong-thread calls and recreation after teardown; its
+native CI execution is pending. Both macOS and iOS compile the same adapter.
+
 ## M4 bring-up record (historical checkpoints)
 
 At `136a087`, the original VINTF kernel-config parser passes 89 assertions and

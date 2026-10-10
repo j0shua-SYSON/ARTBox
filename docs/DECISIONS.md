@@ -3765,3 +3765,25 @@ resource cleanup; otherwise report GPU unavailability explicitly. A headless
 runner's shader tests cannot replace the final Activity screenshot and touch
 test. Keep Activity construction and managed input as independent required M5
 work; neither a native color view nor Android SDK stub classes establish it.
+
+## ADR 0136: Own native window surfaces separately from guest rendering calls
+
+Keep the initial `CAMetalLayer`/EGL lifetime adapter in the Apple platform layer
+behind an opaque C owner. Compile it as a static library for both macOS arm64
+and iOS 15; link the same unchanged native ANGLE framework. Do not expose native
+C++ or Objective-C ownership to Bionic. A later EGL/JNI adapter must translate
+guest handles and arguments deliberately.
+
+Use one main-thread-owned display with independent surface/context owners.
+Terminating EGL for each window would invalidate other windows on that display.
+Suspend releases the window surface while keeping GL resources in the context;
+resume recreates the surface. Reject a second owner for the same layer. For now,
+all operations require the main thread, matching UI geometry/lifetime ownership.
+This costs render scheduling flexibility; add explicit transfer only with tests
+for ownership races and the Android rendering thread model.
+
+Before connecting managed code, require actual Metal window readback, resize,
+resource preservation across suspension, wrong-thread rejection, independent
+window teardown and complete display recreation. Keep these results separate
+from Activity, touch and screenshot acceptance. Bound probe execution because
+the pinned ANGLE window backend can wait indefinitely after drawable timeout.

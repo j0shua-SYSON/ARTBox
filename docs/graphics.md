@@ -63,6 +63,34 @@ a Metal-backed window with lifetime tests, UIKit-to-MotionEvent translation,
 and compatible ownership of ART and retained Binder services. Launcher polish
 remains deferred.
 
+## Native window ownership
+
+`platform/include/artbox/native_surface.h` is the C boundary for native Apple
+window ownership. It retains a supplied `CAMetalLayer` and owns its EGL surface
+and GLES2 context. A single native ANGLE display remains initialized until the
+last owner is destroyed; destroying one window leaves other contexts usable.
+Creation does not change the current context. Callers bind before native GLES
+commands and explicitly present afterwards. No EGL handle, Objective-C object
+ownership or C++ allocation crosses into guest code through this interface.
+
+The first implementation confines these operations and layer geometry changes
+to the main thread. It rejects duplicate layer ownership and use from worker
+threads. This simplifies UIKit lifetime ordering at the cost of restricting
+render-thread scheduling; a later guest EGL adapter will need explicit context
+transfer. Suspend unbinds and destroys the drawable surface while retaining the
+context and its textures. Resume creates a new surface at the layer's current
+bounds and scale. The UI owner must suspend before background rendering becomes
+unavailable; this API alone does not implement iOS application lifecycle hooks.
+
+The native window test requires Metal and an AppKit window server. It checks
+7,296 pixels across seven frames in two windows, ordinary and scaled resize,
+retained texture bytes after suspend/resume, six worker-thread rejections, and
+display recreation after final teardown. Its signed executable and both native
+surface static libraries accompany the ANGLE artifact. This test is being
+validated in CI; it is neither a screenshot nor an Android Activity test.
+Probe processes have a 120-second timeout: the pinned upstream drawable
+acquisition can otherwise retry without a timeout when no drawable is available.
+
 At `01e6e05`, the native Apple job passes and its artifact independently verifies
 924 source inputs, ten project files, both signed framework images and the
 signed probe. The Mac runner exposes an Apple Paravirtual Metal device: both

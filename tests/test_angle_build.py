@@ -9,7 +9,7 @@ import os
 import tempfile
 import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from build_angle import CATALOG, PROFILE, generated_headers, validate_probe, validate_profile
+from build_angle import CATALOG, PROFILE, generated_headers, validate_probe, validate_profile, validate_window_probe
 from environment import environment
 
 
@@ -69,6 +69,23 @@ class ANGLEBoundary(unittest.TestCase):
                            ('contexts_destroyed', 0), ('metal_available', 1)]:
             broken = dict(record); broken[key] = value
             with self.subTest(key=key), self.assertRaises(RuntimeError): validate_probe(broken)
+
+    def test_window_requires_render_lifetime_and_thread_evidence(self):
+        record = dict(schema=1, backend='metal', metal_available=True, verified_pixels=7296,
+                      verified_texture_bytes=4, frames_presented=7, surfaces_created=3,
+                      surfaces_destroyed=3, thread_rejections=6, suspend_resume_passed=True,
+                      shared_display_passed=True)
+        validate_window_probe(record)
+        for key in record:
+            broken = dict(record)
+            broken.pop(key)
+            with self.subTest(missing=key), self.assertRaises(RuntimeError): validate_window_probe(broken)
+        for key, value in [('backend', 'null'), ('metal_available', False), ('verified_pixels', 2048),
+                           ('verified_texture_bytes', 0), ('surfaces_created', 1), ('surfaces_destroyed', 2),
+                           ('frames_presented', 6), ('thread_rejections', 5), ('suspend_resume_passed', False),
+                           ('shared_display_passed', False), ('schema', True)]:
+            broken = dict(record); broken[key] = value
+            with self.subTest(key=key), self.assertRaises(RuntimeError): validate_window_probe(broken)
 
 
 if __name__ == '__main__':

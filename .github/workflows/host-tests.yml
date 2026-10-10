@@ -37,7 +37,9 @@ jobs:
             build/m5/angle/*/CMakeLists.txt
             build/m5/angle/*/build/compile_commands.json
             build/m5/angle/*/build/ARTBoxANGLE.framework
+            build/m5/angle/*/build/libartbox_native_surface.a
             build/m5/angle/macos/build/angle_probe
+            build/m5/angle/macos/build/window_surface_probe
           if-no-files-found: error
           retention-days: 7
   binder-native-build:
