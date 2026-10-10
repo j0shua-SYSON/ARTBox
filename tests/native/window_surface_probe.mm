@@ -3,7 +3,9 @@
 #import <AppKit/AppKit.h>
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
+#import <QuartzCore/CATransaction.h>
 #include "artbox/native_surface.h"
+#include <EGL/egl.h>
 #include <GLES2/gl2.h>
 #include <cstdio>
 #include <cstdlib>
@@ -13,7 +15,11 @@
 
 static unsigned pixels_verified = 0, frames_presented = 0;
 static void require(bool value, const char *message) {
-    if (!value) { std::fprintf(stderr, "Window surface contract failed: %s\n", message); std::exit(1); }
+    if (!value) {
+        std::fprintf(stderr, "Window surface contract failed: %s (EGL %x, GL %x)\n",
+                     message, eglGetError(), glGetError());
+        std::exit(1);
+    }
 }
 
 static void color(artbox_native_surface *surface, unsigned width, unsigned height,
